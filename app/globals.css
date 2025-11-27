@@ -1,0 +1,279 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Jalnan 폰트 적용 - 성능 최적화 */
+@font-face {
+  font-family: 'YeogiOttaeJalnan';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.2/JalnanOTF00.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+  /* preload는 HTML head에서 처리 */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-jalnan: 'YeogiOttaeJalnan', 'Malgun Gothic', sans-serif;
+  
+  /* 브랜드 색상 팔레트 (주황/빨강, 녹색, 금색) */
+  --color-orange-50: oklch(0.98 0.02 50);
+  --color-orange-100: oklch(0.95 0.04 50);
+  --color-orange-200: oklch(0.90 0.06 50);
+  --color-orange-300: oklch(0.85 0.08 50);
+  --color-orange-400: oklch(0.75 0.12 50);
+  --color-orange-500: oklch(0.65 0.16 50);
+  --color-orange-600: oklch(0.55 0.18 50);
+  --color-orange-700: oklch(0.45 0.20 50);
+  --color-orange-800: oklch(0.35 0.22 50);
+  --color-orange-900: oklch(0.25 0.24 50);
+  
+  --color-green-50: oklch(0.98 0.02 150);
+  --color-green-100: oklch(0.95 0.04 150);
+  --color-green-200: oklch(0.90 0.06 150);
+  --color-green-300: oklch(0.85 0.08 150);
+  --color-green-400: oklch(0.75 0.12 150);
+  --color-green-500: oklch(0.65 0.16 150);
+  --color-green-600: oklch(0.55 0.18 150);
+  --color-green-700: oklch(0.45 0.20 150);
+  --color-green-800: oklch(0.35 0.22 150);
+  --color-green-900: oklch(0.25 0.24 150);
+  
+  --color-gold-50: oklch(0.98 0.02 85);
+  --color-gold-100: oklch(0.95 0.04 85);
+  --color-gold-200: oklch(0.90 0.06 85);
+  --color-gold-300: oklch(0.85 0.08 85);
+  --color-gold-400: oklch(0.75 0.12 85);
+  --color-gold-500: oklch(0.65 0.16 85);
+  --color-gold-600: oklch(0.55 0.18 85);
+  --color-gold-700: oklch(0.45 0.20 85);
+  --color-gold-800: oklch(0.35 0.22 85);
+  --color-gold-900: oklch(0.25 0.24 85);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* 모바일 뷰포트 최적화 */
+html {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  /* Primary: 주황색 계열 */
+  --primary: oklch(0.60 0.18 50);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.145 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  /* Accent: 녹색 계열 */
+  --accent: oklch(0.65 0.16 150);
+  --accent-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.60 0.18 50);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.60 0.18 50);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  
+  /* 브랜드 색상 변수 */
+  --brand-orange: oklch(0.60 0.18 50);
+  --brand-green: oklch(0.65 0.16 150);
+  --brand-gold: oklch(0.65 0.16 85);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-geist-sans), 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  }
+  main {
+    @apply max-w-7xl mx-auto pt-16 px-4;
+  }
+  
+  /* 타이포그래피 시스템 */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-jalnan);
+    font-weight: normal;
+    letter-spacing: -0.02em;
+  }
+  
+  h1 {
+    font-size: 2.5rem; /* 40px */
+    line-height: 1.2;
+  }
+  
+  h2 {
+    font-size: 2rem; /* 32px */
+    line-height: 1.3;
+  }
+  
+  h3 {
+    font-size: 1.5rem; /* 24px */
+    line-height: 1.4;
+  }
+  
+  h4 {
+    font-size: 1.25rem; /* 20px */
+    line-height: 1.4;
+  }
+  
+  /* 본문 텍스트 */
+  p, span, div {
+    font-size: 1rem; /* 16px */
+    line-height: 1.6;
+  }
+  
+  /* 작은 텍스트 */
+  .text-sm {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.5;
+  }
+  
+  .text-xs {
+    font-size: 0.75rem; /* 12px */
+    line-height: 1.4;
+  }
+  
+  /* 강조 텍스트 */
+  .font-bold {
+    font-weight: 700;
+  }
+  
+  .font-semibold {
+    font-weight: 600;
+  }
+  
+  .font-medium {
+    font-weight: 500;
+  }
+  
+  /* 가로 스크롤 숨김 (모바일) */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera */
+  }
+
+  /* 고문서 스타일 - 세로쓰기 텍스트 */
+  .writing-vertical-rl {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+  }
+
+  /* 고문서 스타일 - 한자/한글 전통 폰트 */
+  .font-traditional {
+    font-family: 'Nanum Myeongjo', 'Nanum Gothic', 'Malgun Gothic', serif;
+  }
+}

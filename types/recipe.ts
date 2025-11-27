@@ -1,0 +1,187 @@
+/**
+ * @file recipe.ts
+ * @description 현대 레시피 북 (Section B) 도메인 타입 정의.
+ *
+ * 주요 타입:
+ * 1. Recipe: 레시피 기본 정보
+ * 2. RecipeIngredient: 구조화된 재료 정보
+ * 3. RecipeStep: 단계별 조리 과정
+ * 4. RecipeRating: 별점 평가 (0.5점 단위)
+ * 5. RecipeReport: 신고 정보
+ */
+
+export interface Recipe {
+  id: string;
+  user_id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  difficulty: number; // 1~5점
+  cooking_time_minutes: number; // 분 단위
+  servings: number;
+  created_at: string;
+  updated_at: string;
+  // 조인된 데이터
+  user?: {
+    id: string;
+    name: string;
+  };
+  rating_stats?: {
+    rating_count: number;
+    average_rating: number;
+  };
+}
+
+export interface RecipeIngredient {
+  id: string;
+  recipe_id: string;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  notes: string | null;
+  order_index: number;
+  created_at: string;
+}
+
+export interface RecipeStep {
+  id: string;
+  recipe_id: string;
+  step_number: number;
+  content: string;
+  image_url: string | null;
+  video_url: string | null;
+  timer_minutes: number | null;
+  created_at: string;
+}
+
+export interface RecipeRating {
+  id: string;
+  recipe_id: string;
+  user_id: string;
+  rating: number; // 0.5, 1.0, 1.5, ..., 5.0
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecipeReport {
+  id: string;
+  recipe_id: string;
+  user_id: string;
+  report_type: "inappropriate" | "copyright" | "spam" | "other";
+  reason: string;
+  status: "pending" | "reviewing" | "resolved" | "dismissed";
+  created_at: string;
+  updated_at: string;
+}
+
+// 레시피 목록 조회용 (간소화된 정보)
+export interface RecipeListItem {
+  id: string;
+  slug: string;
+  title: string;
+  thumbnail_url: string | null;
+  difficulty: number;
+  cooking_time_minutes: number;
+  rating_count: number;
+  average_rating: number;
+  created_at?: string; // 정렬을 위해 추가
+  user: {
+    name: string;
+  };
+}
+
+// 레시피 상세 조회용 (모든 정보 포함)
+export interface RecipeDetail extends Recipe {
+  ingredients: RecipeIngredient[];
+  steps: RecipeStep[];
+  user_rating?: number; // 현재 사용자의 평가 (있는 경우)
+}
+
+// 레시피 필터 상태
+export interface RecipeFilterState {
+  searchTerm: string;
+  difficulty: number[]; // 1~5 중 선택된 난이도들
+  maxCookingTime: number | null; // 최대 조리 시간 (분)
+  sortBy: "newest" | "popular" | "rating"; // 정렬 기준
+}
+
+// 조리 시간 포맷팅 헬퍼 타입
+export type CookingTimeFormat = {
+  hours: number;
+  minutes: number;
+};
+
+// =============================================================================
+// AI 맞춤 식단 시스템 타입 정의
+// =============================================================================
+
+// 재료 정보
+export interface Ingredient {
+  name: string;
+  amount: string;
+  unit: string;
+}
+
+// 영양 정보
+export interface RecipeNutrition {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  sodium?: number;
+  fiber?: number;
+}
+
+// 레시피 상세 정보 (AI 식단용)
+export interface RecipeDetailForDiet {
+  id?: string;
+  title: string;
+  description?: string;
+  image?: string;
+  url?: string;
+  source?: string; // 'edamam', 'foodsafety', 'fallback', 'seasonal'
+  ingredients: Ingredient[];
+  instructions?: string | string[];
+  nutrition: RecipeNutrition;
+  cuisineType?: string[];
+  mealType?: string | string[];
+  dishType?: string[];
+  tags?: string[];
+  emoji?: string; // 제철 과일용 이모지
+  imageUrl?: string; // 과일 이미지 URL
+  featureDescription?: string; // 어린이 추천 이유 등
+  compositionSummary?: string[]; // 식사 구성품 요약 (밥/반찬/국 등 이름 리스트)
+}
+
+// 식사 구성 (밥 + 반찬 3개 + 국/찌개)
+export interface MealComposition {
+  rice?: RecipeDetailForDiet;
+  sides: RecipeDetailForDiet[];
+  soup?: RecipeDetailForDiet;
+  totalNutrition: RecipeNutrition;
+  compositionSummary?: string[]; // 식사 구성품 요약 (밥/반찬/국 등 이름 리스트)
+}
+
+// 하루 식단 계획
+export interface DailyDietPlan {
+  date: string; // 'YYYY-MM-DD'
+  breakfast?: MealComposition | RecipeDetailForDiet;
+  lunch?: MealComposition | RecipeDetailForDiet;
+  dinner?: MealComposition | RecipeDetailForDiet;
+  snack?: RecipeDetailForDiet;
+  totalNutrition: RecipeNutrition;
+}
+
+// 가족 식단 계획 (개인별 + 통합)
+export interface FamilyDietPlan {
+  date: string;
+  individualPlans: {
+    [memberId: string]: DailyDietPlan; // 가족 구성원별 식단
+  };
+  unifiedPlan?: DailyDietPlan; // 가족 통합 식단
+}
+
+// 식사 타입
+export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+

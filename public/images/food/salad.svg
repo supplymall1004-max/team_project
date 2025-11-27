@@ -1,0 +1,15 @@
+<svg width="400" height="300" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#ECFDF5"/>
+  <ellipse cx="200" cy="160" rx="80" ry="50" fill="#10B981" opacity="0.1"/>
+  <circle cx="170" cy="140" r="6" fill="#DC2626"/>
+  <circle cx="200" cy="130" r="5" fill="#F59E0B"/>
+  <circle cx="230" cy="145" r="7" fill="#8B5CF6"/>
+  <rect x="190" y="180" width="20" height="15" rx="2" fill="#FBBF24"/>
+  <text x="200" y="220" text-anchor="middle" fill="#065F46" font-family="Arial, sans-serif" font-size="18" font-weight="bold">샐러드</text>
+  <text x="200" y="235" text-anchor="middle" fill="#065F46" font-family="Arial, sans-serif" font-size="12">Salad</text>
+</svg>
+
+
+
+
+

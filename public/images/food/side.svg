@@ -1,0 +1,13 @@
+<svg width="400" height="300" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#ECFDF5"/>
+  <rect x="120" y="120" width="60" height="60" rx="8" fill="#10B981" opacity="0.2"/>
+  <rect x="200" y="100" width="60" height="60" rx="8" fill="#F59E0B" opacity="0.2"/>
+  <rect x="140" y="200" width="60" height="60" rx="8" fill="#EF4444" opacity="0.2"/>
+  <text x="200" y="280" text-anchor="middle" fill="#065F46" font-family="Arial, sans-serif" font-size="18" font-weight="bold">반찬</text>
+  <text x="200" y="295" text-anchor="middle" fill="#065F46" font-family="Arial, sans-serif" font-size="12">Side Dishes</text>
+</svg>
+
+
+
+
+

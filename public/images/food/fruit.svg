@@ -1,0 +1,14 @@
+<svg width="400" height="300" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#FEF7ED"/>
+  <circle cx="160" cy="150" r="25" fill="#EF4444"/>
+  <circle cx="200" cy="120" r="20" fill="#F59E0B"/>
+  <circle cx="240" cy="150" r="22" fill="#10B981"/>
+  <circle cx="200" cy="180" r="18" fill="#8B5CF6"/>
+  <text x="200" y="230" text-anchor="middle" fill="#92400E" font-family="Arial, sans-serif" font-size="18" font-weight="bold">과일</text>
+  <text x="200" y="245" text-anchor="middle" fill="#92400E" font-family="Arial, sans-serif" font-size="12">Fruits</text>
+</svg>
+
+
+
+
+
