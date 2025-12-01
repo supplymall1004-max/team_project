@@ -100,7 +100,8 @@ export function FamilyMemberSection() {
     };
 
     loadFamilyData();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // getToken은 Clerk hook에서 제공하는 안정적인 함수이므로 의존성에서 제외
 
   const handleRefresh = async () => {
     setIsLoading(true);

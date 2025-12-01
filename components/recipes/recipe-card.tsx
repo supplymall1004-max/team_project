@@ -105,46 +105,44 @@ export function RecipeCard({ recipe, className }: RecipeCardProps) {
       </div>
 
       {/* 카드 내용 */}
-      <div className="p-4 space-y-3">
+      <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
         {/* 제목 */}
-        <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-orange-600 transition-colors">
+        <h3 className="font-semibold text-base sm:text-lg line-clamp-2 group-hover:text-orange-600 transition-colors">
           {recipe.title}
         </h3>
 
         {/* 별점 및 평가 개수 */}
         {recipe.rating_count > 0 ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <div className="flex items-center gap-0.5">
               {ratingStars.map((star, index) => (
                 <Star
                   key={index}
                   className={cn(
-                    "h-4 w-4",
+                    "h-3.5 w-3.5 sm:h-4 sm:w-4",
                     star === "full"
                       ? "fill-yellow-400 text-yellow-400"
-                      : star === "half"
-                      ? "fill-yellow-400/50 text-yellow-400"
                       : "fill-gray-200 text-gray-200"
                   )}
                 />
               ))}
             </div>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs sm:text-sm text-muted-foreground">
               {recipe.average_rating.toFixed(1)} ({recipe.rating_count})
             </span>
           </div>
         ) : (
-          <div className="text-sm text-muted-foreground">아직 평가가 없습니다</div>
+          <div className="text-xs sm:text-sm text-muted-foreground">아직 평가가 없습니다</div>
         )}
 
         {/* 메타 정보 (조리 시간, 난이도) */}
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
+            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span>{formatCookingTime(recipe.cooking_time_minutes)}</span>
           </div>
           <div className="flex items-center gap-1">
-            <ChefHat className="h-4 w-4" />
+            <ChefHat className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span>{formatDifficulty(recipe.difficulty)}</span>
           </div>
         </div>

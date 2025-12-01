@@ -33,15 +33,37 @@ export interface Recipe {
   };
 }
 
+// 재료 카테고리 타입 (DB ENUM과 일치)
+export type IngredientCategory =
+  | "곡물"
+  | "채소"
+  | "과일"
+  | "육류"
+  | "해산물"
+  | "유제품"
+  | "조미료"
+  | "기타";
+
 export interface RecipeIngredient {
   id: string;
   recipe_id: string;
-  name: string;
+  ingredient_name: string; // DB 필드명과 일치
   quantity: number | null;
   unit: string | null;
-  notes: string | null;
-  order_index: number;
+  category: IngredientCategory; // 재료 카테고리
+  is_optional: boolean; // 선택 재료 여부
+  preparation_note: string | null; // 손질 방법 (예: "다진 것", "깍둑썰기")
+  display_order: number; // 표시 순서 (DB 필드명과 일치)
   created_at: string;
+  updated_at?: string;
+  
+  // 하위 호환성을 위한 별칭 (기존 코드에서 name, notes, order_index 사용 시)
+  /** @deprecated ingredient_name 사용 */
+  name?: string;
+  /** @deprecated preparation_note 사용 */
+  notes?: string | null;
+  /** @deprecated display_order 사용 */
+  order_index?: number;
 }
 
 export interface RecipeStep {

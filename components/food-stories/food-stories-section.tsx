@@ -7,7 +7,6 @@ import Link from "next/link";
 import { Section } from "@/components/section";
 import { parseFoodStoryVideos } from "@/lib/youtube-server";
 import { FoodStoriesClient } from "./food-stories-client";
-import { SpecialVideoCard } from "./special-video-card";
 import { FoodStoryCard } from "./food-story-card";
 
 interface FoodStoriesSectionProps {
@@ -54,10 +53,10 @@ export async function FoodStoriesSection({
 
         {/* 특별 동영상과 일반 동화 동영상 그리드 */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 justify-items-center">
-          {specialVideo && <SpecialVideoCard video={specialVideo} />}
+          {specialVideo && <FoodStoryCard video={specialVideo} layout="default" />}
 
           {firstCompanion ? (
-            <FoodStoryCard video={firstCompanion} layout="shorts" />
+            <FoodStoryCard video={firstCompanion} layout="default" />
           ) : (
             <div className="flex h-full w-full items-center justify-center rounded-2xl border border-dashed border-border/60 bg-white/60 p-6 text-center text-sm text-muted-foreground">
               함께 보여줄 음식 동화를 준비 중이에요.

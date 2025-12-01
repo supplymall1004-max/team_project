@@ -83,19 +83,19 @@ export function LegacyArchiveClient({
   };
 
   return (
-    <div className="space-y-10 rounded-3xl border border-border/80 bg-white/90 p-6 shadow-lg">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center">
-          <div className="flex flex-1 items-center gap-3 rounded-2xl border border-border/60 bg-white px-4 py-3 shadow-inner">
-            <Search className="h-4 w-4 text-muted-foreground" />
+    <div className="space-y-6 sm:space-y-10 rounded-2xl sm:rounded-3xl border border-border/80 bg-white/90 p-4 sm:p-6 shadow-lg">
+      <div className="flex flex-col gap-3 sm:gap-4">
+        <div className="flex flex-col gap-2 sm:gap-3 md:flex-row md:items-center">
+          <div className="flex flex-1 items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-border/60 bg-white px-3 sm:px-4 py-2 sm:py-3 shadow-inner">
+            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <Input
               placeholder="명인, 지역, 재료를 검색해보세요"
-              className="border-none p-0 shadow-none focus-visible:ring-0"
+              className="border-none p-0 shadow-none focus-visible:ring-0 text-sm sm:text-base"
               value={filters.searchTerm}
               onChange={(event) => handleSearch(event.target.value)}
             />
           </div>
-          <Button variant="outline" size="sm" onClick={resetFilters}>
+          <Button variant="outline" size="sm" onClick={resetFilters} className="text-xs sm:text-sm">
             필터 초기화
           </Button>
         </div>
@@ -121,31 +121,31 @@ export function LegacyArchiveClient({
       </div>
 
       <div>
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-3 sm:mb-4 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-orange-600">잊혀진 고대 레시피</p>
-            <h3 className="text-2xl font-bold">시대별 레시피</h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm font-semibold text-orange-600">잊혀진 고대 레시피</p>
+            <h3 className="text-xl sm:text-2xl font-bold">시대별 레시피</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               필터 조건에 맞는 영상 {filteredVideos.length}건이 있습니다.
             </p>
           </div>
         </div>
         {filteredVideos.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
+          <div className="rounded-xl sm:rounded-2xl border border-dashed border-border px-4 sm:px-6 py-8 sm:py-12 text-center text-xs sm:text-sm text-muted-foreground">
             조건에 맞는 영상이 없습니다. 필터를 조정해주세요.
           </div>
         ) : (
           <>
             {/* 모바일: 가로 스크롤 */}
-            <div className="flex gap-4 overflow-x-auto pb-4 md:hidden scrollbar-hide">
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 md:hidden scrollbar-hide">
               {filteredVideos.map((video) => (
-                <div key={video.id} className="min-w-[280px] max-w-[280px] flex-shrink-0">
+                <div key={video.id} className="min-w-[260px] max-w-[260px] sm:min-w-[280px] sm:max-w-[280px] flex-shrink-0">
                   <LegacyVideoCard video={video} />
                 </div>
               ))}
             </div>
             {/* 데스크톱: 그리드 */}
-            <div className="hidden grid-cols-2 gap-4 md:grid lg:grid-cols-3">
+            <div className="hidden grid-cols-2 gap-3 sm:gap-4 md:grid lg:grid-cols-3">
               {filteredVideos.map((video) => (
                 <LegacyVideoCard key={video.id} video={video} />
               ))}
@@ -153,9 +153,6 @@ export function LegacyArchiveClient({
           </>
         )}
       </div>
-
-      {/* 특별 동영상 카드 */}
-      <FeaturedVideoCard />
 
     </div>
   );
@@ -174,7 +171,7 @@ function FilterGroup({ label, options, selected, onToggle }: FilterGroupProps) {
       <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         {label}
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {options.map((option) => {
           const isSelected = selected.includes(option);
           return (
@@ -183,7 +180,7 @@ function FilterGroup({ label, options, selected, onToggle }: FilterGroupProps) {
               type="button"
               size="sm"
               variant={isSelected ? "default" : "outline"}
-              className="rounded-full"
+              className="rounded-full text-xs sm:text-sm h-7 sm:h-8 px-2.5 sm:px-3"
               onClick={() => onToggle(option)}
             >
               {option}
@@ -204,6 +201,7 @@ function LegacyVideoCard({ video }: { video: LegacyVideo }) {
   // 유튜브 비디오 ID 추출
   const videoId = extractYouTubeVideoId(video.videoUrl);
   const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0` : null;
+  const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
 
   const handleCardClick = () => {
     if (isFullscreen) {
@@ -369,46 +367,77 @@ function LegacyVideoCard({ video }: { video: LegacyVideo }) {
   return (
     <>
       <div 
-        className="flex h-full flex-col rounded-2xl border border-border/70 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg min-h-[280px] md:min-h-0 cursor-pointer"
+        className="flex h-full flex-col rounded-xl sm:rounded-2xl border border-border/70 bg-white overflow-hidden shadow-sm transition hover:-translate-y-1 hover:shadow-lg min-h-[280px] md:min-h-0 cursor-pointer"
         onClick={handleCardClick}
       >
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600 shrink-0">
-            <Film className="h-5 w-5" />
+        {/* 유튜브 썸네일 이미지 */}
+        {thumbnailUrl && (
+          <div className="relative w-full aspect-video bg-gray-100">
+            <img
+              src={thumbnailUrl}
+              alt={video.title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                console.error("[LegacyVideoCard] 썸네일 로딩 실패:", thumbnailUrl);
+                // 썸네일 로딩 실패 시 숨김
+                e.currentTarget.style.display = "none";
+              }}
+            />
+            {/* 재생 오버레이 */}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+              <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-white/90 text-orange-600 shadow-lg">
+                <svg
+                  className="ml-0.5 h-5 w-5 sm:h-7 sm:w-7"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-orange-600">
-              {video.master.title}
-            </p>
-            <h4 className="text-lg font-bold truncate">{video.title}</h4>
+        )}
+        
+        {/* 카드 콘텐츠 */}
+        <div className="flex-1 p-3 sm:p-4 flex flex-col">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2">
+            <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-orange-100 text-orange-600 shrink-0">
+              <Film className="h-4 w-4 sm:h-5 sm:w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-orange-600">
+                {video.master.title}
+              </p>
+              <h4 className="text-base sm:text-lg font-bold truncate">{video.title}</h4>
+            </div>
           </div>
-        </div>
-        <p className="mt-3 text-sm text-muted-foreground line-clamp-2 md:line-clamp-3">
-          {video.description}
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span>{video.region}</span>
-          <span>•</span>
-          <span>{video.durationMinutes}분</span>
-          {video.premiumOnly && (
-            <>
-              <span>•</span>
-              <span className="font-semibold text-amber-600">프리미엄</span>
-            </>
-          )}
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {video.ingredients.slice(0, 3).map((ingredient) => (
-            <span
-              key={ingredient}
-              className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700"
-            >
-              {ingredient}
-            </span>
-          ))}
-        </div>
-        <div className="mt-4 text-xs text-muted-foreground">
-          <p>클릭: 재생 | 더블클릭: 전체화면</p>
+          <p className="mt-2 text-xs sm:text-sm text-muted-foreground line-clamp-2">
+            {video.description}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2 text-xs text-muted-foreground">
+            <span>{video.region}</span>
+            <span>•</span>
+            <span>{video.durationMinutes}분</span>
+            {video.premiumOnly && (
+              <>
+                <span>•</span>
+                <span className="font-semibold text-amber-600">프리미엄</span>
+              </>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2">
+            {video.ingredients.slice(0, 3).map((ingredient) => (
+              <span
+                key={ingredient}
+                className="rounded-full bg-orange-50 px-2 sm:px-3 py-0.5 sm:py-1 text-xs font-semibold text-orange-700"
+              >
+                {ingredient}
+              </span>
+            ))}
+          </div>
+          <div className="mt-auto pt-3 text-xs text-muted-foreground text-center">
+            <p>클릭: 재생 | 더블클릭: 전체화면</p>
+          </div>
         </div>
       </div>
 
@@ -480,229 +509,4 @@ function LegacyVideoCard({ video }: { video: LegacyVideo }) {
     </>
   );
 }
-
-/**
- * 특별 동영상 카드: 김치의 탄생
- */
-function FeaturedVideoCard() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-
-  // 유튜브 동영상 정보
-  const videoUrl = "https://youtube.com/shorts/UOLG6eD-dZg?si=68QD2FTvgdsjMfph";
-  const videoTitle = "김치의 탄생";
-  const videoId = extractYouTubeVideoId(videoUrl);
-  const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0` : null;
-  const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
-
-  const handlePlay = () => {
-    console.log("[FeaturedVideoCard] 재생 시작:", videoTitle);
-    setIsPlaying(true);
-  };
-
-  const handleFullscreen = () => {
-    if (isFullscreen) {
-      exitFullscreen();
-    } else {
-      requestFullscreen();
-    }
-  };
-
-  const requestFullscreen = () => {
-    // 전체화면 재생을 위해 먼저 재생 상태로 전환
-    if (!isPlaying) {
-      setIsPlaying(true);
-    }
-
-    // 약간의 지연 후 전체화면 요청 (iframe이 로드될 시간 확보)
-    setTimeout(() => {
-      const container = document.getElementById('featured-video-container');
-      if (container) {
-        if (container.requestFullscreen) {
-          container.requestFullscreen().then(() => {
-            setIsFullscreen(true);
-            console.log("[FeaturedVideoCard] 전체화면 진입");
-          }).catch((err) => {
-            console.error("[FeaturedVideoCard] 전체화면 진입 실패:", err);
-          });
-        } else if ((container as any).webkitRequestFullscreen) {
-          (container as any).webkitRequestFullscreen();
-          setIsFullscreen(true);
-        } else if ((container as any).mozRequestFullScreen) {
-          (container as any).mozRequestFullScreen();
-          setIsFullscreen(true);
-        } else if ((container as any).msRequestFullscreen) {
-          (container as any).msRequestFullscreen();
-          setIsFullscreen(true);
-        }
-      }
-    }, 100);
-  };
-
-  const exitFullscreen = () => {
-    if (document.exitFullscreen) {
-      document.exitFullscreen().then(() => {
-        setIsFullscreen(false);
-        console.log("[FeaturedVideoCard] 전체화면 해제");
-      }).catch((err) => {
-        console.error("[FeaturedVideoCard] 전체화면 해제 실패:", err);
-      });
-    } else if ((document as any).webkitExitFullscreen) {
-      (document as any).webkitExitFullscreen();
-      setIsFullscreen(false);
-    } else if ((document as any).mozCancelFullScreen) {
-      (document as any).mozCancelFullScreen();
-      setIsFullscreen(false);
-    } else if ((document as any).msExitFullscreen) {
-      (document as any).msExitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
-
-  // 전체화면 상태 변경 감지
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isCurrentlyFullscreen = !!(
-        document.fullscreenElement ||
-        (document as any).webkitFullscreenElement ||
-        (document as any).mozFullScreenElement ||
-        (document as any).msFullscreenElement
-      );
-      setIsFullscreen(isCurrentlyFullscreen);
-      if (!isCurrentlyFullscreen && isPlaying) {
-        // 전체화면 해제 시 재생 모달도 닫기
-        setIsPlaying(false);
-      }
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-    };
-  }, [isPlaying]);
-
-  if (!embedUrl || !thumbnailUrl) {
-    return null;
-  }
-
-  return (
-    <>
-      <div className="mx-auto max-w-2xl rounded-3xl border border-border/70 bg-gradient-to-br from-pink-50 to-white p-6 shadow-lg">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-purple-500 text-white">
-            <Film className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-pink-600">동화로 보는 음식이야기</p>
-            <h3 className="text-xl font-bold">{videoTitle}</h3>
-          </div>
-        </div>
-
-        <div className="relative aspect-[9/16] overflow-hidden rounded-2xl bg-black shadow-lg">
-          {!isPlaying ? (
-            <>
-              <img
-                src={thumbnailUrl}
-                alt={videoTitle}
-                className="h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                <div className="flex gap-4">
-                  <button
-                    onClick={handlePlay}
-                    className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-pink-600 transition hover:bg-white hover:scale-110 shadow-lg"
-                    aria-label="재생"
-                  >
-                    <svg
-                      className="ml-1 h-8 w-8"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={handleFullscreen}
-                    className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-pink-600 transition hover:bg-white hover:scale-110 shadow-lg"
-                    aria-label="전체화면"
-                  >
-                    <svg
-                      className="h-8 w-8"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 3l-6 6m0 0V4m0 5h5M3 21l6-6m0 0v5m0-5H4"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <iframe
-              ref={iframeRef}
-              src={embedUrl}
-              title={videoTitle}
-              className="h-full w-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              onLoad={() => console.log("[FeaturedVideoCard] 유튜브 플레이어 로드 완료:", videoTitle)}
-            />
-          )}
-        </div>
-
-        <div className="mt-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            맛있는 음식의 탄생 이야기를 동화처럼 들려드려요
-          </p>
-        </div>
-      </div>
-
-      {/* 전체화면 재생 컨테이너 (항상 렌더링하되, 전체화면일 때만 표시) */}
-      {isPlaying && (
-        <div
-          id="featured-video-container"
-          className={`${isFullscreen ? 'fixed inset-0 z-[9999]' : 'hidden'} bg-black flex items-center justify-center`}
-          onClick={isFullscreen ? exitFullscreen : undefined}
-        >
-          <div
-            className="w-full h-full flex items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <iframe
-              ref={iframeRef}
-              src={embedUrl}
-              title={videoTitle}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-          {isFullscreen && (
-            <button
-              className="absolute top-4 right-4 z-10 rounded-full bg-white/90 p-3 text-black hover:bg-white transition"
-              onClick={exitFullscreen}
-            >
-              <X className="h-6 w-6" />
-            </button>
-          )}
-        </div>
-      )}
-    </>
-  );
-}
-
 

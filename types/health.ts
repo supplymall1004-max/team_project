@@ -54,6 +54,14 @@ export type Allergy =
   | "tomato"
   | "sulfites";
 
+// 특수 식단 타입 (다중 선택 가능)
+export type SpecialDietType =
+  | "bento" // 도시락 반찬 위주
+  | "fitness" // 헬스인 닭가슴살 위주
+  | "low_carb" // 다이어트 저탄수화물
+  | "vegan" // 비건
+  | "vegetarian"; // 베지테리언
+
 export interface UserHealthProfile {
   id: string;
   user_id: string;
@@ -63,10 +71,11 @@ export interface UserHealthProfile {
   weight_kg: number | null;
   activity_level: ActivityLevel | null;
   daily_calorie_goal: number;
-  diseases: Disease[];
-  allergies: Allergy[];
+  diseases: string[];
+  allergies: string[];
   preferred_ingredients: string[];
   disliked_ingredients: string[];
+  dietary_preferences: SpecialDietType[]; // 특수 식단 타입 배열
   created_at: string;
   updated_at: string;
 }
@@ -168,5 +177,21 @@ export const MEAL_TYPE_LABELS: Record<MealType, string> = {
   lunch: "점심",
   dinner: "저녁",
   snack: "간식",
+};
+
+export const SPECIAL_DIET_LABELS: Record<SpecialDietType, string> = {
+  bento: "도시락 반찬 위주",
+  fitness: "헬스인 닭가슴살 위주",
+  low_carb: "다이어트 저탄수화물",
+  vegan: "비건",
+  vegetarian: "베지테리언",
+};
+
+export const SPECIAL_DIET_DESCRIPTIONS: Record<SpecialDietType, string> = {
+  bento: "도시락을 쌀 수 있는 반찬 위주의 식단",
+  fitness: "단백질이 풍부한 닭가슴살 중심의 헬스 식단",
+  low_carb: "탄수화물을 최소화한 다이어트 식단",
+  vegan: "모든 동물성 식품을 제외한 완전 채식 식단",
+  vegetarian: "육류와 생선을 제외한 채식 식단",
 };
 

@@ -111,6 +111,19 @@ body {
   position: relative;
 }
 
+/* 스크린리더 전용 텍스트 (접근성) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(0.99 0 0);

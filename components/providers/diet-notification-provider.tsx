@@ -7,20 +7,20 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { DietNotificationPopup } from "@/components/diet/diet-notification-popup";
 import { useAuth } from "@clerk/nextjs";
 
 export function DietNotificationProvider({ children }: { children: React.ReactNode }) {
   const [showPopup, setShowPopup] = useState(false);
-  const [dietData, setDietData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [dietData, setDietData] = useState<unknown>(null);
+  const [loading] = useState(false);
   const { userId } = useAuth();
   const router = useRouter();
 
   // 알림 표시 여부 확인 (임시 비활성화 - API 아직 구현되지 않음)
-  const checkNotification = async () => {
+  const checkNotification = useCallback(async () => {
     if (!userId) return;
 
     try {
@@ -43,7 +43,7 @@ export function DietNotificationProvider({ children }: { children: React.ReactNo
       console.error("❌ 알림 확인 오류:", error);
       console.groupEnd();
     }
-  };
+  }, [userId]);
 
   // 컴포넌트 마운트 시 알림 확인 (한 번만)
   useEffect(() => {
@@ -55,7 +55,7 @@ export function DietNotificationProvider({ children }: { children: React.ReactNo
 
       return () => clearTimeout(timer);
     }
-  }, [userId]);
+  }, [userId, checkNotification]);
 
   // 팝업 닫기
   const handleClosePopup = () => {
@@ -79,7 +79,7 @@ export function DietNotificationProvider({ children }: { children: React.ReactNo
         isOpen={showPopup}
         onClose={handleClosePopup}
         onViewDiet={handleViewDiet}
-        dietData={dietData}
+        dietData={dietData as any}
         loading={loading}
       />
     </>

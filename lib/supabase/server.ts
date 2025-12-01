@@ -54,3 +54,9 @@ export async function createClerkSupabaseClient() {
     },
   });
 }
+
+/**
+ * Re-export getServiceRoleClient from service-role.ts
+ * Service Role 클라이언트는 RLS를 우회하며 서버 사이드 전용입니다.
+ */
+export { getServiceRoleClient } from "./service-role";

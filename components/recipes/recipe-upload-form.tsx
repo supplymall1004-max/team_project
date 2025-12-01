@@ -23,11 +23,23 @@ import { useUser } from "@clerk/nextjs";
 import { createRecipe } from "@/actions/recipe-create";
 import { toast } from "sonner";
 
+type IngredientCategory =
+  | "곡물"
+  | "채소"
+  | "과일"
+  | "육류"
+  | "해산물"
+  | "유제품"
+  | "조미료"
+  | "기타";
+
 interface RecipeIngredientInput {
-  name: string;
+  ingredient_name: string; // 재료명
   quantity: string;
   unit: string;
-  notes: string;
+  category: IngredientCategory; // 재료 카테고리
+  is_optional: boolean; // 선택 재료 여부
+  preparation_note: string; // 손질 방법
 }
 
 interface RecipeStepInput {
@@ -47,7 +59,7 @@ export function RecipeUploadForm() {
   const [cookingTimeMinutes, setCookingTimeMinutes] = useState("");
   const [servings, setServings] = useState("1");
   const [ingredients, setIngredients] = useState<RecipeIngredientInput[]>([
-    { name: "", quantity: "", unit: "", notes: "" },
+    { ingredient_name: "", quantity: "", unit: "", category: "기타", is_optional: false, preparation_note: "" },
   ]);
   const [steps, setSteps] = useState<RecipeStepInput[]>([
     { content: "", image_url: "", video_url: "", timer_minutes: "" },
@@ -55,7 +67,10 @@ export function RecipeUploadForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddIngredient = () => {
-    setIngredients([...ingredients, { name: "", quantity: "", unit: "", notes: "" }]);
+    setIngredients([
+      ...ingredients,
+      { ingredient_name: "", quantity: "", unit: "", category: "기타", is_optional: false, preparation_note: "" },
+    ]);
   };
 
   const handleRemoveIngredient = (index: number) => {
@@ -65,10 +80,14 @@ export function RecipeUploadForm() {
   const handleUpdateIngredient = (
     index: number,
     field: keyof RecipeIngredientInput,
-    value: string
+    value: string | boolean
   ) => {
     const updated = [...ingredients];
-    updated[index] = { ...updated[index], [field]: value };
+    if (field === "is_optional") {
+      updated[index] = { ...updated[index], [field]: value as boolean };
+    } else {
+      updated[index] = { ...updated[index], [field]: value as string };
+    }
     setIngredients(updated);
   };
 
@@ -112,12 +131,15 @@ export function RecipeUploadForm() {
         cookingTimeMinutes: parseInt(cookingTimeMinutes),
         servings: parseInt(servings) || 1,
         ingredients: ingredients
-          .filter(ing => ing.name.trim())
-          .map(ing => ({
-            name: ing.name.trim(),
+          .filter(ing => ing.ingredient_name.trim())
+          .map((ing, index) => ({
+            ingredient_name: ing.ingredient_name.trim(),
             quantity: ing.quantity || undefined,
             unit: ing.unit.trim() || undefined,
-            notes: ing.notes.trim() || undefined,
+            category: ing.category,
+            is_optional: ing.is_optional,
+            preparation_note: ing.preparation_note.trim() || undefined,
+            display_order: index,
           })),
         steps: steps
           .filter(step => step.content.trim())
@@ -272,61 +294,99 @@ export function RecipeUploadForm() {
         </div>
 
         {ingredients.map((ingredient, index) => (
-          <div key={index} className="grid grid-cols-12 gap-2 items-end">
-            <div className="col-span-4">
-              <Label>재료명 *</Label>
-              <Input
-                value={ingredient.name}
-                onChange={(e) =>
-                  handleUpdateIngredient(index, "name", e.target.value)
-                }
-                placeholder="예: 돼지고기"
-                required
-              />
-            </div>
-            <div className="col-span-2">
-              <Label>수량</Label>
-              <Input
-                type="number"
-                step="0.1"
-                value={ingredient.quantity}
-                onChange={(e) =>
-                  handleUpdateIngredient(index, "quantity", e.target.value)
-                }
-                placeholder="300"
-              />
-            </div>
-            <div className="col-span-2">
-              <Label>단위</Label>
-              <Input
-                value={ingredient.unit}
-                onChange={(e) =>
-                  handleUpdateIngredient(index, "unit", e.target.value)
-                }
-                placeholder="g"
-              />
-            </div>
-            <div className="col-span-3">
-              <Label>비고</Label>
-              <Input
-                value={ingredient.notes}
-                onChange={(e) =>
-                  handleUpdateIngredient(index, "notes", e.target.value)
-                }
-                placeholder="선택사항"
-              />
-            </div>
-            <div className="col-span-1">
-              {ingredients.length > 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveIngredient(index)}
+          <div key={index} className="space-y-3 p-4 border rounded-lg bg-gray-50">
+            <div className="grid grid-cols-12 gap-3 items-end">
+              <div className="col-span-5">
+                <Label>재료명 *</Label>
+                <Input
+                  value={ingredient.ingredient_name}
+                  onChange={(e) =>
+                    handleUpdateIngredient(index, "ingredient_name", e.target.value)
+                  }
+                  placeholder="예: 돼지고기"
+                  required
+                />
+              </div>
+              <div className="col-span-2">
+                <Label>수량</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={ingredient.quantity}
+                  onChange={(e) =>
+                    handleUpdateIngredient(index, "quantity", e.target.value)
+                  }
+                  placeholder="300"
+                />
+              </div>
+              <div className="col-span-2">
+                <Label>단위</Label>
+                <Input
+                  value={ingredient.unit}
+                  onChange={(e) =>
+                    handleUpdateIngredient(index, "unit", e.target.value)
+                  }
+                  placeholder="g"
+                />
+              </div>
+              <div className="col-span-2">
+                <Label>카테고리</Label>
+                <select
+                  value={ingredient.category}
+                  onChange={(e) =>
+                    handleUpdateIngredient(index, "category", e.target.value)
+                  }
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
+                  <option value="곡물">곡물</option>
+                  <option value="채소">채소</option>
+                  <option value="과일">과일</option>
+                  <option value="육류">육류</option>
+                  <option value="해산물">해산물</option>
+                  <option value="유제품">유제품</option>
+                  <option value="조미료">조미료</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+              <div className="col-span-1">
+                {ingredients.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveIngredient(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-12 gap-3">
+              <div className="col-span-6">
+                <Label>손질 방법</Label>
+                <Input
+                  value={ingredient.preparation_note}
+                  onChange={(e) =>
+                    handleUpdateIngredient(index, "preparation_note", e.target.value)
+                  }
+                  placeholder="예: 다진 것, 깍둑썰기 (선택사항)"
+                />
+              </div>
+              <div className="col-span-6 flex items-center gap-2 pt-6">
+                <input
+                  type="checkbox"
+                  id={`optional-${index}`}
+                  checked={ingredient.is_optional}
+                  onChange={(e) =>
+                    handleUpdateIngredient(index, "is_optional", e.target.checked.toString())
+                  }
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor={`optional-${index}`} className="cursor-pointer text-sm text-muted-foreground">
+                  선택 재료 (없어도 되는 재료)
+                </Label>
+              </div>
             </div>
           </div>
         ))}

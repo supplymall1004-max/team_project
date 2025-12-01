@@ -29,10 +29,13 @@ export interface CreateRecipeInput {
   cookingTimeMinutes: number;
   servings: number;
   ingredients: Array<{
-    name: string;
+    ingredient_name: string;
     quantity?: string | number | null;
     unit?: string | null;
-    notes?: string | null;
+    category?: "곡물" | "채소" | "과일" | "육류" | "해산물" | "유제품" | "조미료" | "기타";
+    is_optional?: boolean;
+    preparation_note?: string | null;
+    display_order?: number;
   }>;
   steps: Array<{
     content: string;
@@ -103,12 +106,16 @@ export async function createRecipe(input: CreateRecipeInput): Promise<CreateReci
     if (input.ingredients.length > 0) {
       const ingredientsToInsert = input.ingredients.map((ing, index) => ({
         recipe_id: recipe.id,
-        name: ing.name.trim(),
+        ingredient_name: ing.ingredient_name.trim(),
         quantity: ing.quantity ? parseFloat(ing.quantity.toString()) : null,
         unit: ing.unit?.trim() || null,
-        notes: ing.notes?.trim() || null,
-        order_index: index,
+        category: (ing.category || "기타") as "곡물" | "채소" | "과일" | "육류" | "해산물" | "유제품" | "조미료" | "기타",
+        is_optional: ing.is_optional ?? false,
+        preparation_note: ing.preparation_note?.trim() || null,
+        display_order: ing.display_order ?? index,
       }));
+
+      console.log("[RecipeCreate] 재료 저장:", ingredientsToInsert.length, "개");
 
       const { error: ingredientsError } = await supabase
         .from('recipe_ingredients')
@@ -119,6 +126,8 @@ export async function createRecipe(input: CreateRecipeInput): Promise<CreateReci
         console.groupEnd();
         return { success: false, error: '레시피 재료 저장에 실패했습니다.' };
       }
+
+      console.log("[RecipeCreate] 재료 저장 성공");
     }
 
     // 6. 조리 단계 저장
@@ -228,7 +237,7 @@ function validateRecipeInput(input: CreateRecipeInput): { valid: boolean; error?
 
   // 재료 검증
   for (const ingredient of input.ingredients) {
-    if (!ingredient.name?.trim()) {
+    if (!ingredient.ingredient_name?.trim()) {
       return { valid: false, error: '모든 재료의 이름을 입력해주세요.' };
     }
   }

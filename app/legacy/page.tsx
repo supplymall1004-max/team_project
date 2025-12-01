@@ -7,9 +7,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/section";
 import { LegacyArchiveSection } from "@/components/legacy/legacy-archive-section";
-import { FoodStoriesSection } from "@/components/food-stories/food-stories-section";
+// import { FoodStoriesSection } from "@/components/food-stories/food-stories-section";
 
-export default function LegacyPage() {
+export default async function LegacyPage() {
   return (
     <div className="space-y-4">
       <Section
@@ -71,8 +71,18 @@ export default function LegacyPage() {
         </div>
       </Section>
 
-      {/* 음식 동화 동영상 섹션 */}
-      <FoodStoriesSection />
+      {/* 음식 동화 동영상 섹션 - 임시로 주석 처리하여 에러 확인 */}
+      {/* <Suspense
+        fallback={
+          <Section title="음식 동화 동영상" description="맛있는 음식의 탄생 이야기를 동화처럼 들려드려요">
+            <div className="rounded-2xl border border-dashed border-border/60 bg-white/60 p-6 text-center text-sm text-muted-foreground">
+              동화 동영상을 불러오는 중...
+            </div>
+          </Section>
+        }
+      >
+        <FoodStoriesSection />
+      </Suspense> */}
 
       <LegacyArchiveSection
         id="legacy-archive"

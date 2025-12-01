@@ -45,15 +45,15 @@ export function FoodStoriesClient({
       <div className="flex gap-4 overflow-x-auto pb-4 md:hidden scrollbar-hide">
         {displayVideos.map((video) => (
           <div key={video.id} className="min-w-[280px] max-w-[280px] flex-shrink-0">
-            <FoodStoryCard video={video} />
+            <FoodStoryCard video={video} layout="default" />
           </div>
         ))}
       </div>
 
       {/* 데스크톱: 그리드 */}
-      <div className="hidden grid-cols-1 gap-4 md:grid lg:grid-cols-3">
+      <div className="hidden grid-cols-1 gap-4 md:grid lg:grid-cols-3 justify-items-center">
         {displayVideos.map((video) => (
-          <FoodStoryCard key={video.id} video={video} />
+          <FoodStoryCard key={video.id} video={video} layout="default" />
         ))}
       </div>
 

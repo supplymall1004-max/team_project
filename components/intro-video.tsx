@@ -209,9 +209,9 @@ export function IntroVideo({ children }: { children: React.ReactNode }) {
       )}
       {/* 동영상 오버레이 - 항상 최상위에 표시 (서버 사이드에서도 표시) */}
       {showVideo && (
-        <div 
+        <div
           className="fixed inset-0 z-[99999] bg-black flex items-center justify-center"
-          style={{ 
+          style={{
             position: "fixed",
             top: 0,
             left: 0,

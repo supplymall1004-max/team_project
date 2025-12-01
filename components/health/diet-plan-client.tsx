@@ -18,9 +18,10 @@ import { useUser, useAuth } from "@clerk/nextjs";
 import { NutritionInfo, DietPlan } from "@/types/health";
 import { DailyDietPlan, FamilyDietPlan, MealComposition, RecipeDetailForDiet } from "@/types/recipe";
 import { DietCard } from "./diet-card";
-import { AllergenWarningCard } from "./allergen-warning-card";
+import { SafetyWarning } from "@/components/diet/safety-warning";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import { FamilyDietTabs } from "@/components/diet/family-diet-tabs";
 import type { FamilyMember } from "@/types/family";
 import type { UserHealthProfile } from "@/types/health";
@@ -47,7 +48,9 @@ export function DietPlanClient() {
   const [familyDietData, setFamilyDietData] = useState<any>(null);
   const [isFamilyMode, setIsFamilyMode] = useState(false);
 
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  // 날짜를 동적으로 계산하는 함수
+  const getToday = () => new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const [today, setToday] = useState<string>(getToday());
 
   // 가족 구성원 데이터 로드
   const loadFamilyMembers = useCallback(async () => {
@@ -79,12 +82,13 @@ export function DietPlanClient() {
   }, [user, getToken]);
 
   // 가족 식단 데이터 로드
-  const loadFamilyDietData = useCallback(async () => {
+  const loadFamilyDietData = useCallback(async (targetDate?: string) => {
     if (!user) return;
 
+    const dateToUse = targetDate || today;
     try {
       console.log("[DietPlanClient] 가족 식단 데이터 로드");
-      const response = await fetch(`/api/family/diet/${today}`);
+      const response = await fetch(`/api/family/diet/${dateToUse}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -101,22 +105,23 @@ export function DietPlanClient() {
     }
   }, [user, today]);
 
-  const loadDietPlan = async (options: { forceRefresh?: boolean } = {}) => {
+  const loadDietPlan = useCallback(async (options: { forceRefresh?: boolean; targetDate?: string } = {}) => {
     if (!user) {
       setIsLoading(false);
       setDietPlan(null);
       return;
     }
 
+    const dateToUse = options.targetDate || today;
     setError(null);
 
     const shouldUseCache = !options.forceRefresh;
     if (shouldUseCache) {
-      const cached = getCachedDietPlan(user.id, today);
+      const cached = getCachedDietPlan(user.id, dateToUse);
       if (cached) {
         console.groupCollapsed("[DietPlanClient] 캐시 적중");
         console.log("userId", user.id);
-        console.log("date", today);
+        console.log("date", dateToUse);
         console.groupEnd();
         setDietPlan(cached.dietPlan);
         setHasHealthProfile(true);
@@ -132,7 +137,7 @@ export function DietPlanClient() {
     try {
       console.groupCollapsed("[DietPlanClient] 식단 로드");
       console.log("userId", user.id);
-      console.log("date", today);
+      console.log("date", dateToUse);
 
       // 건강 정보 확인
       console.log("🔍 건강 정보 확인 중...");
@@ -153,7 +158,7 @@ export function DietPlanClient() {
         console.warn("⚠️ 건강 정보가 없습니다");
         setHasHealthProfile(false);
         setIsLoading(false);
-        clearDietPlanCache(user.id, today);
+        clearDietPlanCache(user.id, dateToUse);
         console.groupEnd();
         return;
       }
@@ -163,7 +168,7 @@ export function DietPlanClient() {
         setHasHealthProfile(false);
         setHealthProfileError("일일 칼로리 목표가 설정되지 않았습니다. 건강 정보를 업데이트해주세요.");
         setIsLoading(false);
-        clearDietPlanCache(user.id, today);
+        clearDietPlanCache(user.id, dateToUse);
         console.groupEnd();
         return;
       }
@@ -189,7 +194,7 @@ export function DietPlanClient() {
 
       // 식단 조회 또는 생성
       console.log("🍽️ 식단 조회/생성 중...");
-      const res = await fetch(`/api/diet/plan?date=${today}`);
+      const res = await fetch(`/api/diet/plan?date=${dateToUse}`);
       console.log("📡 식단 API 응답 상태:", res.status);
 
       let data;
@@ -205,12 +210,12 @@ export function DietPlanClient() {
       if (!res.ok) {
         const errorMessage = data.error || "식단을 불러오는데 실패했습니다";
         const errorDetails = data.details ? ` (${data.details})` : "";
-        clearDietPlanCache(user.id, today);
+        clearDietPlanCache(user.id, dateToUse);
         throw new Error(`${errorMessage}${errorDetails}`);
       }
 
       setDietPlan(data.dietPlan);
-      setCachedDietPlan(user.id, today, data.dietPlan);
+      setCachedDietPlan(user.id, dateToUse, data.dietPlan);
       console.log("diet plan loaded", data.dietPlan);
       console.groupEnd();
     } catch (err) {
@@ -219,15 +224,55 @@ export function DietPlanClient() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, today]);
 
+  // 날짜 변경 감지 및 자동 새로고침
+  useEffect(() => {
+    // 매 분마다 현재 날짜를 확인하여 날짜가 바뀌었는지 체크
+    const checkDateChange = () => {
+      const currentDate = getToday();
+      if (currentDate !== today) {
+        console.group("[DietPlanClient] 날짜 변경 감지");
+        console.log("이전 날짜:", today);
+        console.log("새 날짜:", currentDate);
+        console.log("캐시 무효화 및 새 식단 로드 시작");
+        console.groupEnd();
+
+        // 이전 날짜의 캐시 무효화
+        if (user) {
+          clearDietPlanCache(user.id, today);
+        }
+
+        // 새 날짜로 업데이트
+        setToday(currentDate);
+
+        // 새 식단 로드
+        if (user && isLoaded) {
+          loadDietPlan({ forceRefresh: true, targetDate: currentDate });
+          loadFamilyDietData(currentDate);
+        }
+      }
+    };
+
+    // 초기 체크
+    checkDateChange();
+
+    // 매 분마다 날짜 변경 체크 (60초 = 60000ms)
+    const intervalId = setInterval(checkDateChange, 60000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [user, isLoaded, today, loadDietPlan, loadFamilyDietData]);
+
+  // 사용자 로드 및 날짜 변경 시 식단 로드
   useEffect(() => {
     if (isLoaded) {
       loadDietPlan();
       loadFamilyMembers();
       loadFamilyDietData();
     }
-  }, [user, isLoaded, today, loadFamilyMembers, loadFamilyDietData]);
+  }, [user, isLoaded, today, loadDietPlan, loadFamilyMembers, loadFamilyDietData]);
 
   const handleRefresh = () => {
     loadDietPlan({ forceRefresh: true });
@@ -242,13 +287,14 @@ export function DietPlanClient() {
     setError(null);
 
     try {
+      const currentDate = getToday();
       console.groupCollapsed("[DietPlanClient] AI 식단 생성");
       console.log("사용자:", user.id);
-      console.log("날짜:", today);
+      console.log("날짜:", currentDate);
 
       // 식단 생성 요청
-      console.log("📡 식단 생성 API 호출:", `/api/diet/plan?date=${today}&force=true`);
-      const res = await fetch(`/api/diet/plan?date=${today}&force=true`, {
+      console.log("📡 식단 생성 API 호출:", `/api/diet/plan?date=${currentDate}&force=true`);
+      const res = await fetch(`/api/diet/plan?date=${currentDate}&force=true`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -268,7 +314,12 @@ export function DietPlanClient() {
 
       setDietPlan(data.dietPlan);
       if (user) {
-        setCachedDietPlan(user.id, today, data.dietPlan);
+        const currentDate = getToday();
+        setCachedDietPlan(user.id, currentDate, data.dietPlan);
+        // 날짜가 바뀌었을 수 있으므로 상태 업데이트
+        if (currentDate !== today) {
+          setToday(currentDate);
+        }
       }
       console.log("✅ AI 식단 생성 성공:", data.dietPlan);
       console.groupEnd();
@@ -456,18 +507,18 @@ export function DietPlanClient() {
         plan_date: today,
         meal_type: mealType,
         recipe_id: recipeDetail.id || null,
-        calories: recipeDetail.nutrition.calories || null,
-        carbohydrates: recipeDetail.nutrition.carbs || null,
-        protein: recipeDetail.nutrition.protein || null,
-        fat: recipeDetail.nutrition.fat || null,
-        sodium: recipeDetail.nutrition.sodium || null,
+        calories: recipeDetail.nutrition?.calories || null,
+        carbohydrates: recipeDetail.nutrition?.carbs || null,
+        protein: recipeDetail.nutrition?.protein || null,
+        fat: recipeDetail.nutrition?.fat || null,
+        sodium: recipeDetail.nutrition?.sodium || null,
         created_at: new Date().toISOString(),
         compositionSummary: recipeDetail.compositionSummary,
         recipe: {
           id: recipeDetail.id || `fallback-${mealType}`,
-          title: recipeDetail.title,
+          title: recipeDetail.title || "",
           thumbnail_url: recipeDetail.image || null,
-          slug: recipeDetail.title.toLowerCase().replace(/\s+/g, '-')
+          slug: (recipeDetail.title || "").toLowerCase().replace(/\s+/g, '-')
         }
       };
     }
@@ -491,6 +542,29 @@ export function DietPlanClient() {
           <p className="text-sm text-muted-foreground">{today}</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* 주간 식단 버튼 */}
+          <Link href="/diet/weekly">
+            <Button variant="outline" size="sm" className="gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              주간 식단
+            </Button>
+          </Link>
+
           {/* 개인/가족 모드 토글 */}
           {familyMembers.length > 0 && (
             <div className="flex items-center gap-2 mr-2">
@@ -567,7 +641,17 @@ export function DietPlanClient() {
 
       {/* 알레르기 안전 안내 (알레르기가 있는 경우에만 표시) */}
       {!isFamilyMode && userHealthProfile && userHealthProfile.allergies && userHealthProfile.allergies.length > 0 && (
-        <AllergenWarningCard />
+        <div className="space-y-4">
+          <SafetyWarning />
+          <div className="flex justify-center">
+            <Link href="/health/emergency">
+              <Button variant="destructive" className="gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                응급 상황 시 대처 방법 (아나필락시스 등)
+              </Button>
+            </Link>
+          </div>
+        </div>
       )}
 
       {/* 총 영양소 정보 (개인 모드에서만 표시) */}

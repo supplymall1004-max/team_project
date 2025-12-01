@@ -185,7 +185,7 @@ export async function getRecipesWithNutrition(): Promise<
 /**
  * 개인 맞춤 식단 생성 (API용)
  */
-async function generatePersonalDietForAPI(
+export async function generatePersonalDietForAPI(
   userId: string,
   healthProfile: UserHealthProfile,
   date: string,
@@ -197,7 +197,14 @@ async function generatePersonalDietForAPI(
     protein: number | null;
     fat: number | null;
     sodium: number | null;
-  }>
+  }>,
+  usedByCategory?: {
+    rice: Set<string>;
+    side: Set<string>;
+    soup: Set<string>;
+    snack: Set<string>;
+  },
+  preferredRiceType?: string
 ): Promise<{
   breakfast: RecipeWithNutrition | null;
   lunch: RecipeWithNutrition | null;
@@ -212,8 +219,15 @@ async function generatePersonalDietForAPI(
   console.log("🔄 개인 맞춤 식단 생성 시작...");
 
   try {
-    // generatePersonalDiet 호출
-    const personalDiet = await generatePersonalDiet(userId, healthProfile, date, availableRecipes);
+    // generatePersonalDiet 호출 (주간 컨텍스트 전달)
+    const personalDiet = await generatePersonalDiet(
+      userId,
+      healthProfile,
+      date,
+      availableRecipes,
+      usedByCategory,
+      preferredRiceType
+    );
 
     // 결과를 API 형식으로 변환
     const convertMealToRecipe = (meal: any): RecipeWithNutrition | null => {

@@ -124,7 +124,7 @@ export function SpecialVideoCard({ video }: SpecialVideoCardProps) {
   }, [video.title]);
 
   return (
-    <div className="group relative mx-auto w-full max-w-[320px] lg:max-w-none overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-amber-50 to-orange-50 shadow-lg transition-all hover:scale-105 hover:shadow-xl">
+    <div className="group relative mx-auto w-full max-w-[160px] lg:max-w-[180px] overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br from-amber-50 to-orange-50 shadow-lg transition-all hover:scale-105 hover:shadow-xl">
       {/* 썸네일 이미지 - 늘어난 세로 비율 (9:40) */}
       <div className="relative aspect-[9/40] overflow-hidden">
         {!imageError ? (
@@ -137,24 +137,24 @@ export function SpecialVideoCard({ video }: SpecialVideoCardProps) {
               console.warn("[SpecialVideoCard] 썸네일 로드 실패, 기본 이미지 사용:", video.title);
               setImageError(true);
             }}
-            sizes="(max-width: 768px) 280px, (max-width: 1024px) 320px, 360px"
+            sizes="(max-width: 768px) 140px, (max-width: 1024px) 160px, 180px"
           />
         ) : (
           // 기본 썸네일 (이미지 로드 실패 시)
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-100 to-amber-200">
             <div className="text-center">
-              <div className="mb-3 rounded-full bg-orange-200 p-4">
-                <Play className="h-8 w-8 text-orange-600" />
+              <div className="mb-1.5 rounded-full bg-orange-200 p-2">
+                <Play className="h-4 w-4 text-orange-600" />
               </div>
-              <p className="text-sm font-medium text-orange-700">특별 동영상</p>
+              <p className="text-[10px] font-medium text-orange-700">특별 동영상</p>
             </div>
           </div>
         )}
 
         {/* 특별 동영상 배지 */}
-        <div className="absolute left-3 top-3 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-3 py-1 text-xs font-bold text-white shadow-md">
-          <Star className="inline h-3 w-3 fill-current" />
-          <span className="ml-1">특별</span>
+        <div className="absolute left-1.5 top-1.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-md">
+          <Star className="inline h-2 w-2 fill-current" />
+          <span className="ml-0.5">특별</span>
         </div>
 
         {/* 플레이 버튼 오버레이 */}
@@ -164,11 +164,11 @@ export function SpecialVideoCard({ video }: SpecialVideoCardProps) {
           className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 text-white opacity-0 transition-opacity group-hover:opacity-100"
           aria-label="특별 동영상 재생"
         >
-          <span className="flex items-center rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-gray-900 shadow-lg">
-            <Play className="mr-2 h-4 w-4" />
+          <span className="flex items-center rounded-full bg-white/90 px-2 py-1 text-[10px] font-semibold text-gray-900 shadow-lg">
+            <Play className="mr-1 h-2 w-2" />
             {isPlaying ? "재생 중" : "클릭해서 재생"}
           </span>
-          <span className="mt-3 text-xs text-white/80">
+          <span className="mt-1.5 text-[9px] text-white/80">
             한 번 클릭: 재생 • 두 번 클릭: 전체화면
           </span>
         </button>
@@ -192,18 +192,18 @@ export function SpecialVideoCard({ video }: SpecialVideoCardProps) {
       </Dialog>
 
       {/* 카드 내용 */}
-      <div className="p-4">
-        <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-          <Calendar className="h-3 w-3" />
+      <div className="p-2">
+        <div className="mb-2 flex items-center gap-1 text-[10px] text-muted-foreground">
+          <Calendar className="h-2.5 w-2.5" />
           <span>{formattedDate || video.publishedAt}</span>
         </div>
 
-        <h3 className="mb-3 text-lg font-bold leading-tight line-clamp-2 text-gray-900">
+        <h3 className="mb-2 text-sm font-bold leading-tight line-clamp-2 text-gray-900">
           {video.title}
         </h3>
 
         {/* 특별 동영상 설명 */}
-        <div className="mb-3 rounded-lg bg-white/60 p-3 text-sm text-gray-700">
+        <div className="mb-2 rounded-lg bg-white/60 p-2 text-[10px] text-gray-700">
           <p className="leading-relaxed">
             특별한 음식 이야기를 담은 동영상입니다.
             <br />
@@ -212,23 +212,23 @@ export function SpecialVideoCard({ video }: SpecialVideoCardProps) {
         </div>
 
         {/* 액션 버튼들 */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
           <Button
             variant="default"
             size="sm"
-            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-[10px] py-1 h-auto"
             onClick={() => window.open(video.url, "_blank")}
           >
-            <Play className="mr-2 h-4 w-4" />
+            <Play className="mr-1 h-2.5 w-2.5" />
             유튜브에서 보기
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="w-full border-amber-200 text-amber-700 hover:bg-amber-50"
+            className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 text-[10px] py-1 h-auto"
             onClick={() => window.open("/special-video", "_self")}
           >
-            <Star className="mr-2 h-4 w-4" />
+            <Star className="mr-1 h-2.5 w-2.5" />
             특별 동영상 페이지로
           </Button>
         </div>

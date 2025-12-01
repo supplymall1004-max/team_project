@@ -3,7 +3,7 @@
  * @description 레시피 별점 평가 컴포넌트
  *
  * 주요 기능:
- * 1. 별점 입력 (0.5점 단위)
+ * 1. 별점 입력 (1점 단위)
  * 2. 평가 생성/업데이트
  * 3. 평균 별점 표시
  */
@@ -101,9 +101,7 @@ export function RecipeRating({
         {user ? (
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
-              {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((rating) => {
-                const isHalf = rating % 1 === 0.5;
-                const fullStarIndex = Math.floor(rating);
+              {[1, 2, 3, 4, 5].map((rating) => {
                 const isActive = rating <= displayRating;
 
                 return (
@@ -114,28 +112,23 @@ export function RecipeRating({
                     onMouseEnter={() => setHoveredRating(rating)}
                     onMouseLeave={() => setHoveredRating(null)}
                     disabled={isSubmitting}
-                    className="relative h-8 w-8 cursor-pointer disabled:opacity-50"
+                    className="relative h-8 w-8 cursor-pointer transition-transform hover:scale-110 disabled:opacity-50"
+                    aria-label={`${rating}점 평가`}
                   >
                     <Star
-                      className={`h-full w-full ${
+                      className={`h-full w-full transition-colors ${
                         isActive
                           ? "fill-yellow-400 text-yellow-400"
-                          : "fill-gray-200 text-gray-200"
+                          : "fill-gray-200 text-gray-200 hover:fill-yellow-300 hover:text-yellow-300"
                       }`}
                     />
-                    {isHalf && (
-                      <div className="absolute inset-0 overflow-hidden">
-                        <Star className="h-full w-full fill-yellow-400 text-yellow-400" />
-                        <div className="absolute right-0 top-0 h-full w-1/2 bg-white" />
-                      </div>
-                    )}
                   </button>
                 );
               })}
             </div>
             {userRating && (
               <span className="text-sm text-muted-foreground">
-                내 평가: {userRating.toFixed(1)}점
+                내 평가: {userRating}점
               </span>
             )}
           </div>
@@ -150,14 +143,12 @@ export function RecipeRating({
       {ratingCount > 0 && (
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-0.5">
-            {stars.map((star, index) => (
+            {Array.from({ length: 5 }, (_, i) => i + 1).map((starNum) => (
               <Star
-                key={index}
+                key={starNum}
                 className={`h-5 w-5 ${
-                  star === "full"
+                  starNum <= Math.round(averageRating)
                     ? "fill-yellow-400 text-yellow-400"
-                    : star === "half"
-                    ? "fill-yellow-400/50 text-yellow-400"
                     : "fill-gray-200 text-gray-200"
                 }`}
               />

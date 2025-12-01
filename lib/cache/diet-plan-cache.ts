@@ -51,6 +51,13 @@ export function getCachedDietPlan(
     return null;
   }
 
+  // 날짜가 다르면 캐시 무효화 (날짜가 바뀌었을 때 이전 날짜 캐시를 사용하지 않도록)
+  if (parsed.date !== date) {
+    console.log(`[DietPlanCache] 날짜 불일치로 캐시 무효화: 캐시 날짜=${parsed.date}, 요청 날짜=${date}`);
+    window.localStorage.removeItem(key);
+    return null;
+  }
+
   const isExpired =
     parsed.version !== CACHE_VERSION || parsed.expiresAt < Date.now();
 

@@ -1,9 +1,12 @@
 # Vercel 배포 체크리스트 ✅
 
-## ✅ 빌드 검증 완료
+## ✅ 빌드 검증 완료 (2025-01-26 업데이트)
 - [x] TypeScript 타입 에러 수정 완료
+  - `lib/royal-recipes/queries.ts`: `RecipeEra` 타입 re-export 추가
+  - `lib/diet/weekly-diet-generator.ts`: `DietPlan.recipe_title` → `DietPlan.recipe?.title` 수정
+  - `lib/diet/weekly-diet-generator.ts`: `DailyDietPlan` → `StoredDailyDietPlan` 타입 수정
 - [x] 빌드 성공 확인 (`pnpm build` 통과)
-- [x] 경고는 있으나 빌드 차단 없음
+- [x] 경고는 있으나 빌드 차단 없음 (ESLint 경고만 존재)
 
 ## 🔐 필수 환경 변수 설정
 
@@ -26,9 +29,17 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 NEXT_PUBLIC_STORAGE_BUCKET=uploads
 ```
 
+### Cron Job (자동 식단 생성)
+```
+CRON_SECRET=your_random_secret_here (Cron Job 인증용)
+```
+⚠️ **중요**: `CRON_SECRET`은 랜덤 문자열로 생성하세요. Vercel Cron Job이 이 값을 Authorization 헤더로 전송합니다.
+
 ### 선택적 환경 변수
 ```
 GEMINI_API_KEY=AIzaSyD... (이미지 생성 기능 사용 시)
+NOTION_API_KEY=secret_... (Notion 연동 시)
+NOTION_DATABASE_ID=... (Notion 연동 시)
 ```
 
 ## 📋 배포 전 확인 사항
@@ -51,7 +62,10 @@ GEMINI_API_KEY=AIzaSyD... (이미지 생성 기능 사용 시)
 
 ### 4. Cron Jobs
 `vercel.json`에 정의된 Cron Job이 정상 작동하는지 확인:
-- `/api/cron/generate-daily-diets` - 매일 오후 8시 실행
+- `/api/cron/generate-daily-diets` - 매일 오후 6시(18:00) 실행
+  - ⚠️ **필수**: `CRON_SECRET` 환경 변수 설정 필요
+  - Vercel Cron Job은 `Authorization: Bearer {CRON_SECRET}` 헤더로 요청 전송
+  - Cron Job이 실행되면 다음 날 일일 식단과 (일요일인 경우) 다음 주 주간 식단 자동 생성
 
 ## ⚠️ 알려진 경고 (빌드 차단 없음)
 
@@ -80,8 +94,12 @@ GEMINI_API_KEY=AIzaSyD... (이미지 생성 기능 사용 시)
 
 ## 📝 수정된 파일 목록
 
-빌드 에러 수정을 위해 다음 파일들이 수정되었습니다:
+### 최근 수정 (2025-01-26)
+1. `lib/royal-recipes/queries.ts` - `RecipeEra` 타입 re-export 추가
+2. `lib/diet/weekly-diet-generator.ts` - `DietPlan.recipe_title` → `DietPlan.recipe?.title` 수정
+3. `lib/diet/weekly-diet-generator.ts` - `DailyDietPlan` → `StoredDailyDietPlan` 타입 수정
 
+### 이전 수정
 1. `components/health/diet-card.tsx` - 타입 에러 수정
 2. `lib/image-pipeline/database-operations.ts` - Supabase raw() 메서드 수정
 3. `lib/image-pipeline/response-parser.ts` - aspectRatio 계산 추가

@@ -144,18 +144,18 @@ export function SearchResultsClient({
   return (
     <div className="space-y-6">
       {/* 검색창 */}
-      <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row">
+      <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row px-4 sm:px-6">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 sm:left-4 top-1/2 h-4 w-4 sm:h-5 sm:w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
             placeholder="레시피, 명인, 재료를 검색해보세요"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="pl-12"
+            className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base"
           />
         </div>
-        <Button type="submit" size="lg" className="sm:px-10">
+        <Button type="submit" size="lg" className="h-10 sm:h-12 sm:px-8">
           검색
         </Button>
       </form>

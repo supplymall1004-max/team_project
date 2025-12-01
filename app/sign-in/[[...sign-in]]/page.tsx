@@ -6,12 +6,14 @@
  */
 
 import { useEffect } from "react";
-import { SignIn } from "@clerk/nextjs";
+import { SignIn, useSignIn } from "@clerk/nextjs";
 
 export default function SignInPage() {
   useEffect(() => {
     console.groupCollapsed("[Auth] SignIn 페이지 진입");
     console.log("timestamp:", new Date().toISOString());
+    console.log("window.location.origin:", window.location.origin);
+    console.log("expected callback URL:", `${window.location.origin}/sign-in/oauth_callback`);
     console.groupEnd();
   }, []);
 
@@ -25,7 +27,12 @@ export default function SignInPage() {
             계정이 없다면 아래에서 쉽게 가입할 수 있어요.
           </p>
         </div>
-        <SignIn routing="path" path="/sign-in" />
+        <SignIn
+          routing="path"
+          path="/sign-in"
+          fallbackRedirectUrl="/"
+          signUpUrl="/sign-up"
+        />
       </div>
     </div>
   );

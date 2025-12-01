@@ -44,8 +44,10 @@ export function FoodStoryCard({ video, layout = "default" }: FoodStoryCardProps)
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-2xl border border-border/70 bg-white shadow-sm transition-all hover:shadow-lg",
-        isShortsLayout ? "mx-auto w-full max-w-[240px]" : "w-full max-w-sm"
+        "group relative overflow-hidden border border-border/70 shadow-sm transition-all hover:shadow-lg",
+        isShortsLayout 
+          ? "mx-auto w-full max-w-[160px] lg:max-w-[180px] rounded-3xl bg-gradient-to-br from-amber-50 to-orange-50 hover:scale-105 hover:shadow-xl" 
+          : "w-full max-w-sm rounded-2xl bg-white"
       )}
     >
       {/* 썸네일 이미지 */}
@@ -62,7 +64,7 @@ export function FoodStoryCard({ video, layout = "default" }: FoodStoryCardProps)
             }}
             sizes={
               isShortsLayout
-                ? "(max-width: 768px) 160px, (max-width: 1024px) 220px, 240px"
+                ? "(max-width: 768px) 140px, (max-width: 1024px) 160px, 180px"
                 : "(max-width: 768px) 280px, (max-width: 1024px) 320px, 400px"
             }
           />
@@ -70,10 +72,10 @@ export function FoodStoryCard({ video, layout = "default" }: FoodStoryCardProps)
           // 기본 썸네일 (이미지 로드 실패 시)
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-100 to-orange-200">
             <div className="text-center">
-              <div className="mb-2 rounded-full bg-orange-200 p-3">
-                <Play className="h-6 w-6 text-orange-600" />
+              <div className={cn("mb-2 rounded-full bg-orange-200", isShortsLayout ? "p-2 mb-1.5" : "p-3")}>
+                <Play className={cn("text-orange-600", isShortsLayout ? "h-4 w-4" : "h-6 w-6")} />
               </div>
-              <p className="text-sm font-medium text-orange-700">동화 동영상</p>
+              <p className={cn("font-medium text-orange-700", isShortsLayout ? "text-[10px]" : "text-sm")}>동화 동영상</p>
             </div>
           </div>
         )}
@@ -83,11 +85,11 @@ export function FoodStoryCard({ video, layout = "default" }: FoodStoryCardProps)
           <Dialog open={isPlaying} onOpenChange={setIsPlaying}>
             <DialogTrigger asChild>
               <Button
-                size="lg"
-                className="rounded-full bg-white/90 text-black hover:bg-white"
+                size={isShortsLayout ? "sm" : "lg"}
+                className={cn("rounded-full bg-white/90 text-black hover:bg-white", isShortsLayout && "h-8 w-8 p-0")}
                 onClick={handlePlayClick}
               >
-                <Play className="h-5 w-5 fill-current" />
+                <Play className={cn("fill-current", isShortsLayout ? "h-3 w-3" : "h-5 w-5")} />
               </Button>
             </DialogTrigger>
             <DialogContent className={cn(dialogWidthClass, "p-0")}>
@@ -107,25 +109,25 @@ export function FoodStoryCard({ video, layout = "default" }: FoodStoryCardProps)
       </div>
 
       {/* 카드 내용 */}
-      <div className="p-4">
-        <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <Calendar className="h-3 w-3" />
+      <div className={cn(isShortsLayout ? "p-2" : "p-4")}>
+        <div className={cn("mb-2 flex items-center gap-1 text-muted-foreground", isShortsLayout ? "text-[10px]" : "text-xs gap-2")}>
+          <Calendar className={cn(isShortsLayout ? "h-2.5 w-2.5" : "h-3 w-3")} />
           <span>{formattedDate || video.publishedAt}</span>
         </div>
 
-        <h3 className="mb-2 text-lg font-bold leading-tight line-clamp-2">
+        <h3 className={cn("mb-2 font-bold leading-tight line-clamp-2", isShortsLayout ? "text-sm" : "text-lg")}>
           {video.title}
         </h3>
 
         {/* 추가 정보 */}
-        <div className="flex items-center justify-between text-sm">
-          <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700">
+        <div className={cn("flex items-center justify-between", isShortsLayout ? "text-[10px]" : "text-sm")}>
+          <span className={cn("rounded-full bg-orange-50 font-medium text-orange-700", isShortsLayout ? "px-2 py-0.5 text-[9px]" : "px-3 py-1 text-xs")}>
             음식 동화
           </span>
           <Button
             variant="ghost"
             size="sm"
-            className="text-orange-600 hover:text-orange-700"
+            className={cn("text-orange-600 hover:text-orange-700", isShortsLayout && "text-[10px] py-0.5 h-auto")}
             onClick={() => window.open(video.url, '_blank')}
           >
             유튜브에서 보기

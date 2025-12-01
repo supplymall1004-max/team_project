@@ -54,6 +54,9 @@ export async function POST() {
       }
     }
 
+    // Supabase 클라이언트 초기화
+    const supabase = getServiceRoleClient();
+
     // Clerk에서 사용자 정보를 찾을 수 없는 경우에도 기본 정보만으로 진행
     if (!clerkUser) {
       console.warn("⚠️ Clerk에서 사용자 정보를 찾을 수 없음 - 기본 정보만으로 진행");
@@ -113,8 +116,6 @@ export async function POST() {
       email: clerkUser.emailAddresses[0]?.emailAddress,
     });
 
-    // Supabase에 사용자 정보 동기화
-    const supabase = getServiceRoleClient();
     console.log("💾 Supabase에 동기화 중...");
 
     const { data, error } = await supabase
