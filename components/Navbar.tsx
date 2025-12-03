@@ -18,8 +18,10 @@ import {
 } from "@clerk/nextjs";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Menu, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/auth/login-modal";
 
@@ -31,6 +33,9 @@ const navLinks = [
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const router = useRouter();
 
   const handleNavClick = (label: string) => {
     // 성능 최적화: 프로덕션에서는 로그 최소화
@@ -40,6 +45,18 @@ const Navbar = () => {
       console.groupEnd();
     }
     setMenuOpen(false);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    console.groupCollapsed("[Navbar] 검색 실행");
+    console.log("query:", searchQuery);
+    console.log("timestamp:", Date.now());
+    console.groupEnd();
+
+    router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
   };
 
   const renderedLinks = useMemo(
@@ -58,11 +75,51 @@ const Navbar = () => {
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-white/80 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-6">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-white">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-0 px-6">
         <Link href="/" className="text-xl font-bold tracking-tight">
           Flavor Archive
         </Link>
+        <form onSubmit={handleSearch} className="flex-1 flex items-center gap-0 ml-4 mr-4">
+          <div className="relative flex-1">
+            <Search
+              className={cn(
+                "absolute left-3 sm:left-4 top-1/2 h-4 w-4 sm:h-5 sm:w-5 -translate-y-1/2 transition-colors duration-200",
+                isSearchFocused || searchQuery.trim().length > 0
+                  ? "text-teal-600"
+                  : "text-muted-foreground"
+              )}
+              aria-hidden="true"
+            />
+            <Input
+              type="text"
+              placeholder="레시피, 명인, 재료를 검색해보세요"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.currentTarget.blur();
+                }
+              }}
+              className={cn(
+                "pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base rounded-lg bg-white",
+                "transition-all duration-200",
+                "hover:shadow-sm",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2",
+                isSearchFocused &&
+                  "ring-2 ring-teal-500 ring-offset-2 border-teal-500 shadow-md"
+              )}
+              aria-label="검색어 입력"
+              aria-describedby="search-description"
+              role="searchbox"
+            />
+            <span id="search-description" className="sr-only">
+              레시피, 명인, 재료를 검색할 수 있습니다. 검색어를 입력한 후 Enter 키를 누르세요.
+            </span>
+          </div>
+        </form>
         <nav className="hidden items-center gap-6 md:flex">{renderedLinks}</nav>
         <div className="flex items-center gap-3">
           <SignedOut>
@@ -90,7 +147,7 @@ const Navbar = () => {
             <div className="hidden md:flex items-center gap-3">
               <Link href="/health/manage">
                 <Button variant="ghost" size="sm">
-                  가족관리
+                  설정
                 </Button>
               </Link>
               <UserButton />
@@ -134,7 +191,7 @@ const Navbar = () => {
             <div className="flex flex-col gap-3">
               <Link href="/health/manage" onClick={() => setMenuOpen(false)}>
                 <Button variant="outline" className="w-full justify-center">
-                  가족관리
+                  설정
                 </Button>
               </Link>
               <div className="flex items-center gap-3">

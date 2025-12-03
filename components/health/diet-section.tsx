@@ -12,14 +12,23 @@ import Link from "next/link";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { DietSectionClient } from "./diet-section-client";
+import { getMultipleCopyContent } from "@/lib/admin/copy-reader";
 
-export function DietSection() {
+export async function DietSection() {
+  // 섹션 콘텐츠 조회
+  const sectionContent = await getMultipleCopyContent([
+    "diet-section-title",
+    "diet-section-description",
+  ]);
+
+  const sectionTitle =
+    sectionContent["diet-section-title"]?.content.title || "🧠 AI 맞춤 식단 큐레이션";
+  const sectionDescription =
+    sectionContent["diet-section-description"]?.content.description ||
+    "건강 정보를 기반으로 개인 맞춤 식단을 추천해드립니다";
+
   return (
-    <Section
-      id="ai"
-      title="🧠 AI 맞춤 식단 큐레이션"
-      description="건강 정보를 기반으로 개인 맞춤 식단을 추천해드립니다"
-    >
+    <Section id="ai" title={sectionTitle} description={sectionDescription}>
       <DietSectionClient />
     </Section>
   );

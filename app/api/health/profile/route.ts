@@ -135,9 +135,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     console.group("➕ POST /api/health/profile");
-    
+
     const { userId } = await auth();
-    
+
     if (!userId) {
       console.error("❌ 인증 실패");
       console.groupEnd();
@@ -206,6 +206,7 @@ export async function POST(request: NextRequest) {
         age: body.age,
         gender: body.gender,
         activity_level: body.activity_level || "sedentary",
+        premium_features: body.premium_features || [],
       })
       .select()
       .single();
@@ -245,9 +246,9 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     console.group("✏️ PUT /api/health/profile");
-    
+
     const { userId } = await auth();
-    
+
     if (!userId) {
       console.error("❌ 인증 실패");
       console.groupEnd();
@@ -300,6 +301,7 @@ export async function PUT(request: NextRequest) {
         age: body.age,
         gender: body.gender,
         activity_level: body.activity_level,
+        premium_features: body.premium_features,
       })
       .select()
       .single();

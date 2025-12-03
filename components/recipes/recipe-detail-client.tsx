@@ -108,8 +108,6 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
                     className={`h-5 w-5 ${
                       star === "full"
                         ? "fill-yellow-400 text-yellow-400"
-                        : star === "half"
-                        ? "fill-yellow-400/50 text-yellow-400"
                         : "fill-gray-200 text-gray-200"
                     }`}
                   />
@@ -177,13 +175,24 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
                 <span
                   className={isChecked ? "line-through text-muted-foreground" : ""}
                 >
-                  {ingredient.name}
+                  {/* 하위 호환성: ingredient_name 또는 name 사용 */}
+                  {ingredient.ingredient_name || ingredient.name}
                   {ingredient.quantity && ingredient.unit
                     ? ` ${ingredient.quantity}${ingredient.unit}`
                     : ingredient.quantity
                     ? ` ${ingredient.quantity}`
                     : ""}
-                  {ingredient.notes && ` (${ingredient.notes})`}
+                  {/* 하위 호환성: preparation_note 또는 notes 사용 */}
+                  {(ingredient.preparation_note || ingredient.notes) && 
+                    ` (${ingredient.preparation_note || ingredient.notes})`}
+                  {/* 선택 재료 표시 */}
+                  {ingredient.is_optional && (
+                    <span className="ml-2 text-xs text-muted-foreground">(선택)</span>
+                  )}
+                  {/* 카테고리 표시 (선택사항) */}
+                  {ingredient.category && ingredient.category !== "기타" && (
+                    <span className="ml-2 text-xs text-blue-600">[{ingredient.category}]</span>
+                  )}
                 </span>
               </li>
             );

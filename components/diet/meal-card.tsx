@@ -7,6 +7,7 @@
 
 import Image from "next/image";
 import type { RecipeDetailForDiet } from "@/types/recipe";
+import { FavoriteButton } from "./favorite-button";
 
 // docs/foodjpg.md에서 직접 가져온 음식별 이미지 URL 매핑
 const FOOD_IMAGE_URLS: Record<string, string> = {
@@ -33,14 +34,33 @@ const FOOD_IMAGE_URLS: Record<string, string> = {
 
 interface MealCardProps {
   recipe: RecipeDetailForDiet;
+  mealType?: "breakfast" | "lunch" | "dinner" | "snack" | null;
 }
 
-export function MealCard({ recipe }: MealCardProps) {
+export function MealCard({ recipe, mealType = null }: MealCardProps) {
   // 음식 이름으로 직접 이미지 URL 가져오기
   const foodImageUrl = FOOD_IMAGE_URLS[recipe.title] || null;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+    <div className="relative rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      {/* 즐겨찾기 버튼 (우측 상단) */}
+      {recipe.id && (
+        <div className="absolute right-4 top-4">
+          <FavoriteButton
+            recipeId={recipe.id}
+            recipeTitle={recipe.title}
+            mealType={mealType}
+            nutrition={{
+              calories: recipe.nutrition.calories,
+              protein: recipe.nutrition.protein,
+              carbs: recipe.nutrition.carbs,
+              fat: recipe.nutrition.fat,
+            }}
+            size="sm"
+            variant="ghost"
+          />
+        </div>
+      )}
       {/* 음식 이미지 표시 - docs/foodjpg.md에서 직접 가져옴 */}
       {foodImageUrl ? (
         <div className="mb-4 flex justify-center">

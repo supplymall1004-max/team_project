@@ -77,18 +77,16 @@ export function formatRating(rating: number): string {
 }
 
 /**
- * 별점을 별 아이콘으로 표시할 수 있는 배열로 변환 (0.5점 단위 지원)
+ * 별점을 별 아이콘으로 표시할 수 있는 배열로 변환 (1점 단위)
+ * 평균 별점의 경우 반올림하여 표시
  */
-export function getRatingStars(rating: number): Array<"full" | "half" | "empty"> {
-  const stars: Array<"full" | "half" | "empty"> = [];
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 >= 0.5;
+export function getRatingStars(rating: number): Array<"full" | "empty"> {
+  const stars: Array<"full" | "empty"> = [];
+  const roundedRating = Math.round(rating);
 
   for (let i = 0; i < 5; i++) {
-    if (i < fullStars) {
+    if (i < roundedRating) {
       stars.push("full");
-    } else if (i === fullStars && hasHalfStar) {
-      stars.push("half");
     } else {
       stars.push("empty");
     }

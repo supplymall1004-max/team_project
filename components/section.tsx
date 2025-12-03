@@ -26,15 +26,15 @@ export function Section({
   className,
 }: SectionProps) {
   return (
-    <section id={id} className={cn("py-12 md:py-16", className)}>
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6">
+    <section id={id} className={cn("py-8 sm:py-12 md:py-16", className)}>
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:gap-6 px-4 sm:px-6">
         {(title || description) && (
           <div>
             {title && (
-              <h2 className="text-3xl font-bold tracking-tight">{title}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">{title}</h2>
             )}
             {description && (
-              <p className="mt-2 text-base text-muted-foreground">
+              <p className="mt-1.5 sm:mt-2 text-sm sm:text-base text-muted-foreground">
                 {description}
               </p>
             )}

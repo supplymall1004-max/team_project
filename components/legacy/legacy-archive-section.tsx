@@ -7,6 +7,7 @@
 import { Section } from "@/components/section";
 import { getLegacyShowcaseData } from "@/lib/legacy/showcase";
 import { LegacyArchiveClient } from "@/components/legacy/legacy-archive-client";
+import { getMultipleCopyContent } from "@/lib/admin/copy-reader";
 
 interface LegacyArchiveSectionProps {
   id?: string;
@@ -16,9 +17,29 @@ interface LegacyArchiveSectionProps {
 
 export async function LegacyArchiveSection({
   id = "legacy",
-  title = "레거시 아카이브",
-  description = "명인의 인터뷰, 전문 기록, 대체재료 가이드를 한 번에 살펴보세요.",
-}: LegacyArchiveSectionProps) {
+  title: propTitle,
+  description: propDescription,
+}: LegacyArchiveSectionProps = {}) {
+  // 섹션 콘텐츠 조회 (props가 없으면 데이터베이스에서 가져오기)
+  let sectionContent;
+  try {
+    sectionContent = await getMultipleCopyContent([
+      "legacy-section-title",
+      "legacy-section-description",
+    ]);
+  } catch (error) {
+    console.error("[LegacyArchiveSection] 콘텐츠 조회 실패:", error);
+    sectionContent = {};
+  }
+
+  const title =
+    propTitle ||
+    sectionContent["legacy-section-title"]?.content.title ||
+    "레거시 아카이브";
+  const description =
+    propDescription ||
+    sectionContent["legacy-section-description"]?.content.description ||
+    "명인의 인터뷰, 전문 기록, 대체재료 가이드를 한 번에 살펴보세요.";
   let data;
   
   try {

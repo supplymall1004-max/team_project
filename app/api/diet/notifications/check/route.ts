@@ -43,12 +43,23 @@ export async function GET(request: NextRequest) {
 
     const supabaseUserId = userData.id;
 
-    // 알림 설정 조회 (없으면 기본값 사용)
-    const { data: notificationSettings } = await supabase
+    // 알림 설정 조회
+    const { data: notificationSettings, error: settingsError } = await supabase
       .from("diet_notification_settings")
       .select("*")
       .eq("user_id", supabaseUserId)
       .maybeSingle();
+
+    // 설정 조회 실패 시 데이터베이스 연결 문제로 간주하고 팝업 표시하지 않음
+    if (settingsError) {
+      console.error("❌ 알림 설정 조회 실패:", settingsError);
+      console.groupEnd();
+      return NextResponse.json({
+        shouldShow: false,
+        reason: "settings_lookup_error",
+        error: settingsError.message
+      });
+    }
 
     const settings = notificationSettings || {
       popup_enabled: true,

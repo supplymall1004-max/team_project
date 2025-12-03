@@ -277,24 +277,24 @@ export function DietSectionClient() {
 
   if (!user) {
     return (
-      <div className="rounded-2xl border border-border/60 bg-white p-8 text-center">
-        <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-muted-foreground mb-4">
+      <div className="rounded-xl sm:rounded-2xl border border-border/60 bg-white p-6 sm:p-8 text-center">
+        <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+        <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
           로그인 후 맞춤 식단을 확인하세요
         </p>
-        <Button onClick={() => router.push("/sign-in")}>로그인하기</Button>
+        <Button size="default" onClick={() => router.push("/sign-in")}>로그인하기</Button>
       </div>
     );
   }
 
   if (!hasHealthProfile) {
     return (
-      <div className="rounded-2xl border border-border/60 bg-white p-8 text-center">
-        <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-muted-foreground mb-4">
+      <div className="rounded-xl sm:rounded-2xl border border-border/60 bg-white p-6 sm:p-8 text-center">
+        <AlertCircle className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+        <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
           건강 정보를 입력하면 맞춤 식단을 추천해드립니다
         </p>
-        <Button asChild>
+        <Button size="default" asChild>
           <Link href="/health/profile">건강 정보 입력하기</Link>
         </Button>
       </div>
@@ -303,16 +303,16 @@ export function DietSectionClient() {
 
   if (!dietPlan) {
     return (
-      <div className="rounded-2xl border border-border/60 bg-white p-8 text-center">
-        <p className="text-muted-foreground mb-4">
+      <div className="rounded-xl sm:rounded-2xl border border-border/60 bg-white p-6 sm:p-8 text-center">
+        <p className="text-sm sm:text-base text-muted-foreground mb-3 sm:mb-4">
           어제 생성된 AI 추천 식단이 없습니다.<br />
           매일 오후 8시에 새로운 식단이 자동으로 생성됩니다.
         </p>
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             식단 생성을 기다리는 동안 건강 정보를 확인해보세요
           </p>
-          <Button asChild variant="outline">
+          <Button size="default" asChild variant="outline">
             <Link href="/health/profile">건강 정보 관리</Link>
           </Button>
         </div>
@@ -321,17 +321,17 @@ export function DietSectionClient() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* 건강 정보 관리 섹션 + 가족 탭 */}
-      <div className="rounded-2xl border border-border/60 bg-white p-4 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="space-y-1">
-            <h3 className="font-semibold text-lg">어제의 AI 맞춤 식단</h3>
-            <p className="text-sm text-muted-foreground">
+      <div className="rounded-xl sm:rounded-2xl border border-border/60 bg-white p-3 sm:p-4 space-y-3 sm:space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+          <div className="space-y-0.5 sm:space-y-1">
+            <h3 className="font-semibold text-base sm:text-lg">어제의 AI 맞춤 식단</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               매일 오후 8시에 자동 생성되는 개인 맞춤/가족 식단입니다
             </p>
           </div>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" asChild className="text-xs sm:text-sm">
             <Link href="/health/profile">건강 정보 관리</Link>
           </Button>
         </div>
@@ -375,7 +375,7 @@ export function DietSectionClient() {
       />
 
       {/* 식단 카드 미리보기 (아침/점심/저녁/간식) */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
         <DietCard mealType="breakfast" dietPlan={dietPlan.breakfast} />
         <DietCard mealType="lunch" dietPlan={dietPlan.lunch} />
         <DietCard mealType="dinner" dietPlan={dietPlan.dinner} />
@@ -384,44 +384,44 @@ export function DietSectionClient() {
 
       {/* 총 영양소 정보 */}
       {dietPlan.totalNutrition && (
-        <div className="rounded-2xl border border-border/60 bg-white p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">어제의 총 영양소</h3>
+        <div className="rounded-xl sm:rounded-2xl border border-border/60 bg-white p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="text-base sm:text-lg font-semibold">어제의 총 영양소</h3>
             <Link href="/diet">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="text-xs sm:text-sm">
                 전체 보기
-                <ArrowRight className="h-4 w-4 ml-2" />
+                <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
               </Button>
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">칼로리</p>
-              <p className="text-xl font-bold">
+              <p className="text-xs sm:text-sm text-muted-foreground">칼로리</p>
+              <p className="text-lg sm:text-xl font-bold">
                 {dietPlan.totalNutrition.calories || 0}kcal
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">탄수화물</p>
-              <p className="text-xl font-bold">
+              <p className="text-xs sm:text-sm text-muted-foreground">탄수화물</p>
+              <p className="text-lg sm:text-xl font-bold">
                 {dietPlan.totalNutrition.carbohydrates?.toFixed(1) || 0}g
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">단백질</p>
-              <p className="text-xl font-bold">
+              <p className="text-xs sm:text-sm text-muted-foreground">단백질</p>
+              <p className="text-lg sm:text-xl font-bold">
                 {dietPlan.totalNutrition.protein?.toFixed(1) || 0}g
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">지방</p>
-              <p className="text-xl font-bold">
+              <p className="text-xs sm:text-sm text-muted-foreground">지방</p>
+              <p className="text-lg sm:text-xl font-bold">
                 {dietPlan.totalNutrition.fat?.toFixed(1) || 0}g
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">나트륨</p>
-              <p className="text-xl font-bold">
+              <p className="text-xs sm:text-sm text-muted-foreground">나트륨</p>
+              <p className="text-lg sm:text-xl font-bold">
                 {dietPlan.totalNutrition.sodium?.toFixed(0) || 0}mg
               </p>
             </div>
@@ -431,7 +431,7 @@ export function DietSectionClient() {
 
       {/* 더보기 버튼 */}
       <div className="flex justify-center">
-        <Button size="lg" asChild>
+        <Button size="default" asChild className="sm:h-11">
           <Link href="/diet">식단 전체 보기</Link>
         </Button>
       </div>

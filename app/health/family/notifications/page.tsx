@@ -63,11 +63,18 @@ export default async function NotificationsPage() {
     }
 
     // 현재 알림 설정 조회
-    const { data: settings } = await supabase
+    console.log("알림 설정 조회 시작 - 사용자 ID:", userData.id);
+    const { data: settings, error: settingsError } = await supabase
       .from("diet_notification_settings")
       .select("*")
       .eq("user_id", userData.id)
       .maybeSingle();
+
+    if (settingsError) {
+      console.error("❌ 알림 설정 조회 실패:", settingsError);
+      console.error("사용자 ID:", userData.id);
+      throw new Error(`설정 조회 실패: ${settingsError.message}`);
+    }
 
     const notificationSettings = settings || {
       popup_enabled: true,
@@ -77,7 +84,13 @@ export default async function NotificationsPage() {
       last_dismissed_date: null,
     };
 
-    console.log("현재 알림 설정:", notificationSettings);
+    console.log("현재 알림 설정:", {
+      fromDatabase: !!settings,
+      settings: notificationSettings,
+      popupEnabled: notificationSettings.popup_enabled,
+      lastNotification: notificationSettings.last_notification_date,
+      lastDismissed: notificationSettings.last_dismissed_date,
+    });
     console.groupEnd();
 
     return (

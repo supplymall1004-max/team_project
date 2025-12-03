@@ -5,51 +5,87 @@
 
 "use client";
 
+import { useState } from "react";
+import { Package } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { DailyDietPlan, MealComposition, RecipeDetailForDiet } from "@/types/recipe";
 import { MealCompositionCard } from "./meal-composition-card";
 import { MealCard } from "./meal-card";
+import { MealKitSelector } from "./meal-kit-selector";
 
 interface DailyDietViewProps {
   diet: DailyDietPlan;
 }
 
 export function DailyDietView({ diet }: DailyDietViewProps) {
+  const [showMealKitSelector, setShowMealKitSelector] = useState(false);
+  const [selectedMealKitIds, setSelectedMealKitIds] = useState<string[]>([]);
+
   return (
     <div className="space-y-6">
+      {/* 밀키트 옵션 토글 */}
+      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4">
+        <div className="flex items-center gap-2">
+          <Package className="w-5 h-5 text-orange-500" />
+          <span className="font-medium">밀키트 옵션</span>
+          <span className="text-sm text-gray-500">
+            (프리미엄 전용)
+          </span>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowMealKitSelector(!showMealKitSelector)}
+        >
+          {showMealKitSelector ? "숨기기" : "밀키트 추가"}
+        </Button>
+      </div>
+
+      {/* 밀키트 선택 UI */}
+      {showMealKitSelector && (
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <MealKitSelector
+            selectedMealKitIds={selectedMealKitIds}
+            onSelectionChange={setSelectedMealKitIds}
+          />
+        </div>
+      )}
       {/* 총 영양 정보 */}
-      <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 p-6 dark:from-blue-950 dark:to-indigo-950">
-        <h3 className="mb-3 text-lg font-semibold">오늘의 총 영양 정보</h3>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">칼로리</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {diet.totalNutrition.calories}
-              <span className="text-sm font-normal">kcal</span>
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">단백질</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {Math.round(diet.totalNutrition.protein)}
-              <span className="text-sm font-normal">g</span>
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">탄수화물</p>
-            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-              {Math.round(diet.totalNutrition.carbs)}
-              <span className="text-sm font-normal">g</span>
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">지방</p>
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              {Math.round(diet.totalNutrition.fat)}
-              <span className="text-sm font-normal">g</span>
-            </p>
+      {diet.totalNutrition && (
+        <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 p-6 dark:from-blue-950 dark:to-indigo-950">
+          <h3 className="mb-3 text-lg font-semibold">오늘의 총 영양 정보</h3>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">칼로리</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {diet.totalNutrition.calories || 0}
+                <span className="text-sm font-normal">kcal</span>
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">단백질</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {Math.round(diet.totalNutrition.protein || 0)}
+                <span className="text-sm font-normal">g</span>
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">탄수화물</p>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {Math.round(diet.totalNutrition.carbs || 0)}
+                <span className="text-sm font-normal">g</span>
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">지방</p>
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {Math.round(diet.totalNutrition.fat || 0)}
+                <span className="text-sm font-normal">g</span>
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 아침 식사 */}
       {diet.breakfast && (
@@ -64,7 +100,7 @@ export function DailyDietView({ diet }: DailyDietViewProps) {
               composition={diet.breakfast as MealComposition}
             />
           ) : (
-            <MealCard recipe={diet.breakfast as RecipeDetailForDiet} />
+            <MealCard recipe={diet.breakfast as RecipeDetailForDiet} mealType="breakfast" />
           )}
         </div>
       )}
@@ -79,7 +115,7 @@ export function DailyDietView({ diet }: DailyDietViewProps) {
           {"rice" in diet.lunch ? (
             <MealCompositionCard mealType="lunch" composition={diet.lunch as MealComposition} />
           ) : (
-            <MealCard recipe={diet.lunch as RecipeDetailForDiet} />
+            <MealCard recipe={diet.lunch as RecipeDetailForDiet} mealType="lunch" />
           )}
         </div>
       )}
@@ -94,7 +130,7 @@ export function DailyDietView({ diet }: DailyDietViewProps) {
           {"rice" in diet.dinner ? (
             <MealCompositionCard mealType="dinner" composition={diet.dinner as MealComposition} />
           ) : (
-            <MealCard recipe={diet.dinner as RecipeDetailForDiet} />
+            <MealCard recipe={diet.dinner as RecipeDetailForDiet} mealType="dinner" />
           )}
         </div>
       )}

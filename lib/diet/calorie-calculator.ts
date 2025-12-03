@@ -1,9 +1,9 @@
 /**
  * @file lib/diet/calorie-calculator.ts
- * @description 정밀 칼로리 계산 시스템 - Harris-Benedict 공식 + 한국영양학회 권장 칼로리
+ * @description 정밀 칼로리 계산 시스템 - Mifflin-St Jeor 공식 (개선됨) + 한국영양학회 권장 칼로리
  * 
  * 핵심 기능:
- * 1. 기초대사량(BMR) 계산 - Harris-Benedict 공식
+ * 1. 기초대사량(BMR) 계산 - Mifflin-St Jeor 공식 (가장 정확도가 높음)
  * 2. 연령별 권장 칼로리 (18세 미만 또는 키/몸무게 없음)
  * 3. 질병별 칼로리 조정 계수
  * 4. 활동 수준별 칼로리 계수
@@ -24,11 +24,11 @@ const DISEASE_CALORIE_MULTIPLIERS: Record<string, number> = {
 
 // 활동 수준별 칼로리 계수
 const ACTIVITY_MULTIPLIERS = {
-  sedentary: 1.2,         // 주로 앉아서 생활
-  light: 1.375,           // 가벼운 운동 (주 1-3회)
-  moderate: 1.55,         // 중간 강도 운동 (주 3-5회)
-  active: 1.725,          // 활발한 운동 (주 6-7회)
-  very_active: 1.9,       // 매우 활발한 운동 (하루 2회)
+  sedentary: 1.2,         // 거의 활동 없음 (좌식 생활)
+  light: 1.375,           // 가벼운 활동 (주 1-3회 운동)
+  moderate: 1.55,         // 보통 활동 (주 3-5회 운동)
+  active: 1.725,          // 활동적 (주 6-7회 운동)
+  very_active: 1.9,       // 매우 활동적 (매일 2회 운동/육체노동)
 };
 
 // 연령별 권장 칼로리 (한국영양학회 기준)
@@ -62,38 +62,32 @@ function getAgeRangeKey(age: number): keyof typeof AGE_BASED_CALORIES {
 }
 
 /**
- * 기초대사량(BMR) 계산 - Harris-Benedict 공식
+ * 기초대사량(BMR) 계산 - Mifflin-St Jeor 공식
  * 
- * 남성: 88.362 + (13.397 × 체중kg) + (4.799 × 키cm) - (5.677 × 나이)
- * 여성: 447.593 + (9.247 × 체중kg) + (3.098 × 키cm) - (4.330 × 나이)
+ * 남성: (10 × 체중kg) + (6.25 × 키cm) - (5 × 나이) + 5
+ * 여성: (10 × 체중kg) + (6.25 × 키cm) - (5 × 나이) - 161
  */
-function calculateBMR(
+export function calculateBMR(
   gender: "male" | "female" | "other",
   weight_kg: number,
   height_cm: number,
   age: number
 ): number {
+  // 기본 계산: (10 × 체중) + (6.25 × 키) - (5 × 나이)
+  let bmr = (10 * weight_kg) + (6.25 * height_cm) - (5 * age);
+
   if (gender === "male") {
-    return 88.362 + 13.397 * weight_kg + 4.799 * height_cm - 5.677 * age;
+    bmr += 5;
   } else {
-    // 여성 및 기타
-    return 447.593 + 9.247 * weight_kg + 3.098 * height_cm - 4.33 * age;
+    // 여성 및 기타 (기본적으로 여성 기준으로 보수적 접근)
+    bmr -= 161;
   }
+  
+  return bmr;
 }
 
 /**
- * 일일 권장 칼로리 계산 (개선 버전)
- * 
- * @example
- * const calories = calculateDailyCalories({
- *   gender: "female",
- *   weight_kg: 60,
- *   height_cm: 160,
- *   age: 40,
- *   activity_level: "sedentary",
- *   diseases: ["diabetes"]
- * });
- * // 결과: 약 1360 kcal (1600 × 0.85)
+ * 일일 권장 칼로리 계산
  */
 export function calculateDailyCalories(params: {
   gender: "male" | "female" | "other";
@@ -102,15 +96,16 @@ export function calculateDailyCalories(params: {
   age: number;
   activity_level: keyof typeof ACTIVITY_MULTIPLIERS;
   diseases?: string[];
+  premium_features?: string[]; // 프리미엄 기능 (예: diet 모드)
 }): number {
-  console.group("🔢 일일 권장 칼로리 계산");
+  console.group("🔢 일일 권장 칼로리 계산 (Mifflin-St Jeor)");
   console.log("입력 정보:", params);
 
   let dailyCalories: number;
 
-  // 12세 이상 + 키/몸무게 있음 → Harris-Benedict 공식 사용
+  // 12세 이상 + 키/몸무게 있음 → Mifflin-St Jeor 공식 사용
   if (params.age >= 12 && params.weight_kg && params.height_cm) {
-    console.log("📐 Harris-Benedict 공식 사용 (12세 이상 + 키/몸무게 있음)");
+    console.log("📐 Mifflin-St Jeor 공식 사용");
     
     const bmr = calculateBMR(
       params.gender,
@@ -164,7 +159,28 @@ export function calculateDailyCalories(params: {
     }
   }
 
+  // 프리미엄 기능: 다이어트 모드
+  if (params.premium_features && params.premium_features.includes("diet")) {
+    console.log("💎 프리미엄 기능: 다이어트 모드 적용");
+    // TDEE에서 300~500kcal 감량 (여기서는 안전하게 15% 감량으로 적용하거나 고정값 차감)
+    // 문서에 따르면 TDEE - 300~500kcal.
+    // 비율로 근사치 적용: 약 15~20% 감소
+    const dietMultiplier = 0.85;
+    dailyCalories *= dietMultiplier;
+    console.log(`다이어트 모드 조정: ×${dietMultiplier}`);
+  }
+
   const result = Math.round(dailyCalories);
+  
+  // 최소 칼로리 보장 (문서 기준: 남성 1500, 여성 1200)
+  let minCalories = 1200;
+  if (params.gender === "male") minCalories = 1500;
+  
+  if (result < minCalories && params.age >= 19) { // 성인인 경우만 최소 칼로리 적용
+     console.log(`⚠️ 계산된 칼로리(${result})가 최소 권장량(${minCalories})보다 낮아 조정함`);
+     return minCalories;
+  }
+
   console.log(`✅ 최종 권장 칼로리: ${result}kcal`);
   console.groupEnd();
 
@@ -185,6 +201,7 @@ export function calculateMemberGoalCalories(
     age,
     activity_level: member.activity_level || "sedentary",
     diseases: member.diseases,
+    // 가족 멤버에는 아직 premium_features 필드가 명시적으로 없지만, 추후 확장 가능
   });
 }
 
@@ -206,6 +223,7 @@ export function calculateUserGoalCalories(
     age: profile.age || 30,
     activity_level: profile.activity_level || "sedentary",
     diseases: profile.diseases,
+    premium_features: profile.premium_features,
   });
 }
 

@@ -44,6 +44,11 @@ export async function POST(request: NextRequest) {
     const supabaseUserId = userData.id;
     const today = new Date().toISOString().split("T")[0];
 
+    // 요청 데이터 파싱
+    const body = await request.json();
+    const { dismissed, shown } = body;
+
+    console.log("요청 데이터:", { dismissed, shown });
     console.log("오늘 날짜:", today);
 
     // 알림 설정 업데이트 또는 생성
@@ -53,10 +58,20 @@ export async function POST(request: NextRequest) {
       .eq("user_id", supabaseUserId)
       .maybeSingle();
 
-    const updateData = {
-      last_dismissed_date: today,
+    // 업데이트 데이터 구성
+    const updateData: any = {
       updated_at: new Date().toISOString(),
     };
+
+    if (dismissed) {
+      updateData.last_dismissed_date = today;
+      console.log("알림 닫기 기록");
+    }
+
+    if (shown) {
+      updateData.last_notification_date = today;
+      console.log("알림 표시 기록");
+    }
 
     if (existingSettings) {
       // 기존 설정 업데이트
@@ -86,9 +101,17 @@ export async function POST(request: NextRequest) {
 
       if (insertError) {
         console.error("❌ 설정 생성 실패:", insertError);
+        console.error("생성 시도한 데이터:", {
+          user_id: supabaseUserId,
+          ...updateData,
+        });
         console.groupEnd();
         return NextResponse.json(
-          { error: "Failed to create settings" },
+          {
+            error: "Failed to create settings",
+            details: insertError.message,
+            code: insertError.code
+          },
           { status: 500 }
         );
       }
@@ -96,13 +119,19 @@ export async function POST(request: NextRequest) {
       console.log("✅ 알림 설정 생성됨");
     }
 
-    console.log("✅ 오늘 알림 닫기 완료 - 내일 다시 표시됨");
+    const action = dismissed ? "닫기" : shown ? "표시" : "처리";
+    console.log(`✅ 오늘 알림 ${action} 완료`);
     console.groupEnd();
 
     return NextResponse.json({
       success: true,
-      message: "Notification dismissed for today",
-      dismissedDate: today,
+      message: dismissed
+        ? "Notification dismissed for today"
+        : shown
+          ? "Notification shown recorded"
+          : "Notification action recorded",
+      action: dismissed ? "dismissed" : shown ? "shown" : "recorded",
+      date: today,
     });
 
   } catch (error) {

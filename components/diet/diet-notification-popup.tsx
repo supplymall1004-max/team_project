@@ -20,6 +20,8 @@ interface DietNotificationPopupProps {
   isOpen: boolean;
   onClose: () => void;
   onViewDiet: () => void;
+  onDismissToday?: () => void;
+  dontShowTodayChecked?: boolean;
   dietData?: {
     date: string;
     plans: Record<string, any>;
@@ -44,36 +46,11 @@ export function DietNotificationPopup({
   isOpen,
   onClose,
   onViewDiet,
+  onDismissToday,
+  dontShowTodayChecked = false,
   dietData,
   loading = false,
 }: DietNotificationPopupProps) {
-  const [dontShowToday, setDontShowToday] = useState(false);
-
-  // 팝업이 열릴 때 초기화
-  useEffect(() => {
-    if (isOpen) {
-      setDontShowToday(false);
-    }
-  }, [isOpen]);
-
-  // 오늘 닫기 처리
-  const handleDismissToday = async () => {
-    try {
-      const response = await fetch("/api/diet/notifications/dismiss", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (response.ok) {
-        console.log("✅ 오늘 알림 닫기 성공");
-        onClose();
-      } else {
-        console.error("❌ 오늘 알림 닫기 실패");
-      }
-    } catch (error) {
-      console.error("❌ 오늘 알림 닫기 오류:", error);
-    }
-  };
 
   // FamilyDietPlan 형식으로 변환
   const familyDietPlan: FamilyDietPlan | null = dietData ? {
@@ -244,8 +221,8 @@ export function DietNotificationPopup({
               <input
                 type="checkbox"
                 id="dont-show-today"
-                checked={dontShowToday}
-                onChange={(e) => setDontShowToday(e.target.checked)}
+                checked={dontShowTodayChecked}
+                onChange={(e) => onDismissToday?.()}
                 className="rounded border-gray-300"
               />
               <label htmlFor="dont-show-today" className="text-sm text-gray-600">
@@ -255,12 +232,12 @@ export function DietNotificationPopup({
 
             <div className="flex gap-2">
               <Button
-                onClick={dontShowToday ? handleDismissToday : onClose}
+                onClick={onClose}
                 variant="outline"
                 size="sm"
               >
                 <EyeOff className="h-4 w-4 mr-1" />
-                {dontShowToday ? "확인" : "나중에 보기"}
+                {dontShowTodayChecked ? "확인" : "나중에 보기"}
               </Button>
               <Button
                 onClick={onViewDiet}

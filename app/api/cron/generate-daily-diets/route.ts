@@ -2,15 +2,19 @@
  * @file app/api/cron/generate-daily-diets/route.ts
  * @description 자동 식단 생성 Cron Job
  * 
- * 매일 저녁 8시(20:00)에 실행되어 다음 날 식단을 자동 생성
+ * 매일 오후 6시(18:00)에 실행되어 다음 날 일일 식단과 다음 주 주간 식단을 자동 생성
+ * - 사용자가 재료 확인 및 구매할 시간을 확보하기 위해 전날 오후 6시에 생성
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClerkSupabaseClient } from "@/lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { generateFamilyDiet } from "@/lib/diet/family-diet-generator";
 import { generatePersonalDiet } from "@/lib/diet/personal-diet-generator";
+import { generateWeeklyDiet, getNextMonday } from "@/lib/diet/weekly-diet-generator";
 import { trackRecipeUsage } from "@/lib/diet/recipe-history";
 import type { MealComposition, RecipeDetailForDiet } from "@/types/recipe";
+import type { WeeklyDietGenerationOptions } from "@/types/weekly-diet";
 
 /**
  * GET /api/cron/generate-daily-diets
@@ -78,7 +82,18 @@ export async function GET(request: NextRequest) {
       success: 0,
       failed: 0,
       errors: [] as string[],
+      weeklyDietsGenerated: 0,
+      weeklyDietsFailed: 0,
     };
+
+    // 다음 주 월요일 날짜 계산 (주간 식단용)
+    const nextMonday = getNextMonday();
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0=일요일, 6=토요일
+    const isSunday = dayOfWeek === 0;
+    
+    console.log(`📅 다음 주 월요일: ${nextMonday}`);
+    console.log(`📅 오늘 요일: ${dayOfWeek === 0 ? '일요일' : dayOfWeek === 6 ? '토요일' : '평일'}`);
 
     for (const user of users) {
       try {
@@ -104,7 +119,7 @@ export async function GET(request: NextRequest) {
           .select("*")
           .eq("user_id", user.id);
 
-        // 가족이 있으면 가족 식단, 없으면 개인 식단
+        // 1. 일일 식단 생성 (다음 날)
         if (familyMembers && familyMembers.length > 0) {
           console.log(`👨‍👩‍👧‍👦 가족 식단 생성 (구성원: ${familyMembers.length}명)`);
           
@@ -131,6 +146,49 @@ export async function GET(request: NextRequest) {
           await savePersonalDietToDatabase(supabase, user.id, targetDate, personalDiet);
         }
 
+        // 2. 주간 식단 생성 (일요일 오후 6시에만 다음 주 식단 생성)
+        if (isSunday) {
+          try {
+            console.log(`\n📅 주간 식단 생성 시작 (다음 주: ${nextMonday})`);
+            
+            // 기존 주간 식단 확인
+            const serviceSupabase = getServiceRoleClient();
+            const { data: existingWeekly } = await serviceSupabase
+              .from("weekly_diet_plans")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("week_start_date", nextMonday)
+              .maybeSingle();
+
+            if (existingWeekly) {
+              console.log(`⚠️ 이미 주간 식단이 존재함 - 건너뜀`);
+            } else {
+              // 주간 식단 생성 옵션
+              const weeklyOptions: WeeklyDietGenerationOptions = {
+                userId: user.id,
+                weekStartDate: nextMonday,
+                profile,
+                familyMembers: familyMembers || undefined,
+                avoidRecentRecipes: true,
+                diversityLevel: "high", // 주간 식단은 다양성 강화
+              };
+
+              const weeklyDiet = await generateWeeklyDiet(weeklyOptions);
+
+              // 주간 식단 저장
+              await saveWeeklyDietToDatabase(serviceSupabase, user.id, weeklyDiet);
+              
+              results.weeklyDietsGenerated++;
+              console.log(`✅ 주간 식단 생성 완료`);
+            }
+          } catch (weeklyError: any) {
+            console.error(`❌ 주간 식단 생성 실패:`, weeklyError);
+            results.weeklyDietsFailed++;
+            results.errors.push(`User ${user.id} weekly: ${weeklyError.message}`);
+            // 주간 식단 실패해도 일일 식단은 성공으로 처리
+          }
+        }
+
         results.success++;
         console.log(`✅ 사용자 ${user.id} 식단 생성 완료`);
       } catch (error: any) {
@@ -141,13 +199,18 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`\n📊 실행 결과:`);
-    console.log(`  - 성공: ${results.success}명`);
-    console.log(`  - 실패: ${results.failed}명`);
+    console.log(`  - 일일 식단 성공: ${results.success}명`);
+    console.log(`  - 일일 식단 실패: ${results.failed}명`);
+    if (isSunday) {
+      console.log(`  - 주간 식단 생성: ${results.weeklyDietsGenerated}명`);
+      console.log(`  - 주간 식단 실패: ${results.weeklyDietsFailed}명`);
+    }
     console.groupEnd();
 
     return NextResponse.json({
-      message: "Daily diets generated",
+      message: "Diets generated",
       targetDate,
+      nextMonday: isSunday ? nextMonday : null,
       ...results,
     });
   } catch (error: any) {
@@ -314,6 +377,180 @@ async function savePersonalDietToDatabase(
       throw insertError;
     }
     console.log("[CronJob] 개인 식단 저장 완료");
+  }
+}
+
+/**
+ * 주간 식단 저장 (크론 작업용)
+ */
+async function saveWeeklyDietToDatabase(
+  supabase: any,
+  userId: string,
+  weeklyDiet: any
+) {
+  console.log("[CronJob] 주간 식단 저장 시작");
+
+  try {
+    // 1. 기존 주간 식단 삭제 (같은 주차)
+    const { error: deleteError } = await supabase
+      .from("weekly_diet_plans")
+      .delete()
+      .eq("user_id", userId)
+      .eq("week_year", weeklyDiet.metadata.week_year)
+      .eq("week_number", weeklyDiet.metadata.week_number);
+
+    if (deleteError) {
+      console.warn("⚠️ 기존 주간 식단 삭제 실패 (무시):", deleteError);
+    } else {
+      console.log("✅ 기존 주간 식단 삭제 완료");
+    }
+
+    // 2. 주간 식단 메타데이터 저장
+    const { data: savedPlan, error: savePlanError } = await supabase
+      .from("weekly_diet_plans")
+      .insert({
+        user_id: userId,
+        week_start_date: weeklyDiet.metadata.week_start_date,
+        week_year: weeklyDiet.metadata.week_year,
+        week_number: weeklyDiet.metadata.week_number,
+        is_family: weeklyDiet.metadata.is_family,
+        total_recipes_count: weeklyDiet.metadata.total_recipes_count,
+        generation_duration_ms: weeklyDiet.metadata.generation_duration_ms,
+      })
+      .select()
+      .single();
+
+    if (savePlanError || !savedPlan) {
+      console.error("❌ 주간 식단 메타데이터 저장 실패:", savePlanError);
+      throw savePlanError || new Error("Failed to save weekly plan metadata");
+    }
+
+    const weeklyPlanId = savedPlan.id;
+    console.log("주간 식단 ID:", weeklyPlanId);
+
+    // 3. 일별 식단 저장 (diet_plans 테이블에)
+    const shouldPersistDailyPlans = weeklyDiet.dailyPlansPersisted !== true;
+    if (shouldPersistDailyPlans) {
+      const dietPlanRecords: any[] = [];
+      for (const [date, dailyPlan] of Object.entries(weeklyDiet.dailyPlans)) {
+        const meals = ["breakfast", "lunch", "dinner", "snack"] as const;
+
+        for (const mealType of meals) {
+          const meal = (dailyPlan as any)[mealType];
+          if (!meal) continue;
+
+          // MealComposition 또는 RecipeDetailForDiet 처리
+          if (meal.recipe) {
+            dietPlanRecords.push({
+              user_id: userId,
+              plan_date: date,
+              meal_type: mealType,
+              recipe_id: meal.recipe.id || null,
+              recipe_title: meal.recipe.title || `${mealType} 식사`,
+              recipe_description: meal.recipe.description || "",
+              calories: meal.nutrition?.calories || meal.recipe.calories || 0,
+              carbohydrates: meal.nutrition?.carbohydrates || meal.recipe.carbohydrates || 0,
+              protein: meal.nutrition?.protein || meal.recipe.protein || 0,
+              fat: meal.nutrition?.fat || meal.recipe.fat || 0,
+              sodium: meal.nutrition?.sodium || meal.recipe.sodium || 0,
+              is_unified: false,
+            });
+          } else if (meal.totalNutrition) {
+            // MealComposition 처리
+            const summaryItems: string[] = [];
+            if (meal.rice?.title) summaryItems.push(meal.rice.title);
+            if (meal.sides?.length) summaryItems.push(...meal.sides.map((s: any) => s.title));
+            if (meal.soup?.title) summaryItems.push(meal.soup.title);
+
+            dietPlanRecords.push({
+              user_id: userId,
+              plan_date: date,
+              meal_type: mealType,
+              recipe_id: meal.rice?.id || meal.sides?.[0]?.id || null,
+              recipe_title: summaryItems.length > 0 ? summaryItems.join(" · ") : `${mealType} 식사`,
+              recipe_description: `${mealType} 식사 구성`,
+              calories: meal.totalNutrition.calories || 0,
+              carbohydrates: meal.totalNutrition.carbohydrates || 0,
+              protein: meal.totalNutrition.protein || 0,
+              fat: meal.totalNutrition.fat || 0,
+              sodium: meal.totalNutrition.sodium || 0,
+              composition_summary: JSON.stringify({
+                items: summaryItems,
+                rice: meal.rice?.title ? [meal.rice.title] : [],
+                sides: (meal.sides || []).map((s: any) => s.title),
+                soup: meal.soup?.title ? [meal.soup.title] : [],
+              }),
+              is_unified: false,
+            });
+          }
+        }
+      }
+
+      if (dietPlanRecords.length > 0) {
+        const { error: dietPlanError } = await supabase
+          .from("diet_plans")
+          .insert(dietPlanRecords);
+
+        if (dietPlanError) {
+          console.error("⚠️ 일별 식단 저장 실패:", dietPlanError);
+        } else {
+          console.log(`✅ 일별 식단 ${dietPlanRecords.length}개 저장 완료`);
+        }
+      }
+    }
+
+    // 4. 장보기 리스트 저장
+    if (weeklyDiet.shoppingList && weeklyDiet.shoppingList.length > 0) {
+      const shoppingRecords = weeklyDiet.shoppingList.map((item: any) => ({
+        weekly_diet_plan_id: weeklyPlanId,
+        ingredient_name: item.ingredient_name,
+        total_quantity: item.total_quantity,
+        unit: item.unit,
+        category: item.category,
+        recipes_using: item.recipes_using,
+        is_purchased: false,
+      }));
+
+      const { error: shoppingError } = await supabase
+        .from("weekly_shopping_lists")
+        .insert(shoppingRecords);
+
+      if (shoppingError) {
+        console.error("⚠️ 장보기 리스트 저장 실패:", shoppingError);
+      } else {
+        console.log(`✅ 장보기 리스트 ${shoppingRecords.length}개 저장 완료`);
+      }
+    }
+
+    // 5. 영양 통계 저장
+    if (weeklyDiet.nutritionStats && weeklyDiet.nutritionStats.length > 0) {
+      const statsRecords = weeklyDiet.nutritionStats.map((stat: any) => ({
+        weekly_diet_plan_id: weeklyPlanId,
+        day_of_week: stat.day_of_week,
+        date: stat.date,
+        total_calories: stat.total_calories,
+        total_carbohydrates: stat.total_carbohydrates,
+        total_protein: stat.total_protein,
+        total_fat: stat.total_fat,
+        total_sodium: stat.total_sodium,
+        meal_count: stat.meal_count,
+      }));
+
+      const { error: statsError } = await supabase
+        .from("weekly_nutrition_stats")
+        .insert(statsRecords);
+
+      if (statsError) {
+        console.error("⚠️ 영양 통계 저장 실패:", statsError);
+      } else {
+        console.log(`✅ 영양 통계 ${statsRecords.length}개 저장 완료`);
+      }
+    }
+
+    console.log("[CronJob] 주간 식단 저장 완료");
+  } catch (error: any) {
+    console.error("[CronJob] 주간 식단 저장 실패:", error);
+    throw error;
   }
 }
 

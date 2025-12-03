@@ -14,7 +14,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { FamilyDietTabs } from "@/components/diet/family-diet-tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +54,7 @@ export function FamilyDietView({
   );
 
   // 식단 데이터 조회
-  const fetchDietData = async () => {
+  const fetchDietData = useCallback(async () => {
     console.group("📋 가족 식단 데이터 조회");
     console.log("대상 날짜:", targetDate);
 
@@ -79,7 +79,7 @@ export function FamilyDietView({
       setLoading(false);
       console.groupEnd();
     }
-  };
+  }, [targetDate]);
 
   const handleMemberIncludeSync = (memberId: string, include: boolean) => {
     setMemberStates((prev) =>
@@ -130,7 +130,7 @@ export function FamilyDietView({
   // 컴포넌트 마운트 시 데이터 조회
   useEffect(() => {
     fetchDietData();
-  }, [targetDate]);
+  }, [fetchDietData]);
 
   // FamilyDietPlan 형식으로 변환
   const familyDietPlan: FamilyDietPlan = dietData ? {

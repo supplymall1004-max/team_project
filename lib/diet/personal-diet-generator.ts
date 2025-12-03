@@ -55,7 +55,15 @@ export async function generatePersonalDiet(
     protein: number | null;
     fat: number | null;
     sodium: number | null;
-  }>
+  }>,
+  usedByCategory?: {
+    rice: Set<string>;
+    side: Set<string>;
+    soup: Set<string>;
+    snack: Set<string>;
+  },
+  preferredRiceType?: string,
+  premiumFeatures?: string[]
 ): Promise<DailyDietPlan> {
   console.group("🍱 개인 맞춤 식단 생성");
   console.log("사용자 ID:", userId);
@@ -96,6 +104,7 @@ export async function generatePersonalDiet(
   const dinnerCalories = dailyCalories * mealCalorieRatios.dinner;
   const snackCalories = dailyCalories * mealCalorieRatios.snack;
 
+  // 주간 컨텍스트 전달 (있는 경우)
   const breakfast = await selectMealComposition(
     "breakfast",
     breakfastCalories,
@@ -103,7 +112,11 @@ export async function generatePersonalDiet(
     profile.allergies || [],
     recentlyUsed,
     availableRecipes || [],
-    isChild
+    isChild,
+    profile.dietary_preferences || [],
+    usedByCategory, // 주간 컨텍스트 전달
+    preferredRiceType, // 밥 종류 다양화
+    profile.premium_features // 프리미엄 기능
   );
 
   const lunch = await selectMealComposition(
@@ -113,7 +126,11 @@ export async function generatePersonalDiet(
     profile.allergies || [],
     recentlyUsed,
     availableRecipes || [],
-    isChild
+    isChild,
+    profile.dietary_preferences || [],
+    usedByCategory, // 주간 컨텍스트 전달
+    preferredRiceType, // 밥 종류 다양화
+    profile.premium_features // 프리미엄 기능
   );
 
   const dinner = await selectMealComposition(
@@ -123,17 +140,40 @@ export async function generatePersonalDiet(
     profile.allergies || [],
     recentlyUsed,
     availableRecipes || [],
-    isChild
+    isChild,
+    profile.dietary_preferences || [],
+    usedByCategory, // 주간 컨텍스트 전달
+    preferredRiceType, // 밥 종류 다양화
+    profile.premium_features // 프리미엄 기능
   );
 
-  // 6. 간식 (제철 과일)
+  // 6. 간식 (제철 과일) - 주간 컨텍스트 고려
   const currentMonth = new Date().getMonth() + 1;
-  const fruitSnack = recommendFruitSnack(
+  let fruitSnack = recommendFruitSnack(
     snackCalories,
     currentMonth,
     isChild,
     profile.diseases || []
   );
+
+  // 주간 컨텍스트: 이미 사용된 간식 제외
+  if (usedByCategory?.snack && usedByCategory.snack.size > 0) {
+    const excludedSnacks = Array.from(usedByCategory.snack);
+    let retryCount = 0;
+    while (excludedSnacks.includes(fruitSnack.fruit.name) && retryCount < 5) {
+      // 다른 과일 추천 시도
+      fruitSnack = recommendFruitSnack(
+        snackCalories,
+        currentMonth,
+        isChild,
+        profile.diseases || []
+      );
+      retryCount++;
+    }
+    if (excludedSnacks.includes(fruitSnack.fruit.name)) {
+      console.warn(`⚠️ 주간 제외 간식과 겹침: ${fruitSnack.fruit.name} (그대로 사용)`);
+    }
+  }
 
   const snack: RecipeDetailForDiet = {
     title: fruitSnack.fruit.name,
@@ -219,6 +259,162 @@ export async function generatePersonalDiet(
 }
 
 /**
+ * 주간 컨텍스트를 고려한 개인 식단 생성
+ */
+export async function generatePersonalDietWithWeeklyContext(
+  userId: string,
+  date: string,
+  usedByCategory: {
+    rice: Set<string>;
+    side: Set<string>;
+    soup: Set<string>;
+    snack: Set<string>;
+  },
+  preferredRiceType?: string
+): Promise<import("@/types/health").DailyDietPlan | null> {
+  console.group("🍱 주간 컨텍스트 개인 식단 생성");
+  console.log("사용자 ID:", userId);
+  console.log("대상 날짜:", date);
+  console.log("카테고리별 제외 목록:", {
+    rice: Array.from(usedByCategory.rice),
+    side: Array.from(usedByCategory.side),
+    soup: Array.from(usedByCategory.soup),
+    snack: Array.from(usedByCategory.snack),
+  });
+  console.log("선호 밥 종류:", preferredRiceType);
+
+  // 건강 프로필 조회
+  const { getUserHealthProfile } = await import("./queries");
+  const profile = await getUserHealthProfile(userId);
+
+  if (!profile) {
+    console.warn("⚠️ 건강 프로필 없음");
+    console.groupEnd();
+    return null;
+  }
+
+  // 레시피 목록 조회
+  const { getRecipesWithNutrition } = await import("./queries");
+  const recipes = await getRecipesWithNutrition();
+
+  let availableRecipes = recipes;
+  if (recipes.length === 0) {
+    console.log("📚 데이터베이스 레시피가 없어 폴백 레시피 시스템 사용");
+    availableRecipes = [];
+  }
+
+  // 주간 컨텍스트를 고려한 식단 생성
+  const dietPlan = await generatePersonalDiet(
+    userId,
+    profile,
+    date,
+    availableRecipes.length > 0 ? availableRecipes : undefined,
+    usedByCategory, // 주간 컨텍스트 전달
+    preferredRiceType // 밥 종류 다양화
+  );
+
+  // DailyDietPlan 형식으로 변환 (queries.ts의 형식과 일치)
+  const { generatePersonalDietForAPI } = await import("./queries");
+  const apiResult = await generatePersonalDietForAPI(
+    userId,
+    profile,
+    date,
+    availableRecipes,
+    usedByCategory,
+    preferredRiceType
+  );
+
+  // DailyDietPlan 형식으로 변환
+  const dailyPlan: import("@/types/health").DailyDietPlan = {
+    date,
+    breakfast: apiResult.breakfast ? {
+      id: `temp-${date}-breakfast`,
+      user_id: userId,
+      plan_date: date,
+      meal_type: "breakfast",
+      recipe_id: apiResult.breakfast.id,
+      calories: apiResult.breakfast.calories,
+      carbohydrates: apiResult.breakfast.carbohydrates,
+      protein: apiResult.breakfast.protein,
+      fat: apiResult.breakfast.fat,
+      sodium: apiResult.breakfast.sodium,
+      created_at: new Date().toISOString(),
+      compositionSummary: apiResult.breakfastCompositionSummary,
+      recipe: {
+        id: apiResult.breakfast.id,
+        title: apiResult.breakfast.title,
+        thumbnail_url: apiResult.breakfast.thumbnail_url,
+        slug: apiResult.breakfast.slug,
+      },
+    } as import("@/types/health").DietPlan : null,
+    lunch: apiResult.lunch ? {
+      id: `temp-${date}-lunch`,
+      user_id: userId,
+      plan_date: date,
+      meal_type: "lunch",
+      recipe_id: apiResult.lunch.id,
+      calories: apiResult.lunch.calories,
+      carbohydrates: apiResult.lunch.carbohydrates,
+      protein: apiResult.lunch.protein,
+      fat: apiResult.lunch.fat,
+      sodium: apiResult.lunch.sodium,
+      created_at: new Date().toISOString(),
+      compositionSummary: apiResult.lunchCompositionSummary,
+      recipe: {
+        id: apiResult.lunch.id,
+        title: apiResult.lunch.title,
+        thumbnail_url: apiResult.lunch.thumbnail_url,
+        slug: apiResult.lunch.slug,
+      },
+    } as import("@/types/health").DietPlan : null,
+    dinner: apiResult.dinner ? {
+      id: `temp-${date}-dinner`,
+      user_id: userId,
+      plan_date: date,
+      meal_type: "dinner",
+      recipe_id: apiResult.dinner.id,
+      calories: apiResult.dinner.calories,
+      carbohydrates: apiResult.dinner.carbohydrates,
+      protein: apiResult.dinner.protein,
+      fat: apiResult.dinner.fat,
+      sodium: apiResult.dinner.sodium,
+      created_at: new Date().toISOString(),
+      compositionSummary: apiResult.dinnerCompositionSummary,
+      recipe: {
+        id: apiResult.dinner.id,
+        title: apiResult.dinner.title,
+        thumbnail_url: apiResult.dinner.thumbnail_url,
+        slug: apiResult.dinner.slug,
+      },
+    } as import("@/types/health").DietPlan : null,
+    snack: apiResult.snack ? {
+      id: `temp-${date}-snack`,
+      user_id: userId,
+      plan_date: date,
+      meal_type: "snack",
+      recipe_id: apiResult.snack.id,
+      calories: apiResult.snack.calories,
+      carbohydrates: apiResult.snack.carbohydrates,
+      protein: apiResult.snack.protein,
+      fat: apiResult.snack.fat,
+      sodium: apiResult.snack.sodium,
+      created_at: new Date().toISOString(),
+      compositionSummary: apiResult.snackCompositionSummary,
+      recipe: {
+        id: apiResult.snack.id,
+        title: apiResult.snack.title,
+        thumbnail_url: apiResult.snack.thumbnail_url,
+        slug: apiResult.snack.slug,
+      },
+    } as import("@/types/health").DietPlan : null,
+    totalNutrition: apiResult.totalNutrition,
+  };
+
+  console.groupEnd();
+  return dailyPlan;
+}
+
+/**
  * 식사 구성 선택 (밥 + 반찬 3개 + 국/찌개)
  */
 async function selectMealComposition(
@@ -236,7 +432,17 @@ async function selectMealComposition(
     fat: number | null;
     sodium: number | null;
   }>,
-  isChildDiet: boolean = false
+  isChildDiet: boolean = false,
+  dietaryPreferences: string[] = [],
+  usedByCategory?: {
+    rice: Set<string>;
+    side: Set<string>;
+    soup: Set<string>;
+    snack: Set<string>;
+  },
+
+  preferredRiceType?: string,
+  premiumFeatures?: string[]
 ): Promise<MealComposition> {
   console.group(`🍽️ ${mealType.toUpperCase()} 식사 구성`);
   console.log(`목표 칼로리: ${Math.round(targetCalories)}kcal`);
@@ -246,7 +452,14 @@ async function selectMealComposition(
   const sidesCalories = targetCalories * DISH_CALORIE_RATIOS.sides;
   const soupCalories = targetCalories * DISH_CALORIE_RATIOS.soup;
 
-  // 1. 밥 선택
+  // 카테고리별 제외 목록 생성
+  const excludedByCategory = {
+    rice: usedByCategory?.rice ? Array.from(usedByCategory.rice) : [],
+    side: usedByCategory?.side ? Array.from(usedByCategory.side) : [],
+    soup: usedByCategory?.soup ? Array.from(usedByCategory.soup) : [],
+  };
+
+  // 1. 밥 선택 (주간 컨텍스트 고려)
   const rice = await selectDishForMeal(
     "rice",
     mealType,
@@ -255,10 +468,14 @@ async function selectMealComposition(
     allergies,
     recentlyUsed,
     availableRecipes,
-    isChildDiet
+    isChildDiet,
+    dietaryPreferences,
+    excludedByCategory.rice, // 카테고리별 제외 목록
+    preferredRiceType, // 선호 밥 종류
+    premiumFeatures
   );
 
-  // 2. 반찬 3개 선택 (각 15%)
+  // 2. 반찬 3개 선택 (각 15%, 주간 컨텍스트 고려)
   const sideCaloriesEach = sidesCalories / 3;
   const sides: RecipeDetailForDiet[] = [];
 
@@ -269,23 +486,31 @@ async function selectMealComposition(
       sideCaloriesEach,
       excludedFoods,
       allergies,
-      [...recentlyUsed, ...sides.map(s => s.title)], // 이미 선택한 반찬 제외
+      [...recentlyUsed, ...sides.map(s => s.title), ...excludedByCategory.side], // 이미 선택한 반찬 + 주간 제외 목록
       availableRecipes,
-      isChildDiet
+      isChildDiet,
+      dietaryPreferences,
+      excludedByCategory.side, // 카테고리별 제외 목록
+      undefined,
+      premiumFeatures
     );
     if (side) sides.push(side);
   }
 
-  // 3. 국/찌개 선택
+  // 3. 국/찌개 선택 (주간 컨텍스트 고려)
   const soup = await selectDishForMeal(
     "soup",
     mealType,
     soupCalories,
     excludedFoods,
     allergies,
-    recentlyUsed,
+    [...recentlyUsed, ...excludedByCategory.soup], // 주간 제외 목록 포함
     availableRecipes,
-    isChildDiet
+    isChildDiet,
+    dietaryPreferences,
+    excludedByCategory.soup, // 카테고리별 제외 목록
+    undefined,
+    premiumFeatures
   );
 
   // 총 영양 정보
@@ -331,9 +556,19 @@ async function selectDishForMeal(
     fat: number | null;
     sodium: number | null;
   }>,
-  isChildDiet: boolean = false
+  isChildDiet: boolean = false,
+  dietaryPreferences: string[] = [],
+  weeklyExcludedByCategory?: string[], // 주간 카테고리별 제외 목록
+  preferredRiceType?: string, // 선호 밥 종류 (흰쌀밥, 현미밥, 잡곡밥)
+  premiumFeatures?: string[]
 ): Promise<RecipeDetailForDiet | undefined> {
   console.log(`  - ${dishType} 선택 중 (목표: ${Math.round(targetCalories)}kcal)`);
+  if (weeklyExcludedByCategory && weeklyExcludedByCategory.length > 0) {
+    console.log(`    주간 제외 목록: ${weeklyExcludedByCategory.join(', ')}`);
+  }
+  if (preferredRiceType && dishType === "rice") {
+    console.log(`    선호 밥 종류: ${preferredRiceType}`);
+  }
 
   // availableRecipes에서 dishType에 맞는 레시피 필터링
   let candidates: RecipeDetailForDiet[] = [];
@@ -346,6 +581,11 @@ async function selectDishForMeal(
         const title = recipe.title.toLowerCase();
         switch (dishType) {
           case "rice":
+            // 밥 종류 필터링
+            if (preferredRiceType) {
+              // 선호 밥 종류가 있으면 해당 종류만 선택
+              return title.includes(preferredRiceType.toLowerCase().replace("밥", "")) || title.includes(preferredRiceType.toLowerCase());
+            }
             return title.includes("밥") || title.includes("rice");
           case "side":
             return !title.includes("국") && !title.includes("찌개") && !title.includes("밥");
@@ -373,25 +613,77 @@ async function selectDishForMeal(
         mealType: [mealType],
         emoji: dishType === "rice" ? "🍚" : dishType === "soup" ? "🍲" : "🍽️",
       }))
-      .filter(recipe => !excludeNames.includes(recipe.title));
+      .filter(recipe => {
+        // 일반 제외 목록 필터링
+        if (excludeNames.includes(recipe.title)) return false;
+        // 주간 카테고리별 제외 목록 필터링 (2번 이상 겹치지 않게)
+        if (weeklyExcludedByCategory && weeklyExcludedByCategory.includes(recipe.title)) {
+          console.log(`    ⚠️ 주간 제외: ${recipe.title}`);
+          return false;
+        }
+        return true;
+      });
   } else {
     // 폴백 레시피 검색 (기존 방식)
     const { searchFallbackRecipes } = await import("@/lib/recipes/fallback-recipes");
+    const excludeAll = [...excludeNames, ...(weeklyExcludedByCategory || [])];
     candidates = searchFallbackRecipes({
       dishType: [dishType],
       mealType,
-      excludeNames,
+      excludeNames: excludeAll,
       limit: 10,
     });
+
+    // 밥 종류 다양화: 선호 밥 종류가 있으면 해당 종류만 필터링
+    if (preferredRiceType && dishType === "rice") {
+      candidates = candidates.filter(recipe =>
+        recipe.title.includes(preferredRiceType)
+      );
+      // 선호 밥 종류가 없으면 폴백 레시피에서 해당 종류 생성
+      if (candidates.length === 0) {
+        const { searchFallbackRecipes } = await import("@/lib/recipes/fallback-recipes");
+        const fallbackResults = searchFallbackRecipes({
+          dishType: ["rice"],
+          excludeNames: [],
+          limit: 10,
+        });
+        const preferredRice = fallbackResults.find(r => r.title === preferredRiceType);
+        if (preferredRice) {
+          candidates = [preferredRice];
+        }
+      }
+    }
   }
 
   // 질병 필터링
   candidates = filterCompatibleRecipes(candidates, [], excludedFoods);
 
   // 알레르기 필터링
-  candidates = candidates.filter(recipe => 
+  candidates = candidates.filter(recipe =>
     checkAllergyCompatibility(recipe, allergies)
   );
+
+  // 특수 식단 필터 적용
+  if (dietaryPreferences && dietaryPreferences.length > 0) {
+    const { filterRecipesBySpecialDiet } = await import("./special-diet-filters");
+    candidates = filterRecipesBySpecialDiet(candidates, dietaryPreferences as any);
+  }
+
+  // 프리미엄 기능 필터링 (Vegan)
+  if (premiumFeatures && premiumFeatures.includes("vegan")) {
+    console.log("    🌱 비건 모드: 동물성 재료 포함 레시피 제외");
+    const animalIngredients = ["고기", "돼지", "소고기", "닭", "계란", "우유", "치즈", "멸치", "새우", "굴소스", "액젓", "생선", "해물"];
+    candidates = candidates.filter(recipe => {
+      // 재료 체크
+      const hasAnimalIngredient = recipe.ingredients.some(ing =>
+        animalIngredients.some(animal => ing.name.includes(animal))
+      );
+      // 제목 체크
+      const hasAnimalTitle = animalIngredients.some(animal => recipe.title.includes(animal));
+
+      return !hasAnimalIngredient && !hasAnimalTitle;
+    });
+  }
 
   // 정렬 기준 설정 (칼로리 근접도 + 영양소 비율)
   candidates.sort((a, b) => {

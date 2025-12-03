@@ -11,7 +11,7 @@
  * 3. 가족 구성원별 맞춤 추천
  */
 
-import { createClerkSupabaseClient } from "@/lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import type { RecipeDetailForDiet } from "@/types/recipe";
 
 export interface ExcludedFood {
@@ -37,7 +37,7 @@ export async function getExcludedFoods(diseases: string[]): Promise<ExcludedFood
   }
 
   try {
-    const supabase = await createClerkSupabaseClient();
+    const supabase = getServiceRoleClient();
 
     const { data, error } = await supabase
       .from("disease_excluded_foods")
@@ -50,9 +50,18 @@ export async function getExcludedFoods(diseases: string[]): Promise<ExcludedFood
       return [];
     }
 
-    console.log(`✅ ${data?.length || 0}개의 제외 음식 발견`);
+    const records = data || [];
+    const validFoods = records.filter(food => Boolean(food.excluded_food_name?.trim()));
+    const invalidCount = records.length - validFoods.length;
+
+    console.log(`✅ ${validFoods.length}개의 제외 음식 발견`);
+
+    if (invalidCount > 0) {
+      console.warn(`⚠️ 제외 음식 이름이 비어있는 항목 ${invalidCount}개를 건너뜁니다`);
+    }
+
     console.groupEnd();
-    return data || [];
+    return validFoods;
 
   } catch (error) {
     console.error("❌ 제외 음식 조회 오류:", error);
@@ -82,6 +91,14 @@ export function isRecipeExcludedForDisease(
   console.log(`🔍 레시피 "${recipe.title}" 제외 검사 중...`);
 
   for (const excludedFood of excludedFoods) {
+    if (!excludedFood?.excluded_food_name) {
+      console.warn(
+        "⚠️ 제외 음식 이름 누락 - 해당 레코드를 건너뜁니다:",
+        excludedFood
+      );
+      continue;
+    }
+
     const searchTerm = excludedFood.excluded_food_name.toLowerCase();
 
     if (excludedFood.excluded_type === 'recipe_keyword') {
@@ -180,7 +197,7 @@ export async function searchExcludedFoods(
   console.group("🔍 제외 음식 검색");
 
   try {
-    const supabase = await createClerkSupabaseClient();
+    const supabase = getServiceRoleClient();
     let queryBuilder = supabase.from("disease_excluded_foods").select("*");
 
     if (query) {
@@ -227,7 +244,7 @@ export async function addExcludedFood(
   console.group("➕ 제외 음식 추가");
 
   try {
-    const supabase = await createClerkSupabaseClient();
+    const supabase = getServiceRoleClient();
 
     const { error } = await supabase
       .from("disease_excluded_foods")
@@ -263,7 +280,7 @@ export async function removeExcludedFood(id: string): Promise<{ success: boolean
   console.group("🗑️ 제외 음식 삭제");
 
   try {
-    const supabase = await createClerkSupabaseClient();
+    const supabase = getServiceRoleClient();
 
     const { error } = await supabase
       .from("disease_excluded_foods")

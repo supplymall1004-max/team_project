@@ -226,7 +226,32 @@ export async function recommendDailyDiet(
     recipes.map(recipe => isRecipeCompatible(recipe, healthProfile))
   );
 
-  const compatibleRecipes = recipes.filter((_, index) => compatibilityResults[index]);
+  let compatibleRecipes = recipes.filter((_, index) => compatibilityResults[index]);
+
+  // 특수 식단 필터 적용
+  if (healthProfile.dietary_preferences && healthProfile.dietary_preferences.length > 0) {
+    console.log("🔍 특수 식단 필터 적용:", healthProfile.dietary_preferences);
+    const { filterRecipesBySpecialDiet } = await import("./special-diet-filters");
+    
+    // RecipeWithNutrition을 RecipeDetailForDiet로 변환
+    const recipeDetails: any[] = compatibleRecipes.map((r) => ({
+      id: r.id,
+      title: r.title,
+      description: "",
+      ingredients: [],
+      nutrition: {
+        calories: r.calories || 0,
+        protein: r.protein || 0,
+        carbs: r.carbohydrates || 0,
+        fat: r.fat || 0,
+      },
+    }));
+
+    const filtered = filterRecipesBySpecialDiet(recipeDetails, healthProfile.dietary_preferences);
+    const filteredIds = new Set(filtered.map((r) => r.id));
+    compatibleRecipes = compatibleRecipes.filter((r) => filteredIds.has(r.id));
+    console.log("✅ 특수 식단 필터 적용 후:", compatibleRecipes.length, "개");
+  }
 
   console.log("✅ 호환되는 레시피 수:", compatibleRecipes.length);
   console.log("📊 호환 레시피 샘플:", compatibleRecipes.slice(0, 3).map(r => ({

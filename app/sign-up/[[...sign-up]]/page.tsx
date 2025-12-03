@@ -27,7 +27,12 @@ export default function SignUpPage() {
             전통과 현대 레시피를 저장하고 AI 식단을 받아보세요.
           </p>
         </div>
-        <SignUp routing="path" path="/sign-up" />
+        <SignUp
+          routing="path"
+          path="/sign-up"
+          fallbackRedirectUrl="/"
+          signInUrl="/sign-in"
+        />
       </div>
     </div>
   );

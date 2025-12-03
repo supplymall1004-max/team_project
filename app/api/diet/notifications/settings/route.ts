@@ -179,37 +179,56 @@ export async function PUT(request: NextRequest) {
 
       if (error) {
         console.error("❌ 설정 업데이트 실패:", error);
+        console.error("업데이트 시도한 데이터:", updateData);
+        console.error("사용자 ID:", supabaseUserId);
         console.groupEnd();
         return NextResponse.json(
-          { error: "Failed to update settings" },
+          {
+            error: "Failed to update settings",
+            details: error.message,
+            code: error.code
+          },
           { status: 500 }
         );
       }
 
       result = data;
       console.log("✅ 알림 설정 업데이트됨");
+      console.log("업데이트된 설정:", result);
     } else {
       // 새 설정 생성
+      const insertData = {
+        user_id: supabaseUserId,
+        popup_enabled: popup_enabled ?? true,
+        browser_enabled: browser_enabled ?? false,
+        notification_time: notification_time ?? "05:00:00",
+        ...updateData,
+      };
+
       const { data, error } = await supabase
         .from("diet_notification_settings")
-        .insert({
-          user_id: supabaseUserId,
-          ...updateData,
-        })
+        .insert(insertData)
         .select()
         .single();
 
       if (error) {
         console.error("❌ 설정 생성 실패:", error);
+        console.error("생성 시도한 데이터:", insertData);
+        console.error("사용자 ID:", supabaseUserId);
         console.groupEnd();
         return NextResponse.json(
-          { error: "Failed to create settings" },
+          {
+            error: "Failed to create settings",
+            details: error.message,
+            code: error.code
+          },
           { status: 500 }
         );
       }
 
       result = data;
       console.log("✅ 알림 설정 생성됨");
+      console.log("생성된 설정:", result);
     }
 
     console.log("최종 설정:", result);

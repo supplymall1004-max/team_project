@@ -35,17 +35,18 @@ export interface UserHealthProfile {
   age?: number;
   gender?: "male" | "female" | "other";
   activity_level?: "sedentary" | "light" | "moderate" | "active" | "very_active";
+  premium_features?: string[];
   created_at: string;
   updated_at: string;
 }
 
-export type Disease = 
-  | "diabetes" 
-  | "hypertension" 
-  | "gout" 
-  | "kidney_disease" 
-  | "hyperlipidemia" 
-  | "obesity" 
+export type Disease =
+  | "diabetes"
+  | "hypertension"
+  | "gout"
+  | "kidney_disease"
+  | "hyperlipidemia"
+  | "obesity"
   | "heart_disease";
 
 export interface DiseaseExcludedFood {

@@ -166,11 +166,20 @@ export async function getRecipeBySlug(slug: string): Promise<RecipeDetail | null
       .from("recipe_ingredients")
       .select("*")
       .eq("recipe_id", recipeTyped.id)
-      .order("order_index", { ascending: true });
+      .order("display_order", { ascending: true });
 
     if (ingredientsError) {
       console.error("ingredients error", ingredientsError);
     }
+
+    // 재료 데이터를 타입에 맞게 변환 (하위 호환성 포함)
+    const ingredientsTyped = (ingredients || []).map((ing: any) => ({
+      ...ing,
+      // 하위 호환성을 위한 별칭
+      name: ing.ingredient_name,
+      notes: ing.preparation_note,
+      order_index: ing.display_order,
+    }));
 
     // 단계 조회
     const { data: steps, error: stepsError } = await supabase
@@ -201,7 +210,7 @@ export async function getRecipeBySlug(slug: string): Promise<RecipeDetail | null
 
     const result: RecipeDetail = {
       ...recipeTyped,
-      ingredients: ingredients || [],
+      ingredients: ingredientsTyped || [],
       steps: steps || [],
       user_rating: userRating,
       user: (recipeTyped.user as any) || { id: recipeTyped.user_id, name: "익명" },

@@ -42,6 +42,13 @@ export function NotificationSettingsClient({
     setSaving(true);
     setMessage(null);
 
+    console.group("💾 알림 설정 저장 시작");
+    console.log("저장할 설정:", {
+      popup_enabled: settings.popup_enabled,
+      browser_enabled: settings.browser_enabled,
+      notification_time: settings.notification_time,
+    });
+
     try {
       const response = await fetch("/api/diet/notifications/settings", {
         method: "PUT",
@@ -54,20 +61,36 @@ export function NotificationSettingsClient({
       });
 
       if (!response.ok) {
-        throw new Error("설정 저장에 실패했습니다");
+        console.error("❌ API 응답 실패:", response.status, response.statusText);
+        let errorMessage = "설정 저장에 실패했습니다";
+
+        try {
+          const errorData = await response.json();
+          console.error("API 에러 세부 정보:", errorData);
+          if (errorData.error && errorData.details) {
+            errorMessage = `${errorData.error}: ${errorData.details}`;
+          }
+        } catch (parseError) {
+          console.error("에러 응답 파싱 실패:", parseError);
+        }
+
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
+      console.log("API 응답:", result);
+
       setSettings(result.settings);
       setMessage({ type: 'success', text: '설정이 저장되었습니다.' });
 
-      console.log("✅ 알림 설정 저장 성공");
+      console.log("✅ 알림 설정 저장 성공 - 새로운 설정:", result.settings);
 
     } catch (error) {
       console.error("❌ 설정 저장 실패:", error);
       setMessage({ type: 'error', text: '설정 저장에 실패했습니다. 다시 시도해주세요.' });
     } finally {
       setSaving(false);
+      console.groupEnd();
     }
   };
 

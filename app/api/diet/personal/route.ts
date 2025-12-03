@@ -10,6 +10,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createClerkSupabaseClient } from "@/lib/supabase/server";
 import { generatePersonalDiet } from "@/lib/diet/personal-diet-generator";
 import { trackRecipeUsage } from "@/lib/diet/recipe-history";
+import { clearDietPlanCache } from "@/lib/cache/diet-plan-cache";
 import type { MealComposition, RecipeDetailForDiet } from "@/types/recipe";
 
 /**
