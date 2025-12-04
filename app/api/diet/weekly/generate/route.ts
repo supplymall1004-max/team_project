@@ -549,6 +549,9 @@ function buildDietPlanRecords({
   protein_g: number;
   fat_g: number;
   sodium_mg: number;
+  potassium_mg: number | null;
+  phosphorus_mg: number | null;
+  gi_index: number | null;
   composition_summary: Record<string, string[]> | null;
   is_unified: boolean;
 }> {
@@ -612,6 +615,9 @@ function buildCompositionMealRecord({
     protein_g: getNutritionValue(nutrition, "protein"),
     fat_g: getNutritionValue(nutrition, "fat"),
     sodium_mg: getNutritionValue(nutrition, "sodium"),
+    potassium_mg: getNutritionValue(nutrition, "potassium") || null,
+    phosphorus_mg: getNutritionValue(nutrition, "phosphorus") || null,
+    gi_index: getNutritionValue(nutrition, "gi") || null,
     composition_summary: summaryPayload,
     is_unified: false,
   };
@@ -654,6 +660,9 @@ function buildSingleRecipeRecord({
     protein_g: getNutritionValue(nutrition, "protein"),
     fat_g: getNutritionValue(nutrition, "fat"),
     sodium_mg: getNutritionValue(nutrition, "sodium"),
+    potassium_mg: getNutritionValue(nutrition, "potassium") || null,
+    phosphorus_mg: getNutritionValue(nutrition, "phosphorus") || null,
+    gi_index: getNutritionValue(nutrition, "gi") || null,
     composition_summary: summaryPayload,
     is_unified: false,
   };

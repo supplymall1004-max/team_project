@@ -23,6 +23,9 @@ export interface FoodSafetyRecipeRow {
   INFO_FAT: string; // 지방
   INFO_NA: string; // 나트륨
   INFO_FIBER: string; // 식이섬유
+  INFO_K?: string; // 칼륨 (옵셔널)
+  INFO_P?: string; // 인 (옵셔널)
+  INFO_GI?: string; // GI 지수 (옵셔널)
   RCP_PARTS_DTLS: string; // 재료 정보
   MANUAL01: string | null; // 조리 방법 1
   MANUAL02: string | null;

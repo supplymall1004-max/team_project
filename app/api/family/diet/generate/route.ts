@@ -340,6 +340,9 @@ function createDietPlanRecord(
     fat_g: recipe.nutrition.fat,
     sodium_mg: recipe.nutrition.sodium,
     fiber_g: recipe.nutrition.fiber,
+    potassium_mg: recipe.nutrition.potassium ?? null,
+    phosphorus_mg: recipe.nutrition.phosphorus ?? null,
+    gi_index: recipe.nutrition.gi ?? null,
     is_unified: isUnified,
   };
 }

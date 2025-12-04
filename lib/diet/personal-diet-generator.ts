@@ -11,7 +11,7 @@
  * 6. 제철 과일 간식
  */
 
-import type { UserHealthProfile } from "@/types/family";
+import type { UserHealthProfile } from "@/types/health";
 import type {
   DailyDietPlan,
   MealComposition,
@@ -20,10 +20,12 @@ import type {
 } from "@/types/recipe";
 import { calculateUserGoalCalories } from "@/lib/diet/calorie-calculator";
 import { getExcludedFoods, filterCompatibleRecipes, checkAllergyCompatibility } from "@/lib/diet/food-filtering";
+import { filterRecipes as integratedFilterRecipes } from "@/lib/diet/integrated-filter";
 import { searchFallbackRecipes } from "@/lib/recipes/fallback-recipes";
 import { getRecentlyUsedRecipes } from "@/lib/diet/recipe-history";
 import { recommendFruitSnack } from "@/lib/diet/seasonal-fruits";
 import { calculateAge } from "@/lib/utils/age-calculator";
+import { calculateMacroGoals, calculateMealMacroGoals, isWithinMacroRange } from "@/lib/diet/macro-calculator";
 
 // 식사별 칼로리 비율
 const MEAL_CALORIE_RATIOS = {
@@ -84,8 +86,17 @@ export async function generatePersonalDiet(
   }
 
   // 1. 목표 칼로리 계산
-  const dailyCalories = calculateUserGoalCalories(profile);
+  const dailyCalories = await calculateUserGoalCalories(profile);
   console.log(`목표 칼로리: ${dailyCalories}kcal/일`);
+
+  // 1-1. 매크로 목표 계산
+  const dailyMacroGoals = calculateMacroGoals(dailyCalories, profile);
+  console.log(`매크로 목표:`, {
+    단백질: `${dailyMacroGoals.protein.target}g (${dailyMacroGoals.protein.min}-${dailyMacroGoals.protein.max}g)`,
+    탄수화물: `${dailyMacroGoals.carbohydrates.target}g (${dailyMacroGoals.carbohydrates.min}-${dailyMacroGoals.carbohydrates.max}g)`,
+    지방: `${dailyMacroGoals.fat.target}g (${dailyMacroGoals.fat.min}-${dailyMacroGoals.fat.max}g)`,
+    나트륨: `${dailyMacroGoals.sodium.max}mg 이하`,
+  });
 
   // 2. 질병별 제외 음식 조회
   const excludedFoods = await getExcludedFoods(profile.diseases || []);
@@ -105,6 +116,7 @@ export async function generatePersonalDiet(
   const snackCalories = dailyCalories * mealCalorieRatios.snack;
 
   // 주간 컨텍스트 전달 (있는 경우)
+  const breakfastMacroGoals = calculateMealMacroGoals("breakfast", dailyMacroGoals, mealCalorieRatios.breakfast);
   const breakfast = await selectMealComposition(
     "breakfast",
     breakfastCalories,
@@ -116,9 +128,12 @@ export async function generatePersonalDiet(
     profile.dietary_preferences || [],
     usedByCategory, // 주간 컨텍스트 전달
     preferredRiceType, // 밥 종류 다양화
-    profile.premium_features // 프리미엄 기능
+    profile.premium_features, // 프리미엄 기능
+    profile, // 통합 필터링을 위한 건강 프로필
+    breakfastMacroGoals // 매크로 목표
   );
 
+  const lunchMacroGoals = calculateMealMacroGoals("lunch", dailyMacroGoals, mealCalorieRatios.lunch);
   const lunch = await selectMealComposition(
     "lunch",
     lunchCalories,
@@ -130,9 +145,12 @@ export async function generatePersonalDiet(
     profile.dietary_preferences || [],
     usedByCategory, // 주간 컨텍스트 전달
     preferredRiceType, // 밥 종류 다양화
-    profile.premium_features // 프리미엄 기능
+    profile.premium_features, // 프리미엄 기능
+    profile, // 통합 필터링을 위한 건강 프로필
+    lunchMacroGoals // 매크로 목표
   );
 
+  const dinnerMacroGoals = calculateMealMacroGoals("dinner", dailyMacroGoals, mealCalorieRatios.dinner);
   const dinner = await selectMealComposition(
     "dinner",
     dinnerCalories,
@@ -144,7 +162,9 @@ export async function generatePersonalDiet(
     profile.dietary_preferences || [],
     usedByCategory, // 주간 컨텍스트 전달
     preferredRiceType, // 밥 종류 다양화
-    profile.premium_features // 프리미엄 기능
+    profile.premium_features, // 프리미엄 기능
+    profile, // 통합 필터링을 위한 건강 프로필
+    dinnerMacroGoals // 매크로 목표
   );
 
   // 6. 간식 (제철 과일) - 주간 컨텍스트 고려
@@ -442,7 +462,9 @@ async function selectMealComposition(
   },
 
   preferredRiceType?: string,
-  premiumFeatures?: string[]
+  premiumFeatures?: string[],
+  healthProfile?: UserHealthProfile, // 통합 필터링을 위한 건강 프로필
+  mealMacroGoals?: import("@/lib/diet/macro-calculator").MacroGoals // 매크로 목표
 ): Promise<MealComposition> {
   console.group(`🍽️ ${mealType.toUpperCase()} 식사 구성`);
   console.log(`목표 칼로리: ${Math.round(targetCalories)}kcal`);
@@ -460,6 +482,11 @@ async function selectMealComposition(
   };
 
   // 1. 밥 선택 (주간 컨텍스트 고려)
+  const riceMacroGoals = mealMacroGoals ? {
+    protein: { target: mealMacroGoals.protein.target * 0.2 }, // 밥은 단백질 비중 낮음
+    carbohydrates: { target: mealMacroGoals.carbohydrates.target * 0.6 }, // 밥은 탄수화물 비중 높음
+    fat: { target: mealMacroGoals.fat.target * 0.1 },
+  } : undefined;
   const rice = await selectDishForMeal(
     "rice",
     mealType,
@@ -472,12 +499,19 @@ async function selectMealComposition(
     dietaryPreferences,
     excludedByCategory.rice, // 카테고리별 제외 목록
     preferredRiceType, // 선호 밥 종류
-    premiumFeatures
+    premiumFeatures,
+    healthProfile, // 통합 필터링을 위한 건강 프로필
+    riceMacroGoals // 밥용 매크로 목표
   );
 
   // 2. 반찬 3개 선택 (각 15%, 주간 컨텍스트 고려)
   const sideCaloriesEach = sidesCalories / 3;
   const sides: RecipeDetailForDiet[] = [];
+  const sideMacroGoals = mealMacroGoals ? {
+    protein: { target: mealMacroGoals.protein.target * 0.5 / 3 }, // 반찬은 단백질 비중 높음 (각 반찬당)
+    carbohydrates: { target: mealMacroGoals.carbohydrates.target * 0.2 / 3 },
+    fat: { target: mealMacroGoals.fat.target * 0.4 / 3 },
+  } : undefined;
 
   for (let i = 0; i < 3; i++) {
     const side = await selectDishForMeal(
@@ -492,12 +526,19 @@ async function selectMealComposition(
       dietaryPreferences,
       excludedByCategory.side, // 카테고리별 제외 목록
       undefined,
-      premiumFeatures
+      premiumFeatures,
+      healthProfile, // 통합 필터링을 위한 건강 프로필
+      sideMacroGoals // 반찬용 매크로 목표
     );
     if (side) sides.push(side);
   }
 
   // 3. 국/찌개 선택 (주간 컨텍스트 고려)
+  const soupMacroGoals = mealMacroGoals ? {
+    protein: { target: mealMacroGoals.protein.target * 0.3 }, // 국은 단백질 비중 중간
+    carbohydrates: { target: mealMacroGoals.carbohydrates.target * 0.2 },
+    fat: { target: mealMacroGoals.fat.target * 0.5 },
+  } : undefined;
   const soup = await selectDishForMeal(
     "soup",
     mealType,
@@ -510,12 +551,33 @@ async function selectMealComposition(
     dietaryPreferences,
     excludedByCategory.soup, // 카테고리별 제외 목록
     undefined,
-    premiumFeatures
+    premiumFeatures,
+    healthProfile, // 통합 필터링을 위한 건강 프로필
+    soupMacroGoals // 국용 매크로 목표
   );
 
   // 총 영양 정보
   const allDishes = [rice, ...sides, soup].filter(Boolean) as RecipeDetailForDiet[];
   const totalNutrition = calculateMealNutrition(allDishes);
+
+  // 매크로 목표 달성도 확인 및 로깅
+  if (mealMacroGoals) {
+    const macroCheck = isWithinMacroRange(
+      {
+        protein: totalNutrition.protein,
+        carbs: totalNutrition.carbs,
+        fat: totalNutrition.fat,
+      },
+      mealMacroGoals
+    );
+    console.log(`📊 매크로 목표 달성도:`, {
+      단백질: `${totalNutrition.protein}g (목표: ${mealMacroGoals.protein.target}g, 점수: ${Math.round(macroCheck.proteinScore)})`,
+      탄수화물: `${totalNutrition.carbs}g (목표: ${mealMacroGoals.carbohydrates.target}g, 점수: ${Math.round(macroCheck.carbScore)})`,
+      지방: `${totalNutrition.fat}g (목표: ${mealMacroGoals.fat.target}g, 점수: ${Math.round(macroCheck.fatScore)})`,
+      총점: `${Math.round(macroCheck.totalScore)}/100`,
+      달성: macroCheck.passed ? "✅" : "⚠️",
+    });
+  }
 
   // 구성품 요약 생성 (밥/반찬/국 등 이름 리스트)
   const compositionSummary: string[] = [];
@@ -560,7 +622,9 @@ async function selectDishForMeal(
   dietaryPreferences: string[] = [],
   weeklyExcludedByCategory?: string[], // 주간 카테고리별 제외 목록
   preferredRiceType?: string, // 선호 밥 종류 (흰쌀밥, 현미밥, 잡곡밥)
-  premiumFeatures?: string[]
+  premiumFeatures?: string[],
+  healthProfile?: UserHealthProfile, // 통합 필터링을 위한 건강 프로필
+  dishMacroGoals?: { protein: { target: number }; carbohydrates: { target: number }; fat: { target: number } } // 요리별 매크로 목표
 ): Promise<RecipeDetailForDiet | undefined> {
   console.log(`  - ${dishType} 선택 중 (목표: ${Math.round(targetCalories)}kcal)`);
   if (weeklyExcludedByCategory && weeklyExcludedByCategory.length > 0) {
@@ -655,13 +719,17 @@ async function selectDishForMeal(
     }
   }
 
-  // 질병 필터링
-  candidates = filterCompatibleRecipes(candidates, [], excludedFoods);
-
-  // 알레르기 필터링
-  candidates = candidates.filter(recipe =>
-    checkAllergyCompatibility(recipe, allergies)
-  );
+  // 통합 필터링 파이프라인 적용 (건강 프로필이 있는 경우)
+  if (healthProfile) {
+    const filteredCandidates = await integratedFilterRecipes(candidates, healthProfile, excludedFoods);
+    candidates = filteredCandidates;
+  } else {
+    // 기존 필터링 방식 (하위 호환성)
+    candidates = filterCompatibleRecipes(candidates, [], excludedFoods);
+    candidates = candidates.filter(recipe =>
+      checkAllergyCompatibility(recipe, allergies)
+    );
+  }
 
   // 특수 식단 필터 적용
   if (dietaryPreferences && dietaryPreferences.length > 0) {
@@ -685,7 +753,7 @@ async function selectDishForMeal(
     });
   }
 
-  // 정렬 기준 설정 (칼로리 근접도 + 영양소 비율)
+  // 정렬 기준 설정 (칼로리 근접도 + 매크로 목표 충족도 + 영양소 비율)
   candidates.sort((a, b) => {
     let scoreA = 0;
     let scoreB = 0;
@@ -696,8 +764,29 @@ async function selectDishForMeal(
     scoreA += (1000 - calorieDiffA); // 칼로리 차이가 적을수록 높은 점수
     scoreB += (1000 - calorieDiffB);
 
-    // 2. 어린이 식단의 경우 영양소 비율 고려
-    if (isChildDiet) {
+    // 2. 매크로 목표 충족도 (매크로 목표가 있는 경우)
+    if (dishMacroGoals) {
+      // 단백질 목표 충족도 (단백질 최우선)
+      const proteinDiffA = Math.abs((a.nutrition.protein || 0) - dishMacroGoals.protein.target);
+      const proteinDiffB = Math.abs((b.nutrition.protein || 0) - dishMacroGoals.protein.target);
+      scoreA += Math.max(0, 200 - proteinDiffA * 10); // 단백질은 가중치 높게
+      scoreB += Math.max(0, 200 - proteinDiffB * 10);
+
+      // 탄수화물 목표 충족도
+      const carbDiffA = Math.abs((a.nutrition.carbs || 0) - dishMacroGoals.carbohydrates.target);
+      const carbDiffB = Math.abs((b.nutrition.carbs || 0) - dishMacroGoals.carbohydrates.target);
+      scoreA += Math.max(0, 100 - carbDiffA * 5);
+      scoreB += Math.max(0, 100 - carbDiffB * 5);
+
+      // 지방 목표 충족도
+      const fatDiffA = Math.abs((a.nutrition.fat || 0) - dishMacroGoals.fat.target);
+      const fatDiffB = Math.abs((b.nutrition.fat || 0) - dishMacroGoals.fat.target);
+      scoreA += Math.max(0, 100 - fatDiffA * 5);
+      scoreB += Math.max(0, 100 - fatDiffB * 5);
+    }
+
+    // 3. 어린이 식단의 경우 영양소 비율 고려
+    if (isChildDiet && !dishMacroGoals) {
       // 어린이 성장기 권장 비율: 탄수화물 50%, 단백질 20%, 지방 30%
       const targetRatios = { carbs: 0.5, protein: 0.2, fat: 0.3 };
       const totalNutritionA = (a.nutrition.carbs || 0) + (a.nutrition.protein || 0) + (a.nutrition.fat || 0);
@@ -717,6 +806,99 @@ async function selectDishForMeal(
           Math.abs((b.nutrition.protein || 0) / totalNutritionB - targetRatios.protein) +
           Math.abs((b.nutrition.fat || 0) / totalNutritionB - targetRatios.fat);
         scoreB += (100 - ratioDiffB * 100);
+      }
+    }
+
+    // 4. 질병별 권장 식품 가산점 (임산부 및 어린이 포함)
+    if (healthProfile) {
+      const recipeText = a.title.toLowerCase();
+      const diseases = healthProfile.diseases || [];
+      const isPregnant = (healthProfile as any).pregnancy_trimester !== undefined;
+
+      // 어린이: 성장기 필수 영양소 (단백질, 칼슘, 비타민)
+      if (isChildDiet) {
+        const growthFoods = ["우유", "치즈", "달걀", "생선", "콩", "두부", "야채"];
+        if (growthFoods.some(food => recipeText.includes(food))) {
+          scoreA += 10;
+        }
+        if (a.nutrition.protein && a.nutrition.protein > 15) {
+          scoreA += 10;
+        }
+      }
+
+      // 임산부: 엽산, 철분, 칼슘 함유 식품
+      if (isPregnant) {
+        const pregnancyFoods = ["시금치", "브로콜리", "콩", "두부", "달걀", "우유", "치즈", "생선"];
+        if (pregnancyFoods.some(food => recipeText.includes(food))) {
+          scoreA += 15;
+        }
+      }
+
+      // 당뇨: 저GI 식품, 고섬유 식품
+      if (diseases.includes("diabetes")) {
+        const lowGIFoods = ["현미", "잡곡", "귀리", "퀴노아", "고구마", "콩", "두부", "야채"];
+        if (lowGIFoods.some(food => recipeText.includes(food))) {
+          scoreA += 15;
+        }
+      }
+
+      // CKD: 저칼륨, 저인 식품
+      if (diseases.includes("kidney_disease")) {
+        const lowPotassiumFoods = ["사과", "배", "양배추", "오이", "당근", "양파"];
+        if (lowPotassiumFoods.some(food => recipeText.includes(food))) {
+          scoreA += 15;
+        }
+      }
+
+      // 심혈관 질환: 저나트륨, 저지방 식품
+      if (diseases.includes("cardiovascular_disease")) {
+        if (a.nutrition.sodium && a.nutrition.sodium < 400) {
+          scoreA += 15;
+        }
+      }
+    }
+
+    // b 레시피에도 동일한 가산점 적용
+    if (healthProfile) {
+      const recipeTextB = b.title.toLowerCase();
+      const diseases = healthProfile.diseases || [];
+      const isPregnant = (healthProfile as any).pregnancy_trimester !== undefined;
+
+      if (isChildDiet) {
+        const growthFoods = ["우유", "치즈", "달걀", "생선", "콩", "두부", "야채"];
+        if (growthFoods.some(food => recipeTextB.includes(food))) {
+          scoreB += 10;
+        }
+        if (b.nutrition.protein && b.nutrition.protein > 15) {
+          scoreB += 10;
+        }
+      }
+
+      if (isPregnant) {
+        const pregnancyFoods = ["시금치", "브로콜리", "콩", "두부", "달걀", "우유", "치즈", "생선"];
+        if (pregnancyFoods.some(food => recipeTextB.includes(food))) {
+          scoreB += 15;
+        }
+      }
+
+      if (diseases.includes("diabetes")) {
+        const lowGIFoods = ["현미", "잡곡", "귀리", "퀴노아", "고구마", "콩", "두부", "야채"];
+        if (lowGIFoods.some(food => recipeTextB.includes(food))) {
+          scoreB += 15;
+        }
+      }
+
+      if (diseases.includes("kidney_disease")) {
+        const lowPotassiumFoods = ["사과", "배", "양배추", "오이", "당근", "양파"];
+        if (lowPotassiumFoods.some(food => recipeTextB.includes(food))) {
+          scoreB += 15;
+        }
+      }
+
+      if (diseases.includes("cardiovascular_disease")) {
+        if (b.nutrition.sodium && b.nutrition.sodium < 400) {
+          scoreB += 15;
+        }
       }
     }
 

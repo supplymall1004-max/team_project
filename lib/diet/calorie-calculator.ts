@@ -11,15 +11,15 @@
 
 import type { FamilyMember, UserHealthProfile } from "@/types/family";
 
-// 질병별 칼로리 조정 계수
+// 질병별 칼로리 조정 계수 (문서 기준 업데이트)
 const DISEASE_CALORIE_MULTIPLIERS: Record<string, number> = {
-  diabetes: 0.85,         // 당뇨: 85%
-  hypertension: 1.0,      // 고혈압: 유지 (나트륨만 제한)
+  diabetes: 0.80,         // 당뇨: 80-90% (문서 기준, 보수적으로 80% 사용)
+  hypertension: 1.0,      // 고혈압: 유지 (나트륨만 제한, 체중 감량 필요 시 -500~-1000 kcal 별도 처리)
   gout: 0.9,              // 통풍: 90%
-  kidney_disease: 0.9,    // 신장질환: 90%
+  kidney_disease: 0.9,    // 신장질환: 90% (CKD는 별도 공식 사용)
   hyperlipidemia: 0.85,   // 고지혈증: 85%
   obesity: 0.8,           // 비만: 80%
-  heart_disease: 0.9,     // 심장병: 90%
+  heart_disease: 0.9,     // 심장병: 90% (체중 감량 필요 시 -500~-1000 kcal 별도 처리)
 };
 
 // 활동 수준별 칼로리 계수
@@ -87,9 +87,170 @@ export function calculateBMR(
 }
 
 /**
- * 일일 권장 칼로리 계산
+ * 일일 권장 칼로리 계산 (고도화된 버전)
+ * CalorieCalculatorEnhanced를 사용하여 다중 공식 지원
  */
-export function calculateDailyCalories(params: {
+export async function calculateDailyCalories(params: {
+  gender: "male" | "female" | "other";
+  weight_kg?: number;
+  height_cm?: number;
+  age: number;
+  activity_level: keyof typeof ACTIVITY_MULTIPLIERS;
+  diseases?: string[];
+  premium_features?: string[]; // 프리미엄 기능 (예: diet 모드)
+  pregnancy_trimester?: 1 | 2 | 3; // 임신 삼분기
+}): Promise<number> {
+  console.group("🔢 일일 권장 칼로리 계산 (고도화)");
+  console.log("입력 정보:", params);
+
+  // CalorieCalculatorEnhanced 사용
+  const { CalorieCalculatorEnhanced } = await import("@/lib/health/calorie-calculator-enhanced");
+  const { DiseaseManager } = await import("@/lib/health/disease-manager");
+
+  // 질병 정보 조회 (있는 경우)
+  let diseaseObjects: any[] = [];
+  if (params.diseases && params.diseases.length > 0) {
+    const allDiseases = await DiseaseManager.getAllDiseases();
+    diseaseObjects = allDiseases.filter(d => params.diseases!.includes(d.code));
+  }
+
+  // 임신부인 경우
+  if (params.pregnancy_trimester) {
+    const result = CalorieCalculatorEnhanced.calculateMaternityCalories({
+      gender: params.gender === "male" ? "male" : "female",
+      age: params.age,
+      weight: params.weight_kg || 60,
+      height: params.height_cm || 160,
+      activityLevel: params.activity_level,
+      diseases: diseaseObjects,
+      trimester: params.pregnancy_trimester,
+    });
+    console.log(`✅ 임신부 칼로리 계산 완료: ${result.calories}kcal`);
+    console.groupEnd();
+    return result.calories;
+  }
+
+  // CKD 환자인 경우
+  const hasCKD = diseaseObjects.some(d => d.code === 'kidney_disease' || d.name_ko?.includes('신장'));
+  if (hasCKD && params.weight_kg && params.height_cm) {
+    const result = CalorieCalculatorEnhanced.calculateCKDCalories({
+      gender: params.gender === "male" ? "male" : "female",
+      age: params.age,
+      weight: params.weight_kg,
+      height: params.height_cm,
+    });
+    console.log(`✅ CKD 칼로리 계산 완료: ${result.calories}kcal`);
+    console.groupEnd();
+    return result.calories;
+  }
+
+  // 자동 공식 선택 (연령대 및 질병 기반)
+  if (params.age >= 3 && params.weight_kg && params.height_cm) {
+    const result = CalorieCalculatorEnhanced.calculateAuto({
+      gender: params.gender === "male" ? "male" : "female",
+      age: params.age,
+      weight: params.weight_kg,
+      height: params.height_cm,
+      activityLevel: params.activity_level,
+      diseases: diseaseObjects,
+    });
+    
+    let dailyCalories = result.calories;
+    
+    // 심혈관 질환 체중 감량 필요 시 -500~-1000 kcal
+    const hasCVD = diseaseObjects.some(d => 
+      d.code === 'heart_disease' || 
+      d.code === 'hypertension' || 
+      d.name_ko?.includes('심혈관') || 
+      d.name_ko?.includes('고혈압')
+    );
+    if (hasCVD) {
+      // 비만/과체중 판단 (BMI 25 이상)
+      const bmi = params.weight_kg! / Math.pow(params.height_cm! / 100, 2);
+      if (bmi >= 25) {
+        const reduction = 750; // 중간값 사용
+        dailyCalories = Math.max(dailyCalories - reduction, params.gender === "male" ? 1500 : 1200);
+        console.log(`심혈관 질환 체중 감량 조정: -${reduction}kcal`);
+      }
+    }
+
+    // 프리미엄 기능: 다이어트 모드
+    if (params.premium_features && params.premium_features.includes("diet")) {
+      console.log("💎 프리미엄 기능: 다이어트 모드 적용");
+      const dietMultiplier = 0.85;
+      dailyCalories *= dietMultiplier;
+      console.log(`다이어트 모드 조정: ×${dietMultiplier}`);
+    }
+
+    console.log(`✅ 최종 권장 칼로리: ${Math.round(dailyCalories)}kcal`);
+    console.groupEnd();
+    return Math.round(dailyCalories);
+  }
+
+  // 3세 미만 또는 키/몸무게 없음 → 연령별 권장 칼로리
+  console.log("📊 한국영양학회 권장 칼로리 사용");
+  
+  const ageRangeKey = getAgeRangeKey(params.age);
+  const genderKey = params.gender === "male" ? "male" : "female";
+  const baseCalories = AGE_BASED_CALORIES[ageRangeKey][genderKey];
+  
+  console.log(`연령대: ${ageRangeKey}, 성별: ${genderKey}`);
+  console.log(`기본 권장 칼로리: ${baseCalories}kcal`);
+
+  // 활동 수준 반영 (경미하게, ±15%)
+  const activityMultiplier = ACTIVITY_MULTIPLIERS[params.activity_level] || 1.2;
+  const activityAdjustment = (activityMultiplier - 1.2) * 0.15 + 1; // 0.85 ~ 1.15
+  let dailyCalories = baseCalories * activityAdjustment;
+  
+  console.log(`활동 조정: ×${activityAdjustment.toFixed(2)} = ${Math.round(dailyCalories)}kcal`);
+
+  // 질병별 조정 (가장 낮은 계수 적용)
+  if (params.diseases && params.diseases.length > 0) {
+    console.log(`질병 정보: ${params.diseases.join(", ")}`);
+    
+    let lowestMultiplier = 1.0;
+    let appliedDisease = "";
+    
+    for (const disease of params.diseases) {
+      // CKD는 이미 별도 공식으로 처리되었으므로 건너뛰기
+      if (disease === 'kidney_disease') continue;
+      
+      const multiplier = DISEASE_CALORIE_MULTIPLIERS[disease];
+      if (multiplier && multiplier < lowestMultiplier) {
+        lowestMultiplier = multiplier;
+        appliedDisease = disease;
+      }
+    }
+    
+    if (appliedDisease) {
+      console.log(`질병 조정 (${appliedDisease}): ×${lowestMultiplier}`);
+      dailyCalories *= lowestMultiplier;
+    }
+  }
+
+  const result = Math.round(dailyCalories);
+  
+  // 최소 칼로리 보장 (문서 기준: 남성 1500, 여성 1200)
+  let minCalories = 1200;
+  if (params.gender === "male") minCalories = 1500;
+  
+  if (result < minCalories && params.age >= 19) { // 성인인 경우만 최소 칼로리 적용
+     console.log(`⚠️ 계산된 칼로리(${result})가 최소 권장량(${minCalories})보다 낮아 조정함`);
+     console.groupEnd();
+     return minCalories;
+  }
+
+  console.log(`✅ 최종 권장 칼로리: ${result}kcal`);
+  console.groupEnd();
+
+  return result;
+}
+
+/**
+ * 일일 권장 칼로리 계산 (동기 버전, 하위 호환성 유지)
+ * @deprecated 비동기 버전 사용 권장
+ */
+export function calculateDailyCaloriesSync(params: {
   gender: "male" | "female" | "other";
   weight_kg?: number;
   height_cm?: number;
@@ -98,7 +259,8 @@ export function calculateDailyCalories(params: {
   diseases?: string[];
   premium_features?: string[]; // 프리미엄 기능 (예: diet 모드)
 }): number {
-  console.group("🔢 일일 권장 칼로리 계산 (Mifflin-St Jeor)");
+  // 동기 버전은 기본 계산만 수행 (고도화된 공식은 비동기 버전에서만 사용)
+  console.group("🔢 일일 권장 칼로리 계산 (동기 버전)");
   console.log("입력 정보:", params);
 
   let dailyCalories: number;
@@ -162,9 +324,6 @@ export function calculateDailyCalories(params: {
   // 프리미엄 기능: 다이어트 모드
   if (params.premium_features && params.premium_features.includes("diet")) {
     console.log("💎 프리미엄 기능: 다이어트 모드 적용");
-    // TDEE에서 300~500kcal 감량 (여기서는 안전하게 15% 감량으로 적용하거나 고정값 차감)
-    // 문서에 따르면 TDEE - 300~500kcal.
-    // 비율로 근사치 적용: 약 15~20% 감소
     const dietMultiplier = 0.85;
     dailyCalories *= dietMultiplier;
     console.log(`다이어트 모드 조정: ×${dietMultiplier}`);
@@ -178,6 +337,7 @@ export function calculateDailyCalories(params: {
   
   if (result < minCalories && params.age >= 19) { // 성인인 경우만 최소 칼로리 적용
      console.log(`⚠️ 계산된 칼로리(${result})가 최소 권장량(${minCalories})보다 낮아 조정함`);
+     console.groupEnd();
      return minCalories;
   }
 
@@ -188,13 +348,13 @@ export function calculateDailyCalories(params: {
 }
 
 /**
- * 가족 구성원의 목표 칼로리 계산
+ * 가족 구성원의 목표 칼로리 계산 (비동기)
  */
-export function calculateMemberGoalCalories(
+export async function calculateMemberGoalCalories(
   member: FamilyMember,
   age: number
-): number {
-  return calculateDailyCalories({
+): Promise<number> {
+  return await calculateDailyCalories({
     gender: member.gender || "other",
     weight_kg: member.weight_kg,
     height_cm: member.height_cm,
@@ -206,9 +366,33 @@ export function calculateMemberGoalCalories(
 }
 
 /**
- * 사용자 본인의 목표 칼로리 계산
+ * 사용자 본인의 목표 칼로리 계산 (비동기)
  */
-export function calculateUserGoalCalories(
+export async function calculateUserGoalCalories(
+  profile: UserHealthProfile
+): Promise<number> {
+  // daily_calorie_goal이 수동 설정되어 있으면 그것을 사용
+  if (profile.daily_calorie_goal) {
+    return profile.daily_calorie_goal;
+  }
+
+  return await calculateDailyCalories({
+    gender: profile.gender || "other",
+    weight_kg: profile.weight_kg,
+    height_cm: profile.height_cm,
+    age: profile.age || 30,
+    activity_level: profile.activity_level || "sedentary",
+    diseases: profile.diseases,
+    premium_features: profile.premium_features,
+    pregnancy_trimester: (profile as any).pregnancy_trimester, // 임신 삼분기 (있는 경우)
+  });
+}
+
+/**
+ * 사용자 본인의 목표 칼로리 계산 (동기 버전, 하위 호환성)
+ * @deprecated 비동기 버전 사용 권장
+ */
+export function calculateUserGoalCaloriesSync(
   profile: UserHealthProfile
 ): number {
   // daily_calorie_goal이 수동 설정되어 있으면 그것을 사용
@@ -216,7 +400,7 @@ export function calculateUserGoalCalories(
     return profile.daily_calorie_goal;
   }
 
-  return calculateDailyCalories({
+  return calculateDailyCaloriesSync({
     gender: profile.gender || "other",
     weight_kg: profile.weight_kg,
     height_cm: profile.height_cm,

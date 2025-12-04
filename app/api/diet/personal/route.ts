@@ -139,6 +139,9 @@ export async function POST(request: NextRequest) {
         fat_g: dietPlan.snack.nutrition.fat,
         sodium_mg: dietPlan.snack.nutrition.sodium,
         fiber_g: dietPlan.snack.nutrition.fiber,
+        potassium_mg: dietPlan.snack.nutrition.potassium ?? null,
+        phosphorus_mg: dietPlan.snack.nutrition.phosphorus ?? null,
+        gi_index: dietPlan.snack.nutrition.gi ?? null,
         is_unified: false,
       });
     }
@@ -268,6 +271,9 @@ function createDietPlanRecord(
     fat_g: recipe.nutrition.fat,
     sodium_mg: recipe.nutrition.sodium,
     fiber_g: recipe.nutrition.fiber,
+    potassium_mg: recipe.nutrition.potassium ?? null,
+    phosphorus_mg: recipe.nutrition.phosphorus ?? null,
+    gi_index: recipe.nutrition.gi ?? null,
     is_unified: isUnified,
   };
 }

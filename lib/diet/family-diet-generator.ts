@@ -8,12 +8,14 @@
  * 3. 평균 칼로리 기준 레시피 선택
  */
 
-import type { FamilyMember, UserHealthProfile } from "@/types/family";
+import type { FamilyMember } from "@/types/family";
+import type { UserHealthProfile, SpecialDietType } from "@/types/health";
 import type { FamilyDietPlan, DailyDietPlan, MealComposition, RecipeDetailForDiet } from "@/types/recipe";
 import { calculateAge } from "@/lib/utils/age-calculator";
 import { calculateMemberGoalCalories, calculateUserGoalCalories } from "@/lib/diet/calorie-calculator";
 import { generatePersonalDiet } from "@/lib/diet/personal-diet-generator";
 import { getExcludedFoods, filterCompatibleRecipes, checkAllergyCompatibility } from "@/lib/diet/food-filtering";
+import { filterRecipes as integratedFilterRecipes } from "@/lib/diet/integrated-filter";
 import { searchFallbackRecipes } from "@/lib/recipes/fallback-recipes";
 import { getRecentlyUsedRecipes } from "@/lib/diet/recipe-history";
 import { recommendFruitSnack } from "@/lib/diet/seasonal-fruits";
@@ -68,14 +70,17 @@ export async function generateFamilyDietWithWeeklyContext(
     const memberProfile: UserHealthProfile = {
       id: member.id,
       user_id: member.user_id,
-      diseases: member.diseases,
-      allergies: member.allergies,
-      height_cm: member.height_cm,
-      weight_kg: member.weight_kg,
-      age,
-      gender: member.gender,
-      activity_level: member.activity_level,
-      dietary_preferences: member.dietary_preferences,
+      diseases: member.diseases || [],
+      allergies: member.allergies || [],
+      height_cm: member.height_cm || null,
+      weight_kg: member.weight_kg || null,
+      age: age || null,
+      gender: member.gender || null,
+      activity_level: member.activity_level || null,
+      daily_calorie_goal: 0, // 나중에 계산됨
+      preferred_ingredients: [],
+      disliked_ingredients: [],
+      dietary_preferences: (member.dietary_preferences || []) as SpecialDietType[],
       created_at: member.created_at,
       updated_at: member.updated_at,
     };
@@ -144,14 +149,17 @@ export async function generateFamilyDiet(
     const memberProfile: UserHealthProfile = {
       id: member.id,
       user_id: member.user_id,
-      diseases: member.diseases,
-      allergies: member.allergies,
-      height_cm: member.height_cm,
-      weight_kg: member.weight_kg,
-      age,
-      gender: member.gender,
-      activity_level: member.activity_level,
-      dietary_preferences: member.dietary_preferences,
+      diseases: member.diseases || [],
+      allergies: member.allergies || [],
+      height_cm: member.height_cm || null,
+      weight_kg: member.weight_kg || null,
+      age: age || null,
+      gender: member.gender || null,
+      activity_level: member.activity_level || null,
+      daily_calorie_goal: 0, // 나중에 계산됨
+      preferred_ingredients: [],
+      disliked_ingredients: [],
+      dietary_preferences: (member.dietary_preferences || []) as SpecialDietType[],
       created_at: member.created_at,
       updated_at: member.updated_at,
     };
@@ -210,7 +218,7 @@ async function generateUnifiedDiet(
   const allDiseases = new Set([...(userProfile.diseases || [])]);
   const allAllergies = new Set([...(userProfile.allergies || [])]);
 
-  let totalCalories = calculateUserGoalCalories(userProfile);
+  let totalCalories = await calculateUserGoalCalories(userProfile);
   let childCount = (userProfile.age || 30) < 18 ? 1 : 0;
 
   for (const member of includedMembers) {
@@ -218,7 +226,7 @@ async function generateUnifiedDiet(
     if (member.allergies) member.allergies.forEach(a => allAllergies.add(a));
 
     const { years: age } = calculateAge(member.birth_date);
-    const memberCalories = calculateMemberGoalCalories(member, age);
+    const memberCalories = await calculateMemberGoalCalories(member, age);
     totalCalories += memberCalories;
 
     if (age < 18) childCount++;
@@ -393,6 +401,7 @@ async function generateUnifiedDietWithWeeklyContext(
   // 모든 구성원의 제외 음식 통합
   const allExcludedFoods: any[] = [];
   const allAllergies: string[] = [];
+  const allDiseases: string[] = [];
   let totalCalories = 0;
   let memberCount = 0;
 
@@ -400,7 +409,8 @@ async function generateUnifiedDietWithWeeklyContext(
   const userExcluded = await getExcludedFoods(userProfile.diseases || []);
   allExcludedFoods.push(...userExcluded);
   allAllergies.push(...(userProfile.allergies || []));
-  totalCalories += calculateUserGoalCalories(userProfile);
+  allDiseases.push(...(userProfile.diseases || []));
+  totalCalories += await calculateUserGoalCalories(userProfile);
   memberCount++;
 
   // 가족 구성원
@@ -408,14 +418,40 @@ async function generateUnifiedDietWithWeeklyContext(
     const memberExcluded = await getExcludedFoods(member.diseases || []);
     allExcludedFoods.push(...memberExcluded);
     allAllergies.push(...(member.allergies || []));
+    allDiseases.push(...(member.diseases || []));
     const { years: age } = calculateAge(member.birth_date);
-    totalCalories += calculateMemberGoalCalories(member, age);
+    totalCalories += await calculateMemberGoalCalories(member, age);
     memberCount++;
   }
+
+  // 중복 제거 (질병, 알레르기)
+  const uniqueDiseases = Array.from(new Set(allDiseases));
+  const uniqueAllergies = Array.from(new Set(allAllergies));
+
+  // 통합 건강 프로필 생성 (통합 필터링용)
+  const unifiedHealthProfile: UserHealthProfile = {
+    id: `unified-${userId}`,
+    user_id: userId,
+    age: null, // 통합 프로필에서는 나이를 평균으로 계산하지 않음
+    gender: null, // 통합 프로필에서는 성별을 지정하지 않음
+    height_cm: null,
+    weight_kg: null,
+    activity_level: null,
+    daily_calorie_goal: Math.round(totalCalories / memberCount),
+    diseases: uniqueDiseases,
+    allergies: uniqueAllergies,
+    preferred_ingredients: [],
+    disliked_ingredients: [],
+    dietary_preferences: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
 
   // 평균 칼로리 계산
   const avgCalories = Math.round(totalCalories / memberCount);
   console.log(`평균 칼로리: ${avgCalories}kcal (${memberCount}명 기준)`);
+  console.log(`통합 질병: ${uniqueDiseases.join(', ') || '없음'}`);
+  console.log(`통합 알레르기: ${uniqueAllergies.join(', ') || '없음'}`);
 
   // 최근 사용 레시피 조회
   const recentlyUsed = await getRecentlyUsedRecipes(userId);
@@ -435,7 +471,8 @@ async function generateUnifiedDietWithWeeklyContext(
     recentlyUsed,
     false, // isChildDiet
     usedByCategory, // 주간 컨텍스트
-    preferredRiceType // 밥 종류 다양화
+    preferredRiceType, // 밥 종류 다양화
+    unifiedHealthProfile // 통합 건강 프로필 (통합 필터링용)
   );
 
   const lunch = await selectUnifiedMealComposition(
@@ -446,7 +483,8 @@ async function generateUnifiedDietWithWeeklyContext(
     recentlyUsed,
     false, // isChildDiet
     usedByCategory, // 주간 컨텍스트
-    preferredRiceType // 밥 종류 다양화
+    preferredRiceType, // 밥 종류 다양화
+    unifiedHealthProfile // 통합 건강 프로필 (통합 필터링용)
   );
 
   const dinner = await selectUnifiedMealComposition(
@@ -457,7 +495,8 @@ async function generateUnifiedDietWithWeeklyContext(
     recentlyUsed,
     false, // isChildDiet
     usedByCategory, // 주간 컨텍스트
-    preferredRiceType // 밥 종류 다양화
+    preferredRiceType, // 밥 종류 다양화
+    unifiedHealthProfile // 통합 건강 프로필 (통합 필터링용)
   );
 
   // 간식 (제철 과일) - 주간 컨텍스트 고려
@@ -541,7 +580,8 @@ async function selectUnifiedMealComposition(
     soup: Set<string>;
     snack: Set<string>;
   },
-  preferredRiceType?: string
+  preferredRiceType?: string,
+  unifiedHealthProfile?: UserHealthProfile // 통합 건강 프로필 (통합 필터링용)
 ): Promise<MealComposition> {
   console.group(`🍽️ ${mealType.toUpperCase()} 통합 식사 구성`);
   console.log(`목표 칼로리: ${Math.round(targetCalories)}kcal`);
@@ -568,7 +608,8 @@ async function selectUnifiedMealComposition(
     recentlyUsed,
     isChildDiet,
     excludedByCategory.rice, // 카테고리별 제외 목록
-    preferredRiceType // 선호 밥 종류
+    preferredRiceType, // 선호 밥 종류
+    unifiedHealthProfile // 통합 건강 프로필 (통합 필터링용)
   );
 
   // 2. 반찬 3개 선택 (주간 컨텍스트 고려)
@@ -584,7 +625,9 @@ async function selectUnifiedMealComposition(
       allergies,
       [...recentlyUsed, ...sides.map(s => s.title), ...excludedByCategory.side], // 주간 제외 목록 포함
       isChildDiet,
-      excludedByCategory.side // 카테고리별 제외 목록
+      excludedByCategory.side, // 카테고리별 제외 목록
+      undefined, // preferredRiceType (반찬에는 해당 없음)
+      unifiedHealthProfile // 통합 건강 프로필 (통합 필터링용)
     );
     if (side) sides.push(side);
   }
@@ -598,7 +641,9 @@ async function selectUnifiedMealComposition(
     allergies,
     [...recentlyUsed, ...excludedByCategory.soup], // 주간 제외 목록 포함
     isChildDiet,
-    excludedByCategory.soup // 카테고리별 제외 목록
+    excludedByCategory.soup, // 카테고리별 제외 목록
+    undefined, // preferredRiceType (국에는 해당 없음)
+    unifiedHealthProfile // 통합 건강 프로필 (통합 필터링용)
   );
 
   // 총 영양 정보
@@ -639,7 +684,8 @@ async function selectUnifiedDish(
   excludeNames: string[],
   isChildDiet: boolean = false,
   weeklyExcludedByCategory?: string[], // 주간 카테고리별 제외 목록
-  preferredRiceType?: string // 선호 밥 종류
+  preferredRiceType?: string, // 선호 밥 종류
+  unifiedHealthProfile?: UserHealthProfile // 통합 건강 프로필 (통합 필터링용)
 ): Promise<RecipeDetailForDiet | undefined> {
   console.log(`  - ${dishType} 선택 중 (목표: ${Math.round(targetCalories)}kcal)`);
   if (weeklyExcludedByCategory && weeklyExcludedByCategory.length > 0) {
@@ -689,13 +735,21 @@ async function selectUnifiedDish(
     });
   }
 
-  // 질병 필터링
-  candidates = filterCompatibleRecipes(candidates, [], excludedFoods);
+  // 통합 필터링 파이프라인 적용 (통합 건강 프로필이 있는 경우)
+  if (unifiedHealthProfile) {
+    console.log(`    🔍 통합 필터링 적용 중...`);
+    const filteredCandidates = await integratedFilterRecipes(candidates, unifiedHealthProfile, excludedFoods);
+    candidates = filteredCandidates;
+  } else {
+    // 기존 필터링 로직 (하위 호환성)
+    // 질병 필터링
+    candidates = filterCompatibleRecipes(candidates, [], excludedFoods);
 
-  // 알레르기 필터링
-  candidates = candidates.filter(recipe => 
-    checkAllergyCompatibility(recipe, allergies)
-  );
+    // 알레르기 필터링
+    candidates = candidates.filter(recipe => 
+      checkAllergyCompatibility(recipe, allergies)
+    );
+  }
 
   // 정렬 기준 설정
   candidates.sort((a, b) => {

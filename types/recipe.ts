@@ -167,6 +167,9 @@ export interface RecipeNutrition {
   fat: number;
   sodium?: number;
   fiber?: number;
+  potassium?: number; // 칼륨
+  phosphorus?: number; // 인
+  gi?: number; // GI 지수
 }
 
 // 레시피 상세 정보 (AI 식단용)

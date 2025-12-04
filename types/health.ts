@@ -76,6 +76,7 @@ export interface UserHealthProfile {
   preferred_ingredients: string[];
   disliked_ingredients: string[];
   dietary_preferences: SpecialDietType[]; // 특수 식단 타입 배열
+  premium_features?: string[]; // 프리미엄 기능 목록
   created_at: string;
   updated_at: string;
 }

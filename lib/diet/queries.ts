@@ -31,6 +31,9 @@ interface RecipeWithNutrition extends RecipeListItem {
   protein: number | null;
   fat: number | null;
   sodium: number | null;
+  potassium?: number | null; // 칼륨
+  phosphorus?: number | null; // 인
+  gi?: number | null; // GI 지수
 }
 
 /**
@@ -108,6 +111,7 @@ export async function getUserSubscription(
 
 /**
  * 레시피 목록 조회 (영양소 정보 포함)
+ * DB 레시피와 식약처 API 레시피를 병합하여 반환합니다.
  */
 export async function getRecipesWithNutrition(): Promise<
   (RecipeListItem & {
@@ -116,8 +120,13 @@ export async function getRecipesWithNutrition(): Promise<
     protein: number | null;
     fat: number | null;
     sodium: number | null;
+    potassium?: number | null;
+    phosphorus?: number | null;
+    gi?: number | null;
   })[]
 > {
+  console.group("[DietQueries] 레시피 목록 조회 (병합)");
+  
   try {
     // 레시피는 공개 데이터이므로 서비스 롤 클라이언트 사용
     const supabase = getServiceRoleClient();
@@ -138,18 +147,20 @@ export async function getRecipesWithNutrition(): Promise<
         fat,
         sodium,
         created_at,
+        foodsafety_rcp_seq,
         rating_stats:recipe_rating_stats(rating_count, average_rating)
         `
       )
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("데이터베이스 조회 실패, 폴백 시스템 사용:", error);
-      // 데이터베이스 오류 시 빈 배열 반환 (폴백 시스템이 처리)
-      return [];
+      console.error("데이터베이스 조회 실패:", error);
+      console.groupEnd();
+      // 데이터베이스 오류 시 식약처 API만 사용
+      return await getMfdsRecipesOnly();
     }
 
-    const recipes = (data as any)?.map((item: any) => ({
+    const dbRecipes = (data as any)?.map((item: any) => ({
       id: item.id,
       slug: item.slug,
       title: item.title,
@@ -166,18 +177,80 @@ export async function getRecipesWithNutrition(): Promise<
       fat: item.fat,
       sodium: item.sodium,
       created_at: item.created_at,
+      foodsafety_rcp_seq: item.foodsafety_rcp_seq,
     })) || [];
 
-    console.log(`데이터베이스에서 ${recipes.length}개 레시피 조회됨`);
+    console.log(`데이터베이스에서 ${dbRecipes.length}개 레시피 조회됨`);
 
-    // 데이터베이스에 레시피가 없으면 빈 배열 반환 (폴백 시스템이 처리)
-    if (recipes.length === 0) {
-      console.log("데이터베이스에 레시피가 없어 폴백 시스템으로 전환");
+    // 식약처 API 레시피 가져오기 (병합)
+    try {
+      const { fetchMfdsRecipesQuick } = await import("./mfds-recipe-fetcher");
+      const { mergeRecipes } = await import("./recipe-merger");
+
+      console.log("식약처 API 레시피 조회 중...");
+      const mfdsRecipes = await fetchMfdsRecipesQuick(500); // 최대 500개만 가져오기 (성능 고려)
+      console.log(`식약처 API에서 ${mfdsRecipes.length}개 레시피 조회됨`);
+
+      // 병합
+      const mergedRecipes = mergeRecipes(dbRecipes, mfdsRecipes);
+      console.log(`✅ 병합 완료: 총 ${mergedRecipes.length}개 레시피`);
+      console.groupEnd();
+      return mergedRecipes;
+    } catch (mfdsError) {
+      console.warn("식약처 API 조회 실패, DB 레시피만 사용:", mfdsError);
+      console.groupEnd();
+      // 식약처 API 실패 시 DB 레시피만 반환
+      return dbRecipes;
     }
-
-    return recipes;
   } catch (error) {
     console.error("getRecipesWithNutrition error", error);
+    console.groupEnd();
+    // 전체 실패 시 식약처 API만 시도
+    return await getMfdsRecipesOnly();
+  }
+}
+
+/**
+ * 식약처 API 레시피만 가져옵니다 (폴백용).
+ */
+async function getMfdsRecipesOnly(): Promise<
+  (RecipeListItem & {
+    calories: number | null;
+    carbohydrates: number | null;
+    protein: number | null;
+    fat: number | null;
+    sodium: number | null;
+    potassium?: number | null;
+    phosphorus?: number | null;
+    gi?: number | null;
+  })[]
+> {
+  try {
+    const { fetchMfdsRecipesQuick } = await import("./mfds-recipe-fetcher");
+    const mfdsRecipes = await fetchMfdsRecipesQuick(200);
+
+    return mfdsRecipes.map((recipe) => ({
+      id: `foodsafety-${recipe.RCP_SEQ}`,
+      slug: `foodsafety-${recipe.RCP_SEQ}`,
+      title: recipe.RCP_NM,
+      thumbnail_url: recipe.ATT_FILE_NO_MAIN || null,
+      difficulty: 2,
+      cooking_time_minutes: 30,
+      rating_count: 0,
+      average_rating: 0,
+      user: { name: "식약처" },
+      calories: recipe.nutrition.calories || null,
+      carbohydrates: recipe.nutrition.carbohydrate || null,
+      protein: recipe.nutrition.protein || null,
+      fat: recipe.nutrition.fat || null,
+      sodium: recipe.nutrition.sodium || null,
+      potassium: recipe.nutrition.potassium || null,
+      phosphorus: recipe.nutrition.phosphorus || null,
+      gi: recipe.nutrition.gi || null,
+      created_at: new Date().toISOString(),
+    }));
+  } catch (error) {
+    console.error("식약처 API 조회도 실패:", error);
     return [];
   }
 }
@@ -536,6 +609,9 @@ export async function generateAndSaveDietPlan(
           protein: recipe.protein || 0,
           fat: recipe.fat || 0,
           sodium: recipe.sodium || 0,
+          potassium_mg: recipe.potassium ?? null,
+          phosphorus_mg: recipe.phosphorus ?? null,
+          gi_index: recipe.gi ?? null,
           composition_summary: compositionSummary ? JSON.stringify(compositionSummary) : null,
         };
       })
