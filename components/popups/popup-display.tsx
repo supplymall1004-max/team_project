@@ -161,6 +161,9 @@ export function PopupDisplay({ popups }: PopupDisplayProps) {
 
         <DialogHeader>
           <DialogTitle className="text-xl">{currentPopup.title}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {currentPopup.body || "팝업 공지사항"}
+          </DialogDescription>
         </DialogHeader>
 
         {/* 팝업 내용 - 링크가 있으면 클릭 가능 */}

@@ -145,6 +145,9 @@ export function KcdcAlertPopup({
               )}
             </div>
           </div>
+          <DialogDescription className="sr-only">
+            {currentAlert.title} - {currentAlert.content?.substring(0, 100) || "질병관리청 알림"}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

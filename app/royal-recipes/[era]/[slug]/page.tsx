@@ -5,6 +5,7 @@
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { getRoyalRecipe, RecipeEra } from "@/lib/royal-recipes/queries";
 import { getRecipeImages } from "@/lib/royal-recipes/images";
 
@@ -56,10 +57,13 @@ export default async function RoyalRecipePage({ params }: RoyalRecipePageProps) 
           {/* 첫 번째 사진 */}
           {images.palace && (
             <div className="relative w-full h-80 md:h-96 overflow-hidden">
-              <img
+              <Image
                 src={images.palace}
                 alt={`${recipe.title} - 궁중 사진`}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 1024px"
+                priority
               />
               <div className="absolute inset-0 bg-black bg-opacity-10"></div>
             </div>
@@ -123,10 +127,12 @@ export default async function RoyalRecipePage({ params }: RoyalRecipePageProps) 
           {/* 두 번째 사진 */}
           {images.modern && (
             <div className="relative w-full h-80 md:h-96 overflow-hidden">
-              <img
+              <Image
                 src={images.modern}
                 alt={`${recipe.title} - 현대 재현 사진`}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 1024px"
               />
               <div className="absolute bottom-4 left-4 bg-white bg-opacity-90 px-4 py-2 rounded-lg">
                 <p className="text-sm text-gray-800">현대 재현 이미지</p>

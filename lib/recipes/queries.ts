@@ -10,6 +10,8 @@
 
 import { createPublicSupabaseServerClient } from "@/lib/supabase/public-server";
 import { RecipeListItem, RecipeDetail, RecipeFilterState } from "@/types/recipe";
+import { fetchFoodSafetyRecipeBySeq } from "./foodsafety-api";
+import { saveFoodSafetyRecipeToDb } from "./foodsafety-service";
 
 /**
  * 레시피 목록 조회 (필터링 및 정렬 지원)
@@ -42,6 +44,7 @@ export async function getRecipes(
         slug,
         title,
         thumbnail_url,
+        foodsafety_att_file_no_main,
         difficulty,
         cooking_time_minutes,
         created_at,
@@ -102,7 +105,7 @@ export async function getRecipes(
         id: item.id,
         slug: item.slug,
         title: item.title,
-        thumbnail_url: item.thumbnail_url,
+        thumbnail_url: item.foodsafety_att_file_no_main || item.thumbnail_url,
         difficulty: item.difficulty,
         cooking_time_minutes: item.cooking_time_minutes,
         created_at: item.created_at,
@@ -132,6 +135,7 @@ export async function getRecipes(
 
 /**
  * 레시피 상세 조회 (slug 기반)
+ * 하이브리드 방식: DB 우선 조회, 없으면 식약처 API 호출 후 저장
  */
 export async function getRecipeBySlug(slug: string): Promise<RecipeDetail | null> {
   console.groupCollapsed("[RecipeQueries] 레시피 상세 조회");
@@ -140,7 +144,7 @@ export async function getRecipeBySlug(slug: string): Promise<RecipeDetail | null
   try {
     const supabase = createPublicSupabaseServerClient();
 
-    // 레시피 기본 정보 조회
+    // 1. DB에서 레시피 조회
     const { data: recipe, error: recipeError } = await supabase
       .from("recipes")
       .select(
@@ -153,78 +157,103 @@ export async function getRecipeBySlug(slug: string): Promise<RecipeDetail | null
       .eq("slug", slug)
       .single();
 
-    if (recipeError || !recipe) {
-      console.error("recipe not found", recipeError);
-      console.groupEnd();
-      return null;
-    }
+    // 2. DB에 레시피가 있으면 반환
+    if (recipe && !recipeError) {
+      const recipeTyped = recipe as any;
 
-    const recipeTyped = recipe as any;
-
-    // 재료 조회
-    const { data: ingredients, error: ingredientsError } = await supabase
-      .from("recipe_ingredients")
-      .select("*")
-      .eq("recipe_id", recipeTyped.id)
-      .order("display_order", { ascending: true });
-
-    if (ingredientsError) {
-      console.error("ingredients error", ingredientsError);
-    }
-
-    // 재료 데이터를 타입에 맞게 변환 (하위 호환성 포함)
-    const ingredientsTyped = (ingredients || []).map((ing: any) => ({
-      ...ing,
-      // 하위 호환성을 위한 별칭
-      name: ing.ingredient_name,
-      notes: ing.preparation_note,
-      order_index: ing.display_order,
-    }));
-
-    // 단계 조회
-    const { data: steps, error: stepsError } = await supabase
-      .from("recipe_steps")
-      .select("*")
-      .eq("recipe_id", recipeTyped.id)
-      .order("step_number", { ascending: true });
-
-    if (stepsError) {
-      console.error("steps error", stepsError);
-    }
-
-    // 현재 사용자의 평가 조회 (인증된 경우)
-    let userRating: number | undefined;
-    try {
-      const { data: rating } = await supabase
-        .from("recipe_ratings")
-        .select("rating")
+      // 재료 조회
+      const { data: ingredients, error: ingredientsError } = await supabase
+        .from("recipe_ingredients")
+        .select("*")
         .eq("recipe_id", recipeTyped.id)
-        .single();
+        .order("display_order", { ascending: true });
 
-      if (rating) {
-        userRating = parseFloat((rating as any).rating);
+      if (ingredientsError) {
+        console.error("ingredients error", ingredientsError);
       }
-    } catch (e) {
-      // 인증되지 않은 경우 무시
+
+      // 재료 데이터를 타입에 맞게 변환 (하위 호환성 포함)
+      const ingredientsTyped = (ingredients || []).map((ing: any) => ({
+        ...ing,
+        // 하위 호환성을 위한 별칭
+        name: ing.ingredient_name,
+        notes: ing.preparation_note,
+        order_index: ing.display_order,
+      }));
+
+      // 단계 조회
+      const { data: steps, error: stepsError } = await supabase
+        .from("recipe_steps")
+        .select("*")
+        .eq("recipe_id", recipeTyped.id)
+        .order("step_number", { ascending: true });
+
+      if (stepsError) {
+        console.error("steps error", stepsError);
+      }
+
+      // 현재 사용자의 평가 조회 (인증된 경우)
+      let userRating: number | undefined;
+      try {
+        const { data: rating } = await supabase
+          .from("recipe_ratings")
+          .select("rating")
+          .eq("recipe_id", recipeTyped.id)
+          .single();
+
+        if (rating) {
+          userRating = parseFloat((rating as any).rating);
+        }
+      } catch (e) {
+        // 인증되지 않은 경우 무시
+      }
+
+      const result: RecipeDetail = {
+        ...recipeTyped,
+        ingredients: ingredientsTyped || [],
+        steps: steps || [],
+        user_rating: userRating,
+        user: (recipeTyped.user as any) || { id: recipeTyped.user_id, name: "익명" },
+        rating_stats: {
+          rating_count:
+            (recipeTyped.rating_stats as any)?.[0]?.rating_count || 0,
+          average_rating:
+            parseFloat((recipeTyped.rating_stats as any)?.[0]?.average_rating || "0") || 0,
+        },
+      };
+
+      console.log("recipe found in DB", result.id);
+      console.groupEnd();
+      return result;
     }
 
-    const result: RecipeDetail = {
-      ...recipeTyped,
-      ingredients: ingredientsTyped || [],
-      steps: steps || [],
-      user_rating: userRating,
-      user: (recipeTyped.user as any) || { id: recipeTyped.user_id, name: "익명" },
-      rating_stats: {
-        rating_count:
-          (recipeTyped.rating_stats as any)?.[0]?.rating_count || 0,
-        average_rating:
-          parseFloat((recipeTyped.rating_stats as any)?.[0]?.average_rating || "0") || 0,
-      },
-    };
+    // 3. DB에 없으면 식약처 API 호출 시도
+    // slug가 foodsafety-{RCP_SEQ} 형식인지 확인
+    if (slug.startsWith("foodsafety-")) {
+      const rcpSeq = slug.replace("foodsafety-", "");
+      console.log("식약처 API에서 레시피 조회 시도:", rcpSeq);
 
-    console.log("recipe found", result.id);
+      const apiResult = await fetchFoodSafetyRecipeBySeq(rcpSeq);
+
+      if (apiResult.success && apiResult.data && apiResult.data.length > 0) {
+        const recipeRow = apiResult.data[0];
+        
+        // 식약처 레시피를 DB에 저장 (기본 사용자 ID 사용)
+        const defaultUserId = "00000000-0000-0000-0000-000000000000"; // 시스템 사용자
+        const savedRecipe = await saveFoodSafetyRecipeToDb(recipeRow, defaultUserId);
+
+        if (savedRecipe) {
+          console.log("식약처 레시피 저장 완료, 다시 조회");
+          console.groupEnd();
+          // 저장 후 다시 조회
+          return getRecipeBySlug(slug);
+        }
+      }
+    }
+
+    console.error("recipe not found in DB or API", recipeError);
     console.groupEnd();
-    return result;
+    return null;
   } catch (error) {
     console.error("getRecipeBySlug error", error);
     console.groupEnd();

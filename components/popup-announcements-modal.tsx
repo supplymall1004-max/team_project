@@ -7,7 +7,7 @@
 
 "use client";
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Bell, ChevronLeft, ChevronRight } from "lucide-react";
@@ -43,6 +43,9 @@ export function PopupAnnouncementsModal({
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent className="max-w-md mx-auto">
+        <DialogDescription className="sr-only">
+          {popup.title} - {popup.body}
+        </DialogDescription>
         <div className="relative">
           {/* 헤더 */}
           <div className="flex items-center justify-between p-4 border-b">

@@ -105,7 +105,7 @@ export async function PUT(
     const { data: existingMember, error: memberError } = await supabase
       .from("family_members")
       .select("id, name, user_id")
-      .eq("id::text", memberId)
+      .eq("id", memberId)
       .eq("user_id", supabaseUserId)
       .maybeSingle();
 
@@ -115,12 +115,23 @@ export async function PUT(
       console.error("  - 에러 메시지:", memberError.message);
       console.error("  - 에러 상세:", memberError.details);
       console.error("  - 에러 힌트:", memberError.hint);
+      console.error("  - 요청한 구성원 ID:", memberId);
+      console.error("  - 사용자 ID:", supabaseUserId);
       console.groupEnd();
+      
+      // 개발 환경에서는 더 자세한 정보 제공
+      const isDevelopment = process.env.NODE_ENV === "development";
       return NextResponse.json(
         { 
           error: "Database error",
           message: "데이터베이스 조회 중 오류가 발생했습니다.",
-          details: memberError.message
+          details: memberError.message,
+          ...(isDevelopment && {
+            code: memberError.code,
+            hint: memberError.hint,
+            memberId,
+            userId: supabaseUserId
+          })
         },
         { status: 500 }
       );
@@ -135,7 +146,7 @@ export async function PUT(
       const { data: otherMember, error: otherError } = await supabase
         .from("family_members")
         .select("id, user_id, name")
-        .eq("id::text", memberId)
+        .eq("id", memberId)
         .maybeSingle();
       
       if (otherError) {
@@ -186,7 +197,7 @@ export async function PUT(
     const { data: updatedMember, error } = await supabase
       .from("family_members")
       .update(updateData)
-      .eq("id::text", memberId)  // UUID를 text로 캐스팅하여 비교
+      .eq("id", memberId)  // UUID 타입으로 직접 비교
       .select()
       .single();
 
@@ -322,7 +333,7 @@ export async function DELETE(
     const { data: existingMember, error: checkError } = await supabase
       .from("family_members")
       .select("id, name, user_id")
-      .eq("id::text", memberId)  // UUID를 text로 캐스팅하여 비교
+      .eq("id", memberId)  // UUID 타입으로 직접 비교
       .eq("user_id", supabaseUserId)
       .maybeSingle();
 
@@ -331,12 +342,24 @@ export async function DELETE(
       console.error("  - 에러 코드:", checkError.code);
       console.error("  - 에러 메시지:", checkError.message);
       console.error("  - 에러 상세:", checkError.details);
+      console.error("  - 에러 힌트:", checkError.hint);
+      console.error("  - 요청한 구성원 ID:", memberId);
+      console.error("  - 사용자 ID:", supabaseUserId);
       console.groupEnd();
+      
+      // 개발 환경에서는 더 자세한 정보 제공
+      const isDevelopment = process.env.NODE_ENV === "development";
       return NextResponse.json(
         { 
           error: "Database error",
           message: "데이터베이스 조회 중 오류가 발생했습니다.",
-          details: checkError.message
+          details: checkError.message,
+          ...(isDevelopment && {
+            code: checkError.code,
+            hint: checkError.hint,
+            memberId,
+            userId: supabaseUserId
+          })
         },
         { status: 500 }
       );
@@ -351,7 +374,7 @@ export async function DELETE(
       const { data: otherMember, error: otherError } = await supabase
         .from("family_members")
         .select("id, user_id, name")
-        .eq("id::text", memberId)
+        .eq("id", memberId)
         .maybeSingle();
       
       if (otherError) {
@@ -382,7 +405,7 @@ export async function DELETE(
     const { error } = await supabase
       .from("family_members")
       .delete()
-      .eq("id::text", memberId)  // UUID를 text로 캐스팅하여 비교
+      .eq("id", memberId)  // UUID 타입으로 직접 비교
       .eq("user_id", supabaseUserId);
 
     if (error) {

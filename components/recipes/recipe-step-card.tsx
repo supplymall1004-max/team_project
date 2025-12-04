@@ -34,11 +34,11 @@ export function RecipeStepCard({ step }: RecipeStepCardProps) {
         <div className="flex-1 space-y-4">
           <p className="text-base leading-relaxed">{step.content}</p>
 
-          {/* 이미지 */}
-          {step.image_url && (
+          {/* 이미지 (식약처 API 이미지 우선 사용) */}
+          {(step.foodsafety_manual_img || step.image_url) && (
             <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-gray-100">
               <Image
-                src={step.image_url}
+                src={step.foodsafety_manual_img || step.image_url || ""}
                 alt={`단계 ${step.step_number} 이미지`}
                 fill
                 className="object-cover"

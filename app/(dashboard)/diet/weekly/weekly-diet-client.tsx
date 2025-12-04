@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -90,9 +90,9 @@ export function WeeklyDietClient() {
     if (user?.id) {
       loadWeeklyDiet(weekType);
     }
-  }, [weekType, user?.id]);
+  }, [weekType, user?.id, loadWeeklyDiet]);
 
-  const loadWeeklyDiet = async (type: "this" | "next") => {
+  const loadWeeklyDiet = useCallback(async (type: "this" | "next") => {
     if (!user?.id) return;
 
     setLoading(true);
@@ -197,7 +197,7 @@ export function WeeklyDietClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   const generateWeeklyDiet = async () => {
     if (generating) return;

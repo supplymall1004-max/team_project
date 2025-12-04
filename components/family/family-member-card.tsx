@@ -31,12 +31,20 @@ export function FamilyMemberCard({ member, onRefresh }: FamilyMemberCardProps) {
     if (!confirm(`정말 ${member.name}님을 삭제하시겠습니까?`)) return;
 
     setIsDeleting(true);
+    let groupOpened = false;
+    
     try {
       console.group("🗑️ 가족 구성원 삭제");
+      groupOpened = true;
+      
       console.log("구성원 ID:", member.id);
       console.log("구성원 이름:", member.name);
       
       const token = await getToken();
+      if (!token) {
+        throw new Error("인증 토큰을 가져올 수 없습니다.");
+      }
+      
       const response = await fetch(`/api/family/members/${member.id}`, {
         method: "DELETE",
         headers: {
@@ -48,36 +56,72 @@ export function FamilyMemberCard({ member, onRefresh }: FamilyMemberCardProps) {
 
       if (!response.ok) {
         const contentType = response.headers.get("content-type");
-        let errorData: any = {};
+        let errorData: Record<string, unknown> = {};
         
         try {
           const responseText = await response.text();
-          if (contentType?.includes("application/json") && responseText) {
-            errorData = JSON.parse(responseText);
+          console.log("응답 본문:", responseText);
+          console.log("Content-Type:", contentType);
+          
+          if (contentType?.includes("application/json") && responseText.trim()) {
+            try {
+              errorData = JSON.parse(responseText) as Record<string, unknown>;
+            } catch (jsonError) {
+              console.error("JSON 파싱 실패:", jsonError);
+              errorData = { message: responseText || "삭제 실패" };
+            }
+          } else if (responseText.trim()) {
+            errorData = { message: responseText };
           } else {
-            errorData = { message: responseText || "삭제 실패" };
+            // 상태 코드에 따른 기본 메시지
+            const statusMessages: Record<number, string> = {
+              400: "잘못된 요청입니다.",
+              401: "인증이 필요합니다.",
+              403: "권한이 없습니다.",
+              404: "가족 구성원을 찾을 수 없습니다.",
+              500: "서버 오류가 발생했습니다.",
+            };
+            errorData = { 
+              message: statusMessages[response.status] || "삭제에 실패했습니다.",
+              error: `HTTP ${response.status}` 
+            };
           }
         } catch (parseError) {
           console.error("응답 파싱 실패:", parseError);
-          errorData = { message: "삭제 실패" };
+          errorData = { 
+            message: "삭제에 실패했습니다.",
+            error: "응답 파싱 오류"
+          };
         }
         
-        console.error("❌ 삭제 실패:", errorData);
-        console.groupEnd();
+        console.error("❌ 삭제 실패:");
+        console.error("  - 상태 코드:", response.status);
+        console.error("  - 에러 데이터:", JSON.stringify(errorData, null, 2));
         
-        const errorMessage = errorData.message || errorData.error || "삭제에 실패했습니다.";
+        const errorMessage = 
+          (typeof errorData.message === "string" ? errorData.message : null) ||
+          (typeof errorData.error === "string" ? errorData.error : null) ||
+          "삭제에 실패했습니다.";
+        
         throw new Error(errorMessage);
       }
 
       console.log("✅ 삭제 성공");
-      console.groupEnd();
       onRefresh();
     } catch (error) {
-      console.error("❌ 삭제 실패:", error);
-      console.groupEnd();
+      console.error("❌ 삭제 실패 (catch 블록):");
+      console.error("  - 에러 타입:", error instanceof Error ? error.constructor.name : typeof error);
+      console.error("  - 에러 메시지:", error instanceof Error ? error.message : String(error));
+      if (error instanceof Error && error.stack) {
+        console.error("  - 스택 트레이스:", error.stack);
+      }
+      
       const errorMessage = error instanceof Error ? error.message : "삭제에 실패했습니다.";
       alert(errorMessage);
     } finally {
+      if (groupOpened) {
+        console.groupEnd();
+      }
       setIsDeleting(false);
     }
   };

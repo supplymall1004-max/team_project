@@ -31,7 +31,7 @@ export default async function EmergencyPage() {
                     hint: proceduresError.hint || null,
                 };
                 console.warn('⚠️ 응급조치 정보 조회 실패 (무시됨):', errorInfo);
-            } catch (e) {
+            } catch {
                 // 에러 직렬화 실패 시 조용히 넘어감
             }
         }
@@ -53,7 +53,7 @@ export default async function EmergencyPage() {
                     hint: allergiesError.hint || null,
                 };
                 console.warn('⚠️ 알레르기 목록 조회 실패 (빈 배열 사용):', errorInfo);
-            } catch (e) {
+            } catch {
                 // 에러 직렬화 실패 시 조용히 넘어감
             }
         }

@@ -109,8 +109,28 @@ export async function GET() {
 
     if (error) {
       console.error("❌ 조회 실패:", error);
+      console.error("  - 에러 코드:", error.code);
+      console.error("  - 에러 메시지:", error.message);
+      console.error("  - 에러 상세:", error.details);
+      console.error("  - 에러 힌트:", error.hint);
+      console.error("  - 사용자 ID:", supabaseUserId);
       console.groupEnd();
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      
+      // 개발 환경에서는 더 자세한 정보 제공
+      const isDevelopment = process.env.NODE_ENV === "development";
+      return NextResponse.json(
+        { 
+          error: "Database error",
+          message: "데이터베이스 조회 중 오류가 발생했습니다.",
+          details: error.message,
+          ...(isDevelopment && {
+            code: error.code,
+            hint: error.hint,
+            userId: supabaseUserId
+          })
+        },
+        { status: 500 }
+      );
     }
 
     console.log(`✅ ${members?.length || 0}명 조회 성공, 구독 플랜: ${subscriptionPlan}, 최대 구성원: ${maxMembers}`);

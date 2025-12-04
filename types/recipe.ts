@@ -22,6 +22,19 @@ export interface Recipe {
   servings: number;
   created_at: string;
   updated_at: string;
+  // 식약처 API 필드 (옵셔널)
+  foodsafety_rcp_seq?: string | null; // 식약처 레시피 순번
+  foodsafety_rcp_way2?: string | null; // 조리방법
+  foodsafety_rcp_pat2?: string | null; // 요리종류
+  foodsafety_info_eng?: number | null; // 칼로리
+  foodsafety_info_car?: number | null; // 탄수화물
+  foodsafety_info_pro?: number | null; // 단백질
+  foodsafety_info_fat?: number | null; // 지방
+  foodsafety_info_na?: number | null; // 나트륨
+  foodsafety_info_fiber?: number | null; // 식이섬유
+  foodsafety_rcp_parts_dtls?: string | null; // 재료 정보
+  foodsafety_att_file_no_main?: string | null; // 대표 이미지 URL
+  foodsafety_att_file_no_mk?: string | null; // 만드는 법 이미지 URL
   // 조인된 데이터
   user?: {
     id: string;
@@ -75,6 +88,7 @@ export interface RecipeStep {
   video_url: string | null;
   timer_minutes: number | null;
   created_at: string;
+  foodsafety_manual_img?: string | null; // 식약처 API 조리 방법 이미지
 }
 
 export interface RecipeRating {
@@ -206,4 +220,68 @@ export interface FamilyDietPlan {
 
 // 식사 타입
 export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+
+// =============================================================================
+// 식약처 API 타입 정의
+// =============================================================================
+
+/**
+ * 식약처 API 원본 레시피 데이터
+ * lib/recipes/foodsafety-api.ts의 FoodSafetyRecipeRow와 동일한 구조
+ */
+export interface FoodSafetyRecipe {
+  RCP_SEQ: string;
+  RCP_NM: string;
+  RCP_WAY2: string;
+  RCP_PAT2: string;
+  INFO_ENG: string;
+  INFO_CAR: string;
+  INFO_PRO: string;
+  INFO_FAT: string;
+  INFO_NA: string;
+  INFO_FIBER: string;
+  RCP_PARTS_DTLS: string;
+  MANUAL01: string | null;
+  MANUAL02: string | null;
+  MANUAL03: string | null;
+  MANUAL04: string | null;
+  MANUAL05: string | null;
+  MANUAL06: string | null;
+  MANUAL07: string | null;
+  MANUAL08: string | null;
+  MANUAL09: string | null;
+  MANUAL10: string | null;
+  MANUAL11: string | null;
+  MANUAL12: string | null;
+  MANUAL13: string | null;
+  MANUAL14: string | null;
+  MANUAL15: string | null;
+  MANUAL16: string | null;
+  MANUAL17: string | null;
+  MANUAL18: string | null;
+  MANUAL19: string | null;
+  MANUAL20: string | null;
+  MANUAL_IMG01: string | null;
+  MANUAL_IMG02: string | null;
+  MANUAL_IMG03: string | null;
+  MANUAL_IMG04: string | null;
+  MANUAL_IMG05: string | null;
+  MANUAL_IMG06: string | null;
+  MANUAL_IMG07: string | null;
+  MANUAL_IMG08: string | null;
+  MANUAL_IMG09: string | null;
+  MANUAL_IMG10: string | null;
+  MANUAL_IMG11: string | null;
+  MANUAL_IMG12: string | null;
+  MANUAL_IMG13: string | null;
+  MANUAL_IMG14: string | null;
+  MANUAL_IMG15: string | null;
+  MANUAL_IMG16: string | null;
+  MANUAL_IMG17: string | null;
+  MANUAL_IMG18: string | null;
+  MANUAL_IMG19: string | null;
+  MANUAL_IMG20: string | null;
+  ATT_FILE_NO_MAIN: string | null;
+  ATT_FILE_NO_MK: string | null;
+}
 

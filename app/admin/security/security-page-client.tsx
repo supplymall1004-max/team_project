@@ -12,10 +12,7 @@
 
 import { useState } from "react";
 import { Shield, Key, Smartphone, LogOut, FileText, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { PasswordChangePanel } from "@/components/admin/security/password-change-panel";
 import { MfaSetupPanel } from "@/components/admin/security/mfa-setup-panel";
 import { SessionManagementPanel } from "@/components/admin/security/session-management-panel";

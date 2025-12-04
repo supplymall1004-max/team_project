@@ -12,7 +12,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Clock, Star, ChefHat, ImageOff } from "lucide-react";
 import { RecipeListItem } from "@/types/recipe";
 import {
@@ -21,8 +21,6 @@ import {
   getRatingStars,
 } from "@/lib/recipes/utils";
 import { cn } from "@/lib/utils";
-import { getRecipeImageUrlEnhanced } from "@/lib/utils/recipe-image";
-import { FOOD_IMAGE_LIBRARY, FOOD_IMAGE_FALLBACK_URL } from "@/data/food-image-links";
 
 interface RecipeCardProps {
   recipe: RecipeListItem;
@@ -31,14 +29,12 @@ interface RecipeCardProps {
 
 export function RecipeCard({ recipe, className }: RecipeCardProps) {
   const [imageError, setImageError] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
   const ratingStars = getRatingStars(recipe.average_rating || 0);
 
-  // 로컬 이미지 직접 사용 - 검색 로직 제거
-  const imageUrl = getRecipeImageUrlEnhanced(recipe.title, recipe.thumbnail_url);
-
-  // 폴백 이미지 URL 초기화
-  const fallbackImageUrl = FOOD_IMAGE_FALLBACK_URL || FOOD_IMAGE_LIBRARY.default.url;
+  // 식약처 API 이미지 우선 사용, 없으면 thumbnail_url, 둘 다 없으면 기본 이미지
+  // getRecipes에서 foodsafety_att_file_no_main을 thumbnail_url에 우선 적용하므로
+  // thumbnail_url을 직접 사용
+  const imageUrl = recipe.thumbnail_url || "/images/food/default.svg";
 
 
   const handleClick = () => {
@@ -49,8 +45,7 @@ export function RecipeCard({ recipe, className }: RecipeCardProps) {
   };
 
   return (
-    <div ref={cardRef} data-preload-images={JSON.stringify([fallbackImageUrl])}>
-      <Link
+    <Link
         href={`/recipes/${recipe.slug}`}
         onClick={handleClick}
         className={cn(
@@ -61,38 +56,18 @@ export function RecipeCard({ recipe, className }: RecipeCardProps) {
       {/* 썸네일 이미지 */}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
         {!imageError ? (
-          <>
-            {imageUrl.startsWith("/images/food/") && imageUrl.endsWith(".jpg") ? (
-              // 로컬 JPG 파일 직접 로딩 (public/images/food/ 폴더에서)
-              <Image
-                src={imageUrl}
-                alt={recipe.title}
-                fill
-                className="object-cover transition-transform group-hover:scale-105"
-                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                loading="lazy"
-                unoptimized={false}
-                onError={() => {
-                  console.error("[RecipeCard] 로컬 JPG 이미지 로딩 실패:", imageUrl);
-                  setImageError(true);
-                }}
-              />
-            ) : (
-              <Image
-                src={imageUrl}
-                alt={recipe.title}
-                fill
-                className="object-cover transition-transform group-hover:scale-105"
-                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                loading="lazy"
-                unoptimized={imageUrl.includes("images.unsplash.com") || imageUrl.includes("pixabay.com") || imageUrl.endsWith(".svg")}
-                onError={() => {
-                  console.error("[RecipeCard] 이미지 로딩 실패:", imageUrl);
-                  setImageError(true);
-                }}
+          <Image
+            src={imageUrl}
+            alt={recipe.title}
+            fill
+            className="object-cover transition-transform group-hover:scale-105"
+            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            loading="lazy"
+            onError={() => {
+              console.error("[RecipeCard] 이미지 로딩 실패:", imageUrl);
+              setImageError(true);
+            }}
           />
-          )}
-          </>
         ) : (
           <div className="flex h-full items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100">
             <div className="text-center">
@@ -153,7 +128,6 @@ export function RecipeCard({ recipe, className }: RecipeCardProps) {
         </div>
       </div>
     </Link>
-    </div>
   );
 }
 

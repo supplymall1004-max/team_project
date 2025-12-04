@@ -57,7 +57,7 @@ export function MfaSetupPanel() {
     
     setIsLoading(false);
     console.groupEnd();
-  }, []);
+  }, [toast]);
 
   // MFA 상태 로드
   useEffect(() => {

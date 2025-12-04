@@ -90,6 +90,7 @@ export function RoyalRecipesQuickAccess() {
                       width={28}
                       height={28}
                       className="object-contain"
+                      style={{ width: "auto", height: "auto" }}
                       unoptimized
                     />
                   </div>

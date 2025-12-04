@@ -13,7 +13,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Calendar, ChevronRight } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
@@ -40,13 +40,7 @@ export function WeeklyDietSummary() {
   const [data, setData] = useState<WeeklyDietSummaryData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isLoaded) {
-      loadWeeklyDiet();
-    }
-  }, [isLoaded]);
-
-  const loadWeeklyDiet = async () => {
+  const loadWeeklyDiet = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -190,7 +184,13 @@ export function WeeklyDietSummary() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, isLoaded]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      loadWeeklyDiet();
+    }
+  }, [isLoaded, loadWeeklyDiet]);
 
   // 총 칼로리 계산 (모든 날짜의 칼로리 합산)
   const totalCalories = data?.nutritionStats?.reduce(

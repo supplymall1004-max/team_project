@@ -123,6 +123,13 @@ export function FamilyMemberSection() {
           if (membersResponse.ok) {
             const membersResult = await membersResponse.json();
             setMembers(membersResult.members || []);
+            
+            // 구독 정보 업데이트
+            setSubscriptionInfo({
+              plan: membersResult.subscription?.plan || "free",
+              maxMembers: membersResult.subscription?.maxMembers || 1,
+            });
+            
             console.log(`✅ ${membersResult.members?.length || 0}명의 가족 구성원 새로고침 성공`);
           } else {
             console.error("가족 구성원 데이터 새로고침 실패:", membersResponse.status);
@@ -143,6 +150,86 @@ export function FamilyMemberSection() {
     }
   };
 
+  const handleReset = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.group("[FamilyMemberSection] 가족 구성원 데이터 초기화 및 재로드");
+      
+      // 1. 초기화 API 호출
+      console.log("🔄 가족 구성원 데이터 초기화 중...");
+      const resetResponse = await fetch("/api/admin/reset-family-members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      if (resetResponse.ok) {
+        const resetResult = await resetResponse.json();
+        console.log("✅ 초기화 완료:", resetResult.message);
+      } else {
+        const resetError = await resetResponse.json();
+        console.warn("⚠️ 초기화 경고:", resetError.message || resetError.error);
+        // 초기화 실패해도 계속 진행 (이미 빈 상태일 수 있음)
+      }
+      
+      // 2. 사용자 동기화 확인
+      console.log("🔄 사용자 동기화 확인 중...");
+      try {
+        const syncResponse = await fetch("/api/sync-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        
+        if (syncResponse.ok) {
+          console.log("✅ 사용자 동기화 확인됨");
+        } else {
+          console.warn("⚠️ 사용자 동기화 실패:", syncResponse.status);
+        }
+      } catch (syncError) {
+        console.warn("⚠️ 사용자 동기화 확인 중 에러:", syncError);
+      }
+      
+      // 3. 가족 구성원 데이터 다시 불러오기
+      console.log("🔄 가족 구성원 데이터 다시 불러오는 중...");
+      const token = await getToken();
+      
+      const membersResponse = await fetch("/api/family/members", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (membersResponse.ok) {
+        const membersResult = await membersResponse.json();
+        setMembers(membersResult.members || []);
+        
+        // 구독 정보 업데이트
+        setSubscriptionInfo({
+          plan: membersResult.subscription?.plan || "free",
+          maxMembers: membersResult.subscription?.maxMembers || 1,
+        });
+        
+        console.log(`✅ ${membersResult.members?.length || 0}명의 가족 구성원 로드 성공`);
+        console.log(`✅ 구독 플랜: ${membersResult.subscription?.plan || "free"}, 최대 구성원: ${membersResult.subscription?.maxMembers || 1}`);
+      } else {
+        const errorText = await membersResponse.text();
+        console.error("❌ 가족 구성원 데이터 로드 실패:", membersResponse.status, errorText);
+        setError(`가족 구성원 정보를 불러오는데 실패했습니다. (오류: ${membersResponse.status})`);
+      }
+      
+      console.groupEnd();
+    } catch (err) {
+      console.error("❌ 초기화 및 재로드 실패:", err);
+      console.groupEnd();
+      setError("초기화 및 데이터 로드에 실패했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -157,12 +244,21 @@ export function FamilyMemberSection() {
         <p className="text-sm text-red-800 dark:text-red-200">
           ⚠️ {error}
         </p>
-        <button
-          onClick={handleRefresh}
-          className="mt-2 text-sm text-red-600 hover:underline"
-        >
-          다시 시도
-        </button>
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={handleRefresh}
+            className="text-sm text-red-600 hover:underline"
+          >
+            다시 시도
+          </button>
+          <span className="text-red-400">|</span>
+          <button
+            onClick={handleReset}
+            className="text-sm text-red-600 hover:underline"
+          >
+            초기화 후 재로드
+          </button>
+        </div>
       </div>
     );
   }
@@ -173,6 +269,7 @@ export function FamilyMemberSection() {
       maxMembers={subscriptionInfo.maxMembers}
       currentPlan={subscriptionInfo.plan}
       onRefresh={handleRefresh}
+      onReset={handleReset}
     />
   );
 }
