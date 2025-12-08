@@ -96,10 +96,31 @@ export function PromoCodeForm() {
             
             if (activateResult.success) {
               console.log('✅ 프리미엄 활성화 성공:', activateResult);
+              
+              // 만료일 포맷팅
+              let expiresMessage = '';
+              if (activateResult.expiresAt) {
+                const expiresDate = new Date(activateResult.expiresAt);
+                const formattedDate = `${expiresDate.getFullYear()}-${String(expiresDate.getMonth() + 1).padStart(2, '0')}-${String(expiresDate.getDate()).padStart(2, '0')}`;
+                
+                // 1일권인지 확인
+                if (result.freeTrialDays === 1) {
+                  expiresMessage = `1일권이 등록되었습니다 ~ ${formattedDate}일까지`;
+                } else {
+                  expiresMessage = `${result.freeTrialDays}일 무료 체험이 등록되었습니다 ~ ${formattedDate}일까지`;
+                }
+              }
+              
+              // 성공 메시지 표시
+              setValidationResult({
+                ...result,
+                successMessage: expiresMessage || activateResult.message || '프리미엄이 활성화되었습니다.',
+              });
+              
               window.dispatchEvent(new CustomEvent('premium-activated'));
               setTimeout(() => {
                 window.location.reload();
-              }, 2000);
+              }, 3000); // 메시지를 볼 수 있도록 시간 연장
             } else {
               console.error('❌ 프리미엄 활성화 실패:', activateResult.error);
               setError(activateResult.error || '프리미엄 활성화에 실패했습니다.');
@@ -194,10 +215,17 @@ export function PromoCodeForm() {
           )}
 
           {validationResult && validationResult.valid && (
-            <Alert>
+            <Alert className={validationResult.discountType === 'free_trial' ? 'bg-green-50 border-green-200' : ''}>
               <CheckCircle className="h-4 w-4" />
               <AlertTitle>유효한 프로모션 코드입니다!</AlertTitle>
               <AlertDescription className="space-y-2">
+                {validationResult.successMessage && (
+                  <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-3">
+                    <p className="font-semibold text-green-800 text-lg">
+                      {validationResult.successMessage}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="font-semibold mb-1">할인 혜택:</p>
                   <p className="text-lg text-orange-600">
@@ -222,33 +250,68 @@ export function PromoCodeForm() {
         </CardContent>
       </Card>
 
-      {/* 안내 정보 */}
+      {/* 쿠폰 사용 규칙 */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Info className="h-5 w-5 text-blue-500" />
-            <CardTitle>프로모션 코드 사용 안내</CardTitle>
+            <CardTitle>쿠폰 사용 규칙</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-2 text-sm text-gray-600">
-            <li className="flex items-start gap-2">
-              <Sparkles className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-              <span>프로모션 코드는 결제 페이지에서 적용할 수 있습니다.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Sparkles className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-              <span>각 코드는 사용 기간과 사용 횟수 제한이 있을 수 있습니다.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Sparkles className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-              <span>일부 코드는 특정 플랜(월간/연간)에만 적용될 수 있습니다.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Sparkles className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-              <span>신규 사용자 전용 코드는 기존 구독자에게 적용되지 않을 수 있습니다.</span>
-            </li>
-          </ul>
+          <div className="space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="font-semibold text-yellow-900 mb-2">⚠️ 중요 안내</h3>
+              <ul className="space-y-2 text-sm text-yellow-800">
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold">•</span>
+                  <span>사용 횟수가 마감된 쿠폰은 삭제 후 다시 사용할 수 없습니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold">•</span>
+                  <span>결제 또는 쿠폰의 사용 기간이 끝난 후에 코드를 등록할 수 있습니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold">•</span>
+                  <span>이미 사용한 쿠폰은 재사용할 수 없습니다.</span>
+                </li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">일반 사용 규칙</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <span>프로모션 코드는 결제 페이지에서 적용할 수 있습니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <span>각 코드는 사용 기간과 사용 횟수 제한이 있을 수 있습니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <span>일부 코드는 특정 플랜(월간/연간)에만 적용될 수 있습니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <span>신규 사용자 전용 코드는 기존 구독자에게 적용되지 않을 수 있습니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <span>쿠폰은 중복 사용이 불가능하며, 한 계정당 하나의 쿠폰만 사용할 수 있습니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <span>쿠폰 사용 후 취소하거나 환불해도 쿠폰은 복구되지 않습니다.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                  <span>무료 체험 쿠폰은 등록 즉시 활성화되며, 기간 내 취소 시 자동으로 만료됩니다.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

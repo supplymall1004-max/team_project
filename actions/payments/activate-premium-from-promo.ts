@@ -157,6 +157,39 @@ export async function activatePremiumFromPromo(
       // 에러가 발생해도 프리미엄 활성화는 완료되었으므로 계속 진행
     }
 
+    // 8-1. 결제 내역 생성 (무료 체험 쿠폰 사용 기록용)
+    try {
+      const { error: txError } = await serviceSupabase.from('payment_transactions').insert({
+        subscription_id: subscription.id,
+        user_id: supabaseUserId,
+        status: 'completed',
+        transaction_type: 'subscription',
+        pg_provider: 'promo_code',
+        pg_transaction_id: `promo_${request.promoCodeId}_${Date.now()}`,
+        amount: 0,
+        tax_amount: 0,
+        net_amount: 0,
+        payment_method: 'promo_code',
+        paid_at: now.toISOString(),
+        metadata: {
+          promo_code_id: request.promoCodeId,
+          promo_code: promoCode.code,
+          free_trial_days: request.freeTrialDays,
+        },
+        is_test_mode: true,
+      });
+
+      if (txError) {
+        console.error('⚠️ 결제 내역 생성 실패 (무료 체험):', txError);
+        // 에러가 발생해도 프리미엄 활성화는 완료되었으므로 계속 진행
+      } else {
+        console.log('✅ 결제 내역 생성 완료 (무료 체험)');
+      }
+    } catch (error) {
+      console.error('⚠️ 결제 내역 생성 중 오류:', error);
+      // 에러가 발생해도 프리미엄 활성화는 완료되었으므로 계속 진행
+    }
+
     // 9. 프로모션 코드 사용 기록
     const { error: useRecordError } = await serviceSupabase
       .from('promo_code_uses')

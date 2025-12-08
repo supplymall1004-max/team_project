@@ -123,16 +123,23 @@ export function PromoCodeCreateDialog({
       setIsSubmitting(true);
 
       try {
+        // datetime-local 형식을 ISO 8601 형식으로 변환
+        const validFrom = new Date(data.valid_from).toISOString();
+        const validUntil = new Date(data.valid_until).toISOString();
+
+        const submitData = {
+          ...data,
+          valid_from: validFrom,
+          valid_until: validUntil,
+          applicable_plans: selectedPlans.length > 0 ? selectedPlans as ("monthly" | "yearly")[] : null,
+        };
+
         const result = isEditing && editingCode
           ? await updatePromoCode({
               id: editingCode.id,
-              ...data,
-              applicable_plans: selectedPlans.length > 0 ? selectedPlans as ("monthly" | "yearly")[] : null,
+              ...submitData,
             })
-          : await createPromoCode({
-              ...data,
-              applicable_plans: selectedPlans.length > 0 ? selectedPlans as ("monthly" | "yearly")[] : null,
-            });
+          : await createPromoCode(submitData);
 
         if (result.success) {
           toast({

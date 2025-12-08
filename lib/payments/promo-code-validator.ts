@@ -96,12 +96,19 @@ export async function validatePromoCode(
     .eq('promo_code_id', promoCode.id)
     .eq('user_id', userId)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (existingUse) {
     console.log('❌ 이미 사용한 코드');
     console.groupEnd();
-    return { valid: false, error: '이미 사용한 프로모션 코드입니다.' };
+    return { valid: false, error: '이미 사용한 프로모션 코드입니다. 사용 횟수가 마감된 쿠폰은 삭제 후 다시 사용할 수 없습니다.' };
+  }
+
+  // 6-1. 사용 횟수 마감 확인 (추가 검증)
+  if (promoCode.max_uses !== null && promoCode.current_uses >= promoCode.max_uses) {
+    console.log('❌ 사용 횟수 마감');
+    console.groupEnd();
+    return { valid: false, error: '프로모션 코드 사용 가능 횟수를 초과했습니다. 사용 횟수가 마감된 쿠폰은 삭제 후 다시 사용할 수 없습니다.' };
   }
 
   // 7. 할인 금액 계산

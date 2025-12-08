@@ -223,7 +223,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         valid: false,
-        error: '프로모션 코드 사용 가능 횟수를 초과했습니다.',
+        error: '프로모션 코드 사용 가능 횟수를 초과했습니다. 사용 횟수가 마감된 쿠폰은 삭제 후 다시 사용할 수 없습니다.',
+      });
+    }
+
+    // 6-1. 이미 사용한 코드인지 체크
+    const { data: existingUse } = await serviceSupabase
+      .from('promo_code_uses')
+      .select('id')
+      .eq('promo_code_id', promoCode.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (existingUse) {
+      console.log('❌ 이미 사용한 코드');
+      console.groupEnd();
+      return NextResponse.json({
+        success: false,
+        valid: false,
+        error: '이미 사용한 프로모션 코드입니다. 사용 횟수가 마감된 쿠폰은 삭제 후 다시 사용할 수 없습니다.',
       });
     }
 
@@ -276,10 +294,9 @@ export async function POST(request: NextRequest) {
         .select('id')
         .eq('promo_code_id', promoCode.id)
         .eq('user_id', user.id)
-        .limit(1)
         .maybeSingle();
 
-      if (useError) {
+      if (useError && useError.code !== 'PGRST116') {
         console.error('❌ 프로모션 코드 사용 내역 조회 오류:', useError);
         console.error('에러 상세:', {
           code: useError.code,

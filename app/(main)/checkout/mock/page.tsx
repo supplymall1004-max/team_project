@@ -248,8 +248,11 @@ function MockCheckoutContent() {
       console.log('구독 ID:', result.subscriptionId);
       console.groupEnd();
 
-      // 성공 페이지로 이동
-      router.push(`/checkout/success?orderId=${orderId}`);
+      // 성공 페이지로 이동 (프로모션 코드 ID 포함)
+      const successUrl = appliedPromo?.id 
+        ? `/checkout/success?orderId=${orderId}&promoCodeId=${appliedPromo.id}`
+        : `/checkout/success?orderId=${orderId}`;
+      router.push(successUrl);
     } catch (error) {
       console.error('❌ 결제 처리 오류:', error);
       alert('결제 처리 중 오류가 발생했습니다.');

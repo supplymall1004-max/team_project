@@ -18,6 +18,7 @@ import { DietPlan, MealType, MEAL_TYPE_LABELS } from "@/types/health";
 import { cn } from "@/lib/utils";
 import { FOOD_IMAGE_DIRECT_LINKS } from "@/data/food-image-links";
 import { FavoriteButton } from "@/components/diet/favorite-button";
+import { getFruitIdFromRecipeTitle, isSeasonalFruitSnack } from "@/lib/utils/fruit-mapper";
 
 const SOUP_KEYWORDS = ["국", "찌개", "탕"];
 const SOUP_IMAGE_ENTRIES = Object.entries(FOOD_IMAGE_DIRECT_LINKS).filter(
@@ -94,15 +95,30 @@ function DietCardContent({ mealType, dietPlan, className, date }: DietCardConten
     setImageError(true);
   };
 
-  // 식단 상세 페이지 링크 생성 (날짜가 있으면 상세 페이지로, 없으면 레시피로)
-  const href = date && mealType !== "snack" 
-    ? `/diet/${mealType}/${date}`
-    : `/recipes/${recipe.slug}`;
-
   // 레시피 제목 (compositionSummary가 있으면 첫 번째 항목, 없으면 recipe.title)
   const recipeTitle = dietPlan.compositionSummary && dietPlan.compositionSummary.length > 0
     ? dietPlan.compositionSummary.join(", ")
     : recipe.title;
+
+  // 식단 상세 페이지 링크 생성
+  let href: string;
+  
+  if (mealType === "snack") {
+    // 간식 카드: 제철과일 상세 페이지로 이동
+    const fruitId = getFruitIdFromRecipeTitle(recipeTitle);
+    if (fruitId) {
+      href = `/snacks/${fruitId}`;
+    } else {
+      // 제철과일이 아닌 경우 레시피 페이지로 이동
+      href = `/recipes/${recipe.slug}`;
+    }
+  } else if (date) {
+    // 아침/점심/저녁: 날짜가 있으면 식단 상세 페이지로
+    href = `/diet/${mealType}/${date}`;
+  } else {
+    // 기본: 레시피 페이지로
+    href = `/recipes/${recipe.slug}`;
+  }
 
   // 영양 정보
   const nutrition = {
