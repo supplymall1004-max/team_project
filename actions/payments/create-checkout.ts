@@ -9,6 +9,7 @@ import { auth } from '@clerk/nextjs/server';
 import { createClerkSupabaseClient } from '@/lib/supabase/server';
 import { getMockTossClient, generateOrderId } from '@/lib/payments/mock-toss-client';
 import { validatePromoCode } from '@/lib/payments/promo-code-validator';
+import { ensureSupabaseUser } from '@/lib/supabase/ensure-user';
 
 export interface CreateCheckoutRequest {
   planType: 'monthly' | 'yearly';
@@ -47,20 +48,18 @@ export async function createCheckout(
       return { success: false, error: '로그인이 필요합니다.' };
     }
 
-    const supabase = await createClerkSupabaseClient();
-
-    // 2. 사용자 정보 조회
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, clerk_id, name')
-      .eq('clerk_id', userId)
-      .single();
-
-    if (userError || !user) {
-      console.error('❌ 사용자 조회 실패:', userError);
+    // 2. 사용자 정보 조회 (없으면 자동 생성)
+    const user = await ensureSupabaseUser();
+    
+    if (!user) {
+      console.error('❌ 사용자 정보를 찾을 수 없거나 생성할 수 없습니다.');
       console.groupEnd();
-      return { success: false, error: '사용자 정보를 찾을 수 없습니다.' };
+      return { success: false, error: '사용자 정보를 찾을 수 없습니다. 잠시 후 다시 시도해주세요.' };
     }
+    
+    console.log('✅ 사용자 확인 완료:', user.id);
+    
+    const supabase = await createClerkSupabaseClient();
 
     // 3. 가격 계산
     const basePrice = request.planType === 'monthly' ? 9900 : 94800;

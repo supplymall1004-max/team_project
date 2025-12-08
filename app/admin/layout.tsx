@@ -62,6 +62,13 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: "mealKits",
   },
   {
+    id: "promoCodes",
+    label: "프로모션 코드",
+    description: "프로모션 코드 발급 및 관리",
+    href: "/admin/promo-codes",
+    icon: "promoCodes",
+  },
+  {
     id: "logs",
     label: "알림 로그",
     description: "KCDC/식단 로그 모니터링",

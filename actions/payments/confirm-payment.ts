@@ -138,6 +138,27 @@ export async function confirmPayment(
       console.error('❌ 사용자 프리미엄 상태 업데이트 실패:', userUpdateError);
     }
 
+    // 6-1. user_subscriptions 테이블 업데이트 (가족 구성원 관리용)
+    // 프리미엄 결제는 'premium' 플랜으로 매핑
+    const { error: userSubError } = await supabase
+      .from('user_subscriptions')
+      .upsert({
+        user_id: request.userId,
+        subscription_plan: 'premium',
+        started_at: now.toISOString(),
+        expires_at: periodEnd.toISOString(),
+        is_active: true,
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (userSubError) {
+      console.error('❌ user_subscriptions 업데이트 실패:', userSubError);
+      // 에러가 발생해도 결제는 성공했으므로 계속 진행
+    } else {
+      console.log('✅ user_subscriptions 업데이트 완료 (premium 플랜)');
+    }
+
     // 7. 프로모션 코드 사용 기록
     if (request.promoCodeId) {
       try {

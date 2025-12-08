@@ -118,13 +118,36 @@ export async function GET(request: NextRequest) {
       count: filteredAlerts.length,
       alerts: filteredAlerts,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ KCDC 알림 조회 실패:", error);
-    console.groupEnd();
-    return NextResponse.json(
-      { error: error.message || "Internal server error" },
-      { status: 500 }
-    );
+    console.error("  - 에러 타입:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("  - 에러 메시지:", error instanceof Error ? error.message : String(error));
+    console.error("  - 에러 스택:", error instanceof Error ? error.stack : "스택 없음");
+    
+    try {
+      console.groupEnd();
+    } catch {
+      // groupEnd 실패 무시
+    }
+
+    // 개발 환경에서는 자세한 에러 정보 제공
+    const isDevelopment = process.env.NODE_ENV === "development";
+    const errorResponse = {
+      error: "Internal server error",
+      message: error instanceof Error ? error.message : "서버에서 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      ...(isDevelopment && {
+        details: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        type: error instanceof Error ? error.constructor.name : typeof error,
+      }),
+    };
+
+    return NextResponse.json(errorResponse, { 
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
   }
 }
 

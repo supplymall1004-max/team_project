@@ -109,6 +109,25 @@ export async function grantPremiumAccess(
       console.error('❌ 사용자 프리미엄 상태 업데이트 실패:', userUpdateError);
     }
 
+    // 5-1. user_subscriptions 테이블 업데이트 (가족 구성원 관리용)
+    const { error: userSubError } = await supabase
+      .from('user_subscriptions')
+      .upsert({
+        user_id: targetUser.id,
+        subscription_plan: 'premium',
+        started_at: now.toISOString(),
+        expires_at: periodEnd.toISOString(),
+        is_active: true,
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (userSubError) {
+      console.error('❌ user_subscriptions 업데이트 실패:', userSubError);
+    } else {
+      console.log('✅ user_subscriptions 업데이트 완료 (premium 플랜)');
+    }
+
     console.log('✅ 프리미엄 부여 완료');
     console.groupEnd();
 
@@ -170,6 +189,23 @@ export async function revokePremiumAccess(userId: string): Promise<GrantPremiumR
       console.error('❌ 사용자 상태 업데이트 실패:', userUpdateError);
       console.groupEnd();
       return { success: false, error: '프리미엄 취소에 실패했습니다.' };
+    }
+
+    // 2-1. user_subscriptions 테이블 업데이트 (free 플랜으로 변경)
+    const { error: userSubError } = await supabase
+      .from('user_subscriptions')
+      .upsert({
+        user_id: userId,
+        subscription_plan: 'free',
+        is_active: false,
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (userSubError) {
+      console.error('❌ user_subscriptions 업데이트 실패:', userSubError);
+    } else {
+      console.log('✅ user_subscriptions 업데이트 완료 (free 플랜)');
     }
 
     console.log('✅ 프리미엄 취소 완료');

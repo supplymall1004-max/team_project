@@ -13,7 +13,7 @@
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { User, Mail, Camera, Save, ArrowLeft } from "lucide-react";
+import { User, Mail, Camera, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -141,16 +141,6 @@ export function UserProfileForm() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* 뒤로가기 버튼 */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/health/manage">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            건강 관리로 돌아가기
-          </Link>
-        </Button>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

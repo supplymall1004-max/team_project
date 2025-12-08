@@ -164,13 +164,26 @@ export async function recordPromoCodeUse(
     throw new Error('프로모션 코드 사용 기록 실패');
   }
 
-  // 2. 프로모션 코드 사용 횟수 증가
-  const { error: updateError } = await supabase.rpc('increment_promo_code_uses', {
-    promo_code_id_param: promoCodeId,
-  });
+  // 2. 프로모션 코드 사용 횟수 증가 (promo_code_uses 테이블의 실제 레코드 수로 업데이트)
+  const { count: useCount, error: countError } = await supabase
+    .from('promo_code_uses')
+    .select('*', { count: 'exact', head: true })
+    .eq('promo_code_id', promoCodeId);
 
-  if (updateError) {
-    console.error('❌ 사용 횟수 업데이트 실패:', updateError);
+  if (countError) {
+    console.error('❌ 사용 횟수 조회 실패:', countError);
+  } else {
+    // 실제 사용 횟수로 업데이트
+    const { error: updateError } = await supabase
+      .from('promo_codes')
+      .update({ current_uses: useCount || 0 })
+      .eq('id', promoCodeId);
+
+    if (updateError) {
+      console.error('❌ 사용 횟수 업데이트 실패:', updateError);
+    } else {
+      console.log('✅ 사용 횟수 업데이트 성공:', useCount || 0);
+    }
   }
 
   console.log('✅ 사용 기록 완료');

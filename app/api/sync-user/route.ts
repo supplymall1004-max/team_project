@@ -239,15 +239,36 @@ export async function POST() {
     );
   } catch (error) {
     console.error("❌ 동기화 중 오류:", error);
-    console.groupEnd();
-    const errorMessage =
-      error instanceof Error ? error.message : "Internal server error";
+    console.error("  - 에러 타입:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("  - 에러 메시지:", error instanceof Error ? error.message : String(error));
+    console.error("  - 에러 스택:", error instanceof Error ? error.stack : "스택 없음");
+    
+    try {
+      console.groupEnd();
+    } catch {
+      // groupEnd 실패 무시
+    }
+
+    // 개발 환경에서는 자세한 에러 정보 제공
+    const isDevelopment = process.env.NODE_ENV === "development";
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    
     return NextResponse.json(
       {
         error: errorMessage,
         success: false,
+        ...(isDevelopment && {
+          details: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          type: error instanceof Error ? error.constructor.name : typeof error,
+        }),
       },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        }
+      }
     );
   }
 }

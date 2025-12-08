@@ -31,6 +31,7 @@ import {
   Package,
   ShieldCheck,
   X,
+  Ticket,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ const ICON_MAP = {
   recipes: FileText,
   popup: Megaphone,
   mealKits: Package,
+  promoCodes: Ticket,
   logs: Activity,
   security: ShieldCheck,
 } as const satisfies Record<string, LucideIcon>;

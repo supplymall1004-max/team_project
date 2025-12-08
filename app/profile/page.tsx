@@ -20,14 +20,17 @@ export const metadata = {
   description: "사용자 정보를 수정하고 계정을 관리하세요",
 };
 
+// 동적 렌더링 설정 (사용자별 프로필이므로)
+export const dynamic = 'force-dynamic';
+
 export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Section className="pt-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">프로필 수정</h1>
+          <h1 className="text-4xl font-bold mb-2">설정</h1>
           <p className="text-muted-foreground">
-            이름, 이메일 등 개인 정보를 수정하고 계정을 관리하세요.
+            프로필 정보와 알림 설정을 관리하세요.
           </p>
         </div>
 

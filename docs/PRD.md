@@ -75,17 +75,57 @@
 | **C-16** | 다이어트 저탄수화물 식단 | 탄수화물 제한 식단. | `low_carb` 필터 |
 | **C-17** | 비건/베지테리언 식단 | 동물성 식품 제외 식단. | `vegan`, `vegetarian` 필터 |
 | **C-18** | 응급 조치 및 안전 경고 | 알레르기 반응 시 응급 대처법(에피네프린 등) 안내 페이지 및 식단 내 안전 경고 문구 표시. | `/health/emergency`, `components/diet/safety-warning.tsx` |
+| **C-19** | 질병 마스터 데이터 시스템 | 16개 주요 질병에 대한 마스터 데이터 및 질병별 제외 음식 관리. | `diseases`, `disease_excluded_foods_extended` 테이블, `app/api/health/diseases` |
+| **C-20** | 알레르기 마스터 데이터 시스템 | 14개 주요 알레르기 + 특수 알레르기 마스터 데이터 관리. | `allergies` 테이블, `app/api/health/allergies` |
+| **C-21** | 알레르기 파생 재료 추적 | 알레르기 유발 재료의 모든 파생 재료 추적 (예: 새우 → 새우젓, 김치, 해물 육수). | `allergy_derived_ingredients` 테이블, `app/api/health/allergies/[code]/derived` |
+| **C-22** | 칼로리 계산 공식 테이블 | 다중 공식 지원을 위한 칼로리 계산 공식 데이터베이스. | `calorie_calculation_formulas` 테이블 |
+| **C-23** | 칼로리 계산 공식 표시 | 사용자가 선택한 공식의 수식과 계산 과정을 화면에 표시. | `components/health/calorie-calculator-display.tsx` |
+| **C-25** | 수동 목표 칼로리 설정 | 사용자가 계산된 칼로리 대신 직접 목표 칼로리를 설정할 수 있는 옵션. | `user_health_profiles.manual_target_calories` |
+| **C-26** | 질병 선택 UI | 카테고리별 질병 선택 + 사용자 정의 질병 입력. | `components/health/disease-selector.tsx` |
+| **C-27** | 알레르기 선택 UI | 주요 알레르기, 특수 알레르기, 사용자 정의 알레르기 입력 지원. | `components/health/allergy-selector.tsx` |
+| **C-28** | 선호/비선호 식재료 관리 | 사용자가 선호하는 식재료와 비선호하는 식재료를 입력하여 식단 생성 시 반영. | `user_health_profiles.preferred_ingredients`, `disliked_ingredients` |
+| **C-29** | 프리미엄 식단 타입 확장 | 도시락, 헬스인, 다이어트, 비건, 베지테리언 식단 필터. | `lib/diet/special-diet-filters.ts` (이미 C-13~C-17로 구현됨) |
+| **C-30** | 질병별 제외 음식 필터링 | 당뇨, 고혈압, CKD 등 질병별 제외 음식 필터링. | `lib/diet/food-filtering.ts` |
+| **C-31** | 알레르기 엄격 모드 필터링 | 레시피의 모든 재료, 소스, 조미료에서 알레르기 유발 재료 및 파생 재료 검사. | `lib/diet/food-filtering.ts` (이미 C-8로 구현됨) |
+| **C-32** | 안전 경고 시스템 | 불확실한 재료 정보가 있는 경우 "섭취 전 재료명 확인" 안내 문구 표시. | `components/health/safety-warning.tsx`, `components/diet/safety-warning.tsx` |
+| **C-33** | 응급조치 정보 데이터베이스 | 아나필락시스, 경증 반응 등 알레르기별 응급조치 정보 저장. | `emergency_procedures` 테이블 |
+| **C-34** | 에피네프린 사용법 안내 | 에피네프린 자가주사기 사용법 단계별 안내. | `/health/emergency` 페이지 내 포함 |
+| **C-35** | 알레르기별 응급조치 상세 페이지 | 특정 알레르기에 대한 상세 응급조치, 위험 신호 인식, 119 신고 시기 안내. | `/health/emergency/[allergyCode]` |
+| **C-36** | 질병 관리 API | 질병 목록 조회, 질병 상세 정보, 제외 음식 목록 조회 API. | `GET /api/health/diseases` |
+| **C-37** | 알레르기 관리 API | 알레르기 목록 조회, 파생 재료 조회 API. | `GET /api/health/allergies`, `GET /api/health/allergies/[code]/derived` |
+| **C-38** | 칼로리 계산 API | 다중 공식 지원 칼로리 계산 API (공식 설명 포함). | `POST /api/health/calculate-calories` |
+| **C-39** | 응급조치 정보 API | 알레르기별 응급조치 정보 조회 API. | `GET /api/health/emergency/[allergyCode]` (구현 확인 필요) |
 
 > **비고:** GI 지수 필터, 영양 리포트, 일일 알림 팝업, 어린이 성장기 식단 등은 현재 제품 범위에서 제외되어 본 문서에서도 제거했습니다. 필요 시 별도 백로그 문서로 관리합니다.
 
-#### 3.4. 🛠 관리자 페이지
+#### 3.4. 💳 결제 및 프리미엄 시스템
+
+| ID | 기능명 | 구현 요약 | 세부 사항 |
+| :--- | :--- | :--- | :--- |
+| **F-1** | 프리미엄 구독 시스템 | 토스페이먼츠 연동(현재 Mock 모드), 월간/연간 플랜, 프로모션 코드 지원. | `app/(main)/pricing/page.tsx`, `actions/payments/*`, `lib/payments/*` |
+| **F-2** | 결제 처리 | 결제 세션 생성, 결제 승인, 구독 관리, 결제 내역 조회. | `app/(main)/checkout/*`, `subscriptions`, `payment_transactions` 테이블 |
+| **F-3** | 프로모션 코드 | 할인 코드 생성 및 검증, 사용 내역 추적. | `promo_codes`, `promo_code_uses` 테이블 |
+| **F-4** | 구독 관리 페이지 | 현재 구독 상태 조회, 구독 취소, 재활성화. | `app/(main)/account/subscription/page.tsx` |
+| **F-5** | 프리미엄 가드 | 프리미엄 전용 콘텐츠 접근 제어. | `components/premium/premium-gate.tsx` |
+
+> **현재 상태**: 결제 시스템은 Mock 모드로 구현되어 있으며, 실제 토스페이먼츠 계정 연동 시 프로덕션 모드로 전환 가능합니다.
+
+#### 3.5. 📚 궁중 레시피 아카이브
+
+| ID | 기능명 | 구현 요약 | 세부 사항 |
+| :--- | :--- | :--- | :--- |
+| **G-1** | 궁중 레시피 블로그 | 고려/조선/삼국시대 궁중 요리 레시피를 블로그 형식으로 제공. | `royal_recipes_posts` 테이블, `app/royal-recipes/*`, `components/royal-recipes/*` |
+| **G-2** | 시대별 분류 | 고려, 조선, 삼국시대별 레시피 필터링 및 검색. | `era` 필드 기반 필터링 |
+| **G-3** | 빠른 접근 메뉴 | 홈페이지에서 궁중 레시피 섹션으로 빠른 이동. | `components/royal-recipes/royal-recipes-quick-access.tsx` |
+
+#### 3.6. 🛠 관리자 페이지
 
 | ID | 기능명 | 구현 요약 | 세부 사항 |
 | :--- | :--- | :--- | :--- |
 | **D-1** | 관리자 콘솔 베타 | `/admin` 경로에 기본 레이아웃을 제공하고, 페이지 내 텍스트/공지/팝업 콘텐츠를 수정하거나 일괄 배포할 수 있는 에디터와 권한 체크를 탑재합니다. | `app/admin/layout.tsx`, `components/admin/*` |
 | **D-2** | 홈페이지 콘텐츠 관리 | 홈페이지의 모든 하드코딩된 텍스트, 링크, 이미지 URL을 관리자 페이지에서 쉽게 수정할 수 있도록 데이터베이스 기반 콘텐츠 관리 시스템을 구축합니다. | `actions/admin/copy/slots.ts`, `lib/admin/copy-reader.ts`, `components/home/*`, `components/footer.tsx` |
 
-#### 3.5. 🎨 홈페이지 UI/UX 개선 (배달의민족 앱 참고)
+#### 3.7. 🎨 홈페이지 UI/UX 개선 (배달의민족 앱 참고)
 
 | ID | 기능명 | 구현 요약 | 세부 사항 |
 | :--- | :--- | :--- | :--- |
@@ -100,35 +140,15 @@
 
 ### 4. 구현 가능한 기능 (Future Enhancements)
 
-다음 기능들은 현재 구현되지 않았으나, 향후 개발 가능한 기능들입니다.
+다음 기능들은 현재 부분적으로 구현되었거나 향후 개발 가능한 기능들입니다.
 
-#### 4.1. 🏥 건강정보 관리 시스템 대폭 강화 (문서 기반 구현)
+#### 4.1. 🏥 건강정보 관리 시스템 고도화
 
 | ID | 기능명 | 구현 요약 | 세부 사항 |
 | :--- | :--- | :--- | :--- |
-| **C-19** | 질병 마스터 데이터 시스템 | 12개 주요 질병 (당뇨, 심혈관, CKD, 통풍, 위장, 임신 관련)에 대한 마스터 데이터 및 질병별 제외 음식 관리. | `diseases`, `disease_excluded_foods_extended` 테이블 |
-| **C-20** | 알레르기 마스터 데이터 시스템 | 8대 주요 알레르기 + 특수 알레르기 (니켈, 아황산염, 히스타민, 셀리악, FDEIA) 마스터 데이터 관리. | `allergies` 테이블 |
-| **C-21** | 알레르기 파생 재료 추적 | 알레르기 유발 재료의 모든 파생 재료 추적 (예: 새우 → 새우젓, 김치, 해물 육수). 엄격한 필터링 모드. | `allergy_derived_ingredients` 테이블, `lib/health/allergy-manager.ts` |
-| **C-22** | 다중 칼로리 계산 공식 지원 | Mifflin-St Jeor, Harris-Benedict, EER (어린이), 임신부 공식 등 연령대별 최적 공식 자동 선택. | `calorie_calculation_formulas` 테이블, `lib/health/calorie-calculator-enhanced.ts` |
-| **C-23** | 칼로리 계산 공식 표시 | 사용자가 선택한 공식의 수식과 계산 과정을 화면에 표시하여 투명성 제공. | `components/health/calorie-calculator-display.tsx` |
-| **C-24** | 질병별 칼로리 자동 조정 | 당뇨, 비만 등 질병 보유 시 칼로리 자동 감량. 최소 안전 칼로리 보장 (여성 1200kcal, 남성 1500kcal). | `lib/health/disease-manager.ts` |
-| **C-25** | 수동 목표 칼로리 설정 | 사용자가 계산된 칼로리 대신 직접 목표 칼로리를 설정할 수 있는 옵션. | `health_profiles.manual_target_calories` |
-| **C-26** | 질병 선택 UI (다중 + 사용자 정의) | 카테고리별 질병 선택 (대사, 심혈관, 소화기, 신장, 통풍) + 사용자 정의 질병 입력. | `components/health/disease-selector.tsx` |
-| **C-27** | 알레르기 선택 UI (8대 + 특수 + 사용자 정의) | 8대 주요 알레르기, 특수 알레르기, 사용자 정의 알레르기 입력 지원. | `components/health/allergy-selector.tsx` |
-| **C-28** | 선호/비선호 식재료 관리 | 사용자가 선호하는 식재료와 비선호하는 식재료를 입력하여 식단 생성 시 반영. | `health_profiles.preferred_ingredients`, `excluded_ingredients` |
-| **C-29** | 프리미엄 식단 타입 확장 | 도시락 (반찬 위주), 헬스인 (고단백), 다이어트 (저탄수), 비건, 베지테리언 식단 필터. | `lib/diet/premium-diet-filters.ts` |
-| **C-30** | 질병별 제외 음식 필터링 | 당뇨 환자는 설탕/주스 제외, 고혈압 환자는 라면/찌개 제외, CKD 환자는 바나나/시금치 제외 등. | `lib/health/disease-manager.ts` |
-| **C-31** | 알레르기 엄격 모드 필터링 | 레시피의 모든 재료, 소스, 조미료에서 알레르기 유발 재료 및 파생 재료 검사. | `lib/health/allergy-manager.ts` |
-| **C-32** | 안전 경고 시스템 | 불확실한 재료 정보가 있는 경우 "섭취 전 재료명 확인" 안내 문구 표시. | `components/health/safety-warning.tsx` |
-| **C-33** | 응급조치 정보 데이터베이스 | 아나필락시스, 경증 반응 등 알레르기별 응급조치 정보 저장. | `emergency_procedures` 테이블 |
-| **C-34** | 에피네프린 사용법 안내 | 에피네프린 자가주사기 사용법 단계별 안내 (4단계: 안전 캡 제거 → 투여 부위 확인 → 주사 및 유지 → 제거 및 마사지). | `/health/emergency/epinephrine` |
-| **C-35** | 알레르기별 응급조치 상세 페이지 | 특정 알레르기에 대한 상세 응급조치, 위험 신호 인식, 119 신고 시기 안내. | `/health/emergency/[allergyCode]` |
-| **C-36** | 질병 관리 API | 질병 목록 조회, 질병 상세 정보, 제외 음식 목록 조회 API. | `GET /api/health/diseases`, `GET /api/health/diseases/[code]` |
-| **C-37** | 알레르기 관리 API | 알레르기 목록 조회, 파생 재료 조회 API. | `GET /api/health/allergies`, `GET /api/health/allergies/[code]/derived` |
-| **C-38** | 칼로리 계산 API | 다중 공식 지원 칼로리 계산 API (공식 설명 포함). | `POST /api/health/calculate-calories` |
-| **C-39** | 응급조치 정보 API | 알레르기별 응급조치 정보 조회 API. | `GET /api/health/emergency/[allergyCode]` |
-| **C-40** | 건강정보 입력 폼 대폭 개선 | 질병, 알레르기, 선호 식재료, 프리미엄 식단 타입, 칼로리 계산 방식 등 모든 건강 정보를 한 화면에서 입력. | `components/health/health-profile-form.tsx` (확장) |
-| **C-41** | 식단 생성 로직 통합 | 질병, 알레르기, 선호도, 프리미엄 타입, 칼로리 계산 결과를 모두 반영한 통합 식단 생성. | `lib/diet/recommendation.ts` (확장) |
+| **C-24** | 질병별 칼로리 자동 조정 | 당뇨, 비만 등 질병 보유 시 칼로리 자동 감량. 최소 안전 칼로리 보장 (여성 1200kcal, 남성 1500kcal). | `lib/health/disease-manager.ts` (부분 구현, UI 통합 필요) |
+| **C-40** | 건강정보 입력 폼 대폭 개선 | 질병, 알레르기, 선호 식재료, 프리미엄 식단 타입, 칼로리 계산 방식 등 모든 건강 정보를 한 화면에서 입력. | `components/health/health-profile-form.tsx` (기본 기능 구현됨, UI 개선 필요) |
+| **C-41** | 식단 생성 로직 통합 | 질병, 알레르기, 선호도, 프리미엄 타입, 칼로리 계산 결과를 모두 반영한 통합 식단 생성. | `lib/diet/recommendation.ts` (기본 로직 구현됨, 고도화 필요) |
 
 ---
 
@@ -157,16 +177,22 @@
 | **건강 맞춤 식단 기초** | C-1, C-2, C-3, C-5 |
 | **가족 맞춤 기능** | C-6, C-6.1, C-7, C-7.1, C-8 |
 | **프리미엄 식단 고급 기능** | C-9, C-10, C-11, C-12, C-13, C-14, C-15, C-16, C-17, C-18 |
+| **건강정보 관리 시스템** | C-19, C-20, C-21, C-22, C-23, C-25, C-26, C-27, C-28, C-29, C-30, C-31, C-32, C-33, C-34, C-35, C-36, C-37, C-38, C-39 |
+| **결제 및 프리미엄 시스템** | F-1, F-2, F-3, F-4, F-5 |
+| **궁중 레시피 아카이브** | G-1, G-2, G-3 |
 | **관리자 페이지** | D-1, D-2 |
 | **홈페이지 UI/UX 개선** | E-1, E-2, E-3, E-4, E-5, E-6 |
 
 #### 6.2. 후속 고려 대상
 
-- 건강정보 관리 시스템 대폭 강화 (C-19 ~ C-41)
+- C-24 (질병별 칼로리 자동 조정) - 부분 구현됨, UI 통합 필요
+- C-40 (건강정보 입력 폼 대폭 개선) - 기본 기능 구현됨, UI 개선 필요
+- C-41 (식단 생성 로직 통합) - 기본 로직 구현됨, 고도화 필요
 - GI 지수/저염 필터, 영양 리포트 등 정교화 기능
 - 창작자 상업화/마켓 관련 기능
+- 실제 토스페이먼츠 결제 연동 (현재 Mock 모드)
 
-위 기능들은 현재 제품 범위에서는 제외되었으며, 재개가 필요할 경우 별도 백로그에서 스펙을 재정의합니다.
+위 기능들은 현재 제품 범위에서는 제외되었거나 부분적으로 구현되었으며, 재개가 필요할 경우 별도 백로그에서 스펙을 재정의합니다.
 
 ---
 

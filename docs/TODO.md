@@ -1,7 +1,8 @@
 # 맛의 아카이브 (Flavor Archive) 개발 현황 & TODO
 
-> **최종 업데이트: 2025-11-30**  
-> PRD/Design 문서와 실제 구현을 교차 검토하여 **구현 완료 기능**과 **남은 우선순위 작업**을 정리했습니다.
+> **최종 업데이트: 2025-12-01**  
+> PRD/Design 문서와 실제 구현을 교차 검토하여 **구현 완료 기능**과 **남은 우선순위 작업**을 정리했습니다.  
+> Supabase MCP를 통해 데이터베이스 스키마를 직접 확인하여 실제 구현 상태를 반영했습니다.
 
 ---
 
@@ -15,6 +16,12 @@
 - [x] 코드 품질 도구 설정 (ESLint, Prettier)
 
 ### 2. 📜 레거시 아카이브
+- [x] 마카의 음식 동화 (스토리북)
+  - [x] 스토리북 플레이어 페이지 (`app/(main)/storybook/page.tsx`)
+  - [x] 인터랙티브 방 형태 UI (`components/storybook/storybook-room.tsx`)
+  - [x] YouTube 비디오 재생 기능 (`components/storybook/vintage-tv.tsx`)
+  - [x] 선물 상자 플레이리스트 (`components/storybook/gift-box.tsx`)
+  - [x] 계절별 효과 (크리스마스, 눈 효과 등)
 - [x] 명인 인터뷰 뷰어 (HD 스트리밍, 프리미엄 광고 제거)
 - [x] 전문 문서 카드(고증 정보, 출처, 도구 안내)
 - [x] 지역/시대/재료 필터 + 검색 조합
@@ -22,6 +29,11 @@
 - [x] 레거시 아카이브 섹션 및 카드 그리드 레이아웃
 
 ### 3. 🍴 현대 레시피 북
+- [x] 궁중 레시피 아카이브
+  - [x] 궁중 레시피 블로그 시스템 (`royal_recipes_posts` 테이블)
+  - [x] 시대별 분류 (고려, 조선, 삼국시대)
+  - [x] 궁중 레시피 상세 페이지 (`app/royal-recipes/*`)
+  - [x] 빠른 접근 메뉴 (`components/royal-recipes/royal-recipes-quick-access.tsx`)
 - [x] 단계별 레시피 상세(타이머, 체크리스트, 초보자 가이드)
 - [x] 레시피 업로드 + 자동 썸네일 할당(`actions/recipe-create.ts`)
 - [x] 레시피 카드/검색/정렬 컴포넌트
@@ -30,6 +42,13 @@
 - [x] 요리 모드 (Cooking Mode) UI
 
 ### 4. 🧠 AI 기반 맞춤 식단
+- [x] 결제 및 프리미엄 시스템 (Mock 모드)
+  - [x] 프리미엄 구독 시스템 (`app/(main)/pricing/page.tsx`)
+  - [x] 결제 처리 (Mock 토스페이먼츠 클라이언트)
+  - [x] 프로모션 코드 시스템 (`promo_codes`, `promo_code_uses` 테이블)
+  - [x] 구독 관리 페이지 (`app/(main)/account/subscription/page.tsx`)
+  - [x] 프리미엄 가드 컴포넌트 (`components/premium/premium-gate.tsx`)
+  - [ ] 실제 토스페이먼츠 결제 연동 (현재 Mock 모드)
 - [x] 건강 정보 입력 페이지 및 스키마
 - [x] 일일 식단 추천(칼로리/3대 영양소 규칙 기반) + 카드 UI
 - [x] 일일 식단 자동 생성 크론 작업 (매일 오후 6시, 다음 날 식단 생성)
@@ -414,94 +433,83 @@
 
 다음 기능들은 현재 구현되지 않았으나, 향후 개발 가능한 기능들입니다.
 
-### B-3. 건강정보 관리 시스템 대폭 강화 (문서 기반 구현)
-- [ ] **데이터베이스 스키마 설계 및 마이그레이션**
-  - [ ] `diseases` 테이블 생성 (질병 마스터 데이터)
-  - [ ] `disease_excluded_foods_extended` 테이블 생성 (질병별 제외 음식 확장)
-  - [ ] `allergies` 테이블 생성 (알레르기 마스터 데이터)
-  - [ ] `allergy_derived_ingredients` 테이블 생성 (알레르기 파생 재료)
-  - [ ] `emergency_procedures` 테이블 생성 (응급조치 정보)
-  - [ ] `calorie_calculation_formulas` 테이블 생성 (칼로리 계산 공식)
-  - [ ] `health_profiles` 테이블 확장 (diseases, allergies, dietary_preferences 등)
-  - [ ] 마이그레이션 SQL 파일 작성 및 테스트
+### B-3. 건강정보 관리 시스템 고도화 (대부분 구현 완료, UI 개선 필요)
+- [x] **데이터베이스 스키마 설계 및 마이그레이션**
+  - [x] `diseases` 테이블 생성 (질병 마스터 데이터) - 16개 질병 데이터 존재
+  - [x] `disease_excluded_foods_extended` 테이블 생성 (질병별 제외 음식 확장)
+  - [x] `allergies` 테이블 생성 (알레르기 마스터 데이터) - 14개 알레르기 데이터 존재
+  - [x] `allergy_derived_ingredients` 테이블 생성 (알레르기 파생 재료)
+  - [x] `emergency_procedures` 테이블 생성 (응급조치 정보)
+  - [x] `calorie_calculation_formulas` 테이블 생성 (칼로리 계산 공식)
+  - [x] `user_health_profiles` 테이블 확장 (diseases, allergies, dietary_preferences 등)
 
-- [ ] **질병 관리 시스템**
-  - [ ] 12개 주요 질병 데이터 시드 (당뇨, 심혈관, CKD, 통풍, 위장, 임신 관련)
-  - [ ] 질병별 제외 음식 데이터 시드 (문서 기반)
-  - [ ] 질병별 칼로리 조정 계수 설정
-  - [ ] 질병 관리 서비스 (`lib/health/disease-manager.ts`)
-  - [ ] 질병 선택 UI 컴포넌트 (`components/health/disease-selector.tsx`)
-  - [ ] 질병별 영양소 비율 조정 로직
+- [x] **질병 관리 시스템**
+  - [x] 16개 주요 질병 데이터 시드 (데이터베이스에 존재)
+  - [x] 질병별 제외 음식 데이터 시드
+  - [x] 질병 관리 서비스 (`lib/health/disease-manager.ts`)
+  - [x] 질병 선택 UI 컴포넌트 (`components/health/disease-selector.tsx`)
+  - [ ] 질병별 칼로리 조정 계수 설정 (부분 구현, UI 통합 필요)
 
-- [ ] **알레르기 관리 시스템 (엄격 모드)**
-  - [ ] 8대 주요 알레르기 데이터 시드
-  - [ ] 특수 알레르기 데이터 시드 (니켈, 아황산염, 히스타민, 셀리악, FDEIA)
-  - [ ] 알레르기 파생 재료 데이터 시드 (새우→새우젓, 우유→치즈 등)
-  - [ ] 알레르기 관리 서비스 (`lib/health/allergy-manager.ts`)
-  - [ ] 알레르기 선택 UI 컴포넌트 (`components/health/allergy-selector.tsx`)
-  - [ ] 레시피 알레르기 검사 로직 (모든 재료, 소스, 조미료 포함)
-  - [ ] 안전 경고 컴포넌트 (`components/health/safety-warning.tsx`)
-  - [ ] 불확실한 재료 정보 안내 문구 표시
+- [x] **알레르기 관리 시스템 (엄격 모드)**
+  - [x] 14개 주요 알레르기 데이터 시드 (데이터베이스에 존재)
+  - [x] 알레르기 파생 재료 데이터 시드
+  - [x] 알레르기 관리 서비스 (`lib/health/allergy-manager.ts`)
+  - [x] 알레르기 선택 UI 컴포넌트 (`components/health/allergy-selector.tsx`)
+  - [x] 레시피 알레르기 검사 로직 (모든 재료, 소스, 조미료 포함) - `lib/diet/food-filtering.ts`
+  - [x] 안전 경고 컴포넌트 (`components/health/safety-warning.tsx`, `components/diet/safety-warning.tsx`)
+  - [x] 불확실한 재료 정보 안내 문구 표시
 
-- [ ] **칼로리 계산 시스템 고도화**
-  - [ ] 다중 공식 지원 (Mifflin-St Jeor, Harris-Benedict, EER)
-  - [ ] 연령대별 공식 자동 선택 (성인, 어린이, 임신부)
-  - [ ] 질병 조정 적용 (당뇨, 비만 시 감량)
-  - [ ] 계산 공식 표시 기능 (`components/health/calorie-calculator-display.tsx`)
-  - [ ] 수동 목표 칼로리 설정 기능
-  - [ ] 계산된 칼로리 vs 목표 칼로리 선택 UI
-  - [ ] 칼로리 계산 서비스 (`lib/health/calorie-calculator-enhanced.ts`)
-  - [ ] 공식 설명 문자열 생성 기능
+- [x] **칼로리 계산 시스템 고도화**
+  - [x] 다중 공식 지원 (Mifflin-St Jeor 기본 구현, 공식 테이블 존재)
+  - [x] 수동 목표 칼로리 설정 기능 (`user_health_profiles.manual_target_calories`)
+  - [x] 계산 공식 표시 기능 (`components/health/calorie-calculator-display.tsx`)
+  - [ ] 연령대별 공식 자동 선택 (공식 테이블 존재, 로직 통합 필요)
+  - [ ] 질병 조정 적용 (부분 구현, UI 통합 필요)
 
-- [ ] **프리미엄 식단 타입 확장**
-  - [ ] 도시락 식단 필터 (반찬 위주, 보관 용이)
-  - [ ] 헬스인 식단 필터 (고단백 저지방, 닭가슴살 중심)
-  - [ ] 다이어트 식단 필터 (저탄수화물)
-  - [ ] 비건 식단 필터 (모든 동물성 제외)
-  - [ ] 베지테리언 식단 필터 (육류, 생선 제외)
-  - [ ] 프리미엄 식단 필터 서비스 (`lib/diet/premium-diet-filters.ts`)
-  - [ ] 건강정보 폼에 식단 타입 선택 UI 추가
-  - [ ] 프리미엄 전용 배지 표시
+- [x] **프리미엄 식단 타입 확장**
+  - [x] 도시락 식단 필터 (반찬 위주, 보관 용이) - `bento` 필터
+  - [x] 헬스인 식단 필터 (고단백 저지방, 닭가슴살 중심) - `fitness` 필터
+  - [x] 다이어트 식단 필터 (저탄수화물) - `low_carb` 필터
+  - [x] 비건 식단 필터 (모든 동물성 제외) - `vegan` 필터
+  - [x] 베지테리언 식단 필터 (육류, 생선 제외) - `vegetarian` 필터
+  - [x] 프리미엄 식단 필터 서비스 (`lib/diet/special-diet-filters.ts`)
+  - [x] 건강정보 폼에 식단 타입 선택 UI 추가
 
-- [ ] **응급조치 정보 시스템**
-  - [ ] 응급조치 데이터 시드 (아나필락시스, 경증 반응)
-  - [ ] 에피네프린 자가주사기 사용법 데이터
-  - [ ] 응급조치 메인 페이지 (`app/(dashboard)/health/emergency/page.tsx`)
-  - [ ] 알레르기별 응급조치 상세 페이지 (`app/(dashboard)/health/emergency/[allergyCode]/page.tsx`)
-  - [ ] 응급 연락처 (119) 강조 표시
-  - [ ] 증상별 대처법 안내
-  - [ ] 위험 신호 인식 가이드
+- [x] **응급조치 정보 시스템**
+  - [x] 응급조치 데이터 시드 (`emergency_procedures` 테이블)
+  - [x] 응급조치 메인 페이지 (`app/(dashboard)/health/emergency/page.tsx`)
+  - [x] 알레르기별 응급조치 상세 페이지 (`app/(dashboard)/health/emergency/[allergyCode]/page.tsx`)
+  - [x] 응급 연락처 (119) 강조 표시
+  - [x] 증상별 대처법 안내
+  - [x] 위험 신호 인식 가이드
 
-- [ ] **선호/비선호 식재료 관리**
-  - [ ] 선호 식재료 입력 UI
-  - [ ] 비선호 식재료 입력 UI
-  - [ ] 식단 생성 시 선호도 반영 로직
-  - [ ] 선호도 점수 시스템
+- [x] **선호/비선호 식재료 관리**
+  - [x] 선호 식재료 입력 UI (`components/health/ingredient-preferences.tsx`)
+  - [x] 비선호 식재료 입력 UI
+  - [x] 식단 생성 시 선호도 반영 로직
 
-- [ ] **API 엔드포인트**
-  - [ ] `GET /api/health/diseases` - 질병 목록 조회
-  - [ ] `GET /api/health/diseases/[code]` - 질병 상세 정보
-  - [ ] `GET /api/health/allergies` - 알레르기 목록 조회
-  - [ ] `GET /api/health/allergies/[code]/derived` - 파생 재료 조회
-  - [ ] `POST /api/health/calculate-calories` - 칼로리 계산
-  - [ ] `GET /api/health/emergency/[allergyCode]` - 응급조치 정보
+- [x] **API 엔드포인트**
+  - [x] `GET /api/health/diseases` - 질병 목록 조회
+  - [x] `GET /api/health/allergies` - 알레르기 목록 조회
+  - [x] `GET /api/health/allergies/[code]/derived` - 파생 재료 조회
+  - [x] `POST /api/health/calculate-calories` - 칼로리 계산
 
-- [ ] **건강정보 입력 폼 대폭 개선**
-  - [ ] 질병 정보 섹션 (다중 선택 + 사용자 정의)
-  - [ ] 알레르기 정보 섹션 (8대 + 특수 + 사용자 정의)
-  - [ ] 선호/비선호 식재료 섹션
-  - [ ] 프리미엄 식단 타입 섹션
-  - [ ] 칼로리 계산 방식 섹션 (자동 vs 수동)
-  - [ ] 계산 공식 표시 토글
-  - [ ] 폼 유효성 검사 강화
+- [x] **건강정보 입력 폼 대폭 개선**
+  - [x] 질병 정보 섹션 (다중 선택 + 사용자 정의)
+  - [x] 알레르기 정보 섹션 (주요 + 특수 + 사용자 정의)
+  - [x] 선호/비선호 식재료 섹션
+  - [x] 프리미엄 식단 타입 섹션
+  - [x] 칼로리 계산 방식 섹션 (자동 vs 수동)
+  - [x] 계산 공식 표시 토글
+  - [ ] 폼 유효성 검사 강화 (기본 검사 존재, 추가 개선 필요)
 
-- [ ] **식단 생성 로직 통합**
-  - [ ] 질병별 제외 음식 필터링 적용
-  - [ ] 알레르기 파생 재료 필터링 적용 (엄격 모드)
-  - [ ] 선호/비선호 식재료 반영
-  - [ ] 프리미엄 식단 타입 필터링 적용
-  - [ ] 칼로리 계산 결과 반영
-  - [ ] 안전 경고 표시 로직
+- [x] **식단 생성 로직 통합**
+  - [x] 질병별 제외 음식 필터링 적용
+  - [x] 알레르기 파생 재료 필터링 적용 (엄격 모드)
+  - [x] 선호/비선호 식재료 반영
+  - [x] 프리미엄 식단 타입 필터링 적용
+  - [x] 칼로리 계산 결과 반영
+  - [x] 안전 경고 표시 로직
 
 - [ ] **테스트 및 검증**
   - [ ] 칼로리 계산 정확도 테스트 (문서 예시 값과 비교)
@@ -566,4 +574,14 @@
 ---
 
 **마지막 업데이트**: 2025-12-01  
-**다음 마일스톤**: 테스트 확대, 홈페이지 콘텐츠 관리 UI 개선, 성능 최적화
+**업데이트 내용**: 
+- Supabase MCP를 통해 데이터베이스 스키마 직접 확인
+- 실제 구현된 기능 반영 (결제 시스템, 궁중 레시피, 질병/알레르기 마스터 데이터, 응급조치 시스템 등)
+- 건강정보 관리 시스템 대부분 구현 완료 확인 (C-19 ~ C-39)
+- 미완료 항목 정리 및 우선순위 재조정
+
+**다음 마일스톤**: 
+- 실제 토스페이먼츠 결제 연동 (현재 Mock 모드)
+- 건강정보 입력 폼 UI 개선
+- 테스트 확대 (유닛/통합/E2E)
+- 성능 최적화 (CDN, DB 쿼리 튜닝)
