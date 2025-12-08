@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   X,
   Ticket,
+  DollarSign,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -51,6 +52,7 @@ const ICON_MAP = {
   promoCodes: Ticket,
   logs: Activity,
   security: ShieldCheck,
+  settlements: DollarSign,
 } as const satisfies Record<string, LucideIcon>;
 
 export type AdminNavIcon = keyof typeof ICON_MAP;

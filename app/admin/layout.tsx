@@ -69,6 +69,13 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     icon: "promoCodes",
   },
   {
+    id: "settlements",
+    label: "정산 내역",
+    description: "결제 내역 및 정산 통계",
+    href: "/admin/settlements",
+    icon: "settlements",
+  },
+  {
     id: "logs",
     label: "알림 로그",
     description: "KCDC/식단 로그 모니터링",

@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SettlementCards } from "@/components/admin/settlements/settlement-cards";
 
 const overviewMetrics = [
   { label: "오늘 생성된 AI 식단", value: "128건", delta: "+12% vs 어제" },
@@ -41,6 +42,8 @@ export default function AdminOverviewPage() {
           </Card>
         ))}
       </section>
+
+      <SettlementCards />
 
       <Card className="border border-slate-200 bg-white shadow-sm">
         <CardHeader>
