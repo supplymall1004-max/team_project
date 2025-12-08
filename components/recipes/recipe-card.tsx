@@ -59,7 +59,7 @@ export function RecipeCard({ recipe, className }: RecipeCardProps) {
             src={imageUrl}
             alt={recipe.title}
             fill
-            className="object-cover transition-transform group-hover:scale-105"
+            className="object-contain transition-transform group-hover:scale-105"
             sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
             loading="lazy"
             onError={() => {

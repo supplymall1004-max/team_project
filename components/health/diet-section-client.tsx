@@ -19,6 +19,8 @@ import {
   deriveIncludedMemberIds,
   type FamilyMemberTabPayload,
 } from "@/lib/diet/family-summary";
+import { PremiumGate } from "@/components/premium/premium-gate";
+import { getCurrentSubscription } from "@/actions/payments/get-subscription";
 
 interface FamilyDietSummary {
   memberTabs: FamilyMemberTabPayload[];
@@ -41,6 +43,7 @@ export function DietSectionClient() {
   const [includedMemberIds, setIncludedMemberIds] = useState<string[]>([]);
   const [summaryDate, setSummaryDate] = useState<string | null>(null);
   const [togglingMemberIds, setTogglingMemberIds] = useState<Set<string>>(new Set());
+  const [isPremium, setIsPremium] = useState(false);
 
   const resetFamilySummaryState = useCallback(() => {
     setFamilySummary(null);
@@ -225,6 +228,23 @@ export function DietSectionClient() {
       });
     }
   };
+
+  // 프리미엄 상태 확인
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+
+    const checkPremium = async () => {
+      try {
+        const subscription = await getCurrentSubscription();
+        setIsPremium(subscription.isPremium || false);
+      } catch (error) {
+        console.error('❌ 프리미엄 상태 확인 실패:', error);
+        setIsPremium(false);
+      }
+    };
+
+    checkPremium();
+  }, [user, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -470,36 +490,50 @@ export function DietSectionClient() {
           console.log("includedMemberIds:", includedMemberIds);
           console.groupEnd();
           return (
-            <FamilyDietHeaderTabs
-              members={familySummary.memberTabs}
-              activeTab={activeFamilyTab}
-              onTabChange={handleFamilyTabChange}
-              onToggleMember={handleFamilyToggle}
-              includedMemberIds={includedMemberIds}
-              perServingTotals={familySummary.nutrientTotals}
-              scaledTotals={scaledSummaryTotals}
-              planExists={familySummary.planExists}
-              isLoading={familySummaryLoading}
-              togglingMemberIds={Array.from(togglingMemberIds)}
-            />
+            <PremiumGate
+              isPremium={isPremium}
+              variant="card"
+              message="가족 맞춤 AI 식단은 프리미엄 전용 기능입니다. 가족 구성원별 맞춤 식단을 생성하고 통합 식단을 관리하세요!"
+            >
+              <FamilyDietHeaderTabs
+                members={familySummary.memberTabs}
+                activeTab={activeFamilyTab}
+                onTabChange={handleFamilyTabChange}
+                onToggleMember={handleFamilyToggle}
+                includedMemberIds={includedMemberIds}
+                perServingTotals={familySummary.nutrientTotals}
+                scaledTotals={scaledSummaryTotals}
+                planExists={familySummary.planExists}
+                isLoading={familySummaryLoading}
+                togglingMemberIds={Array.from(togglingMemberIds)}
+              />
+            </PremiumGate>
           );
         })()}
       </div>
 
       {/* 식단 카드 미리보기 (아침/점심/저녁/간식) */}
-      <YesterdayFamilyTabs
-        members={familySummary?.memberTabs || []}
-        activeTab={activeFamilyTab}
-        onTabChange={handleFamilyTabChange}
-        onToggleMember={handleFamilyToggle}
-        includedMemberIds={includedMemberIds}
-        perServingTotals={familySummary?.nutrientTotals || null}
-        scaledTotals={scaledSummaryTotals}
-        exclusionNotes={familySummary?.exclusionNotes || []}
-        planExists={familySummary?.planExists || false}
-        isLoading={familySummaryLoading}
-        togglingMemberIds={Array.from(togglingMemberIds)}
-      />
+      {familySummary && (
+        <PremiumGate
+          isPremium={isPremium}
+          variant="card"
+          message="가족 맞춤 AI 식단은 프리미엄 전용 기능입니다. 가족 구성원별 맞춤 식단을 확인하세요!"
+        >
+          <YesterdayFamilyTabs
+            members={familySummary.memberTabs}
+            activeTab={activeFamilyTab}
+            onTabChange={handleFamilyTabChange}
+            onToggleMember={handleFamilyToggle}
+            includedMemberIds={includedMemberIds}
+            perServingTotals={familySummary.nutrientTotals}
+            scaledTotals={scaledSummaryTotals}
+            exclusionNotes={familySummary.exclusionNotes}
+            planExists={familySummary.planExists}
+            isLoading={familySummaryLoading}
+            togglingMemberIds={Array.from(togglingMemberIds)}
+          />
+        </PremiumGate>
+      )}
 
       {/* 식단 카드 미리보기 (아침/점심/저녁/간식) */}
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">

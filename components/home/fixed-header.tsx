@@ -15,6 +15,7 @@
 "use client";
 
 import { PremiumBanner } from "./premium-banner";
+import { PremiumStatusBanner } from "./premium-status-banner";
 
 interface FixedHeaderProps {
   premiumBannerText?: string;
@@ -54,7 +55,10 @@ export function FixedHeader({
         width: '100%',
       }}
     >
-      {/* 프리미엄 배너 */}
+      {/* 프리미엄 상태 배너 (프리미엄 사용자에게만 표시) */}
+      <PremiumStatusBanner />
+      
+      {/* 프리미엄 업그레이드 배너 (Free 사용자에게만 표시) */}
       <PremiumBanner
         text={premiumBannerText}
         href={premiumBannerHref}

@@ -11,6 +11,9 @@ export interface SeasonTheme {
   accentColor: string
   titleColor: string
   particleColor: string
+  textColor: string // 카드 및 텍스트 색상
+  textMutedColor: string // 보조 텍스트 색상
+  cardBg: string // 카드 배경 색상
 }
 
 export const seasonThemes: Record<Season, SeasonTheme> = {
@@ -25,6 +28,9 @@ export const seasonThemes: Record<Season, SeasonTheme> = {
     accentColor: "#ff69b4",
     titleColor: "#8b008b",
     particleColor: "#ffb7c5",
+    textColor: "#8b008b", // 어두운 핑크/보라색 (밝은 배경에 대비)
+    textMutedColor: "#c2185b", // 약간 밝은 핑크
+    cardBg: "bg-white/90 backdrop-blur-md", // 밝은 배경
   },
   summer: {
     id: "summer",
@@ -37,6 +43,9 @@ export const seasonThemes: Record<Season, SeasonTheme> = {
     accentColor: "#00bfff",
     titleColor: "#ffffff",
     particleColor: "#ffffff",
+    textColor: "#ffffff", // 흰색 (어두운 배경)
+    textMutedColor: "#b3e5fc", // 밝은 시안
+    cardBg: "bg-white/10 backdrop-blur-md", // 반투명 배경
   },
   autumn: {
     id: "autumn",
@@ -49,6 +58,9 @@ export const seasonThemes: Record<Season, SeasonTheme> = {
     accentColor: "#ff6347",
     titleColor: "#ffd700",
     particleColor: "#d2691e",
+    textColor: "#ffd700", // 밝은 노란색 (어두운 배경)
+    textMutedColor: "#ffb347", // 약간 어두운 노란색
+    cardBg: "bg-white/10 backdrop-blur-md", // 반투명 배경
   },
   winter: {
     id: "winter",
@@ -61,6 +73,9 @@ export const seasonThemes: Record<Season, SeasonTheme> = {
     accentColor: "#ffd700",
     titleColor: "#ffd700",
     particleColor: "#ffffff",
+    textColor: "#ffffff", // 흰색 (어두운 배경)
+    textMutedColor: "#e0e0e0", // 약간 어두운 흰색
+    cardBg: "bg-white/10 backdrop-blur-md", // 반투명 배경
   },
 }
 

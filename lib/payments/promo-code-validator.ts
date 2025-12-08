@@ -148,6 +148,7 @@ export async function recordPromoCodeUse(
   console.group('[PromoValidator] 사용 기록');
   console.log('프로모션 코드 ID:', promoCodeId);
   console.log('사용자 ID:', userId);
+  console.log('구독 ID:', subscriptionId);
 
   const supabase = await createClerkSupabaseClient();
 
@@ -160,8 +161,20 @@ export async function recordPromoCodeUse(
 
   if (insertError) {
     console.error('❌ 사용 내역 추가 실패:', insertError);
+    console.error('에러 상세:', {
+      code: insertError.code,
+      message: insertError.message,
+      details: insertError.details,
+      hint: insertError.hint,
+      promoCodeId: promoCodeId,
+      userId: userId,
+      subscriptionId: subscriptionId,
+      promoCodeIdType: typeof promoCodeId,
+      userIdType: typeof userId,
+      subscriptionIdType: typeof subscriptionId,
+    });
     console.groupEnd();
-    throw new Error('프로모션 코드 사용 기록 실패');
+    throw new Error(`프로모션 코드 사용 기록 실패: ${insertError.message}`);
   }
 
   // 2. 프로모션 코드 사용 횟수 증가 (promo_code_uses 테이블의 실제 레코드 수로 업데이트)

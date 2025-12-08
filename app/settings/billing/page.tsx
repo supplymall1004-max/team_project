@@ -38,9 +38,9 @@ export default function BillingPage() {
               </Link>
             </Button>
           </div>
-          <h1 className="text-4xl font-bold mb-2">결제 및 구독</h1>
+          <h1 className="text-4xl font-bold mb-2">결제 관리</h1>
           <p className="text-muted-foreground">
-            구독 관리, 결제 내역 확인, 프로모션 코드 등록을 할 수 있습니다.
+            결제 정보 확인, 쿠폰 등록, 구독 취소 등을 관리할 수 있습니다.
           </p>
         </div>
 

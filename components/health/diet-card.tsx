@@ -146,7 +146,7 @@ function DietCardContent({ mealType, dietPlan, className, date }: DietCardConten
           <img
             src={displayedImageUrl}
             alt={`${MEAL_TYPE_LABELS[mealType]} 대표 국/찌개 이미지`}
-            className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
+            className="w-full h-full object-contain transition-all duration-300 group-hover:scale-105"
             loading="lazy"
             onError={handleImageError}
           />

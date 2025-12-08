@@ -85,13 +85,16 @@ export async function createCheckout(
       }
 
       // 프로모션 코드 ID 조회
-      const { data: promo } = await supabase
+      const { data: promo, error: promoError } = await supabase
         .from('promo_codes')
         .select('id, code, description, discount_value')
         .eq('code', request.promoCode.toUpperCase())
         .single();
 
-      if (promo) {
+      if (promoError) {
+        console.warn('⚠️ 프로모션 코드 조회 실패 (계속 진행):', promoError);
+        // 프로모션 코드 조회 실패해도 결제는 계속 진행
+      } else if (promo) {
         promoData = {
           code: promo.code,
           id: promo.id,

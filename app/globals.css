@@ -53,6 +53,17 @@
   }
 }
 
+@keyframes flicker {
+  0%, 100% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleY(1.1) scaleX(0.9);
+    opacity: 0.8;
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.6s ease-out;
 }
@@ -84,6 +95,9 @@
   font-display: swap;
   /* preload는 HTML head에서 처리 */
 }
+
+/* 한자 지원 폰트 추가 - Noto Sans CJK SC (한자 포함) */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
 
 @theme inline {
   --color-background: var(--background);
@@ -278,7 +292,7 @@ body {
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-geist-sans), 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    font-family: var(--font-geist-sans), 'Noto Sans SC', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
   }
   main {
     @apply max-w-7xl mx-auto pt-16 px-4;
@@ -286,7 +300,7 @@ body {
   
   /* 타이포그래피 시스템 */
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-jalnan);
+    font-family: var(--font-jalnan), 'Noto Sans SC', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
     font-weight: normal;
     letter-spacing: -0.02em;
   }

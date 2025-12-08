@@ -5,9 +5,12 @@
  * @description 결제 승인 처리 Server Action
  */
 
+import { auth } from '@clerk/nextjs/server';
 import { createClerkSupabaseClient } from '@/lib/supabase/server';
+import { getServiceRoleClient } from '@/lib/supabase/service-role';
 import { getMockTossClient, generateMockPaymentKey } from '@/lib/payments/mock-toss-client';
 import { recordPromoCodeUse } from '@/lib/payments/promo-code-validator';
+import { ensureSupabaseUser } from '@/lib/supabase/ensure-user';
 
 export interface ConfirmPaymentRequest {
   orderId: string;
@@ -32,9 +35,32 @@ export async function confirmPayment(
   console.group('[ConfirmPayment] 결제 승인 처리');
   console.log('요청:', request);
 
-  const supabase = await createClerkSupabaseClient();
-
   try {
+    // 0. 사용자 확인 및 Supabase user ID 가져오기
+    const user = await ensureSupabaseUser();
+    
+    if (!user) {
+      console.error('❌ 사용자 정보를 찾을 수 없거나 생성할 수 없습니다.');
+      try {
+        console.groupEnd();
+      } catch {
+        // groupEnd 실패 무시
+      }
+      return { success: false, error: '사용자 정보를 찾을 수 없습니다. 잠시 후 다시 시도해주세요.' };
+    }
+    
+    console.log('✅ 사용자 확인 완료:', user.id);
+    console.log('요청된 userId:', request.userId);
+    console.log('Supabase user ID:', user.id);
+    
+    // Supabase user ID 사용 (request.userId는 URL 파라미터로 전달된 값)
+    const supabaseUserId = user.id;
+    
+    // Service Role 클라이언트 사용 (RLS 우회 - 구독 생성, 결제 내역 생성 등 관리 작업)
+    const serviceSupabase = getServiceRoleClient();
+    // 일반 클라이언트는 사용자 정보 조회 등에만 사용
+    const supabase = await createClerkSupabaseClient();
+    
     // 1. Mock 결제 승인 요청
     const tossClient = getMockTossClient();
     const paymentKey = generateMockPaymentKey();
@@ -47,13 +73,19 @@ export async function confirmPayment(
 
     if (confirmResult.status !== 'DONE') {
       console.log('❌ 결제 실패:', confirmResult.status);
-      console.groupEnd();
+      try {
+        console.groupEnd();
+      } catch {
+        // groupEnd 실패 무시
+      }
       return { success: false, error: '결제가 실패했습니다. 다시 시도해주세요.' };
     }
 
     // 2. 빌링키 발급 (정기결제용)
+    // customerKey는 Clerk user ID 사용 (Toss 결제 시스템용)
+    const { userId: clerkUserId } = await auth();
     const billingKeyResult = await tossClient.issueBillingKey({
-      customerKey: request.userId,
+      customerKey: clerkUserId || supabaseUserId,
       authKey: paymentKey,
     });
 
@@ -68,11 +100,32 @@ export async function confirmPayment(
 
     const pricePerMonth = request.planType === 'monthly' ? request.amount : Math.floor(request.amount / 12);
 
-    // 4. 구독 레코드 생성
-    const { data: subscription, error: subError } = await supabase
+    // 4. 구독 레코드 생성 (Service Role 클라이언트 사용 - RLS 우회)
+    console.log('구독 생성 시도:', {
+      user_id: supabaseUserId,
+      user_id_type: typeof supabaseUserId,
+      user_id_length: supabaseUserId?.length,
+      plan_type: request.planType,
+      amount: request.amount,
+      price_per_month: pricePerMonth,
+    });
+    
+    // UUID 형식 검증
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(supabaseUserId)) {
+      console.error('❌ 잘못된 UUID 형식:', supabaseUserId);
+      try {
+        console.groupEnd();
+      } catch {
+        // groupEnd 실패 무시
+      }
+      return { success: false, error: `잘못된 사용자 ID 형식입니다: ${supabaseUserId}` };
+    }
+    
+    const { data: subscription, error: subError } = await serviceSupabase
       .from('subscriptions')
       .insert({
-        user_id: request.userId,
+        user_id: supabaseUserId,
         status: 'active',
         plan_type: request.planType,
         billing_key: billingKeyResult.billingKey,
@@ -88,81 +141,126 @@ export async function confirmPayment(
       .select()
       .single();
 
-    if (subError) {
+    if (subError || !subscription) {
       console.error('❌ 구독 생성 실패:', subError);
-      console.groupEnd();
-      return { success: false, error: '구독 생성에 실패했습니다.' };
+      console.error('에러 상세:', {
+        code: subError?.code,
+        message: subError?.message,
+        details: subError?.details,
+        hint: subError?.hint,
+        user_id: supabaseUserId,
+        user_id_type: typeof supabaseUserId,
+        subscription: subscription,
+      });
+      try {
+        console.groupEnd();
+      } catch {
+        // groupEnd 실패 무시
+      }
+      return { 
+        success: false, 
+        error: `구독 생성에 실패했습니다: ${subError?.message || '구독 정보를 가져올 수 없습니다.'}` 
+      };
     }
 
     console.log('✅ 구독 생성 완료:', subscription.id);
-
-    // 5. 결제 내역 생성
-    const { error: txError } = await supabase.from('payment_transactions').insert({
-      subscription_id: subscription.id,
-      user_id: request.userId,
-      status: 'completed',
-      transaction_type: 'subscription',
-      pg_provider: 'toss_payments',
-      pg_transaction_id: confirmResult.paymentKey,
-      amount: request.amount,
-      tax_amount: 0,
-      net_amount: request.amount,
-      payment_method: 'card',
-      card_info: {
-        issuer: billingKeyResult.cardInfo.issuer,
-        last_four: billingKeyResult.cardInfo.lastFourDigits,
-        type: billingKeyResult.cardInfo.cardType,
-      },
-      paid_at: confirmResult.approvedAt,
-      metadata: {
-        order_id: request.orderId,
-        promo_code_id: request.promoCodeId || null,
-      },
-      is_test_mode: true,
-    });
-
-    if (txError) {
-      console.error('❌ 결제 내역 생성 실패:', txError);
+    
+    // subscription.id가 유효한지 확인
+    if (!subscription.id) {
+      console.error('❌ 구독 ID가 없습니다:', subscription);
+      try {
+        console.groupEnd();
+      } catch {
+        // groupEnd 실패 무시
+      }
+      return { 
+        success: false, 
+        error: '구독 ID를 가져올 수 없습니다.' 
+      };
     }
 
-    // 6. 사용자 프리미엄 상태 활성화
-    const { error: userUpdateError } = await supabase
-      .from('users')
-      .update({
-        is_premium: true,
-        premium_expires_at: periodEnd.toISOString(),
-      })
-      .eq('id', request.userId);
+    // 5. 결제 내역 생성 (Service Role 클라이언트 사용)
+    try {
+      const { error: txError } = await serviceSupabase.from('payment_transactions').insert({
+        subscription_id: subscription.id,
+        user_id: supabaseUserId,
+        status: 'completed',
+        transaction_type: 'subscription',
+        pg_provider: 'toss_payments',
+        pg_transaction_id: confirmResult.paymentKey,
+        amount: request.amount,
+        tax_amount: 0,
+        net_amount: request.amount,
+        payment_method: 'card',
+        card_info: {
+          issuer: billingKeyResult.cardInfo.issuer,
+          last_four: billingKeyResult.cardInfo.lastFourDigits,
+          type: billingKeyResult.cardInfo.cardType,
+        },
+        paid_at: confirmResult.approvedAt,
+        metadata: {
+          order_id: request.orderId,
+          promo_code_id: request.promoCodeId || null,
+        },
+        is_test_mode: true,
+      });
 
-    if (userUpdateError) {
-      console.error('❌ 사용자 프리미엄 상태 업데이트 실패:', userUpdateError);
+      if (txError) {
+        console.error('❌ 결제 내역 생성 실패:', txError);
+      }
+    } catch (error) {
+      console.error('❌ 결제 내역 생성 중 오류:', error);
+      // 결제는 성공했으므로 계속 진행
+    }
+
+    // 6. 사용자 프리미엄 상태 활성화 (Service Role 클라이언트 사용)
+    try {
+      const { error: userUpdateError } = await serviceSupabase
+        .from('users')
+        .update({
+          is_premium: true,
+          premium_expires_at: periodEnd.toISOString(),
+        })
+        .eq('id', supabaseUserId);
+
+      if (userUpdateError) {
+        console.error('❌ 사용자 프리미엄 상태 업데이트 실패:', userUpdateError);
+      }
+    } catch (error) {
+      console.error('❌ 사용자 프리미엄 상태 업데이트 중 오류:', error);
+      // 결제는 성공했으므로 계속 진행
     }
 
     // 6-1. user_subscriptions 테이블 업데이트 (가족 구성원 관리용)
-    // 프리미엄 결제는 'premium' 플랜으로 매핑
-    const { error: userSubError } = await supabase
-      .from('user_subscriptions')
-      .upsert({
-        user_id: request.userId,
-        subscription_plan: 'premium',
-        started_at: now.toISOString(),
-        expires_at: periodEnd.toISOString(),
-        is_active: true,
-      }, {
-        onConflict: 'user_id'
-      });
+    // 프리미엄 결제는 'premium' 플랜으로 매핑 (Service Role 클라이언트 사용)
+    try {
+      const { error: userSubError } = await serviceSupabase
+        .from('user_subscriptions')
+        .upsert({
+          user_id: supabaseUserId,
+          subscription_plan: 'premium',
+          started_at: now.toISOString(),
+          expires_at: periodEnd.toISOString(),
+          is_active: true,
+        }, {
+          onConflict: 'user_id'
+        });
 
-    if (userSubError) {
-      console.error('❌ user_subscriptions 업데이트 실패:', userSubError);
-      // 에러가 발생해도 결제는 성공했으므로 계속 진행
-    } else {
-      console.log('✅ user_subscriptions 업데이트 완료 (premium 플랜)');
+      if (userSubError) {
+        console.error('❌ user_subscriptions 업데이트 실패:', userSubError);
+        // 에러가 발생해도 결제는 성공했으므로 계속 진행
+      } else {
+        console.log('✅ user_subscriptions 업데이트 완료 (premium 플랜)');
+      }
+    } catch (error) {
+      console.error('❌ user_subscriptions 업데이트 중 오류:', error);
+      // 결제는 성공했으므로 계속 진행
     }
 
     // 7. 프로모션 코드 사용 기록
     if (request.promoCodeId) {
       try {
-        await recordPromoCodeUse(request.promoCodeId, request.userId, subscription.id);
+        await recordPromoCodeUse(request.promoCodeId, supabaseUserId, subscription.id);
       } catch (error) {
         console.error('⚠️ 프로모션 코드 사용 기록 실패:', error);
         // 결제는 성공했으므로 계속 진행
@@ -170,18 +268,38 @@ export async function confirmPayment(
     }
 
     console.log('✅ 결제 승인 완료');
-    console.groupEnd();
+    
+    try {
+      console.groupEnd();
+    } catch {
+      // groupEnd 실패 무시
+    }
 
+    // 응답 직렬화 보장: subscription.id를 명시적으로 문자열로 변환
+    const subscriptionId = String(subscription.id);
+    
     return {
       success: true,
-      subscriptionId: subscription.id,
+      subscriptionId: subscriptionId,
     };
   } catch (error) {
     console.error('❌ 결제 승인 오류:', error);
-    console.groupEnd();
+    console.error('에러 타입:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('에러 메시지:', error instanceof Error ? error.message : String(error));
+    console.error('에러 스택:', error instanceof Error ? error.stack : '스택 없음');
+    
+    try {
+      console.groupEnd();
+    } catch {
+      // groupEnd 실패 무시
+    }
+    
+    // 항상 올바른 형식의 응답 반환
+    const errorMessage = error instanceof Error ? error.message : '결제 승인에 실패했습니다.';
+    
     return {
       success: false,
-      error: error instanceof Error ? error.message : '결제 승인에 실패했습니다.',
+      error: errorMessage,
     };
   }
 }

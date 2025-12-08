@@ -1,6 +1,9 @@
+import { type Season } from "./seasons"
+
 export interface YouTubeVideo {
   id: string
   title?: string
+  season?: Season // 계절 테마 정보
 }
 
 // YouTube 쇼츠/비디오 링크에서 ID 추출 헬퍼 함수
@@ -21,23 +24,23 @@ export function extractVideoId(url: string): string | null {
 }
 
 // 여기에 유튜브 비디오를 추가하세요
-// 새 비디오를 추가하려면 아래 배열에 { id: "비디오ID", title: "제목(선택)" } 형식으로 추가하면 됩니다
+// 새 비디오를 추가하려면 아래 배열에 { id: "비디오ID", title: "제목(선택)", season: "계절" } 형식으로 추가하면 됩니다
 export const youtubeVideos: YouTubeVideo[] = [
-  { id: "pkx6W1QUajs", title: "막걸리 이야기" },
-  { id: "ygXHb45isgM", title: "떡 이야기" },
-  { id: "mJtFFjqNTTU", title: "된장 간장 고추장 이야기" },
-  { id: "EdemvejVq3E", title: "불고기의 탄생" },
-  { id: "UOLG6eD-dZg", title: "김치의 탄생" },
-  { id: "Zvx_RHU80Wk", title: "비빔밥 이야기" },
-  { id: "oCUeJqK0P4s", title: "설렁탕 이야기" },
-  { id: "HEX0_Hd0_qs", title: "쌀 이야기" },
-  { id: "B0ukBaT9MLA", title: "잡채 이야기" },
-  { id: "uq5Xjm6dNwQ", title: "젓갈 이야기" },
-  { id: "uU2Y8y-snuA", title: "마파두부 이야기" },
-  { id: "-4OqxL1lqK8", title: "스테이크 이야기" },
-  { id: "xQwR2BQHWdU", title: "짜장면 이야기" },
-  { id: "35Zr2YAXV84", title: "카레 이야기" },
-  { id: "FNNDaY4M-to", title: "피자 이야기" },
+  { id: "pkx6W1QUajs", title: "막걸리 이야기", season: "summer" },
+  { id: "ygXHb45isgM", title: "떡 이야기", season: "winter" },
+  { id: "mJtFFjqNTTU", title: "된장 간장 고추장 이야기", season: "autumn" },
+  { id: "EdemvejVq3E", title: "불고기의 탄생", season: "autumn" },
+  { id: "UOLG6eD-dZg", title: "김치의 탄생", season: "winter" },
+  { id: "Zvx_RHU80Wk", title: "비빔밥 이야기", season: "spring" },
+  { id: "oCUeJqK0P4s", title: "설렁탕 이야기", season: "winter" },
+  { id: "HEX0_Hd0_qs", title: "쌀 이야기", season: "autumn" },
+  { id: "B0ukBaT9MLA", title: "잡채 이야기", season: "spring" },
+  { id: "uq5Xjm6dNwQ", title: "젓갈 이야기", season: "summer" },
+  { id: "uU2Y8y-snuA", title: "마파두부 이야기", season: "winter" },
+  { id: "-4OqxL1lqK8", title: "스테이크 이야기", season: "winter" },
+  { id: "xQwR2BQHWdU", title: "짜장면 이야기", season: "spring" },
+  { id: "35Zr2YAXV84", title: "카레 이야기", season: "autumn" },
+  { id: "FNNDaY4M-to", title: "피자 이야기", season: "summer" },
 ]
 
 // 비디오 ID로 임베드 URL 생성

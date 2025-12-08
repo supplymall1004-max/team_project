@@ -107,7 +107,7 @@ export default async function RoyalRecipesListPage({
                           {recipe.number}번째 레시피
                         </span>
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2" style={{ fontFamily: "'Noto Sans SC', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif" }}>
                         {recipe.title}
                       </h3>
                       {recipe.content.characteristics && (

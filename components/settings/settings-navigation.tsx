@@ -55,8 +55,8 @@ const SETTINGS_ITEMS: SettingsItem[] = [
   },
   {
     id: "billing",
-    title: "결제 및 구독",
-    description: "구독 관리, 결제 내역, 프로모션 코드 등록",
+    title: "결제 관리",
+    description: "결제 정보 확인, 쿠폰 등록, 구독 취소 등을 관리하세요",
     href: "/settings/billing",
     icon: CreditCard,
   },

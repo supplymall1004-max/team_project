@@ -29,7 +29,7 @@ export default function SettingsPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">설정</h1>
           <p className="text-muted-foreground">
-            프로필 정보와 알림 설정을 관리하세요.
+            건강 정보, 알림 설정, 프로필 등을 관리하세요.
           </p>
         </div>
 

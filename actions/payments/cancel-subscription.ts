@@ -95,13 +95,20 @@ export async function cancelSubscription(
       }
 
       // 사용자 프리미엄 상태 즉시 해제
-      await supabase
+      const { error: userUpdateError } = await supabase
         .from('users')
         .update({
           is_premium: false,
           premium_expires_at: now.toISOString(),
         })
         .eq('id', user.id);
+
+      if (userUpdateError) {
+        console.error('❌ 사용자 프리미엄 상태 업데이트 실패:', userUpdateError);
+        // 에러가 발생해도 구독 취소는 완료된 것으로 처리
+      } else {
+        console.log('✅ 사용자 프리미엄 상태 업데이트 완료');
+      }
 
       // user_subscriptions 테이블 업데이트 (free 플랜으로 변경)
       const { error: userSubError } = await supabase
@@ -187,13 +194,14 @@ export async function reactivateSubscription(
 
     const supabase = await createClerkSupabaseClient();
 
-    const { data: user } = await supabase
+    const { data: user, error: userError } = await supabase
       .from('users')
       .select('id')
       .eq('clerk_id', userId)
       .single();
 
-    if (!user) {
+    if (userError || !user) {
+      console.error('❌ 사용자 조회 실패:', userError);
       console.groupEnd();
       return { success: false, error: '사용자 정보를 찾을 수 없습니다.' };
     }

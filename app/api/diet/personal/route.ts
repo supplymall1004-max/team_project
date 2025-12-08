@@ -33,8 +33,10 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const targetDate = body.targetDate || new Date().toISOString().split("T")[0];
+    const includeFavorites = body.includeFavorites === true; // 찜한 식단 포함 여부
     
     console.log("대상 날짜:", targetDate);
+    console.log("찜한 식단 포함:", includeFavorites);
 
     const supabase = await createClerkSupabaseClient();
 
@@ -71,7 +73,16 @@ export async function POST(request: NextRequest) {
 
     // 식단 생성
     console.log("식단 생성 중...");
-    const dietPlan = await generatePersonalDiet(supabaseUserId, profile, targetDate);
+    const dietPlan = await generatePersonalDiet(
+      supabaseUserId,
+      profile,
+      targetDate,
+      undefined, // availableRecipes
+      undefined, // usedByCategory
+      undefined, // preferredRiceType
+      undefined, // premiumFeatures
+      includeFavorites // 찜한 식단 포함 여부
+    );
 
     // 데이터베이스에 저장
     console.log("데이터베이스 저장 중...");

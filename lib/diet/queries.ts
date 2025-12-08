@@ -277,7 +277,8 @@ export async function generatePersonalDietForAPI(
     soup: Set<string>;
     snack: Set<string>;
   },
-  preferredRiceType?: string
+  preferredRiceType?: string,
+  includeFavorites?: boolean // 찜한 식단 포함 여부
 ): Promise<{
   breakfast: RecipeWithNutrition | null;
   lunch: RecipeWithNutrition | null;
@@ -299,7 +300,9 @@ export async function generatePersonalDietForAPI(
       date,
       availableRecipes,
       usedByCategory,
-      preferredRiceType
+      preferredRiceType,
+      undefined, // premiumFeatures
+      includeFavorites // 찜한 식단 포함 여부
     );
 
     // 결과를 API 형식으로 변환
@@ -432,7 +435,8 @@ export async function generatePersonalDietForAPI(
  */
 export async function generateAndSaveDietPlan(
   userId: string,
-  date: string
+  date: string,
+  includeFavorites?: boolean // 찜한 식단 포함 여부
 ): Promise<DailyDietPlan | null> {
   console.groupCollapsed("[DietQueries] 식단 추천 생성");
   console.log("👤 userId:", userId);
@@ -523,7 +527,10 @@ export async function generateAndSaveDietPlan(
         userId,
         healthProfile,
         date,
-        availableRecipes
+        availableRecipes,
+        undefined, // usedByCategory
+        undefined, // preferredRiceType
+        includeFavorites // 찜한 식단 포함 여부
       );
     } catch (error) {
       console.error("❌ 식단 생성 중 오류 발생:", error);

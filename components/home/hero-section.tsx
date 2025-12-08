@@ -14,12 +14,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChefHat, Film, Brain, Calendar, BookOpen } from "lucide-react";
+import { ChefHat, Film, Brain, Calendar, BookOpen, Crown } from "lucide-react";
 
 // 아이콘 매핑
 const iconMap: Record<string, typeof Film> = {
   "🎬": Film,
   "📚": ChefHat,
+  "👑": Crown,
   "🤖": Brain,
   "📅": Calendar,
   "📖": BookOpen,
@@ -55,6 +56,11 @@ export function HeroSection({
       title: "📚 현대 레시피 아카이브",
       description: "별점과 난이도로 정리된 최신 레시피를 확인해요.",
       href: "/recipes",
+    },
+    {
+      title: "👑 궁중 레시피 아카이브",
+      description: "삼국시대부터 조선시대까지 전통 궁중 음식 레시피를 만나보세요.",
+      href: "/royal-recipes",
     },
     {
       title: "🤖 건강 맞춤 식단",
@@ -140,7 +146,7 @@ export function HeroSection({
           </p>
 
           {/* 빠른 접근 버튼 */}
-          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto pt-4 sm:pt-8">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 max-w-6xl mx-auto pt-4 sm:pt-8">
             {quickStartCards.map((card) => {
               // 이모지에서 아이콘 추출 (첫 번째 이모지 사용)
               const emoji = card.title.match(/^[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u)?.[0] || "🎬";

@@ -91,6 +91,18 @@ export const TEXT_SLOTS: TextSlot[] = [
     location: "components/home/hero-section.tsx:30-34",
   },
   {
+    slug: "quick-start-royal",
+    section: "빠른 시작",
+    label: "궁중 레시피 아카이브 카드",
+    description: "빠른 시작 - 궁중 레시피 아카이브 섹션",
+    defaultContent: {
+      title: "👑 궁중 레시피 아카이브",
+      description: "삼국시대부터 조선시대까지 전통 궁중 음식 레시피를 만나보세요.",
+      href: "/royal-recipes",
+    },
+    location: "components/home/hero-section.tsx:36-40",
+  },
+  {
     slug: "quick-start-diet",
     section: "빠른 시작",
     label: "건강 맞춤 식단 카드",

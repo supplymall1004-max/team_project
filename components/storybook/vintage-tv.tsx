@@ -121,7 +121,7 @@ export function VintageTV({ videoUrl, season = "winter", onVideoEnd }: VintageTV
         const containerWidth = container.offsetWidth || 320
         const containerHeight = container.offsetHeight || 570
         
-        container.innerHTML = `<div id="${playerId}" style="width: 100%; height: 100%; position: relative;"></div>`
+        container.innerHTML = `<div id="${playerId}" style="width: 100%; height: 100%; position: relative; min-width: 100%; min-height: 100%;"></div>`
 
         playerRef.current = new window.YT.Player(playerId, {
           videoId: videoId,
@@ -162,7 +162,7 @@ export function VintageTV({ videoUrl, season = "winter", onVideoEnd }: VintageTV
         container.innerHTML = `
           <iframe
             src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&enablejsapi=1"
-            style="width: 100%; height: 100%; border: none;"
+            style="width: 100%; height: 100%; min-width: 100%; min-height: 100%; border: none;"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             title="YouTube Video Player"
@@ -194,7 +194,7 @@ export function VintageTV({ videoUrl, season = "winter", onVideoEnd }: VintageTV
     <div className="relative transition-all duration-500 group">
       {/* TV Body - GDWEB 카드 디자인 패턴 적용 */}
       <div className={cn(
-        "relative rounded-3xl p-5 shadow-2xl border-4",
+        "relative rounded-3xl p-3 shadow-2xl border-4",
         "transition-all duration-500",
         "group-hover:shadow-[0_20px_60px_rgba(0,0,0,0.5)]",
         colors.body,
@@ -202,14 +202,14 @@ export function VintageTV({ videoUrl, season = "winter", onVideoEnd }: VintageTV
       )}>
         {/* TV Screen Frame */}
         <div className={cn(
-          "rounded-2xl p-4",
+          "rounded-2xl p-1",
           "transition-all duration-300",
           colors.inner
         )}>
           {/* Screen - 개선된 스타일 */}
-          <div className="relative w-[280px] h-[500px] md:w-[360px] md:h-[640px] bg-black rounded-xl overflow-hidden shadow-inner border-2 border-black/50">
+          <div className="relative w-[280px] h-[500px] md:w-[360px] md:h-[640px] bg-black rounded-xl overflow-hidden shadow-inner border border-black/30">
             {videoUrl ? (
-              <div ref={containerRef} className="w-full h-full" />
+              <div ref={containerRef} className="w-full h-full" style={{ minWidth: '100%', minHeight: '100%' }} />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f0f1a]">
                 <div className="text-center text-white/70 space-y-4">

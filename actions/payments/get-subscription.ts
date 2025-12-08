@@ -7,6 +7,8 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { createClerkSupabaseClient } from '@/lib/supabase/server';
+import { ensureSupabaseUser } from '@/lib/supabase/ensure-user';
+import { getServiceRoleClient } from '@/lib/supabase/service-role';
 
 export interface SubscriptionInfo {
   id: string;
@@ -54,36 +56,60 @@ export async function getCurrentSubscription(): Promise<GetSubscriptionResponse>
       };
     }
 
-    const supabase = await createClerkSupabaseClient();
-
-    // 2. 사용자 정보 조회
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, is_premium, premium_expires_at')
-      .eq('clerk_id', userId)
-      .single();
-
-    if (userError || !user) {
-      console.error('❌ 사용자 조회 실패:', userError);
+    // 2. 사용자 정보 조회 (없으면 자동 생성)
+    const supabaseUser = await ensureSupabaseUser();
+    
+    if (!supabaseUser) {
+      console.error('❌ 사용자 조회 실패: 사용자를 찾을 수 없거나 생성할 수 없습니다.');
       console.groupEnd();
       return {
         success: false,
         isPremium: false,
         subscription: null,
         premiumExpiresAt: null,
-        error: '사용자 정보를 찾을 수 없습니다.',
+        error: '사용자 정보를 찾을 수 없습니다. 잠시 후 다시 시도해주세요.',
       };
     }
 
-    // 3. 활성 구독 조회
-    const { data: subscription, error: subError } = await supabase
+    console.log('✅ 사용자 확인 완료:', supabaseUser.id);
+
+    // 사용자 상세 정보 조회 (프리미엄 정보 포함)
+    // Service Role 클라이언트 사용 (RLS 우회, 안정적인 조회)
+    const serviceSupabase = getServiceRoleClient();
+    const { data: user, error: userError } = await serviceSupabase
+      .from('users')
+      .select('id, is_premium, premium_expires_at')
+      .eq('id', supabaseUser.id)
+      .maybeSingle();
+
+    if (userError) {
+      console.error('❌ 사용자 상세 정보 조회 실패:', userError);
+      console.groupEnd();
+      return {
+        success: false,
+        isPremium: false,
+        subscription: null,
+        premiumExpiresAt: null,
+        error: '사용자 정보를 조회하는 중 오류가 발생했습니다.',
+      };
+    }
+
+    // 사용자가 없으면 기본값 사용
+    const userData = user || {
+      id: supabaseUser.id,
+      is_premium: false,
+      premium_expires_at: null,
+    };
+
+    // 3. 활성 구독 조회 (Service Role 클라이언트 사용)
+    const { data: subscription, error: subError } = await serviceSupabase
       .from('subscriptions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userData.id)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (subError && subError.code !== 'PGRST116') {
       // PGRST116 = 결과 없음 (에러가 아님)
@@ -98,31 +124,43 @@ export async function getCurrentSubscription(): Promise<GetSubscriptionResponse>
           ? subscription.current_period_end
           : null;
 
+      // 결제 수단 포맷팅 (null 값 처리)
+      const paymentMethodDisplay = subscription.payment_method && subscription.last_four_digits
+        ? `${subscription.payment_method} (${subscription.last_four_digits})`
+        : subscription.payment_method || '등록되지 않음';
+
       subscriptionInfo = {
         id: subscription.id,
         status: subscription.status,
         planType: subscription.plan_type,
         currentPeriodStart: subscription.current_period_start,
         currentPeriodEnd: subscription.current_period_end,
-        pricePerMonth: subscription.price_per_month,
-        totalPaid: subscription.total_paid,
+        pricePerMonth: subscription.price_per_month || 0,
+        totalPaid: subscription.total_paid || 0,
         nextBillingDate,
-        paymentMethod: `${subscription.payment_method} (${subscription.last_four_digits})`,
-        lastFourDigits: subscription.last_four_digits,
+        paymentMethod: paymentMethodDisplay,
+        lastFourDigits: subscription.last_four_digits || '',
         cancelledAt: subscription.cancelled_at,
-        isTestMode: subscription.is_test_mode,
+        isTestMode: subscription.is_test_mode || false,
       };
     }
 
+    // 프리미엄 만료 시간 확인
+    const now = new Date();
+    const premiumExpiresAt = userData.premium_expires_at ? new Date(userData.premium_expires_at) : null;
+    const isPremiumActive = userData.is_premium && (!premiumExpiresAt || premiumExpiresAt > now);
+
     console.log('✅ 구독 정보 조회 성공');
-    console.log('프리미엄 상태:', user.is_premium);
+    console.log('프리미엄 상태:', userData.is_premium);
+    console.log('프리미엄 만료일:', premiumExpiresAt);
+    console.log('프리미엄 활성화 여부:', isPremiumActive);
     console.groupEnd();
 
     return {
       success: true,
-      isPremium: user.is_premium || false,
+      isPremium: isPremiumActive,
       subscription: subscriptionInfo,
-      premiumExpiresAt: user.premium_expires_at,
+      premiumExpiresAt: userData.premium_expires_at,
     };
   } catch (error) {
     console.error('❌ 구독 정보 조회 오류:', error);

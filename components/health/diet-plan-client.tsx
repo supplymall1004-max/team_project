@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, ShoppingCart, AlertCircle } from "lucide-react";
+import { RefreshCw, ShoppingCart, AlertCircle, Heart } from "lucide-react";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { NutritionInfo, DietPlan } from "@/types/health";
 import { DailyDietPlan, FamilyDietPlan, MealComposition, RecipeDetailForDiet } from "@/types/recipe";
@@ -42,6 +42,7 @@ export function DietPlanClient() {
   const [healthProfileError, setHealthProfileError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userHealthProfile, setUserHealthProfile] = useState<UserHealthProfile | null>(null);
+  const [includeFavorites, setIncludeFavorites] = useState(false); // 찜한 식단 포함 여부
 
   // 가족 구성원 관련 상태
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
@@ -319,11 +320,15 @@ export function DietPlanClient() {
 
       // 식단 생성 요청
       console.log("📡 식단 생성 API 호출:", `/api/diet/plan?date=${currentDate}&force=true`);
+      console.log("⭐ 찜한 식단 포함:", includeFavorites);
       const res = await fetch(`/api/diet/plan?date=${currentDate}&force=true`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          includeFavorites,
+        }),
       });
 
       console.log("📡 API 응답 상태:", res.status, res.statusText);
@@ -479,24 +484,48 @@ export function DietPlanClient() {
             최적의 식단을 큐레이션해드립니다
           </p>
         </div>
-        <Button
-          onClick={handleGenerateDiet}
-          disabled={isGenerating}
-          size="lg"
-          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 text-lg"
-        >
-          {isGenerating ? (
-            <>
-              <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-              식단을 큐레이션하는 중...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-5 w-5 mr-2" />
-              건강 맞춤 식단 큐레이션 생성하기
-            </>
-          )}
-        </Button>
+        <div className="space-y-4">
+          {/* 찜한 식단 포함 체크박스 */}
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={includeFavorites}
+              onChange={(e) => setIncludeFavorites(e.target.checked)}
+              disabled={isGenerating}
+              className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+            <div className="flex items-center gap-2">
+              <Heart className={`h-4 w-4 ${includeFavorites ? "text-red-500 fill-red-500" : "text-gray-400"}`} />
+              <span className="text-sm text-gray-700 group-hover:text-gray-900">
+                찜한 식단 포함하기
+              </span>
+            </div>
+          </label>
+          <p className="text-xs text-gray-500 text-left">
+            체크 시 찜한 식단 중 건강 정보에 맞는 식단이 우선적으로 포함됩니다.
+            <br />
+            (알레르기 및 질병 필터를 통과한 식단만 포함됩니다)
+          </p>
+          
+          <Button
+            onClick={handleGenerateDiet}
+            disabled={isGenerating}
+            size="lg"
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 text-lg w-full"
+          >
+            {isGenerating ? (
+              <>
+                <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                식단을 큐레이션하는 중...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-5 w-5 mr-2" />
+                건강 맞춤 식단 큐레이션 생성하기
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     );
   }

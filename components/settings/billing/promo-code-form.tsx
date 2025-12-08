@@ -10,8 +10,8 @@
 
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,32 +27,47 @@ import {
 
 export function PromoCodeForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [code, setCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleValidate = async () => {
-    if (!code.trim()) {
+  // URL 파라미터에서 프로모션 코드 읽어오기
+  useEffect(() => {
+    const codeFromUrl = searchParams?.get('code');
+    if (codeFromUrl) {
+      console.log('[PromoCodeForm] URL에서 프로모션 코드 발견:', codeFromUrl);
+      const decodedCode = decodeURIComponent(codeFromUrl).toUpperCase().trim();
+      setCode(decodedCode);
+      // 약간의 지연 후 자동 검증 (컴포넌트 마운트 후)
+      const timer = setTimeout(() => {
+        handleValidateWithCode(decodedCode);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
+
+  // 코드를 인자로 받는 검증 함수 (URL 파라미터에서 자동 호출용)
+  const handleValidateWithCode = async (codeToValidate: string) => {
+    if (!codeToValidate.trim()) {
       setError("프로모션 코드를 입력해주세요.");
       return;
     }
 
-    console.group('[PromoCodeForm] 프로모션 코드 검증');
+    console.group('[PromoCodeForm] 프로모션 코드 검증 (자동)');
     setIsValidating(true);
     setError(null);
     setValidationResult(null);
 
     try {
-      // 클라이언트에서 사용자 ID 가져오기 (임시로 서버 액션 사용)
-      // 실제로는 서버 액션을 통해 검증해야 함
       const response = await fetch('/api/payments/validate-promo-code', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          code: code.toUpperCase().trim(),
+          code: codeToValidate.toUpperCase().trim(),
         }),
       });
 
@@ -61,6 +76,39 @@ export function PromoCodeForm() {
       if (result.success && result.valid) {
         setValidationResult(result);
         console.log('✅ 코드 검증 성공:', result);
+        
+        // 무료 체험 쿠폰인 경우 자동으로 프리미엄 활성화
+        if (result.discountType === 'free_trial' && result.promoCodeId && result.freeTrialDays) {
+          console.log('🎁 무료 체험 쿠폰 감지, 프리미엄 자동 활성화 시도');
+          try {
+            const activateResponse = await fetch('/api/payments/activate-premium-from-promo', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                promoCodeId: result.promoCodeId,
+                freeTrialDays: result.freeTrialDays,
+              }),
+            });
+
+            const activateResult = await activateResponse.json();
+            
+            if (activateResult.success) {
+              console.log('✅ 프리미엄 활성화 성공:', activateResult);
+              window.dispatchEvent(new CustomEvent('premium-activated'));
+              setTimeout(() => {
+                window.location.reload();
+              }, 2000);
+            } else {
+              console.error('❌ 프리미엄 활성화 실패:', activateResult.error);
+              setError(activateResult.error || '프리미엄 활성화에 실패했습니다.');
+            }
+          } catch (activateError) {
+            console.error('❌ 프리미엄 활성화 오류:', activateError);
+            setError('프리미엄 활성화 중 오류가 발생했습니다.');
+          }
+        }
       } else {
         setError(result.error || '유효하지 않은 프로모션 코드입니다.');
         console.log('❌ 코드 검증 실패:', result.error);
@@ -72,6 +120,15 @@ export function PromoCodeForm() {
       setIsValidating(false);
       console.groupEnd();
     }
+  };
+
+  const handleValidate = async () => {
+    if (!code.trim()) {
+      setError("프로모션 코드를 입력해주세요.");
+      return;
+    }
+
+    await handleValidateWithCode(code);
   };
 
   const formatDiscount = (result: any) => {
@@ -195,15 +252,35 @@ export function PromoCodeForm() {
         </CardContent>
       </Card>
 
-      {/* 결제 페이지로 이동 */}
-      {validationResult && validationResult.valid && (
+      {/* 결제 페이지로 이동 (무료 체험 쿠폰이 아닌 경우에만) */}
+      {validationResult && validationResult.valid && validationResult.discountType !== 'free_trial' && (
         <div className="flex justify-end">
           <Button
-            onClick={() => router.push('/pricing')}
+            onClick={() => {
+              // 프로모션 코드를 URL 파라미터로 전달하여 결제 페이지로 이동
+              const promoCodeParam = encodeURIComponent(code.toUpperCase().trim());
+              router.push(`/pricing?promoCode=${promoCodeParam}`);
+            }}
             size="lg"
             className="bg-orange-500 hover:bg-orange-600"
           >
             결제 페이지로 이동하여 코드 적용하기
+          </Button>
+        </div>
+      )}
+      
+      {/* 무료 체험 쿠폰인 경우 홈으로 이동 */}
+      {validationResult && validationResult.valid && validationResult.discountType === 'free_trial' && (
+        <div className="flex justify-end">
+          <Button
+            onClick={() => {
+              router.push('/');
+              router.refresh(); // 프리미엄 상태 새로고침
+            }}
+            size="lg"
+            className="bg-green-500 hover:bg-green-600"
+          >
+            홈으로 이동하여 프리미엄 기능 확인하기
           </Button>
         </div>
       )}

@@ -40,11 +40,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Flavor Archive | 잊혀진 손맛을 연결하는 디지털 식탁",
+  title: "맛카 | Flavor Archive, Flavor Eureka!",
   description:
-    "전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, AI 식단 추천을 한 곳에서 확인하세요.",
-  keywords: ["레시피", "요리", "전통 음식", "AI 식단", "레시피 북", "요리 아카이브"],
-  authors: [{ name: "Flavor Archive" }],
+    "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, AI 식단 추천을 한 곳에서 확인하세요.",
+  keywords: ["맛카", "레시피", "요리", "전통 음식", "AI 식단", "레시피 북", "요리 아카이브", "Flavor Archive"],
+  authors: [{ name: "맛카" }],
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -58,24 +58,33 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Flavor Archive",
+    title: "맛카",
   },
   formatDetection: {
     telephone: false,
   },
   openGraph: {
-    title: "Flavor Archive | 잊혀진 손맛을 연결하는 디지털 식탁",
+    title: "맛카 | Flavor Archive, Flavor Eureka!",
     description:
-      "전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, AI 식단 추천을 한 곳에서 확인하세요.",
+      "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, AI 식단 추천을 한 곳에서 확인하세요.",
     type: "website",
     locale: "ko_KR",
-    siteName: "Flavor Archive",
+    siteName: "맛카",
+    images: [
+      {
+        url: "/icons/maca2.JPG",
+        width: 1200,
+        height: 630,
+        alt: "맛카 로고 - Flavor Archive, Flavor Eureka!",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Flavor Archive | 잊혀진 손맛을 연결하는 디지털 식탁",
+    title: "맛카 | Flavor Archive, Flavor Eureka!",
     description:
-      "전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, AI 식단 추천을 한 곳에서 확인하세요.",
+      "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, AI 식단 추천을 한 곳에서 확인하세요.",
+    images: ["/icons/maca2.JPG"],
   },
   robots: {
     index: true,

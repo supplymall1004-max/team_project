@@ -29,6 +29,13 @@ export interface FavoriteMeal {
 }
 
 /**
+ * 레시피 상세 정보가 포함된 찜한 식단 (필터링용)
+ */
+export interface FavoriteMealWithRecipe extends FavoriteMeal {
+  recipe?: import("./recipe").RecipeDetailForDiet; // 레시피 상세 정보 (필터링용)
+}
+
+/**
  * 수동 등록 밀키트 제품
  */
 export interface MealKit {

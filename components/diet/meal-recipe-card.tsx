@@ -85,7 +85,7 @@ export function MealRecipeCard({
           <img
             src={imageUrl}
             alt={recipe.title}
-            className="w-full h-full object-cover transition-all duration-300 hover:scale-105"
+            className="w-full h-full object-contain transition-all duration-300 hover:scale-105"
             loading="lazy"
             onError={() => {
               console.log("[MealRecipeCard] 이미지 로딩 실패:", imageUrl);

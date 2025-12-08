@@ -20,6 +20,7 @@ export async function HomeLanding() {
     "hero-search-placeholder",
     "hero-search-button",
     "quick-start-recipe",
+    "quick-start-royal",
     "quick-start-diet",
     "quick-start-weekly",
     "quick-start-storybook",
@@ -32,6 +33,11 @@ export async function HomeLanding() {
       title: allContent["quick-start-recipe"]?.content.title || "📚 현대 레시피 아카이브",
       description: allContent["quick-start-recipe"]?.content.description || "별점과 난이도로 정리된 최신 레시피를 확인해요.",
       href: allContent["quick-start-recipe"]?.content.href || "/recipes",
+    },
+    {
+      title: allContent["quick-start-royal"]?.content.title || "👑 궁중 레시피 아카이브",
+      description: allContent["quick-start-royal"]?.content.description || "삼국시대부터 조선시대까지 전통 궁중 음식 레시피를 만나보세요.",
+      href: allContent["quick-start-royal"]?.content.href || "/royal-recipes",
     },
     {
       title: allContent["quick-start-diet"]?.content.title || "🤖 건강 맞춤 식단",

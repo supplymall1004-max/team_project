@@ -16,8 +16,8 @@ import { useState, useCallback, useEffect } from "react"
 import { youtubeVideos, getEmbedUrl, getThumbnailUrl } from "@/data/youtube-videos"
 import { GiftBox } from "@/components/storybook/gift-box"
 import { VintageTV } from "@/components/storybook/vintage-tv"
-import { Fireplace } from "@/components/storybook/fireplace"
-import { ChristmasTree } from "@/components/storybook/christmas-tree"
+import { SeasonalFireplace } from "@/components/storybook/fireplace"
+import { SeasonalTree } from "@/components/storybook/christmas-tree"
 import { SeasonalEffect } from "@/components/storybook/seasonal-effect"
 import { SeasonSelector } from "@/components/storybook/season-selector"
 import { BookOpen, Play, Shuffle, Sparkles } from "lucide-react"
@@ -63,6 +63,9 @@ export function StorybookRoom() {
 
   const selectedVideo = youtubeVideos.find((v) => v.id === selectedVideoId)
   const currentTheme = seasonThemes[selectedSeason]
+  // 선택된 비디오의 계절을 사용하거나, 없으면 선택된 계절 사용
+  const displaySeason = selectedVideo?.season || selectedSeason
+  const displayTheme = seasonThemes[displaySeason]
 
   return (
     <div className="relative w-full min-h-screen overflow-hidden">
@@ -100,35 +103,75 @@ export function StorybookRoom() {
             맛카의 음식 동화 이야기
           </h1>
           
-          <p className="text-gray-300 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+          <p 
+            className="text-sm md:text-base max-w-2xl mx-auto leading-relaxed transition-colors duration-500"
+            style={{ color: displayTheme.textColor }}
+          >
             전통 음식의 탄생과 역사를 동화처럼 들려주는 이야기입니다.<br />
-            선물 상자를 클릭하여 다양한 음식 이야기를 들어보세요.
+            {displaySeason === "spring" && "🌸 꽃을 클릭하여 다양한 음식 이야기를 들어보세요."}
+            {displaySeason === "summer" && "🌊 조개를 클릭하여 다양한 음식 이야기를 들어보세요."}
+            {displaySeason === "autumn" && "🍂 낙엽을 클릭하여 다양한 음식 이야기를 들어보세요."}
+            {displaySeason === "winter" && "❄️ 아이콘을 클릭하여 다양한 음식 이야기를 들어보세요."}
           </p>
         </header>
 
         {/* 현재 재생 중인 이야기 정보 카드 */}
         {selectedVideo && (
           <div className="max-w-md mx-auto mb-6 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-xl">
+            <div 
+              className={cn(
+                "backdrop-blur-md rounded-2xl p-4 border shadow-xl transition-all duration-500",
+                displayTheme.cardBg,
+                displaySeason === "spring" ? "border-pink-300/30" : "border-white/20"
+              )}
+            >
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center">
+                <div 
+                  className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center transition-all duration-500"
+                  style={{
+                    background: displaySeason === "spring" 
+                      ? "linear-gradient(to bottom right, #ff69b4, #ff1493)"
+                      : displaySeason === "summer"
+                      ? "linear-gradient(to bottom right, #00bfff, #0099cc)"
+                      : displaySeason === "autumn"
+                      ? "linear-gradient(to bottom right, #ff6347, #ff4500)"
+                      : "linear-gradient(to bottom right, #ffd700, #ffa500)"
+                  }}
+                >
                   <BookOpen className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-400 mb-1">현재 재생 중</p>
-                  <h3 className="text-sm md:text-base font-semibold text-white">{selectedVideo.title}</h3>
+                  <p 
+                    className="text-xs mb-1 transition-colors duration-500"
+                    style={{ color: displayTheme.textMutedColor }}
+                  >
+                    현재 재생 중
+                  </p>
+                  <h3 
+                    className="text-sm md:text-base font-semibold transition-colors duration-500"
+                    style={{ color: displayTheme.textColor }}
+                  >
+                    {selectedVideo.title}
+                  </h3>
                 </div>
                 <button
                   onClick={handleRandomPlay}
                   disabled={isLoading}
                   className={cn(
                     "p-2 rounded-lg transition-all duration-300",
-                    "bg-gradient-to-r from-orange-500 to-amber-500",
-                    "hover:from-orange-600 hover:to-amber-600",
                     "active:scale-95",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
                     "shadow-lg hover:shadow-xl"
                   )}
+                  style={{
+                    background: displaySeason === "spring" 
+                      ? "linear-gradient(to right, #ff69b4, #ff1493)"
+                      : displaySeason === "summer"
+                      ? "linear-gradient(to right, #00bfff, #0099cc)"
+                      : displaySeason === "autumn"
+                      ? "linear-gradient(to right, #ff6347, #ff4500)"
+                      : "linear-gradient(to right, #ffd700, #ffa500)"
+                  }}
                   aria-label="랜덤 재생"
                 >
                   <Shuffle className="w-5 h-5 text-white" />
@@ -144,7 +187,7 @@ export function StorybookRoom() {
           <div className="order-3 lg:order-1 lg:w-1/4 flex justify-center animate-fade-in-left">
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-full blur-2xl group-hover:blur-3xl transition-all duration-500" />
-              <Fireplace />
+              <SeasonalFireplace season={displaySeason} />
             </div>
           </div>
 
@@ -176,11 +219,11 @@ export function StorybookRoom() {
             </div>
           </div>
 
-          {/* Christmas Tree with Gift Boxes - Right Side */}
+          {/* Seasonal Tree with Gift Boxes - Right Side */}
           <div className="order-2 lg:order-3 lg:w-1/4 flex flex-col items-center gap-6 animate-fade-in-right">
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-full blur-2xl group-hover:blur-3xl transition-all duration-500" />
-              <ChristmasTree />
+              <SeasonalTree season={displaySeason} />
             </div>
 
             {/* Gift Boxes Playlist - 개선된 레이아웃 */}
@@ -195,6 +238,7 @@ export function StorybookRoom() {
                       onClick={() => {
                         console.groupCollapsed("[StorybookRoom] 선물 상자 클릭")
                         console.log("video:", video.title || video.id)
+                        console.log("season:", video.season || "winter")
                         console.groupEnd()
                         setIsLoading(true)
                         
@@ -221,6 +265,7 @@ export function StorybookRoom() {
                         }, 300)
                       }}
                       colorIndex={index}
+                      season={video.season || "winter"}
                     />
                   </div>
                 ))}
@@ -231,10 +276,33 @@ export function StorybookRoom() {
 
         {/* Footer - 개선된 스타일 */}
         <footer className="text-center mt-12 mb-8 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-          <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
-            <Play className="w-4 h-4 text-orange-400" />
-            <p className="text-sm text-gray-300">
-              선물 상자를 클릭하여 이야기를 재생하세요
+          <div 
+            className={cn(
+              "inline-flex items-center gap-2 px-6 py-3 rounded-full backdrop-blur-md border transition-all duration-500",
+              displayTheme.cardBg,
+              displaySeason === "spring" ? "border-pink-300/30" : "border-white/20"
+            )}
+          >
+            <Play 
+              className="w-4 h-4 transition-colors duration-500"
+              style={{ 
+                color: displaySeason === "spring" 
+                  ? "#ff69b4"
+                  : displaySeason === "summer"
+                  ? "#00bfff"
+                  : displaySeason === "autumn"
+                  ? "#ff6347"
+                  : "#ffd700"
+              }}
+            />
+            <p 
+              className="text-sm transition-colors duration-500"
+              style={{ color: displayTheme.textColor }}
+            >
+              {displaySeason === "spring" && "🌸 꽃을 클릭하여 이야기를 재생하세요"}
+              {displaySeason === "summer" && "🌊 조개를 클릭하여 이야기를 재생하세요"}
+              {displaySeason === "autumn" && "🍂 낙엽을 클릭하여 이야기를 재생하세요"}
+              {displaySeason === "winter" && "❄️ 아이콘을 클릭하여 이야기를 재생하세요"}
             </p>
           </div>
         </footer>

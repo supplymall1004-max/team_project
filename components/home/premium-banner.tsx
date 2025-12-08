@@ -19,8 +19,10 @@
 
 "use client";
 
+import { useEffect, useState } from 'react';
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { getCurrentSubscription } from '@/actions/payments/get-subscription';
 
 interface PremiumBannerProps {
   text?: string;
@@ -31,6 +33,29 @@ export function PremiumBanner({
   text = "프리미엄 결제 혜택을 받아보세요",
   href = "/pricing",
 }: PremiumBannerProps) {
+  const [isPremium, setIsPremium] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadSubscription();
+  }, []);
+
+  const loadSubscription = async () => {
+    try {
+      const result = await getCurrentSubscription();
+      setIsPremium(result.isPremium || false);
+    } catch (error) {
+      console.error('❌ 구독 정보 로드 실패:', error);
+      setIsPremium(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 로딩 중이거나 프리미엄 사용자인 경우 표시하지 않음
+  if (isLoading || isPremium) {
+    return null;
+  }
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();

@@ -84,6 +84,15 @@ export async function POST(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const date = searchParams.get("date") || new Date().toISOString().split("T")[0];
     const force = searchParams.get("force") === "true";
+    
+    // 요청 본문에서 includeFavorites 읽기
+    let includeFavorites = false;
+    try {
+      const body = await request.json().catch(() => ({}));
+      includeFavorites = body.includeFavorites === true;
+    } catch {
+      // 본문이 없거나 파싱 실패 시 기본값 사용
+    }
 
     // 사용자 ID 조회
     const { getServiceRoleClient } = await import("@/lib/supabase/service-role");
@@ -111,7 +120,8 @@ export async function POST(request: NextRequest) {
     if (force) {
       // force=true인 경우에만 강제 생성 (사용자가 명시적으로 생성 버튼을 클릭한 경우)
       console.log("🤖 강제 식단 생성 중...");
-      dietPlan = await generateAndSaveDietPlan(userData.id, date);
+      console.log("⭐ 찜한 식단 포함:", includeFavorites);
+      dietPlan = await generateAndSaveDietPlan(userData.id, date, includeFavorites);
       console.log("🤖 강제 생성 결과:", dietPlan ? "성공" : "실패");
     } else {
       // force=false인 경우: 저장된 식단만 조회 (자동 생성하지 않음)

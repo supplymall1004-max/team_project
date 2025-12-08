@@ -260,3 +260,105 @@ export async function getRecipeBySlug(slug: string): Promise<RecipeDetail | null
   }
 }
 
+/**
+ * 레시피 상세 조회 (ID 기반)
+ * UUID 형식의 레시피 ID로 조회
+ */
+export async function getRecipeById(recipeId: string): Promise<RecipeDetail | null> {
+  console.groupCollapsed("[RecipeQueries] 레시피 상세 조회 (ID)");
+  console.log("recipeId", recipeId);
+
+  try {
+    const supabase = createPublicSupabaseServerClient();
+
+    // UUID 형식 확인
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(recipeId)) {
+      console.warn("⚠️ recipeId가 UUID 형식이 아님:", recipeId);
+      console.groupEnd();
+      return null;
+    }
+
+    // DB에서 레시피 조회
+    const { data: recipe, error: recipeError } = await supabase
+      .from("recipes")
+      .select(
+        `
+        *,
+        user:users!recipes_user_id_fkey(id, name),
+        rating_stats:recipe_rating_stats(rating_count, average_rating)
+        `
+      )
+      .eq("id", recipeId)
+      .single();
+
+    if (recipe && !recipeError) {
+      const recipeTyped = recipe as any;
+
+      // 재료 조회
+      const { data: ingredients } = await supabase
+        .from("recipe_ingredients")
+        .select("*")
+        .eq("recipe_id", recipeTyped.id)
+        .order("display_order", { ascending: true });
+
+      // 재료 데이터를 타입에 맞게 변환
+      const ingredientsTyped = (ingredients || []).map((ing: any) => ({
+        ...ing,
+        name: ing.ingredient_name,
+        notes: ing.preparation_note,
+        order_index: ing.display_order,
+      }));
+
+      // 단계 조회
+      const { data: steps } = await supabase
+        .from("recipe_steps")
+        .select("*")
+        .eq("recipe_id", recipeTyped.id)
+        .order("step_number", { ascending: true });
+
+      // 현재 사용자의 평가 조회 (인증된 경우)
+      let userRating: number | undefined;
+      try {
+        const { data: rating } = await supabase
+          .from("recipe_ratings")
+          .select("rating")
+          .eq("recipe_id", recipeTyped.id)
+          .single();
+
+        if (rating) {
+          userRating = parseFloat((rating as any).rating);
+        }
+      } catch (e) {
+        // 인증되지 않은 경우 무시
+      }
+
+      const result: RecipeDetail = {
+        ...recipeTyped,
+        ingredients: ingredientsTyped || [],
+        steps: steps || [],
+        user_rating: userRating,
+        user: (recipeTyped.user as any) || { id: recipeTyped.user_id, name: "익명" },
+        rating_stats: {
+          rating_count:
+            (recipeTyped.rating_stats as any)?.[0]?.rating_count || 0,
+          average_rating:
+            parseFloat((recipeTyped.rating_stats as any)?.[0]?.average_rating || "0") || 0,
+        },
+      };
+
+      console.log("✅ 레시피 조회 성공:", result.id);
+      console.groupEnd();
+      return result;
+    }
+
+    console.error("❌ 레시피를 찾을 수 없음:", recipeError);
+    console.groupEnd();
+    return null;
+  } catch (error) {
+    console.error("❌ getRecipeById 오류:", error);
+    console.groupEnd();
+    return null;
+  }
+}
+

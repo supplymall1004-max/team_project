@@ -66,7 +66,8 @@ export async function generatePersonalDiet(
     snack: Set<string>;
   },
   preferredRiceType?: string,
-  premiumFeatures?: string[]
+  premiumFeatures?: string[],
+  includeFavorites?: boolean // 찜한 식단 포함 여부
 ): Promise<DailyDietPlan> {
   console.group("🍱 개인 맞춤 식단 생성");
   console.log("사용자 ID:", userId);
@@ -129,6 +130,61 @@ export async function generatePersonalDiet(
     const recipes = await getRecipesWithNutrition();
     console.log(`✅ 레시피 목록 조회 완료: ${recipes.length}개`);
     finalAvailableRecipes = recipes.length > 0 ? recipes : undefined;
+  }
+
+  // 5-1. 찜한 식단 포함 처리 (includeFavorites가 true인 경우)
+  if (includeFavorites) {
+    console.log("⭐ 찜한 식단 포함 옵션 활성화");
+    try {
+      const { getFilterableFavoriteMeals, filterFavoriteMeals } = await import("./favorite-meals");
+      
+      // 찜한 식단 조회
+      const favoritesResult = await getFilterableFavoriteMeals();
+      if (favoritesResult.success && favoritesResult.favorites && favoritesResult.favorites.length > 0) {
+        console.log(`📌 찜한 식단 조회 완료: ${favoritesResult.favorites.length}개`);
+        
+        // 찜한 식단 필터링 (건강 프로필에 맞게)
+        const filterResult = await filterFavoriteMeals(favoritesResult.favorites, profile);
+        
+        if (filterResult.success && filterResult.filteredFavorites && filterResult.filteredFavorites.length > 0) {
+          console.log(`✅ 필터링 통과한 찜한 식단: ${filterResult.filteredFavorites.length}개`);
+          if (filterResult.excludedCount && filterResult.excludedCount > 0) {
+            console.log(`⚠️ 필터링 제외된 찜한 식단: ${filterResult.excludedCount}개`);
+          }
+          
+          // 찜한 식단의 레시피를 레시피 후보 배열의 앞부분에 추가 (우선순위)
+          const favoriteRecipes = filterResult.filteredFavorites
+            .map((fav) => fav.recipe!)
+            .filter((recipe): recipe is NonNullable<typeof recipe> => recipe !== undefined);
+          
+          // 레시피를 availableRecipes 형식으로 변환
+          const favoriteRecipesAsAvailable = favoriteRecipes.map((recipe) => ({
+            id: recipe.id || `favorite-${Date.now()}`,
+            title: recipe.title,
+            calories: recipe.nutrition.calories,
+            carbohydrates: recipe.nutrition.carbs,
+            protein: recipe.nutrition.protein,
+            fat: recipe.nutrition.fat,
+            sodium: recipe.nutrition.sodium,
+          }));
+          
+          // 찜한 식단을 앞부분에 추가 (우선순위)
+          finalAvailableRecipes = [
+            ...favoriteRecipesAsAvailable,
+            ...(finalAvailableRecipes || []),
+          ];
+          
+          console.log(`⭐ 찜한 식단 ${favoriteRecipesAsAvailable.length}개를 레시피 후보에 추가 (우선순위)`);
+        } else {
+          console.log("⚠️ 필터링을 통과한 찜한 식단이 없습니다.");
+        }
+      } else {
+        console.log("📌 찜한 식단이 없거나 조회에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("❌ 찜한 식단 처리 중 오류:", error);
+      // 오류가 발생해도 식단 생성은 계속 진행
+    }
   }
 
   // 6. 식사별 칼로리 배분 (어린이의 경우 성장기 비율 적용)

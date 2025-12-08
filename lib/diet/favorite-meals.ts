@@ -13,8 +13,8 @@
 import { createClerkSupabaseClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
-import type { FavoriteMeal } from "@/types/diet";
-import type { MealType } from "@/types/health";
+import type { FavoriteMeal, FavoriteMealWithRecipe } from "@/types/diet";
+import type { MealType, UserHealthProfile } from "@/types/health";
 
 /**
  * UUID 형식인지 확인하는 함수
@@ -344,6 +344,166 @@ export async function getFavoriteMeals(): Promise<{
     return { success: true, favorites: data as FavoriteMeal[] };
   } catch (error) {
     console.error("❌ 즐겨찾기 목록 조회 오류:", error);
+    console.groupEnd();
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
+    };
+  }
+}
+
+/**
+ * 필터링 가능한 찜한 식단 조회 (레시피 상세 정보 포함)
+ * 건강식단 생성 시 사용
+ */
+export async function getFilterableFavoriteMeals(): Promise<{
+  success: boolean;
+  favorites?: import("@/types/diet").FavoriteMealWithRecipe[];
+  error?: string;
+}> {
+  console.group("[FavoriteMeals] 필터링 가능한 찜한 식단 조회");
+
+  try {
+    // 1. 기본 찜한 식단 목록 조회
+    const result = await getFavoriteMeals();
+    if (!result.success || !result.favorites) {
+      console.groupEnd();
+      return result;
+    }
+
+    // 2. 레시피 상세 정보 조회 및 변환
+    const { convertRecipeToRecipeDetailForDiet } = await import("./recipe-converter");
+    const favoritesWithRecipes = await Promise.all(
+      result.favorites.map(async (favorite) => {
+        let recipe: import("@/types/recipe").RecipeDetailForDiet | undefined;
+
+        // recipe_id가 있는 경우 레시피 상세 정보 조회 시도
+        if (favorite.recipe_id && isValidUUID(favorite.recipe_id)) {
+          try {
+            const { getRecipeById } = await import("../recipes/queries");
+            const recipeDetail = await getRecipeById(favorite.recipe_id);
+            
+            if (recipeDetail) {
+              recipe = await convertRecipeToRecipeDetailForDiet(recipeDetail);
+            }
+          } catch (error) {
+            console.warn(`⚠️ 레시피 조회 실패 (recipe_id: ${favorite.recipe_id}):`, error);
+          }
+        }
+
+        // 레시피 정보가 없는 경우 찜한 식단의 정보로 RecipeDetailForDiet 생성
+        if (!recipe) {
+          recipe = {
+            id: favorite.recipe_id || `favorite-${favorite.id}`,
+            title: favorite.recipe_title,
+            source: "favorite",
+            ingredients: [], // 찜한 식단에는 재료 정보가 없음
+            nutrition: {
+              calories: favorite.calories ?? 0,
+              protein: favorite.protein ?? 0,
+              carbs: favorite.carbs ?? 0,
+              fat: favorite.fat ?? 0,
+              sodium: 0,
+              fiber: 0,
+            },
+            mealType: favorite.meal_type ? [favorite.meal_type] : undefined,
+          };
+        }
+
+        return {
+          ...favorite,
+          recipe,
+        };
+      })
+    );
+
+    console.log("✅ 필터링 가능한 찜한 식단 조회 성공:", favoritesWithRecipes.length, "개");
+    console.groupEnd();
+    return {
+      success: true,
+      favorites: favoritesWithRecipes,
+    };
+  } catch (error) {
+    console.error("❌ 필터링 가능한 찜한 식단 조회 오류:", error);
+    console.groupEnd();
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
+    };
+  }
+}
+
+/**
+ * 찜한 식단을 건강 프로필에 맞게 필터링
+ * 필터링을 통과한 찜한 식단만 반환
+ */
+export async function filterFavoriteMeals(
+  favorites: FavoriteMealWithRecipe[],
+  healthProfile: UserHealthProfile
+): Promise<{
+  success: boolean;
+  filteredFavorites?: FavoriteMealWithRecipe[];
+  excludedCount?: number;
+  error?: string;
+}> {
+  console.group("[FavoriteMeals] 찜한 식단 필터링");
+  console.log("찜한 식단 수:", favorites.length);
+  console.log("건강 프로필:", {
+    allergies: healthProfile.allergies,
+    diseases: healthProfile.diseases,
+  });
+
+  try {
+    const { filterRecipes } = await import("./integrated-filter");
+
+    // 레시피 정보가 있는 찜한 식단만 필터링
+    const favoritesWithRecipes = favorites.filter((fav) => fav.recipe);
+    console.log("레시피 정보가 있는 찜한 식단:", favoritesWithRecipes.length, "개");
+
+    if (favoritesWithRecipes.length === 0) {
+      console.log("⚠️ 필터링할 레시피가 없습니다.");
+      console.groupEnd();
+      return {
+        success: true,
+        filteredFavorites: [],
+        excludedCount: favorites.length,
+      };
+    }
+
+    // 레시피 배열 추출
+    const recipes = favoritesWithRecipes
+      .map((fav) => fav.recipe!)
+      .filter((recipe): recipe is NonNullable<typeof recipe> => recipe !== undefined);
+
+    // 통합 필터링 적용
+    const filterResults = await filterRecipes(recipes, healthProfile);
+
+    // 필터링을 통과한 레시피 ID 추출
+    const passedRecipeIds = new Set(
+      filterResults
+        .filter((result) => result.passed)
+        .map((result) => result.recipe.id)
+    );
+
+    // 필터링을 통과한 찜한 식단만 반환
+    const filteredFavorites = favoritesWithRecipes.filter((fav) =>
+      fav.recipe && passedRecipeIds.has(fav.recipe.id || "")
+    );
+
+    const excludedCount = favorites.length - filteredFavorites.length;
+
+    console.log("✅ 필터링 완료:");
+    console.log("  - 통과:", filteredFavorites.length, "개");
+    console.log("  - 제외:", excludedCount, "개");
+    console.groupEnd();
+
+    return {
+      success: true,
+      filteredFavorites,
+      excludedCount,
+    };
+  } catch (error) {
+    console.error("❌ 찜한 식단 필터링 오류:", error);
     console.groupEnd();
     return {
       success: false,

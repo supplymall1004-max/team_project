@@ -5,9 +5,9 @@
  * @description 플랜 선택 및 비교 섹션
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check, Sparkles } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createCheckout } from '@/actions/payments/create-checkout';
 import { useUser } from '@clerk/nextjs';
 
@@ -15,10 +15,20 @@ type PlanType = 'monthly' | 'yearly';
 
 export function PricingSection() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isSignedIn } = useUser();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('monthly');
   const [promoCode, setPromoCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // URL 파라미터에서 프로모션 코드 가져오기
+  useEffect(() => {
+    const urlPromoCode = searchParams?.get('promoCode');
+    if (urlPromoCode) {
+      console.log('[PricingSection] URL에서 프로모션 코드 발견:', urlPromoCode);
+      setPromoCode(urlPromoCode.toUpperCase().trim());
+    }
+  }, [searchParams]);
 
   const plans = {
     monthly: {
