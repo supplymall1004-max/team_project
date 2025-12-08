@@ -65,22 +65,63 @@ export async function POST() {
       // 기본 사용자 이름 생성 (User + ID의 일부)
       const defaultUserName = `User_${userId.slice(-8)}`;
 
-      const { data, error } = await supabase
+      // 먼저 기존 사용자 확인
+      const { data: existingUser, error: checkError } = await supabase
         .from("users")
-        .upsert(
+        .select("id, clerk_id, name")
+        .eq("clerk_id", userId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error("❌ 사용자 확인 실패:", checkError);
+        console.groupEnd();
+        return NextResponse.json(
           {
+            error: "Failed to check user",
+            details: checkError.message,
+            success: false,
+          },
+          { status: 500 }
+        );
+      }
+
+      let data;
+      let error;
+
+      if (existingUser) {
+        // 기존 사용자가 있으면 업데이트
+        console.log("📝 기존 사용자 업데이트 중...");
+        const { data: updatedUser, error: updateError } = await supabase
+          .from("users")
+          .update({ name: defaultUserName })
+          .eq("clerk_id", userId)
+          .select()
+          .single();
+        
+        data = updatedUser;
+        error = updateError;
+      } else {
+        // 새 사용자 생성 (id는 자동 생성됨)
+        console.log("➕ 새 사용자 생성 중...");
+        const { data: newUser, error: insertError } = await supabase
+          .from("users")
+          .insert({
             clerk_id: userId,
             name: defaultUserName,
-          },
-          {
-            onConflict: "clerk_id",
-          }
-        )
-        .select()
-        .single();
+          })
+          .select()
+          .single();
+        
+        data = newUser;
+        error = insertError;
+      }
 
       if (error) {
         console.error("❌ 기본 사용자 정보 저장 실패:", error);
+        console.error("  - 에러 코드:", error.code);
+        console.error("  - 에러 메시지:", error.message);
+        console.error("  - 에러 상세:", error.details);
+        console.error("  - 에러 힌트:", error.hint);
         console.groupEnd();
         return NextResponse.json(
           {
@@ -118,22 +159,63 @@ export async function POST() {
 
     console.log("💾 Supabase에 동기화 중...");
 
-    const { data, error } = await supabase
+    // 먼저 기존 사용자 확인
+    const { data: existingUser, error: checkError } = await supabase
       .from("users")
-      .upsert(
+      .select("id, clerk_id, name")
+      .eq("clerk_id", clerkUser.id)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error("❌ 사용자 확인 실패:", checkError);
+      console.groupEnd();
+      return NextResponse.json(
         {
+          error: "Failed to check user",
+          details: checkError.message,
+          success: false,
+        },
+        { status: 500 }
+      );
+    }
+
+    let data;
+    let error;
+
+    if (existingUser) {
+      // 기존 사용자가 있으면 업데이트
+      console.log("📝 기존 사용자 업데이트 중...");
+      const { data: updatedUser, error: updateError } = await supabase
+        .from("users")
+        .update({ name: userName })
+        .eq("clerk_id", clerkUser.id)
+        .select()
+        .single();
+      
+      data = updatedUser;
+      error = updateError;
+    } else {
+      // 새 사용자 생성 (id는 자동 생성됨)
+      console.log("➕ 새 사용자 생성 중...");
+      const { data: newUser, error: insertError } = await supabase
+        .from("users")
+        .insert({
           clerk_id: clerkUser.id,
           name: userName,
-        },
-        {
-          onConflict: "clerk_id",
-        }
-      )
-      .select()
-      .single();
+        })
+        .select()
+        .single();
+      
+      data = newUser;
+      error = insertError;
+    }
 
     if (error) {
       console.error("❌ Supabase 동기화 실패:", error);
+      console.error("  - 에러 코드:", error.code);
+      console.error("  - 에러 메시지:", error.message);
+      console.error("  - 에러 상세:", error.details);
+      console.error("  - 에러 힌트:", error.hint);
       console.groupEnd();
       return NextResponse.json(
         {

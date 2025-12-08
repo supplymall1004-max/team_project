@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 const popupFormSchema = z.object({
@@ -39,6 +40,7 @@ const popupFormSchema = z.object({
   active_from: z.string(),
   active_until: z.string().optional(),
   priority: z.number().min(0).max(100),
+  display_type: z.enum(["modal", "checkpoint"]).default("modal"),
 });
 
 type PopupFormValues = z.infer<typeof popupFormSchema>;
@@ -70,6 +72,7 @@ export function PopupCreateDialog({
         .toISOString()
         .slice(0, 16),
       priority: 50,
+      display_type: "modal",
     },
   });
 
@@ -86,13 +89,14 @@ export function PopupCreateDialog({
         const result = await savePopup({
           title: data.title,
           body: data.body,
-          image_url: imageUrl || null,
-          link_url: data.link_url || null,
+          image_url: imageUrl && imageUrl.trim() !== "" ? imageUrl : null,
+          link_url: data.link_url && data.link_url.trim() !== "" ? data.link_url : null,
           active_from: new Date(data.active_from).toISOString(),
           active_until: data.active_until
             ? new Date(data.active_until).toISOString()
             : null,
           priority: data.priority,
+          display_type: data.display_type,
           target_segments: ["all"],
           metadata: {},
         });
@@ -240,6 +244,32 @@ export function PopupCreateDialog({
                 </p>
               )}
             </div>
+          </div>
+
+          {/* 표시 타입 */}
+          <div className="space-y-2">
+            <Label htmlFor="display_type">표시 타입 *</Label>
+            <Select
+              value={form.watch("display_type")}
+              onValueChange={(value) => form.setValue("display_type", value as "modal" | "checkpoint")}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger id="display_type">
+                <SelectValue placeholder="표시 타입을 선택하세요" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="modal">일반 모달 (중앙 팝업)</SelectItem>
+                <SelectItem value="checkpoint">체크포인트 배너 (오른쪽 상단)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              일반 모달: 화면 중앙에 표시되는 팝업 | 체크포인트 배너: 오른쪽 상단에 고정되는 배너
+            </p>
+            {form.formState.errors.display_type && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.display_type.message}
+              </p>
+            )}
           </div>
 
           {/* 우선순위 */}

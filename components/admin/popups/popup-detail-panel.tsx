@@ -49,6 +49,7 @@ export function PopupDetailPanel({ selectedPopup, onPopupUpdated }: PopupDetailP
     target_segments: [] as string[],
     image_url: null as string | null,
     link_url: null as string | null,
+    display_type: "modal" as "modal" | "checkpoint",
   });
 
   const { toast } = useToast();
@@ -65,6 +66,7 @@ export function PopupDetailPanel({ selectedPopup, onPopupUpdated }: PopupDetailP
         target_segments: [...selectedPopup.target_segments],
         image_url: selectedPopup.image_url || null,
         link_url: selectedPopup.link_url || null,
+        display_type: selectedPopup.display_type || "modal",
       });
       setIsEditing(false);
     }
@@ -95,6 +97,7 @@ export function PopupDetailPanel({ selectedPopup, onPopupUpdated }: PopupDetailP
         target_segments: editForm.target_segments,
         image_url: editForm.image_url,
         link_url: editForm.link_url,
+        display_type: editForm.display_type,
       });
 
       if (result.success) {
@@ -549,6 +552,40 @@ export function PopupDetailPanel({ selectedPopup, onPopupUpdated }: PopupDetailP
                   ) : (
                     <Badge variant="secondary">전체 사용자</Badge>
                   )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 표시 타입 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">표시 타입</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <Select
+                    value={editForm.display_type}
+                    onValueChange={(value) => handleFormChange("display_type", value as "modal" | "checkpoint")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="modal">일반 모달 (중앙 팝업)</SelectItem>
+                      <SelectItem value="checkpoint">체크포인트 배너 (오른쪽 상단)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    일반 모달: 화면 중앙에 표시되는 팝업 | 체크포인트 배너: 오른쪽 상단에 고정되는 배너
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">
+                    {selectedPopup.display_type === "modal" ? "일반 모달" : "체크포인트 배너"}
+                  </Badge>
                 </div>
               )}
             </CardContent>

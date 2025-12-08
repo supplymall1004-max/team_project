@@ -20,6 +20,7 @@ import {
   formatDifficulty,
   getRatingStars,
 } from "@/lib/recipes/utils";
+import { getRecipeImageUrlEnhanced } from "@/lib/utils/recipe-image";
 import { cn } from "@/lib/utils";
 
 interface RecipeCardProps {
@@ -31,10 +32,8 @@ export function RecipeCard({ recipe, className }: RecipeCardProps) {
   const [imageError, setImageError] = useState(false);
   const ratingStars = getRatingStars(recipe.average_rating || 0);
 
-  // 식약처 API 이미지 우선 사용, 없으면 thumbnail_url, 둘 다 없으면 기본 이미지
-  // getRecipes에서 foodsafety_att_file_no_main을 thumbnail_url에 우선 적용하므로
-  // thumbnail_url을 직접 사용
-  const imageUrl = recipe.thumbnail_url || "/images/food/default.svg";
+  // 레시피 이미지 URL 생성 (우선순위: 직접 링크 > 썸네일 > 카테고리 기본 이미지)
+  const imageUrl = getRecipeImageUrlEnhanced(recipe.title, recipe.thumbnail_url);
 
 
   const handleClick = () => {
@@ -54,7 +53,7 @@ export function RecipeCard({ recipe, className }: RecipeCardProps) {
         )}
       >
       {/* 썸네일 이미지 */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
+      <div className="relative aspect-[3/2] w-full overflow-hidden bg-gray-100">
         {!imageError ? (
           <Image
             src={imageUrl}

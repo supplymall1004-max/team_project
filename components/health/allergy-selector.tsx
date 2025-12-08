@@ -7,7 +7,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Check, Plus, X, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Allergy {
     code: string;
@@ -36,13 +37,11 @@ export function AllergySelector({
     onChange,
     showMajor8 = true,
     showSpecial = true,
-    allowCustomInput = true,
+    allowCustomInput = false,
 }: AllergySelectorProps) {
     const [major8Allergies, setMajor8Allergies] = useState<Allergy[]>([]);
     const [specialAllergies, setSpecialAllergies] = useState<Allergy[]>([]);
     const [loading, setLoading] = useState(true);
-    const [customInput, setCustomInput] = useState('');
-    const [showCustomInput, setShowCustomInput] = useState(false);
 
     useEffect(() => {
         fetchAllergies();
@@ -58,11 +57,20 @@ export function AllergySelector({
             const major8Result = await major8Response.json();
             const specialResult = await specialResponse.json();
 
+            console.log('[AllergySelector] 8대 알레르기 응답:', major8Result);
+            console.log('[AllergySelector] 특수 알레르기 응답:', specialResult);
+            console.log('[AllergySelector] 8대 알레르기 개수:', major8Result.data?.length || 0);
+            console.log('[AllergySelector] 특수 알레르기 개수:', specialResult.data?.length || 0);
+
             if (major8Result.success) {
-                setMajor8Allergies(major8Result.data);
+                setMajor8Allergies(major8Result.data || []);
+            } else {
+                console.error('[AllergySelector] 8대 알레르기 API 실패:', major8Result.error);
             }
             if (specialResult.success) {
-                setSpecialAllergies(specialResult.data);
+                setSpecialAllergies(specialResult.data || []);
+            } else {
+                console.error('[AllergySelector] 특수 알레르기 API 실패:', specialResult.error);
             }
         } catch (error) {
             console.error('알레르기 목록 조회 오류:', error);
@@ -81,23 +89,6 @@ export function AllergySelector({
         } else {
             onChange([...selectedAllergies, { code: allergy.code, custom_name: null }]);
         }
-    };
-
-    const addCustomAllergy = () => {
-        if (!customInput.trim()) return;
-
-        const customCode = `custom_${Date.now()}`;
-        onChange([
-            ...selectedAllergies,
-            { code: customCode, custom_name: customInput.trim() },
-        ]);
-
-        setCustomInput('');
-        setShowCustomInput(false);
-    };
-
-    const removeCustomAllergy = (code: string) => {
-        onChange(selectedAllergies.filter((a) => a.code !== code));
     };
 
     const getSeverityColor = (severity: string) => {
@@ -121,6 +112,9 @@ export function AllergySelector({
         );
     }
 
+    // 모든 알레르기를 하나의 리스트로 합치기 (사용자 정의 제외)
+    const allAllergies = [...major8Allergies, ...specialAllergies];
+
     return (
         <div className="space-y-6">
             {/* 경고 메시지 */}
@@ -139,183 +133,60 @@ export function AllergySelector({
                 </div>
             )}
 
-            {/* 8대 주요 알레르기 */}
-            {showMajor8 && major8Allergies.length > 0 && (
-                <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-muted-foreground">
-                        8대 주요 알레르기
-                    </h4>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {major8Allergies.map((allergy) => (
-                            <button
-                                key={allergy.code}
-                                type="button"
-                                onClick={() => toggleAllergy(allergy)}
-                                className={`
-                  flex items-center gap-3 p-3 rounded-lg border-2 transition-all
-                  ${isSelected(allergy.code)
-                                        ? 'border-red-500 bg-red-50'
-                                        : 'border-border hover:border-red-300'
-                                    }
-                `}
-                            >
-                                <div
-                                    className={`
-                    flex items-center justify-center w-5 h-5 rounded border-2
-                    ${isSelected(allergy.code)
-                                            ? 'border-red-500 bg-red-500'
-                                            : 'border-muted-foreground'
-                                        }
-                  `}
-                                >
-                                    {isSelected(allergy.code) && (
-                                        <Check className="w-3 h-3 text-white" />
-                                    )}
-                                </div>
-
-                                <div className="flex-1 text-left">
-                                    <div className="font-medium text-sm">{allergy.name_ko}</div>
-                                    {allergy.description && (
-                                        <div className="text-xs text-muted-foreground mt-0.5">
-                                            {allergy.description}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {allergy.severity_level === 'critical' && (
-                                    <AlertTriangle className={`w-4 h-4 ${getSeverityColor(allergy.severity_level)}`} />
-                                )}
-                            </button>
-                        ))}
+            {/* 체크리스트 형태로 알레르기 목록 표시 */}
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                {/* 데이터베이스 알레르기 목록 */}
+                {allAllergies.length === 0 && !loading && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                        등록된 알레르기가 없습니다.
                     </div>
-                </div>
-            )}
-
-            {/* 특수 알레르기 */}
-            {showSpecial && specialAllergies.length > 0 && (
-                <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-muted-foreground">
-                        특수 알레르기 및 불내증
-                    </h4>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {specialAllergies.map((allergy) => (
-                            <button
-                                key={allergy.code}
-                                type="button"
-                                onClick={() => toggleAllergy(allergy)}
-                                className={`
-                  flex items-center gap-3 p-3 rounded-lg border-2 transition-all
-                  ${isSelected(allergy.code)
-                                        ? 'border-orange-500 bg-orange-50'
-                                        : 'border-border hover:border-orange-300'
-                                    }
-                `}
-                            >
-                                <div
-                                    className={`
-                    flex items-center justify-center w-5 h-5 rounded border-2
-                    ${isSelected(allergy.code)
-                                            ? 'border-orange-500 bg-orange-500'
-                                            : 'border-muted-foreground'
-                                        }
-                  `}
-                                >
-                                    {isSelected(allergy.code) && (
-                                        <Check className="w-3 h-3 text-white" />
-                                    )}
-                                </div>
-
-                                <div className="flex-1 text-left">
-                                    <div className="font-medium text-sm">{allergy.name_ko}</div>
-                                    {allergy.description && (
-                                        <div className="text-xs text-muted-foreground mt-0.5">
-                                            {allergy.description}
-                                        </div>
-                                    )}
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* 사용자 정의 알레르기 입력 */}
-            {allowCustomInput && (
-                <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-muted-foreground">
-                        사용자 정의 알레르기
-                    </h4>
-
-                    {/* 선택된 사용자 정의 알레르기 */}
-                    {selectedAllergies
-                        .filter((a) => a.code.startsWith('custom_'))
-                        .map((allergy) => (
-                            <div
-                                key={allergy.code}
-                                className="flex items-center gap-2 p-3 rounded-lg border-2 border-red-500 bg-red-50"
-                            >
-                                <div className="flex-1 font-medium text-sm">
-                                    {allergy.custom_name}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => removeCustomAllergy(allergy.code)}
-                                    className="text-muted-foreground hover:text-destructive"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </div>
-                        ))}
-
-                    {/* 추가 버튼 또는 입력 폼 */}
-                    {showCustomInput ? (
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={customInput}
-                                onChange={(e) => setCustomInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        addCustomAllergy();
-                                    }
-                                }}
-                                placeholder="알레르기 항원 입력"
-                                className="flex-1 px-3 py-2 rounded-lg border-2 border-border focus:border-red-500 outline-none"
-                                autoFocus
-                            />
-                            <button
-                                type="button"
-                                onClick={addCustomAllergy}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                            >
-                                추가
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowCustomInput(false);
-                                    setCustomInput('');
-                                }}
-                                className="px-4 py-2 border-2 border-border rounded-lg hover:bg-muted"
-                            >
-                                취소
-                            </button>
-                        </div>
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={() => setShowCustomInput(true)}
-                            className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-border rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
+                )}
+                
+                {allAllergies.map((allergy) => {
+                    const selected = isSelected(allergy.code);
+                    const isCritical = allergy.severity_level === 'critical';
+                    return (
+                        <label
+                            key={allergy.code}
+                            htmlFor={`allergy-${allergy.code}`}
+                            className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                selected
+                                    ? isCritical
+                                        ? 'border-red-500 bg-red-50 shadow-sm'
+                                        : 'border-orange-500 bg-orange-50 shadow-sm'
+                                    : 'border-border hover:border-red-300 hover:bg-muted/30'
+                            }`}
                         >
-                            <Plus className="w-4 h-4" />
-                            <span className="text-sm">사용자 정의 알레르기 추가</span>
-                        </button>
-                    )}
-                </div>
-            )}
+                            <Checkbox
+                                id={`allergy-${allergy.code}`}
+                                checked={selected}
+                                onCheckedChange={() => toggleAllergy(allergy)}
+                                className="mt-0.5 flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <span className={`font-medium text-sm ${
+                                        selected && isCritical ? 'text-red-900' : 
+                                        selected ? 'text-orange-900' : 
+                                        'text-foreground'
+                                    }`}>
+                                        {allergy.name_ko}
+                                    </span>
+                                    {isCritical && (
+                                        <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${getSeverityColor(allergy.severity_level)}`} />
+                                    )}
+                                </div>
+                                {allergy.description && (
+                                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                        {allergy.description}
+                                    </div>
+                                )}
+                            </div>
+                        </label>
+                    );
+                })}
+
+            </div>
         </div>
     );
 }

@@ -188,7 +188,7 @@
 
 ---
 
-## ⏳ 진행 중 · 남은 우선순위 작업
+## ⏳ 진행 중 · 후속 작업
 
 ### A. 홈페이지 콘텐츠 관리 후속 작업
 - [ ] 관리자 페이지 UI 개선 (배열 편집 전용 UI, 이미지 URL 입력 필드)
@@ -198,6 +198,13 @@
 ### A-1. 홈페이지 UI/UX 개선 (배달의민족 앱 참고)
 - [x] 배달의민족 앱 UI/UX 분석 문서 작성 (`docs/ui-ux-analysis-baemin.md`)
 - [x] 상세 구현 계획서 작성 (`docs/implementation-plan-homepage-ui-ux.md`)
+- [x] 마카의 음식 동화 섹션 추가 (`components/storybook/storybook-section.tsx`)
+  - [x] 스토리북 플레이어 페이지 생성 (`app/(main)/storybook/page.tsx`)
+  - [x] 인터랙티브 방 형태 UI (`components/storybook/storybook-room.tsx`)
+  - [x] YouTube 비디오 재생 기능 (`components/storybook/vintage-tv.tsx`)
+  - [x] 선물 상자 플레이리스트 (`components/storybook/gift-box.tsx`)
+  - [x] HeroSection 빠른 시작 카드에 추가
+  - [x] 바로가기 메뉴에 추가
 
 #### Phase 1: 핵심 레이아웃 (1주)
 - [x] 고정 헤더 컴포넌트 (`components/home/fixed-header.tsx`)
@@ -319,6 +326,94 @@
   - [x] 엄격한 알레르기 필터링 (파생 재료 포함)
   - [x] 응급 조치 페이지 (`/health/emergency`) 및 안전 경고 컴포넌트
 
+
+### B-2. 프리미엄 식단 고급 기능
+- [x] 즐겨찾기 기능 구현
+  - [x] `favorite_meals` 테이블 생성
+  - [x] 즐겨찾기 서비스 (`lib/diet/favorite-meals.ts`)
+  - [x] 즐겨찾기 버튼 컴포넌트 (`components/diet/favorite-button.tsx`)
+  - [x] 식단 카드에 즐겨찾기 버튼 통합
+  - [x] 즐겨찾기 목록 페이지 (`app/(dashboard)/diet/favorites/page.tsx`)
+- [x] 밀키트 식단 기능 구현
+  - [x] `meal_kits`, `meal_kit_products` 테이블 생성
+  - [x] 밀키트 서비스 (`lib/diet/meal-kit-service.ts`) - 쿠팡 API + 폴백
+  - [x] 밀키트 선택 UI (`components/diet/meal-kit-selector.tsx`)
+  - [x] 식단 뷰에 밀키트 옵션 통합
+- [x] 특수 식단 타입 필터링 구현
+  - [x] 특수 식단 필터 로직 (`lib/diet/special-diet-filters.ts`)
+  - [x] 도시락 반찬 위주 식단 필터
+  - [x] 헬스인 닭가슴살 위주 식단 필터
+  - [x] 다이어트 저탄수화물 식단 필터
+  - [x] 비건/베지테리언 식단 필터
+  - [x] 식단 추천 로직에 통합 (`lib/diet/recommendation.ts`, `personal-diet-generator.ts`)
+- [x] 건강 정보 폼에 식단 타입 선택 추가
+  - [x] 다중 선택 체크박스 UI
+  - [x] 프리미엄 전용 안내 배너
+- [x] 프리미엄 가드 적용
+  - [x] 즐겨찾기 버튼 프리미엄 체크
+  - [x] 밀키트 선택 UI 프리미엄 체크
+  - [x] 특수 식단 타입 선택 프리미엄 체크
+- [ ] 쿠팡 파트너스 API 실제 연동 (현재는 시뮬레이션)
+- [x] 밀키트 제품 수동 등록 관리자 페이지
+  - [x] Server Actions 생성 (list, save, delete)
+  - [x] 관리자 페이지 컴포넌트 (page.tsx, meal-kits-page-client.tsx)
+  - [x] UI 컴포넌트 (meal-kit-table, meal-kit-detail-panel, meal-kit-create-dialog)
+  - [x] 관리자 사이드바에 밀키트 메뉴 추가
+
+### B-1. 질병관리청 (KCDC) 연동 및 예방접종 알림
+- [x] KCDC 공개 API 파싱 유틸 생성 (`lib/kcdc/kcdc-parser.ts`)
+- [x] 공공데이터포털 API 연동 (인플루엔자, 예방접종)
+- [x] API 키 설정 및 환경 변수 관리
+- [x] 폴백 전략 (API 실패 시 더미 데이터)
+- [x] `app/api/health/kcdc/refresh` Server Action/Route 구현
+- [x] `app/api/health/kcdc/alerts` 조회 API 구현
+- [x] Supabase Edge Function 생성 (`supabase/functions/sync-kcdc-alerts`)
+- [x] 독감/예방접종 팝업 UI (`components/health/kcdc-alert-popup.tsx`)
+- [x] KCDC 알림 Provider (`components/providers/kcdc-alerts-provider.tsx`)
+- [x] `kcdc_alerts` 테이블 및 캐시 전략
+- [x] API 설정 가이드 작성 (`docs/KCDC_API_SETUP.md`)
+- [x] Supabase Edge Function 크론 스케줄 설정 (매일 05:00 KST)
+  - [x] pg_cron 확장 활성화 마이그레이션
+  - [x] KCDC 동기화 크론 잡 생성 SQL
+  - [x] 크론 잡 설정 가이드 문서 작성
+- [ ] 리마인더 주기 설정 (주간/월간) - DB 설정 테이블 추가 필요
+
+### C. 테스트 & 품질
+- [ ] 유닛 테스트 확대 (현재: 이미지 파이프라인만 완료)
+- [ ] 통합 테스트 작성
+- [ ] E2E 테스트 (Playwright)
+- [ ] 모바일 실제 기기 테스트
+
+### D. 보안 · 법무
+- [ ] 민감 데이터 암호화 (개인 건강 정보)
+- [ ] 결제/상업 기능 추가 시 보안 플로우 설계
+- [ ] 정기 보안 감사
+
+### E. 성능 · 접근성
+- [ ] CDN 구성 (이미지/정적 자산)
+- [ ] DB 쿼리 튜닝 및 인덱스 최적화
+- [ ] 스크린리더/보이스오버 수동 테스트
+- [ ] Lighthouse 성능 점수 개선
+
+### E-1. 팝업 인프라 & 앱 상태 QA
+- [ ] 공통 팝업 상태 관리 훅 정의
+- [ ] 팝업 로그 정책 수립
+- [ ] 앱(WebView) 시뮬레이터 테스트 체크리스트
+- [ ] 디자인 시스템 기준 준수 검증 (버튼 48px, 대비 4.5:1)
+
+### F. 문서화
+- [ ] API 문서 작성 (Swagger/OpenAPI)
+- [ ] 컴포넌트 스토리북 구축
+- [ ] 배포 & 운영 가이드 작성
+- [ ] 사용자 가이드 작성 (선택)
+- [ ] Admin 콘솔 릴리즈 노트 및 사용 가이드
+
+---
+
+## 🚀 구현 가능한 기능 (Future Enhancements)
+
+다음 기능들은 현재 구현되지 않았으나, 향후 개발 가능한 기능들입니다.
+
 ### B-3. 건강정보 관리 시스템 대폭 강화 (문서 기반 구현)
 - [ ] **데이터베이스 스키마 설계 및 마이그레이션**
   - [ ] `diseases` 테이블 생성 (질병 마스터 데이터)
@@ -423,87 +518,6 @@
   - [ ] 의료 면책 조항 강화
   - [ ] API 문서 업데이트
 
-### B-2. 프리미엄 식단 고급 기능
-- [x] 즐겨찾기 기능 구현
-  - [x] `favorite_meals` 테이블 생성
-  - [x] 즐겨찾기 서비스 (`lib/diet/favorite-meals.ts`)
-  - [x] 즐겨찾기 버튼 컴포넌트 (`components/diet/favorite-button.tsx`)
-  - [x] 식단 카드에 즐겨찾기 버튼 통합
-  - [x] 즐겨찾기 목록 페이지 (`app/(dashboard)/diet/favorites/page.tsx`)
-- [x] 밀키트 식단 기능 구현
-  - [x] `meal_kits`, `meal_kit_products` 테이블 생성
-  - [x] 밀키트 서비스 (`lib/diet/meal-kit-service.ts`) - 쿠팡 API + 폴백
-  - [x] 밀키트 선택 UI (`components/diet/meal-kit-selector.tsx`)
-  - [x] 식단 뷰에 밀키트 옵션 통합
-- [x] 특수 식단 타입 필터링 구현
-  - [x] 특수 식단 필터 로직 (`lib/diet/special-diet-filters.ts`)
-  - [x] 도시락 반찬 위주 식단 필터
-  - [x] 헬스인 닭가슴살 위주 식단 필터
-  - [x] 다이어트 저탄수화물 식단 필터
-  - [x] 비건/베지테리언 식단 필터
-  - [x] 식단 추천 로직에 통합 (`lib/diet/recommendation.ts`, `personal-diet-generator.ts`)
-- [x] 건강 정보 폼에 식단 타입 선택 추가
-  - [x] 다중 선택 체크박스 UI
-  - [x] 프리미엄 전용 안내 배너
-- [x] 프리미엄 가드 적용
-  - [x] 즐겨찾기 버튼 프리미엄 체크
-  - [x] 밀키트 선택 UI 프리미엄 체크
-  - [x] 특수 식단 타입 선택 프리미엄 체크
-- [ ] 쿠팡 파트너스 API 실제 연동 (현재는 시뮬레이션)
-- [x] 밀키트 제품 수동 등록 관리자 페이지
-  - [x] Server Actions 생성 (list, save, delete)
-  - [x] 관리자 페이지 컴포넌트 (page.tsx, meal-kits-page-client.tsx)
-  - [x] UI 컴포넌트 (meal-kit-table, meal-kit-detail-panel, meal-kit-create-dialog)
-  - [x] 관리자 사이드바에 밀키트 메뉴 추가
-
-### B-1. 질병관리청 (KCDC) 연동 및 예방접종 알림
-- [x] KCDC 공개 API 파싱 유틸 생성 (`lib/kcdc/kcdc-parser.ts`)
-- [x] 공공데이터포털 API 연동 (인플루엔자, 예방접종)
-- [x] API 키 설정 및 환경 변수 관리
-- [x] 폴백 전략 (API 실패 시 더미 데이터)
-- [x] `app/api/health/kcdc/refresh` Server Action/Route 구현
-- [x] `app/api/health/kcdc/alerts` 조회 API 구현
-- [x] Supabase Edge Function 생성 (`supabase/functions/sync-kcdc-alerts`)
-- [x] 독감/예방접종 팝업 UI (`components/health/kcdc-alert-popup.tsx`)
-- [x] KCDC 알림 Provider (`components/providers/kcdc-alerts-provider.tsx`)
-- [x] `kcdc_alerts` 테이블 및 캐시 전략
-- [x] API 설정 가이드 작성 (`docs/KCDC_API_SETUP.md`)
-- [x] Supabase Edge Function 크론 스케줄 설정 (매일 05:00 KST)
-  - [x] pg_cron 확장 활성화 마이그레이션
-  - [x] KCDC 동기화 크론 잡 생성 SQL
-  - [x] 크론 잡 설정 가이드 문서 작성
-- [ ] 리마인더 주기 설정 (주간/월간) - DB 설정 테이블 추가 필요
-
-### C. 테스트 & 품질
-- [ ] 유닛 테스트 확대 (현재: 이미지 파이프라인만 완료)
-- [ ] 통합 테스트 작성
-- [ ] E2E 테스트 (Playwright)
-- [ ] 모바일 실제 기기 테스트
-
-### D. 보안 · 법무
-- [ ] 민감 데이터 암호화 (개인 건강 정보)
-- [ ] 결제/상업 기능 추가 시 보안 플로우 설계
-- [ ] 정기 보안 감사
-
-### E. 성능 · 접근성
-- [ ] CDN 구성 (이미지/정적 자산)
-- [ ] DB 쿼리 튜닝 및 인덱스 최적화
-- [ ] 스크린리더/보이스오버 수동 테스트
-- [ ] Lighthouse 성능 점수 개선
-
-### E-1. 팝업 인프라 & 앱 상태 QA
-- [ ] 공통 팝업 상태 관리 훅 정의
-- [ ] 팝업 로그 정책 수립
-- [ ] 앱(WebView) 시뮬레이터 테스트 체크리스트
-- [ ] 디자인 시스템 기준 준수 검증 (버튼 48px, 대비 4.5:1)
-
-### F. 문서화
-- [ ] API 문서 작성 (Swagger/OpenAPI)
-- [ ] 컴포넌트 스토리북 구축
-- [ ] 배포 & 운영 가이드 작성
-- [ ] 사용자 가이드 작성 (선택)
-- [ ] Admin 콘솔 릴리즈 노트 및 사용 가이드
-
 ---
 
 ## 🔄 Post-MVP 기능 (추후 개발)
@@ -551,5 +565,5 @@
 
 ---
 
-**마지막 업데이트**: 2025-11-30  
-**다음 마일스톤**: KCDC 연동, 주간 식단, 테스트 확대, 홈페이지 콘텐츠 관리 UI 개선
+**마지막 업데이트**: 2025-12-01  
+**다음 마일스톤**: 테스트 확대, 홈페이지 콘텐츠 관리 UI 개선, 성능 최적화

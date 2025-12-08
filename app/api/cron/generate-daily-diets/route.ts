@@ -2,8 +2,8 @@
  * @file app/api/cron/generate-daily-diets/route.ts
  * @description 자동 식단 생성 Cron Job
  * 
- * 매일 오후 6시(18:00)에 실행되어 다음 날 일일 식단과 다음 주 주간 식단을 자동 생성
- * - 사용자가 재료 확인 및 구매할 시간을 확보하기 위해 전날 오후 6시에 생성
+ * 매일 오후 6시(18:00)에 실행되어 오늘 날짜의 일일 식단과 다음 주 주간 식단을 자동 생성
+ * - 오후 6시에 오늘 식단을 생성하여 사용자가 당일 식단을 확인할 수 있도록 함
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -45,12 +45,11 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClerkSupabaseClient();
 
-    // 다음 날 날짜 계산
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const targetDate = tomorrow.toISOString().split("T")[0];
+    // 오늘 날짜 계산 (홈페이지에서 오늘 식단을 조회하므로 오늘 날짜로 생성)
+    const today = new Date();
+    const targetDate = today.toISOString().split("T")[0];
 
-    console.log("대상 날짜:", targetDate);
+    console.log("대상 날짜 (오늘):", targetDate);
 
     // 모든 활성 사용자 조회
     const { data: users, error: usersError } = await supabase
@@ -88,7 +87,6 @@ export async function GET(request: NextRequest) {
 
     // 다음 주 월요일 날짜 계산 (주간 식단용)
     const nextMonday = getNextMonday();
-    const today = new Date();
     const dayOfWeek = today.getDay(); // 0=일요일, 6=토요일
     const isSunday = dayOfWeek === 0;
     
@@ -119,7 +117,7 @@ export async function GET(request: NextRequest) {
           .select("*")
           .eq("user_id", user.id);
 
-        // 1. 일일 식단 생성 (다음 날)
+        // 1. 일일 식단 생성 (오늘)
         if (familyMembers && familyMembers.length > 0) {
           console.log(`👨‍👩‍👧‍👦 가족 식단 생성 (구성원: ${familyMembers.length}명)`);
           
@@ -268,7 +266,7 @@ async function saveFamilyDietToDatabase(
             recipe_title: meal.plan.recipe.title,
             recipe_description: meal.plan.recipe.description || "",
             calories: meal.plan.nutrition?.calories || meal.plan.recipe.calories,
-            carbohydrates: meal.plan.nutrition?.carbohydrates || meal.plan.recipe.carbohydrates,
+            carbohydrates: meal.plan.nutrition?.carbs || meal.plan.recipe.carbs || 0,
             protein: meal.plan.nutrition?.protein || meal.plan.recipe.protein,
             fat: meal.plan.nutrition?.fat || meal.plan.recipe.fat,
             sodium: meal.plan.nutrition?.sodium || meal.plan.recipe.sodium,
@@ -300,7 +298,7 @@ async function saveFamilyDietToDatabase(
           recipe_title: meal.plan.recipe.title,
           recipe_description: meal.plan.recipe.description || "",
           calories: meal.plan.nutrition?.calories || meal.plan.recipe.calories,
-          carbohydrates: meal.plan.nutrition?.carbohydrates || meal.plan.recipe.carbohydrates,
+          carbohydrates: meal.plan.nutrition?.carbs || meal.plan.recipe.carbs || 0,
           protein: meal.plan.nutrition?.protein || meal.plan.recipe.protein,
           fat: meal.plan.nutrition?.fat || meal.plan.recipe.fat,
           sodium: meal.plan.nutrition?.sodium || meal.plan.recipe.sodium,
@@ -360,7 +358,7 @@ async function savePersonalDietToDatabase(
         recipe_title: meal.plan.recipe.title,
         recipe_description: meal.plan.recipe.description || "",
         calories: meal.plan.nutrition?.calories || meal.plan.recipe.calories,
-        carbohydrates: meal.plan.nutrition?.carbohydrates || meal.plan.recipe.carbohydrates,
+        carbohydrates: meal.plan.nutrition?.carbs || meal.plan.recipe.carbs || 0,
         protein: meal.plan.nutrition?.protein || meal.plan.recipe.protein,
         fat: meal.plan.nutrition?.fat || meal.plan.recipe.fat,
         sodium: meal.plan.nutrition?.sodium || meal.plan.recipe.sodium,
@@ -449,7 +447,7 @@ async function saveWeeklyDietToDatabase(
               recipe_title: meal.recipe.title || `${mealType} 식사`,
               recipe_description: meal.recipe.description || "",
               calories: meal.nutrition?.calories || meal.recipe.calories || 0,
-              carbohydrates: meal.nutrition?.carbohydrates || meal.recipe.carbohydrates || 0,
+              carbohydrates: meal.nutrition?.carbs || meal.recipe.carbs || 0,
               protein: meal.nutrition?.protein || meal.recipe.protein || 0,
               fat: meal.nutrition?.fat || meal.recipe.fat || 0,
               sodium: meal.nutrition?.sodium || meal.recipe.sodium || 0,
@@ -470,7 +468,7 @@ async function saveWeeklyDietToDatabase(
               recipe_title: summaryItems.length > 0 ? summaryItems.join(" · ") : `${mealType} 식사`,
               recipe_description: `${mealType} 식사 구성`,
               calories: meal.totalNutrition.calories || 0,
-              carbohydrates: meal.totalNutrition.carbohydrates || 0,
+              carbohydrates: meal.totalNutrition.carbs || 0,
               protein: meal.totalNutrition.protein || 0,
               fat: meal.totalNutrition.fat || 0,
               sodium: meal.totalNutrition.sodium || 0,

@@ -4,7 +4,6 @@
  * 고서(古書) 느낌의 전통적인 디자인 적용
  */
 
-import Image from "next/image";
 import { RoyalRecipe } from "@/lib/royal-recipes/parser";
 import { getRecipeImages } from "@/lib/royal-recipes/images";
 
@@ -45,19 +44,16 @@ export function RoyalRecipeDetail({ recipe }: RoyalRecipeDetailProps) {
       <div className="max-w-4xl mx-auto space-y-12">
         {/* 첫 번째 사진: 궁중 레시피 사진 */}
         {images.palace && (
-          <div className="relative w-full aspect-video overflow-hidden rounded-lg border-4 border-amber-800/30 shadow-2xl" style={{
+          <div className="relative w-full aspect-video overflow-hidden rounded-lg border-4 border-amber-800/30 shadow-2xl bg-gray-100" style={{
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(139, 69, 19, 0.1)',
           }}>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-amber-900/10 z-10" />
-            <Image
+            <img
               src={images.palace}
               alt={`${recipe.title} 궁중 사진`}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
-              priority
-              unoptimized
+              className="w-full h-full object-cover"
+              loading="eager"
             />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-amber-900/10 z-10 pointer-events-none" />
           </div>
         )}
 
@@ -183,18 +179,16 @@ export function RoyalRecipeDetail({ recipe }: RoyalRecipeDetailProps) {
 
         {/* 마지막 사진: 현대 이미지 */}
         {images.modern && (
-          <div className="relative w-full aspect-video overflow-hidden rounded-lg border-4 border-amber-800/30 shadow-2xl" style={{
+          <div className="relative w-full aspect-[16/12] overflow-hidden rounded-lg border-4 border-amber-800/30 shadow-2xl bg-gray-100" style={{
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(139, 69, 19, 0.1)',
           }}>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-amber-900/10 z-10" />
-            <Image
+            <img
               src={images.modern}
               alt={`${recipe.title} 현대 이미지`}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
-              unoptimized
+              className="w-full h-full object-cover"
+              loading="lazy"
             />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-amber-900/10 z-10 pointer-events-none" />
           </div>
         )}
       </div>

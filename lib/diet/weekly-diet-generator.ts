@@ -23,7 +23,8 @@ import type {
   DailyDietPlan as StoredDailyDietPlan,
   DietPlan,
 } from "@/types/health";
-import type { FamilyMember, UserHealthProfile } from "@/types/family";
+import type { FamilyMember } from "@/types/family";
+import type { UserHealthProfile } from "@/types/health";
 import { generateAndSaveDietPlan } from "@/lib/diet/queries";
 import { generateFamilyDiet } from "./family-diet-generator";
 import { createPublicSupabaseServerClient } from "@/lib/supabase/public-server";
@@ -341,15 +342,29 @@ async function generateFamilyDietWithWeeklyContext(
 ): Promise<FamilyDietPlan> {
   // 주간 컨텍스트를 고려한 가족 식단 생성
   // 카테고리별 제외 목록과 밥 종류를 전달
+  console.log("📋 가족 식단 생성 (주간 컨텍스트)");
+  console.log("카테고리별 제외 목록:", {
+    rice: Array.from(usedByCategory.rice),
+    side: Array.from(usedByCategory.side),
+    soup: Array.from(usedByCategory.soup),
+    snack: Array.from(usedByCategory.snack),
+  });
+  console.log("선호 밥 종류:", preferredRiceType);
+  
   const { generateFamilyDietWithWeeklyContext: generateFamilyDietWithContext } = await import("./family-diet-generator");
-  return generateFamilyDietWithContext(
-    userId,
-    userProfile,
-    familyMembers,
-    targetDate,
-    usedByCategory,
-    preferredRiceType
-  );
+  try {
+    return await generateFamilyDietWithContext(
+      userId,
+      userProfile,
+      familyMembers,
+      targetDate,
+      usedByCategory,
+      preferredRiceType
+    );
+  } catch (error) {
+    console.error("❌ 가족 식단 생성 실패:", error);
+    throw error;
+  }
 }
 
 /**
@@ -370,15 +385,50 @@ async function generateAndSaveDietPlanWithWeeklyContext(
   },
   preferredRiceType?: string
 ): Promise<StoredDailyDietPlan | null> {
-  // 주간 컨텍스트를 고려하여 식단 생성
-  // 카테고리별 제외 목록과 밥 종류를 전달
-  const { generatePersonalDietWithWeeklyContext } = await import("./personal-diet-generator");
-  return generatePersonalDietWithWeeklyContext(
-    userId,
-    date,
-    usedByCategory,
-    preferredRiceType
-  );
+  console.log("📋 개인 식단 생성 (주간 컨텍스트)");
+  console.log("카테고리별 제외 목록:", {
+    rice: Array.from(usedByCategory.rice),
+    side: Array.from(usedByCategory.side),
+    soup: Array.from(usedByCategory.soup),
+    snack: Array.from(usedByCategory.snack),
+  });
+  console.log("선호 밥 종류:", preferredRiceType);
+  
+  try {
+    // 주간 컨텍스트를 고려하여 식단 생성
+    // 카테고리별 제외 목록과 밥 종류를 전달
+    const { generatePersonalDietWithWeeklyContext } = await import("./personal-diet-generator");
+    const result = await generatePersonalDietWithWeeklyContext(
+      userId,
+      date,
+      usedByCategory,
+      preferredRiceType
+    );
+    
+    if (!result) {
+      console.warn("⚠️ 개인 식단 생성 결과가 null입니다");
+      return null;
+    }
+    
+    console.log("✅ 개인 식단 생성 완료:", {
+      date: result.date,
+      breakfast: result.breakfast ? "있음" : "없음",
+      lunch: result.lunch ? "있음" : "없음",
+      dinner: result.dinner ? "있음" : "없음",
+      snack: result.snack ? "있음" : "없음",
+      totalCalories: result.totalNutrition?.calories || 0,
+    });
+    
+    return result;
+  } catch (error) {
+    console.error("❌ 개인 식단 생성 실패:", error);
+    console.error("에러 상세:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
+    throw error;
+  }
 }
 
 /**

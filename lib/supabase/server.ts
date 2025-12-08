@@ -43,7 +43,11 @@ export async function createClerkSupabaseClient() {
     async accessToken() {
       try {
         const authResult = await auth();
-        return authResult?.getToken() ?? null;
+        if (!authResult) {
+          return null;
+        }
+        const token = await authResult.getToken();
+        return token ?? null;
       } catch (error) {
         // 인증 오류 시 null 반환 (공개 데이터 접근)
         if (process.env.NODE_ENV === "development") {

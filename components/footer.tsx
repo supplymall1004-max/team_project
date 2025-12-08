@@ -40,8 +40,8 @@ export async function Footer() {
     footerContent["footer-copyright"]?.content.text || "맛의 아카이브 (Flavor Archive)";
 
   return (
-    <footer className="border-t border-border/60 bg-white/60 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-10">
+    <footer className="border-t border-border/60 bg-white/60 backdrop-blur-sm mt-auto">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-10 md:pb-10 pb-20">
         <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
           {footerLinks.map((link: { label: string; href: string }) => (
             <Link

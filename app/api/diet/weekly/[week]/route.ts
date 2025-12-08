@@ -158,6 +158,7 @@ export async function GET(
     const dates = generateWeekDates(weekStartDate);
     
     // recipe_id가 TEXT 타입이고 recipes.id가 UUID 타입이므로 조인 없이 조회
+    // 주간 식단 요약은 사용자 본인의 식단만 조회 (family_member_id가 NULL인 경우만)
     const { data: dietPlans, error: dietError } = await supabase
       .from("diet_plans")
       .select(
@@ -167,6 +168,7 @@ export async function GET(
         `
       )
       .eq("user_id", userId)
+      .is("family_member_id", null) // 사용자 본인의 식단만 조회
       .in("plan_date", dates)
       .order("plan_date", { ascending: true })
       .order("meal_type", { ascending: true });
@@ -184,6 +186,15 @@ export async function GET(
         },
         { status: 500 }
       );
+    }
+
+    console.log(`📊 조회된 식단 레코드 수: ${dietPlans?.length || 0}개`);
+    if (dietPlans && dietPlans.length > 0) {
+      // 조회된 식단의 타입 분류 로그
+      const unifiedCount = dietPlans.filter(p => p.is_unified).length;
+      const personalCount = dietPlans.filter(p => !p.is_unified && !p.family_member_id).length;
+      const memberCount = dietPlans.filter(p => p.family_member_id).length;
+      console.log(`📊 식단 타입 분류: 통합(${unifiedCount}개), 개인(${personalCount}개), 가족구성원(${memberCount}개)`);
     }
 
     // recipe_id가 UUID 형식인 경우에만 recipes 테이블에서 조회
@@ -302,10 +313,22 @@ export async function GET(
     }
 
     // 저장된 통계가 있고 7일 모두 있는 경우 사용, 아니면 재계산
-    if (storedStats && storedStats.length === 7) {
+    // 저장된 통계의 칼로리가 비정상적으로 작은 경우(하루 1000kcal 미만)도 재계산
+    const hasValidStoredStats = storedStats && storedStats.length === 7;
+    const hasAbnormalCalories = storedStats?.some(stat => {
+      const calories = typeof stat.total_calories === 'number' 
+        ? stat.total_calories 
+        : Number(stat.total_calories) || 0;
+      return calories < 1000; // 하루 1000kcal 미만이면 비정상
+    });
+    
+    if (hasValidStoredStats && !hasAbnormalCalories) {
       nutritionStats = storedStats;
       console.log("✅ 저장된 영양 통계 사용");
     } else {
+      if (hasAbnormalCalories) {
+        console.log("⚠️ 저장된 통계의 칼로리가 비정상적으로 작아 재계산합니다");
+      }
       // diet_plans에서 직접 계산
       console.log("📊 영양 통계 재계산 중...");
       const statsMap = new Map<string, {
@@ -334,7 +357,79 @@ export async function GET(
         });
       });
 
+      // 칼로리 재계산이 필요한 plan들을 먼저 수집
+      const plansNeedingRecalculation = new Map<string, string[]>(); // key: plan_date + meal_type, value: itemNames
+      const allItemNames = new Set<string>();
+      
+      for (const plan of transformedDietPlans) {
+        if (!plan) continue;
+        
+        const planDate = plan.plan_date;
+        const mealType = plan.meal_type || '';
+        const planKey = `${planDate}_${mealType}`;
+        
+        const calories = typeof plan.calories === 'number' 
+          ? plan.calories 
+          : Number(plan.calories) || 0;
+        
+        // 칼로리가 비정상적으로 작은 경우 (200kcal 미만) composition_summary에서 재계산 필요
+        if (calories < 200 && plan.composition_summary) {
+          try {
+            const compositionSummary = typeof plan.composition_summary === 'string'
+              ? JSON.parse(plan.composition_summary)
+              : plan.composition_summary;
+            
+            if (compositionSummary && typeof compositionSummary === 'object') {
+              const itemNames: string[] = [];
+              if (Array.isArray(compositionSummary.items)) {
+                itemNames.push(...compositionSummary.items);
+              }
+              if (Array.isArray(compositionSummary.rice)) {
+                itemNames.push(...compositionSummary.rice);
+              }
+              if (Array.isArray(compositionSummary.sides)) {
+                itemNames.push(...compositionSummary.sides);
+              }
+              if (Array.isArray(compositionSummary.soup)) {
+                itemNames.push(...compositionSummary.soup);
+              }
+              
+              if (itemNames.length > 0) {
+                plansNeedingRecalculation.set(planKey, itemNames);
+                itemNames.forEach(name => allItemNames.add(name));
+              }
+            }
+          } catch (e) {
+            console.warn(`⚠️ composition_summary 파싱 실패:`, e);
+          }
+        }
+      }
+      
+      // 필요한 모든 레시피를 한 번에 조회
+      const recipeCaloriesMap = new Map<string, number>();
+      if (allItemNames.size > 0) {
+        const { data: recipes, error: recipeError } = await supabase
+          .from("recipes")
+          .select("title, calories")
+          .in("title", Array.from(allItemNames));
+        
+        if (!recipeError && recipes) {
+          recipes.forEach(recipe => {
+            const recipeCalories = typeof recipe.calories === 'number' 
+              ? recipe.calories 
+              : Number(recipe.calories) || 0;
+            recipeCaloriesMap.set(recipe.title, recipeCalories);
+          });
+          console.log(`📊 ${recipes.length}개 레시피의 칼로리 정보 조회 완료`);
+        } else if (recipeError) {
+          console.warn(`⚠️ 레시피 칼로리 조회 실패:`, recipeError);
+        }
+      }
+      
       // diet_plans에서 각 식사의 영양 정보 합산
+      console.log(`📊 총 ${transformedDietPlans.length}개 식단 레코드 처리 중...`);
+      console.log(`📊 재계산 필요한 식단: ${plansNeedingRecalculation.size}개`);
+      
       for (const plan of transformedDietPlans) {
         if (!plan) continue;
         
@@ -351,9 +446,32 @@ export async function GET(
         }
 
         // 칼로리 계산: 여러 필드명 지원
-        const calories = typeof plan.calories === 'number' 
+        let calories = typeof plan.calories === 'number' 
           ? plan.calories 
           : Number(plan.calories) || 0;
+        
+        const mealType = plan.meal_type || '';
+        const planKey = `${planDate}_${mealType}`;
+        
+        // 칼로리가 비정상적으로 작은 경우 재계산된 값 사용
+        const itemNames = plansNeedingRecalculation.get(planKey);
+        if (itemNames && itemNames.length > 0) {
+          const recalculatedCalories = itemNames.reduce((sum, itemName) => {
+            const itemCalories = recipeCaloriesMap.get(itemName) || 0;
+            return sum + itemCalories;
+          }, 0);
+          
+          if (recalculatedCalories > calories) {
+            console.log(`📊 칼로리 재계산: ${mealType} (${planDate}) - 저장된 값: ${calories}kcal → 재계산 값: ${recalculatedCalories}kcal`);
+            calories = recalculatedCalories;
+          } else if (recalculatedCalories === 0) {
+            console.warn(`⚠️ 레시피를 찾지 못함: ${mealType} (${planDate}), 구성품: ${itemNames.join(', ')}`);
+          }
+        } else if (calories < 200 && calories > 0) {
+          // composition_summary가 없지만 칼로리가 비정상적으로 작은 경우 경고
+          console.warn(`⚠️ 칼로리가 비정상적으로 작음: ${mealType} (${planDate}) - ${calories}kcal, composition_summary: ${plan.composition_summary ? '있음' : '없음'}`);
+        }
+        
         const carbs = typeof plan.carbohydrates === 'number'
           ? plan.carbohydrates
           : Number(plan.carbs_g) || Number(plan.carbohydrates) || 0;
@@ -377,7 +495,14 @@ export async function GET(
 
       nutritionStats = Array.from(statsMap.values()).sort((a, b) => a.day_of_week - b.day_of_week);
       console.log("✅ 영양 통계 재계산 완료:", nutritionStats.length, "일");
-      console.log("총 칼로리:", nutritionStats.reduce((sum, stat) => sum + stat.total_calories, 0), "kcal");
+      const totalCalories = nutritionStats.reduce((sum, stat) => sum + stat.total_calories, 0);
+      console.log("📊 총 칼로리:", totalCalories, "kcal");
+      console.log("📊 일별 칼로리 상세:", nutritionStats.map(stat => ({
+        날짜: stat.date,
+        요일: stat.day_of_week,
+        칼로리: stat.total_calories,
+        식사수: stat.meal_count
+      })));
     }
 
     console.log("✅ 주간 식단 조회 완료");

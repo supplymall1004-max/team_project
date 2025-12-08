@@ -16,7 +16,14 @@ export async function GET(
 ) {
   try {
     const { path: pathSegments } = await params;
-    const imagePath = pathSegments.join("/");
+    
+    // URL 디코딩 처리 (한글 파일명 지원)
+    const decodedSegments = pathSegments.map(segment => 
+      decodeURIComponent(segment)
+    );
+    const imagePath = decodedSegments.join("/");
+    
+    console.log(`[royal-recipes/images] 요청 경로: ${imagePath}`);
     
     // 보안: 경로 탐색 공격 방지
     if (imagePath.includes("..")) {
@@ -31,8 +38,11 @@ export async function GET(
       imagePath
     );
     
+    console.log(`[royal-recipes/images] 전체 경로: ${fullPath}`);
+    
     // 파일 존재 확인
     if (!fs.existsSync(fullPath)) {
+      console.warn(`[royal-recipes/images] 파일을 찾을 수 없습니다: ${fullPath}`);
       return new NextResponse("Image not found", { status: 404 });
     }
     
@@ -45,6 +55,8 @@ export async function GET(
     // 파일 읽기
     const fileBuffer = fs.readFileSync(fullPath);
     const contentType = ext === ".png" ? "image/png" : "image/jpeg";
+    
+    console.log(`[royal-recipes/images] 이미지 제공 성공: ${imagePath}`);
     
     return new NextResponse(fileBuffer, {
       headers: {

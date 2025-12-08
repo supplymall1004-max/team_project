@@ -389,11 +389,15 @@ interface NutritionStatProps {
 }
 
 function NutritionStat({ label, value, unit }: NutritionStatProps) {
+  // 칼로리는 정수로 표시, 나머지는 소수점 첫째 자리까지 표시
+  const isCalories = unit === "kcal";
   const formattedValue =
-    value === null || value === undefined ? "0" : Number(value).toLocaleString("ko-KR", {
-      maximumFractionDigits: 1,
-      minimumFractionDigits: 0,
-    });
+    value === null || value === undefined
+      ? "0"
+      : Number(value).toLocaleString("ko-KR", {
+          maximumFractionDigits: isCalories ? 0 : 1,
+          minimumFractionDigits: 0,
+        });
 
   return (
     <div className="rounded-xl border border-orange-100 bg-white px-3 py-2">

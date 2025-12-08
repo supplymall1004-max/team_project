@@ -42,6 +42,10 @@ export async function ensureSupabaseUser(): Promise<{ id: string; name: string }
 
     if (checkError) {
       console.error("❌ 사용자 조회 오류:", checkError);
+      console.error("  - 에러 코드:", checkError.code);
+      console.error("  - 에러 메시지:", checkError.message);
+      console.error("  - 에러 상세:", checkError.details);
+      console.error("  - 에러 힌트:", checkError.hint);
       console.groupEnd();
       return null;
     }
@@ -79,20 +83,58 @@ export async function ensureSupabaseUser(): Promise<{ id: string; name: string }
 
     // 4. Supabase에 사용자 정보 동기화
     console.log("💾 Supabase에 동기화 중...");
-    const { data: upserted, error: upsertError } = await supabase
+    
+    // 다시 한 번 확인 (동시성 문제 방지)
+    const { data: doubleCheckUser, error: doubleCheckError } = await supabase
       .from("users")
-      .upsert(
-        {
+      .select("id, name")
+      .eq("clerk_id", userId)
+      .maybeSingle();
+
+    if (doubleCheckError) {
+      console.error("❌ 사용자 재확인 실패:", doubleCheckError);
+      console.groupEnd();
+      return null;
+    }
+
+    let upserted;
+    let upsertError;
+
+    if (doubleCheckUser) {
+      // 기존 사용자가 있으면 업데이트
+      console.log("📝 기존 사용자 업데이트 중...");
+      const { data: updatedUser, error: updateError } = await supabase
+        .from("users")
+        .update({ name: userName })
+        .eq("clerk_id", userId)
+        .select("id, name")
+        .single();
+      
+      upserted = updatedUser;
+      upsertError = updateError;
+    } else {
+      // 새 사용자 생성 (id는 자동 생성됨)
+      console.log("➕ 새 사용자 생성 중...");
+      const { data: newUser, error: insertError } = await supabase
+        .from("users")
+        .insert({
           clerk_id: userId,
           name: userName,
-        },
-        { onConflict: "clerk_id" }
-      )
-      .select("id, name")
-      .single();
+        })
+        .select("id, name")
+        .single();
+      
+      upserted = newUser;
+      upsertError = insertError;
+    }
 
     if (upsertError) {
       console.error("❌ 사용자 동기화 실패:", upsertError);
+      console.error("  - 에러 코드:", upsertError.code);
+      console.error("  - 에러 메시지:", upsertError.message);
+      console.error("  - 에러 상세:", upsertError.details);
+      console.error("  - 에러 힌트:", upsertError.hint);
+      console.error("  - 동기화 시도한 데이터:", { clerk_id: userId, name: userName });
       console.groupEnd();
       return null;
     }
@@ -101,7 +143,10 @@ export async function ensureSupabaseUser(): Promise<{ id: string; name: string }
     console.groupEnd();
     return upserted;
   } catch (error) {
-    console.error("❌ ensureSupabaseUser 오류:", error);
+    console.error("❌ ensureSupabaseUser 예외 발생:", error);
+    console.error("  - 에러 타입:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("  - 에러 메시지:", error instanceof Error ? error.message : String(error));
+    console.error("  - 에러 스택:", error instanceof Error ? error.stack : "스택 없음");
     console.groupEnd();
     return null;
   }

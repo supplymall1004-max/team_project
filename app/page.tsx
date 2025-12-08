@@ -21,18 +21,19 @@
  */
 
 import { Suspense } from "react";
-import { LegacyArchiveSection } from "@/components/legacy/legacy-archive-section";
 import { HomeLanding } from "@/components/home/home-landing";
 import { RecipeSection } from "@/components/recipes/recipe-section";
+import { MfdsRecipeSection } from "@/components/home/mfds-recipe-section";
 import { DietSection } from "@/components/health/diet-section";
 import { FixedHeader } from "@/components/home/fixed-header";
+import { RoyalRecipesQuickAccess } from "@/components/royal-recipes/royal-recipes-quick-access";
+import { StorybookSection } from "@/components/storybook/storybook-section";
 import {
   LazyWeeklyDietSummary,
   LazyFrequentItemsSection,
 } from "@/components/home/lazy-sections";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { RoyalRecipesQuickAccess } from "@/components/royal-recipes/royal-recipes-quick-access";
 import { EmergencyQuickAccess } from "@/components/home/emergency-quick-access";
 
 // 섹션별 로딩 스켈레톤
@@ -43,6 +44,9 @@ function SectionSkeleton() {
     </div>
   );
 }
+
+// 동적 렌더링 강제 (MFDS API 등 외부 API 사용으로 인해)
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   return (
@@ -62,21 +66,13 @@ export default async function Home() {
       {/* 즉시 렌더링되는 클라이언트 섹션 */}
       <HomeLanding />
 
-      {/* 궁중 레시피 바로가기 섹션 */}
-      <ErrorBoundary>
-        <RoyalRecipesQuickAccess />
-      </ErrorBoundary>
-
-      {/* 자주 구매하는 식자재 (지연 로딩) */}
-      <ErrorBoundary>
-        <LazyFrequentItemsSection />
-      </ErrorBoundary>
-
       {/* 병렬로 로딩되는 서버 섹션들 */}
       {/* 각 섹션 내부에서 try-catch로 에러 처리됨 */}
+      
+      {/* 궁중 레시피 아카이브 섹션 */}
       <ErrorBoundary>
         <Suspense fallback={<SectionSkeleton />}>
-          <LegacyArchiveSection />
+          <RoyalRecipesQuickAccess id="royal-recipes" />
         </Suspense>
       </ErrorBoundary>
 
@@ -88,13 +84,31 @@ export default async function Home() {
 
       <ErrorBoundary>
         <Suspense fallback={<SectionSkeleton />}>
+          <MfdsRecipeSection />
+        </Suspense>
+      </ErrorBoundary>
+
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
           <DietSection />
+        </Suspense>
+      </ErrorBoundary>
+
+      {/* 마카의 음식 동화 섹션 */}
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <StorybookSection />
         </Suspense>
       </ErrorBoundary>
 
       {/* 주간 식단 요약 (지연 로딩) - 네비게이션 바 바로 위 배치 */}
       <ErrorBoundary>
         <LazyWeeklyDietSummary />
+      </ErrorBoundary>
+
+      {/* 자주 구매하는 식자재 (지연 로딩) - 맨 아래 배치 */}
+      <ErrorBoundary>
+        <LazyFrequentItemsSection />
       </ErrorBoundary>
 
       {/* 하단 네비게이션 높이만큼 패딩 추가 (모바일) */}

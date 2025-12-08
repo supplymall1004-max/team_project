@@ -17,18 +17,29 @@ import { RecipeListItem } from "@/types/recipe";
 import { getMultipleCopyContent } from "@/lib/admin/copy-reader";
 
 export async function RecipeSection() {
+  console.log("[RecipeSection] 컴포넌트 시작");
+  
   // 섹션 콘텐츠 조회
-  const sectionContent = await getMultipleCopyContent([
-    "recipe-section-title",
-    "recipe-section-description",
-    "recipe-section-button",
-  ]);
+  let sectionContent: any = {};
+  try {
+    console.log("[RecipeSection] 섹션 콘텐츠 조회 시작");
+    sectionContent = await getMultipleCopyContent([
+      "recipe-section-title",
+      "recipe-section-description",
+      "recipe-section-button",
+    ]);
+    console.log("[RecipeSection] 섹션 콘텐츠 조회 완료");
+  } catch (error) {
+    console.error("[RecipeSection] 섹션 콘텐츠 조회 실패:", error);
+    // 에러 발생 시 기본값 사용
+  }
 
   // 인기 레시피 조회 (최신순, 최대 6개)
   // limit을 쿼리 레벨에서 적용하여 성능 최적화
   let featuredRecipes: RecipeListItem[] = [];
   
   try {
+    console.log("[RecipeSection] 레시피 조회 시작");
     featuredRecipes = await getRecipes(
       {
         searchTerm: "",
@@ -38,19 +49,26 @@ export async function RecipeSection() {
       },
       { limit: 6 }
     );
+    console.log("[RecipeSection] 레시피 조회 완료:", featuredRecipes.length, "개");
+    if (featuredRecipes.length > 0) {
+      console.log("[RecipeSection] 첫 번째 레시피:", featuredRecipes[0].title);
+    } else {
+      console.log("[RecipeSection] 등록된 레시피가 없습니다");
+    }
   } catch (error) {
     console.error("[RecipeSection] 레시피 조회 실패:", error);
+    console.error("[RecipeSection] 에러 상세:", error instanceof Error ? error.message : String(error));
     // 에러 발생 시 빈 배열로 처리하여 페이지가 계속 로드되도록 함
     featuredRecipes = [];
   }
 
   const sectionTitle =
-    sectionContent["recipe-section-title"]?.content.title || "🍴 현대 레시피 북";
+    sectionContent["recipe-section-title"]?.content.title || "🍴 현대 레시피 아카이브";
   const sectionDescription =
     sectionContent["recipe-section-description"]?.content.description ||
     "별점과 난이도로 정리된 최신 레시피를 확인해보세요";
   const buttonText =
-    sectionContent["recipe-section-button"]?.content.text || "레시피 북 전체 보기";
+    sectionContent["recipe-section-button"]?.content.text || "레시피 아카이브 전체 보기";
 
   return (
     <Section id="recipes" title={sectionTitle} description={sectionDescription}>

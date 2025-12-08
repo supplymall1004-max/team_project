@@ -27,13 +27,13 @@
 | :--- | :--- | :--- |
 | **A. 전통/향토 요리 학습자** | 구전으로만 전해지는 희귀 레시피나 조리법에 대한 정확한 기록 및 지식 습득. | 신뢰성 있는 출처의 고품질 영상 및 문서 콘텐츠 (레거시 아카이브) |
 | **B. 건강 관리 식단 사용자** | 본인의 건강 상태(질병, 알레르기)와 목표에 맞는 맞춤형 식단 추천 및 간편한 식자재 구매. | AI 기반 맞춤 식단 추천 및 식자재 연동 (AI 큐레이션) |
-| **C. 일반 요리/창작자** | 쉽고 빠르게 따라 할 수 있는 현대적 레시피 검색, 자신의 레시피 공유 및 수익 창출 기회. | 초보자 맞춤 단계별 가이드, UGC 커뮤니티 및 상업화 인증 기회 (현대 레시피 북) |
+| **C. 일반 요리/창작자** | 쉽고 빠르게 따라 할 수 있는 현대적 레시피 검색, 자신의 레시피 공유 및 수익 창출 기회. | 초보자 맞춤 단계별 가이드, UGC 커뮤니티 및 상업화 인증 기회 (현대 레시피 아카이브) |
 
 ---
 
-### 3. 기능 요구 사항 (구현 완료 기준)
+### 3. 기능 요구 사항 (구현 완료)
 
-아래 표는 2025년 11월 27일 기준으로 실제 서비스에 반영된 기능을 정리한 것입니다.
+아래 표는 **2025년 12월 기준**으로 실제 서비스에 반영된 기능을 정리한 것입니다. 모든 기능은 MVP 범위 내에서 구현 완료되었으며, 데이터베이스 스키마와 API, UI 컴포넌트가 모두 연동되어 동작합니다.
 
 #### 3.1. 📜 레거시 아카이브
 
@@ -44,7 +44,7 @@
 | **A-3** | 아카이브 분류 검색 | 지역/시대/재료 필터 및 검색어 조합 지원. | `/legacy` 페이지 + 통합 검색 (`app/search`) |
 | **A-4** | 대체재료 안내 | 전통 재료 옆에 현대 대체재 및 구입처 안내. | 카드 내 대체 정보 컴포넌트 |
 
-#### 3.2. 🍴 현대 레시피 북
+#### 3.2. 🍴 현대 레시피 아카이브
 
 | ID | 기능명 | 구현 요약 | 세부 사항 |
 | :--- | :--- | :--- | :--- |
@@ -52,18 +52,18 @@
 | **B-2** | 레시피 업로드 (UGC) | 레시피 작성 시 썸네일 자동 배정, 재료/단계/난이도 필수 입력. | `/recipes/new`, `actions/recipe-create.ts` |
 | **B-3** | 커뮤니티 평가 | 별점(0.5 단위), 저작권/불량 신고 기능 구현. | 댓글 기능은 범위에서 제외됨. 신고 데이터는 관리자 뷰에서 확인 가능. |
 
-#### 3.3. 🧠 AI 기반 개인 맞춤 식단
+#### 3.3. 🧠 건강 맞춤 식단 큐레이션
 
 | ID | 기능명 | 구현 요약 | 세부 사항 |
 | :--- | :--- | :--- | :--- |
 | **C-1** | 건강 정보 입력 고도화 | 질병·알레르기 상세 입력(사용자 정의 가능), 선호/비선호 식재료, 프리미엄 식단 타입 설정. | `/health/profile`, `health-api` 라우트, `HealthProfileForm` |
-| **C-2** | AI 맞춤 식단 추천 | Mifflin-St Jeor 공식 기반 칼로리 계산(수동 설정 가능), 3대 영양소 규칙 기반 일일 식단 자동 생성. | `lib/diet/calorie-calculator.ts`, `lib/diet/recommendation.ts` |
+| **C-2** | 건강 맞춤 식단 추천 | Mifflin-St Jeor 공식 기반 칼로리 계산(수동 설정 가능), 3대 영양소 규칙 기반 일일 식단 자동 생성. | `lib/diet/calorie-calculator.ts`, `lib/diet/recommendation.ts` |
 | **C-3** | 주간 식단 추천 시스템 | 7일치 식단을 한 번에 생성하여 주간 식단 계획 및 장보기 리스트 제공. | `lib/diet/weekly-diet-generator.ts`, `app/(dashboard)/diet/weekly/page.tsx` |
 | **C-5** | 식자재 원클릭 구매 | 추천 식단의 재료 리스트를 외부 마켓 링크로 연결. | `components/diet/meal-card.tsx` |
 | **C-6** | 가족 구성원 관리 | `family_members` 테이블, CRUD API, UI 완비. 나이 기반 `is_child` 자동 설정. | `/health/family` 페이지, `types/family.ts` |
 | **C-6.1** | 통합 식단 포함/제외 제어 | 구성원별 `include_in_unified_diet` 토글 및 PATCH 엔드포인트 제공. | `components/family/unified-diet-section.tsx` |
 | **C-7** | 가족 맞춤 식단 추천 | 개인/통합 식단 동시 생성, 토글 상태 반영, 결과 UI 제공. | `components/family/family-diet-view.tsx` |
-| **C-7.1** | AI 맞춤 식단 탭 | “어제의 AI 맞춤 식단” 옆에 사용자 + 가족 이름 탭 배치, On/Off 스위치 제공. | `components/diet/family-diet-tabs.tsx` |
+| **C-7.1** | 건강 맞춤 식단 탭 | "어제의 건강 맞춤 식단" 옆에 사용자 + 가족 이름 탭 배치, On/Off 스위치 제공. | `components/diet/family-diet-tabs.tsx` |
 | **C-8** | 엄격한 알레르기 필터링 | 질병별 제외 음식뿐만 아니라, 알레르기 유발 재료의 파생 재료(예: 새우 -> 새우젓, 김치)까지 엄격하게 필터링. | `lib/diet/food-filtering.ts` (ALLERGY_DERIVED_INGREDIENTS) |
 | **C-9** | 질병관리청 예방접종/독감 알림 | 질병관리청 공개 데이터를 동기화하여 독감 유행 단계와 예방접종 일정 알림. | `app/api/health/kcdc/*` |
 | **C-10** | 앱 상태 팝업 인프라 | 공통 팝업 컴포넌트 및 QA 체크리스트 정의. | `components/diet/diet-notification-popup.tsx` |
@@ -76,7 +76,33 @@
 | **C-17** | 비건/베지테리언 식단 | 동물성 식품 제외 식단. | `vegan`, `vegetarian` 필터 |
 | **C-18** | 응급 조치 및 안전 경고 | 알레르기 반응 시 응급 대처법(에피네프린 등) 안내 페이지 및 식단 내 안전 경고 문구 표시. | `/health/emergency`, `components/diet/safety-warning.tsx` |
 
-#### 3.3.1. 🏥 건강정보 관리 시스템 대폭 강화 (문서 기반 구현)
+> **비고:** GI 지수 필터, 영양 리포트, 일일 알림 팝업, 어린이 성장기 식단 등은 현재 제품 범위에서 제외되어 본 문서에서도 제거했습니다. 필요 시 별도 백로그 문서로 관리합니다.
+
+#### 3.4. 🛠 관리자 페이지
+
+| ID | 기능명 | 구현 요약 | 세부 사항 |
+| :--- | :--- | :--- | :--- |
+| **D-1** | 관리자 콘솔 베타 | `/admin` 경로에 기본 레이아웃을 제공하고, 페이지 내 텍스트/공지/팝업 콘텐츠를 수정하거나 일괄 배포할 수 있는 에디터와 권한 체크를 탑재합니다. | `app/admin/layout.tsx`, `components/admin/*` |
+| **D-2** | 홈페이지 콘텐츠 관리 | 홈페이지의 모든 하드코딩된 텍스트, 링크, 이미지 URL을 관리자 페이지에서 쉽게 수정할 수 있도록 데이터베이스 기반 콘텐츠 관리 시스템을 구축합니다. | `actions/admin/copy/slots.ts`, `lib/admin/copy-reader.ts`, `components/home/*`, `components/footer.tsx` |
+
+#### 3.5. 🎨 홈페이지 UI/UX 개선 (배달의민족 앱 참고)
+
+| ID | 기능명 | 구현 요약 | 세부 사항 |
+| :--- | :--- | :--- | :--- |
+| **E-1** | 상단 고정 헤더 | 검색바와 프리미엄 배너를 상단에 고정하여 스크롤해도 항상 접근 가능하도록 합니다. 청록색 배너, 검색바 포커스 애니메이션, 키보드 네비게이션 지원. | `components/home/fixed-header.tsx`, `premium-banner.tsx`, `search-bar.tsx` ✅ 완료 |
+| **E-2** | 바로가기 메뉴 | 주요 기능(레거시, 레시피, 건강 맞춤 식단 등)을 아이콘 그리드 형태로 제공하여 빠른 접근을 가능하게 합니다. 반응형 그리드, 호버 효과, 접근성 지원. | `components/home/quick-access-menu.tsx` ✅ 완료 |
+| **E-3** | 하단 네비게이션 | 모바일 환경에서 주요 페이지로의 쉬운 이동을 위한 고정 네비게이션 바를 제공합니다. 현재 페이지 하이라이트, 키보드 네비게이션 지원. | `components/layout/bottom-navigation.tsx` ✅ 완료 |
+| **E-4** | 주간 식단 요약 | 홈 화면에 이번 주 식단을 한눈에 볼 수 있는 요약 섹션을 제공합니다. 7일 캘린더 미리보기와 총 칼로리 표시를 포함합니다. | `components/home/weekly-diet-summary.tsx` ✅ 완료 |
+| **E-5** | 자주 구매하는 식자재 | 사용자의 주간 식단 기반으로 자주 구매하는 식자재를 추천하고, 원클릭 장바구니 추가 기능을 제공합니다. | `components/home/frequent-items-section.tsx`, `app/api/shopping/frequent-items/route.ts` ✅ 완료 |
+| **E-6** | 마카의 음식 동화 | 전통 음식의 탄생과 역사를 동화처럼 들려주는 인터랙티브 스토리북 플레이어를 제공합니다. YouTube 비디오를 방 형태로 재생하며, 선물 상자를 클릭하여 다양한 음식 이야기를 선택할 수 있습니다. | `app/(main)/storybook/page.tsx`, `components/storybook/storybook-room.tsx`, `components/storybook/storybook-section.tsx` ✅ 완료 |
+
+---
+
+### 4. 구현 가능한 기능 (Future Enhancements)
+
+다음 기능들은 현재 구현되지 않았으나, 향후 개발 가능한 기능들입니다.
+
+#### 4.1. 🏥 건강정보 관리 시스템 대폭 강화 (문서 기반 구현)
 
 | ID | 기능명 | 구현 요약 | 세부 사항 |
 | :--- | :--- | :--- | :--- |
@@ -104,28 +130,9 @@
 | **C-40** | 건강정보 입력 폼 대폭 개선 | 질병, 알레르기, 선호 식재료, 프리미엄 식단 타입, 칼로리 계산 방식 등 모든 건강 정보를 한 화면에서 입력. | `components/health/health-profile-form.tsx` (확장) |
 | **C-41** | 식단 생성 로직 통합 | 질병, 알레르기, 선호도, 프리미엄 타입, 칼로리 계산 결과를 모두 반영한 통합 식단 생성. | `lib/diet/recommendation.ts` (확장) |
 
-> **비고:** GI 지수 필터, 영양 리포트, 일일 알림 팝업, 어린이 성장기 식단 등은 현재 제품 범위에서 제외되어 본 문서에서도 제거했습니다. 필요 시 별도 백로그 문서로 관리합니다.
-
-#### 3.4. 🛠 관리자 페이지
-
-| ID | 기능명 | 구현 요약 | 세부 사항 |
-| :--- | :--- | :--- | :--- |
-| **D-1** | 관리자 콘솔 베타 | `/admin` 경로에 기본 레이아웃을 제공하고, 페이지 내 텍스트/공지/팝업 콘텐츠를 수정하거나 일괄 배포할 수 있는 에디터와 권한 체크를 탑재합니다. | `app/admin/layout.tsx`, `components/admin/*` |
-| **D-2** | 홈페이지 콘텐츠 관리 | 홈페이지의 모든 하드코딩된 텍스트, 링크, 이미지 URL을 관리자 페이지에서 쉽게 수정할 수 있도록 데이터베이스 기반 콘텐츠 관리 시스템을 구축합니다. | `actions/admin/copy/slots.ts`, `lib/admin/copy-reader.ts`, `components/home/*`, `components/footer.tsx` |
-
-#### 3.5. 🎨 홈페이지 UI/UX 개선 (배달의민족 앱 참고)
-
-| ID | 기능명 | 구현 요약 | 세부 사항 |
-| :--- | :--- | :--- | :--- |
-| **E-1** | 상단 고정 헤더 | 검색바와 프리미엄 배너를 상단에 고정하여 스크롤해도 항상 접근 가능하도록 합니다. 청록색 배너, 검색바 포커스 애니메이션, 키보드 네비게이션 지원. | `components/home/fixed-header.tsx`, `premium-banner.tsx`, `search-bar.tsx` ✅ 완료 |
-| **E-2** | 바로가기 메뉴 | 주요 기능(레거시, 레시피, AI 식단 등)을 아이콘 그리드 형태로 제공하여 빠른 접근을 가능하게 합니다. 반응형 그리드, 호버 효과, 접근성 지원. | `components/home/quick-access-menu.tsx` ✅ 완료 |
-| **E-3** | 하단 네비게이션 | 모바일 환경에서 주요 페이지로의 쉬운 이동을 위한 고정 네비게이션 바를 제공합니다. 현재 페이지 하이라이트, 키보드 네비게이션 지원. | `components/layout/bottom-navigation.tsx` ✅ 완료 |
-| **E-4** | 주간 식단 요약 | 홈 화면에 이번 주 식단을 한눈에 볼 수 있는 요약 섹션을 제공합니다. 7일 캘린더 미리보기와 총 칼로리 표시를 포함합니다. | `components/home/weekly-diet-summary.tsx` ✅ 완료 |
-| **E-5** | 자주 구매하는 식자재 | 사용자의 주간 식단 기반으로 자주 구매하는 식자재를 추천하고, 원클릭 장바구니 추가 기능을 제공합니다. | `components/home/frequent-items-section.tsx`, `app/api/shopping/frequent-items/route.ts` ✅ 완료 |
-
 ---
 
-### 4. 비기능 요구 사항 (Non-Functional Requirements)
+### 5. 비기능 요구 사항 (Non-Functional Requirements)
 
 제품의 품질과 안정성을 위한 요구 사항입니다.
 
@@ -139,31 +146,31 @@
 
 ---
 
-### 5. 출시 현황 및 후속 로드맵
+### 6. 출시 현황 및 후속 로드맵
 
-#### 5.1. 현재 배포된 MVP 범위
+#### 6.1. 현재 배포된 MVP 범위
 
 | 목표 | 포함된 기능 |
 | :--- | :--- |
 | **콘텐츠 뷰어 안정화** | A-1, A-2, A-3, A-4 |
-| **현대 레시피 경험** | B-1, B-2, B-3(별점·신고) |
-| **AI 식단 기초** | C-1, C-2, C-3, C-5 |
-| **가족 맞춤 기능** | C-6, C-6.1, C-7, C-8 |
-| **프리미엄 식단 고급 기능** | C-11, C-12, C-13, C-14, C-15, C-16, C-17 |
-| **홈페이지 UI/UX 개선** | E-1, E-2, E-3, E-4, E-5 (계획 중) |
+| **현대 레시피 아카이브 경험** | B-1, B-2, B-3(별점·신고) |
+| **건강 맞춤 식단 기초** | C-1, C-2, C-3, C-5 |
+| **가족 맞춤 기능** | C-6, C-6.1, C-7, C-7.1, C-8 |
+| **프리미엄 식단 고급 기능** | C-9, C-10, C-11, C-12, C-13, C-14, C-15, C-16, C-17, C-18 |
+| **관리자 페이지** | D-1, D-2 |
+| **홈페이지 UI/UX 개선** | E-1, E-2, E-3, E-4, E-5, E-6 |
 
-#### 5.2. 후속 고려 대상
+#### 6.2. 후속 고려 대상
 
-- GI 지수/저염 필터, 영양 리포트 등 정교화 기능 (과거 C-3, C-4)
-- 일일 식단 알림 팝업 및 브라우저 알림 (과거 C-9)
-- 어린이 전용 성장기 식단 고도화 (과거 C-10)
-- 창작자 상업화/마켓 관련 기능 (과거 B-4, B-5)
+- 건강정보 관리 시스템 대폭 강화 (C-19 ~ C-41)
+- GI 지수/저염 필터, 영양 리포트 등 정교화 기능
+- 창작자 상업화/마켓 관련 기능
 
 위 기능들은 현재 제품 범위에서는 제외되었으며, 재개가 필요할 경우 별도 백로그에서 스펙을 재정의합니다.
 
 ---
 
-### 6. 면책 및 법적 고지 (Disclaimer & Legal Notices)
+### 7. 면책 및 법적 고지 (Disclaimer & Legal Notices)
 
 모든 서비스 영역에서 다음 내용을 **명확하게 고지**하고 이용약관에 포함해야 합니다.
 
@@ -172,29 +179,549 @@
 
 ---
 
-### 7. 기술적 구현 세부사항 (Technical Implementation Details)
+### 8. 기술적 구현 세부사항 (Technical Implementation Details)
 
 #### 7.1. 데이터베이스 스키마
 
+현재까지 구현된 모든 데이터베이스 테이블과 주요 필드를 정리합니다.
+
+##### 7.1.1. 사용자 관리
+
+**사용자 테이블 (`users`)**
+- `id`: UUID (Primary Key)
+- `clerk_id`: TEXT (Unique, Clerk User ID)
+- `name`: TEXT
+- `is_premium`: BOOLEAN (프리미엄 구독 여부)
+- `premium_expires_at`: TIMESTAMPTZ
+- `trial_ends_at`: TIMESTAMPTZ
+- `mfa_secret`: TEXT (2FA 비밀키)
+- `mfa_enabled`: BOOLEAN
+- `mfa_backup_codes`: TEXT[] (2FA 백업 코드)
+- `notification_settings`: JSONB (알림 설정)
+- `created_at`: TIMESTAMPTZ
+
+##### 7.1.2. 레시피 시스템
+
+**레시피 기본 정보 테이블 (`recipes`)**
+- `id`: UUID (Primary Key)
+- `user_id`: UUID (작성자, Foreign Key → users)
+- `slug`: TEXT (Unique, URL 친화적 식별자)
+- `title`: TEXT
+- `description`: TEXT
+- `thumbnail_url`: TEXT
+- `difficulty`: INTEGER (1~5점)
+- `cooking_time_minutes`: INTEGER
+- `servings`: INTEGER
+- `calories`, `carbohydrates`, `protein`, `fat`, `sodium`: NUMERIC (영양 정보)
+- `foodsafety_*`: 식약처 API 연동 필드 (rcp_seq, rcp_way2, rcp_pat2, info_* 등)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
+**레시피 재료 테이블 (`recipe_ingredients`)**
+- `id`: UUID (Primary Key)
+- `recipe_id`: UUID (Foreign Key → recipes)
+- `name`: TEXT (재료명)
+- `ingredient_name`: TEXT
+- `quantity`: NUMERIC
+- `unit`: TEXT
+- `category`: ingredient_category ENUM (곡물, 채소, 과일, 육류, 해산물, 유제품, 조미료, 기타)
+- `is_optional`: BOOLEAN (선택 재료 여부)
+- `preparation_note`: TEXT (손질 방법)
+- `display_order`: INTEGER
+
+**레시피 조리 단계 테이블 (`recipe_steps`)**
+- `id`: UUID (Primary Key)
+- `recipe_id`: UUID (Foreign Key → recipes)
+- `step_number`: INTEGER
+- `content`: TEXT (조리 설명)
+- `image_url`: TEXT
+- `video_url`: TEXT
+- `timer_minutes`: INTEGER (타이머 시간)
+- `foodsafety_manual_img`: TEXT (식약처 조리법 이미지)
+
+**레시피 평가 테이블 (`recipe_ratings`)**
+- `id`: UUID (Primary Key)
+- `recipe_id`: UUID (Foreign Key → recipes)
+- `user_id`: UUID (Foreign Key → users)
+- `rating`: NUMERIC (0.5, 1.0, 1.5, ..., 5.0 - 0.5점 단위)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+- UNIQUE(recipe_id, user_id)
+
+**레시피 신고 테이블 (`recipe_reports`)**
+- `id`: UUID (Primary Key)
+- `recipe_id`: UUID (Foreign Key → recipes)
+- `user_id`: UUID (Foreign Key → users)
+- `report_type`: TEXT (inappropriate, copyright, spam, other)
+- `reason`: TEXT
+- `status`: TEXT (pending, reviewing, resolved, dismissed)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
+**레시피 사용 이력 테이블 (`recipe_usage_history`)**
+- `id`: UUID (Primary Key)
+- `user_id`: UUID (Foreign Key → users)
+- `family_member_id`: UUID (Foreign Key → family_members, NULL 가능)
+- `recipe_title`: TEXT
+- `recipe_url`: TEXT
+- `meal_type`: TEXT (breakfast, lunch, dinner, snack)
+- `used_date`: DATE
+
+**식약처 레시피 캐시 테이블 (`foodsafety_recipes_cache`)**
+- `id`: UUID (Primary Key)
+- `rcp_seq`: TEXT (Unique, 식약처 레시피 순번)
+- `rcp_nm`: TEXT (레시피명)
+- `rcp_pat2`, `rcp_way2`: TEXT (요리종류, 조리방법)
+- `info_*`: NUMERIC (영양 정보)
+- `manual_data`: JSONB (조리법 데이터)
+- `cached_at`: TIMESTAMPTZ
+
+**궁중 레시피 블로그 테이블 (`royal_recipes_posts`)**
+- `id`: UUID (Primary Key)
+- `title`: TEXT
+- `content`: TEXT
+- `era`: TEXT (goryeo, joseon, three_kingdoms)
+- `slug`: TEXT (Unique)
+- `published`: BOOLEAN
+- `thumbnail_url`: TEXT
+- `excerpt`: TEXT
+
+##### 7.1.3. 건강 관리 시스템
+
+**사용자 건강 프로필 테이블 (`user_health_profiles`)**
+- `id`: UUID (Primary Key)
+- `user_id`: UUID (Unique, Foreign Key → users)
+- `diseases`: TEXT[] (질병 배열)
+- `allergies`: TEXT[] (알레르기 배열)
+- `preferred_ingredients`: TEXT[] (선호 식재료)
+- `disliked_ingredients`: TEXT[] (비선호 식재료)
+- `excluded_ingredients`: JSONB
+- `daily_calorie_goal`: INTEGER
+- `dietary_preferences`: TEXT[] (도시락, 헬스인, 저탄수, 비건, 베지테리언 등)
+- `height_cm`, `weight_kg`, `age`: INTEGER/NUMERIC
+- `gender`: TEXT (male, female, other)
+- `activity_level`: TEXT (sedentary, light, moderate, active, very_active)
+- `diseases_jsonb`, `allergies_jsonb`: JSONB (상세 정보)
+- `calorie_calculation_method`: VARCHAR(50) (칼로리 계산 방식)
+- `manual_target_calories`: INTEGER (수동 목표 칼로리)
+- `show_calculation_formula`: BOOLEAN (공식 표시 여부)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
 **가족 구성원 테이블 (`family_members`)**
-- 각 가족 구성원의 건강 정보를 독립적으로 저장
-- `is_child` 플래그: 나이 0-18세 자동 판단
-- `user_id`: 가족의 주 사용자 (본인)
+- `id`: UUID (Primary Key)
+- `user_id`: UUID (Foreign Key → users)
+- `name`: TEXT
+- `birth_date`: DATE (나이 자동 계산, 0-18세는 `is_child` 자동 판단)
+- `gender`: TEXT (male, female, other)
+- `relationship`: TEXT (관계)
+- `diseases`: TEXT[] (질병 배열)
+- `allergies`: TEXT[] (알레르기 배열)
+- `height_cm`, `weight_kg`: INTEGER/NUMERIC
+- `activity_level`: TEXT
+- `dietary_preferences`: TEXT[]
+- `include_in_unified_diet`: BOOLEAN (통합 식단 포함 여부, 기본값 true)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+- **제약조건**: 사용자당 최대 10명 제한 (`check_family_member_limit()` 함수)
 
-**질병별 제외 음식 테이블 (`disease_excluded_foods`)**
-- 질병별로 피해야 할 음식 목록 관리
-- `excluded_food_type`: 'ingredient' (재료) 또는 'recipe_keyword' (레시피 키워드)
-- 초기 데이터: 당뇨/고혈압 제외 음식 목록 사전 등록
+**질병 마스터 테이블 (`diseases`)**
+- `id`: UUID (Primary Key)
+- `code`: VARCHAR(50) (Unique, 질병 코드)
+- `name_ko`: VARCHAR(200) (한글명)
+- `name_en`: VARCHAR(200) (영문명)
+- `category`: VARCHAR(100) (카테고리)
+- `description`: TEXT
+- `calorie_adjustment_factor`: NUMERIC (칼로리 조정 계수)
+- `created_at`, `updated_at`: TIMESTAMPTZ
 
-**가족 식단 테이블 (`family_diet_plans`)**
-- 구성원별 개인 식단 및 통합 식단 저장
-- `family_member_id`: NULL이면 통합 식단
-- `is_unified`: 통합 식단 여부 플래그
+**질병별 제외 음식 테이블 (`disease_excluded_foods`) - 레거시**
+- `id`: UUID (Primary Key)
+- `disease`: TEXT (질병명)
+- `excluded_food_name`: TEXT (제외 음식명)
+- `excluded_food_type`: TEXT (ingredient 또는 recipe_keyword)
+- `reason`: TEXT (제외 이유)
+- `severity`: TEXT (low, medium, high, critical 등)
+- UNIQUE(disease, excluded_food_name)
+
+**질병별 제외 음식 확장 테이블 (`disease_excluded_foods_extended`)**
+- `id`: UUID (Primary Key)
+- `disease_code`: VARCHAR(50) (Foreign Key → diseases.code)
+- `food_name`: VARCHAR(200)
+- `food_type`: VARCHAR(50)
+- `severity`: VARCHAR(20)
+- `reason`: TEXT
+
+**알레르기 마스터 테이블 (`allergies`)**
+- `id`: UUID (Primary Key)
+- `code`: VARCHAR(50) (Unique, 알레르기 코드)
+- `name_ko`: VARCHAR(200) (한글명)
+- `name_en`: VARCHAR(200) (영문명)
+- `category`: VARCHAR(100)
+- `severity_level`: VARCHAR(20)
+- `description`: TEXT
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
+**알레르기 파생 재료 테이블 (`allergy_derived_ingredients`)**
+- `id`: UUID (Primary Key)
+- `allergy_code`: VARCHAR(50) (Foreign Key → allergies.code)
+- `ingredient_name`: VARCHAR(200) (파생 재료명, 예: 새우 → 새우젓, 김치)
+- `ingredient_type`: VARCHAR(50)
+- `description`: TEXT
+
+**응급조치 정보 테이블 (`emergency_procedures`)**
+- `id`: UUID (Primary Key)
+- `allergy_code`: VARCHAR(50) (Foreign Key → allergies.code)
+- `procedure_type`: VARCHAR(50)
+- `title_ko`, `title_en`: VARCHAR(200)
+- `steps`: JSONB (응급조치 단계)
+- `warning_signs`: JSONB (위험 신호)
+- `when_to_call_911`: TEXT (119 신고 시기)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
+**칼로리 계산 공식 테이블 (`calorie_calculation_formulas`)**
+- `id`: UUID (Primary Key)
+- `formula_name`: VARCHAR(100) (Unique, 공식명: Mifflin-St Jeor, Harris-Benedict, EER 등)
+- `formula_type`: VARCHAR(50)
+- `gender`: VARCHAR(10) (male, female)
+- `age_min`, `age_max`: INTEGER (적용 연령대)
+- `formula_expression`: TEXT (수식)
+- `description`: TEXT
+- `is_default`: BOOLEAN (기본 공식 여부)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
+##### 7.1.4. 식단 관리 시스템
+
+**식단 계획 테이블 (`diet_plans`)**
+- `id`: UUID (Primary Key)
+- `user_id`: UUID (Foreign Key → users)
+- `family_member_id`: UUID (Foreign Key → family_members, NULL이면 본인 식단)
+- `plan_date`: DATE (식단 날짜)
+- `meal_type`: TEXT (breakfast, lunch, dinner, snack)
+- `recipe_id`: TEXT (레시피 ID)
+- `recipe_title`: TEXT
+- `recipe_description`: TEXT
+- `ingredients`: JSONB (재료 정보)
+- `instructions`: TEXT (조리법)
+- `calories`: INTEGER
+- `protein_g`, `carbs_g`, `fat_g`: NUMERIC (3대 영양소)
+- `sodium_mg`: INTEGER
+- `fiber_g`: NUMERIC
+- `potassium_mg`: INTEGER (CKD 환자용)
+- `phosphorus_mg`: INTEGER (CKD 환자용)
+- `gi_index`: NUMERIC (혈당지수, 당뇨 환자용)
+- `composition_summary`: JSONB (구성 요약)
+- `is_unified`: BOOLEAN (통합 식단 여부)
+- `created_at`: TIMESTAMPTZ
+
+**주간 식단 메타데이터 테이블 (`weekly_diet_plans`)**
+- `id`: UUID (Primary Key)
+- `user_id`: UUID (Foreign Key → users)
+- `week_start_date`: DATE (주 시작일, 월요일)
+- `week_year`: INTEGER (ISO 8601 주차 연도)
+- `week_number`: INTEGER (ISO 8601 주차 번호)
+- `is_family`: BOOLEAN (가족 식단 여부)
+- `total_recipes_count`: INTEGER (총 레시피 수)
+- `generation_duration_ms`: INTEGER (생성 소요 시간)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+- UNIQUE(user_id, week_year, week_number)
+
+**주간 장보기 리스트 테이블 (`weekly_shopping_lists`)**
+- `id`: UUID (Primary Key)
+- `weekly_diet_plan_id`: UUID (Foreign Key → weekly_diet_plans)
+- `ingredient_name`: TEXT (재료명)
+- `total_quantity`: NUMERIC (총 필요량)
+- `unit`: TEXT (단위)
+- `category`: TEXT (카테고리)
+- `recipes_using`: JSONB (사용 레시피 목록)
+- `is_purchased`: BOOLEAN (구매 완료 여부)
+- `created_at`: TIMESTAMPTZ
+
+**주간 영양 통계 테이블 (`weekly_nutrition_stats`)**
+- `id`: UUID (Primary Key)
+- `weekly_diet_plan_id`: UUID (Foreign Key → weekly_diet_plans)
+- `day_of_week`: INTEGER (1=월요일, 7=일요일)
+- `date`: DATE
+- `total_calories`: NUMERIC
+- `total_carbohydrates`: NUMERIC
+- `total_protein`: NUMERIC
+- `total_fat`: NUMERIC
+- `total_sodium`: NUMERIC
+- `meal_count`: INTEGER (식사 수)
+- `created_at`: TIMESTAMPTZ
 
 **식단 알림 설정 테이블 (`diet_notification_settings`)**
-- 사용자별 알림 설정 관리
-- 팝업 알림, 브라우저 알림 활성화/비활성화
-- 마지막 알림 날짜 저장 (중복 방지)
+- `id`: UUID (Primary Key)
+- `user_id`: UUID (Unique, Foreign Key → users)
+- `popup_enabled`: BOOLEAN (팝업 알림 활성화)
+- `browser_enabled`: BOOLEAN (브라우저 알림 활성화)
+- `notification_time`: TIME (알림 시간, 기본값 05:00)
+- `kcdc_enabled`: BOOLEAN (질병청 알림 활성화)
+- `last_notification_date`: DATE (마지막 알림 날짜)
+- `last_dismissed_date`: DATE (마지막 닫기 날짜)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
+##### 7.1.5. 결제 및 프리미엄 기능
+
+**사용자 구독 관리 테이블 (`user_subscriptions`)**
+- `id`: UUID (Primary Key)
+- `user_id`: UUID (Unique, Foreign Key → users)
+- `subscription_plan`: TEXT (free, single, premium, enterprise)
+- `started_at`: TIMESTAMPTZ
+- `expires_at`: TIMESTAMPTZ
+- `is_active`: BOOLEAN
+- `created_at`, `updated_at`: TIMESTAMPTZ
+- **트리거**: 사용자 생성 시 자동으로 'free' 플랜 생성
+
+**구독 정보 테이블 (`subscriptions`) - 결제 시스템**
+- `id`: UUID (Primary Key)
+- `user_id`: UUID (Foreign Key → users)
+- `status`: TEXT (active, inactive, cancelled, paused)
+- `plan_type`: TEXT (monthly, yearly)
+- `billing_key`: TEXT (결제 키)
+- `payment_method`: TEXT
+- `last_four_digits`: TEXT (카드 마지막 4자리)
+- `started_at`, `current_period_start`, `current_period_end`: TIMESTAMPTZ
+- `cancelled_at`: TIMESTAMPTZ
+- `price_per_month`: INTEGER
+- `total_paid`: INTEGER
+- `is_test_mode`: BOOLEAN
+
+**결제 내역 테이블 (`payment_transactions`)**
+- `id`: UUID (Primary Key)
+- `subscription_id`: UUID (Foreign Key → subscriptions)
+- `user_id`: UUID (Foreign Key → users)
+- `status`: TEXT (pending, completed, failed, refunded)
+- `transaction_type`: TEXT (subscription, one_time, refund)
+- `pg_provider`: TEXT (기본값: toss_payments)
+- `pg_transaction_id`: TEXT (Unique, PG사 거래 ID)
+- `amount`: INTEGER (결제 금액)
+- `tax_amount`: INTEGER (세금)
+- `net_amount`: INTEGER (실제 금액)
+- `payment_method`: TEXT
+- `card_info`: JSONB (카드 정보)
+- `paid_at`, `refunded_at`: TIMESTAMPTZ
+- `metadata`: JSONB
+- `is_test_mode`: BOOLEAN
+
+**프로모션 코드 테이블 (`promo_codes`)**
+- `id`: UUID (Primary Key)
+- `code`: TEXT (Unique, 프로모션 코드)
+- `discount_type`: TEXT (percentage, fixed_amount, free_trial)
+- `discount_value`: INTEGER (할인 값)
+- `max_uses`: INTEGER (최대 사용 횟수)
+- `current_uses`: INTEGER (현재 사용 횟수)
+- `valid_from`, `valid_until`: TIMESTAMPTZ
+- `applicable_plans`: TEXT[] (적용 가능한 플랜)
+- `new_users_only`: BOOLEAN (신규 사용자 전용)
+- `description`: TEXT
+- `created_by`: UUID (Foreign Key → users)
+
+**프로모션 사용 내역 테이블 (`promo_code_uses`)**
+- `id`: UUID (Primary Key)
+- `promo_code_id`: UUID (Foreign Key → promo_codes)
+- `user_id`: UUID (Foreign Key → users)
+- `subscription_id`: UUID (Foreign Key → subscriptions)
+- `used_at`: TIMESTAMPTZ
+- UNIQUE(promo_code_id, user_id)
+
+**즐겨찾기 식단 테이블 (`favorite_meals`)**
+- `id`: UUID (Primary Key)
+- `user_id`: UUID (Foreign Key → users)
+- `recipe_id`: UUID (Foreign Key → recipes)
+- `recipe_title`: TEXT
+- `meal_type`: TEXT (breakfast, lunch, dinner, snack)
+- `calories`: INTEGER
+- `protein`, `carbs`, `fat`: NUMERIC
+- `notes`: TEXT
+- `created_at`, `updated_at`: TIMESTAMPTZ
+- UNIQUE(user_id, recipe_id)
+
+**수동 등록 밀키트 제품 테이블 (`meal_kits`)**
+- `id`: UUID (Primary Key)
+- `name`: TEXT
+- `description`: TEXT
+- `image_url`: TEXT
+- `price`: INTEGER
+- `serving_size`: INTEGER
+- `calories`: INTEGER
+- `protein`, `carbs`, `fat`: NUMERIC
+- `category`: TEXT
+- `meal_type`: TEXT[] (식사 타입 배열)
+- `purchase_url`: TEXT
+- `is_active`: BOOLEAN
+- `is_premium_only`: BOOLEAN
+- `created_by`: UUID (Foreign Key → users)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
+**쿠팡 API 제품 캐시 테이블 (`meal_kit_products`)**
+- `id`: UUID (Primary Key)
+- `coupang_product_id`: TEXT (Unique, 쿠팡 제품 ID)
+- `name`: TEXT
+- `description`: TEXT
+- `image_url`: TEXT
+- `price`: INTEGER
+- `original_price`: INTEGER
+- `discount_rate`: INTEGER
+- `product_url`: TEXT
+- `affiliate_link`: TEXT (제휴 링크)
+- `calories`: INTEGER
+- `protein`, `carbs`, `fat`: NUMERIC
+- `category`: TEXT
+- `meal_type`: TEXT[]
+- `last_synced_at`: TIMESTAMPTZ
+- `sync_status`: TEXT
+- `sync_error`: TEXT
+- `is_active`, `is_available`: BOOLEAN
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
+##### 7.1.6. 관리자 및 레거시 아카이브
+
+**페이지 문구 관리 테이블 (`admin_copy_blocks`)**
+- `id`: UUID (Primary Key)
+- `slug`: TEXT (슬롯 식별자)
+- `locale`: TEXT (기본값: ko)
+- `content`: JSONB (콘텐츠 데이터)
+- `version`: INTEGER (버전 번호)
+- `updated_by`: TEXT (수정자)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+- UNIQUE(slug, locale)
+
+**팝업 공지 관리 테이블 (`popup_announcements`)**
+- `id`: UUID (Primary Key)
+- `title`: TEXT
+- `body`: TEXT
+- `active_from`: TIMESTAMPTZ (활성화 시작일)
+- `active_until`: TIMESTAMPTZ (활성화 종료일)
+- `status`: TEXT (draft, published, archived)
+- `priority`: INTEGER (우선순위)
+- `target_segments`: JSONB (타겟 세그먼트)
+- `metadata`: JSONB
+- `image_url`: TEXT
+- `link_url`: TEXT
+- `display_type`: TEXT (modal, checkpoint)
+- `created_by`, `updated_by`: TEXT
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
+**알림 로그 테이블 (`notification_logs`)**
+- `id`: UUID (Primary Key)
+- `type`: TEXT (kcdc, diet-popup, system)
+- `status`: TEXT (success, failed, pending)
+- `payload`: JSONB (알림 데이터)
+- `triggered_at`: TIMESTAMPTZ
+- `actor`: TEXT (실행자)
+- `error_message`: TEXT
+- `created_at`: TIMESTAMPTZ
+
+**보안 감사 로그 테이블 (`admin_security_audit`)**
+- `id`: UUID (Primary Key)
+- `action`: TEXT (password-change, mfa-enable, mfa-disable, session-revoke, admin-access)
+- `user_id`: TEXT
+- `details`: JSONB
+- `ip_address`: INET
+- `user_agent`: TEXT
+- `created_at`: TIMESTAMPTZ
+
+**레거시 명인 테이블 (`legacy_masters`)**
+- `id`: UUID (Primary Key)
+- `name`: TEXT (명인 이름)
+- `title`: TEXT (칭호)
+- `region`: TEXT (지역)
+- `bio`: TEXT (소개)
+
+**레거시 비디오 테이블 (`legacy_videos`)**
+- `id`: UUID (Primary Key)
+- `master_id`: UUID (Foreign Key → legacy_masters)
+- `slug`: TEXT (Unique)
+- `title`: TEXT
+- `description`: TEXT
+- `duration_minutes`: INTEGER
+- `region`: TEXT (지역)
+- `era`: TEXT (시대)
+- `ingredients`: TEXT[] (재료 배열)
+- `thumbnail_url`: TEXT
+- `video_url`: TEXT
+- `premium_only`: BOOLEAN (프리미엄 전용 여부)
+- `tags`: TEXT[] (태그 배열)
+- `created_at`: TIMESTAMPTZ
+
+**레거시 문서 테이블 (`legacy_documents`)**
+- `id`: UUID (Primary Key)
+- `video_id`: UUID (Foreign Key → legacy_videos)
+- `title`: TEXT
+- `summary`: TEXT
+- `region`: TEXT
+- `era`: TEXT
+- `ingredients`: JSONB (재료 정보)
+- `tools`: JSONB (도구 정보)
+- `source`: JSONB (출처 정보)
+- `steps`: JSONB (조리 단계)
+- `created_at`: TIMESTAMPTZ
+
+**레거시 대체 가이드 테이블 (`legacy_replacement_guides`)**
+- `id`: UUID (Primary Key)
+- `traditional`: JSONB (전통 재료 정보)
+- `modern`: JSONB (현대 대체재 정보)
+- `tips`: TEXT[] (팁 배열)
+- `created_at`: TIMESTAMPTZ
+
+**질병관리청 알림 테이블 (`kcdc_alerts`)**
+- `id`: UUID (Primary Key)
+- `alert_type`: TEXT (알림 타입)
+- `title`: TEXT
+- `content`: TEXT
+- `severity`: TEXT (기본값: info)
+- `flu_stage`: TEXT (독감 단계)
+- `flu_week`: TEXT (독감 주차)
+- `vaccine_name`: TEXT (백신명)
+- `target_age_group`: TEXT (대상 연령대)
+- `recommended_date`: DATE (권장 일정)
+- `source_url`: TEXT (출처 URL)
+- `published_at`: TIMESTAMPTZ
+- `is_active`: BOOLEAN
+- `priority`: INTEGER
+- `fetched_at`: TIMESTAMPTZ
+- `expires_at`: TIMESTAMPTZ
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
+##### 7.1.7. 이미지 관리 시스템
+
+**이미지 사용 로그 테이블 (`image_usage_logs`)**
+- `id`: UUID (Primary Key)
+- `image_path`: TEXT (이미지 경로)
+- `food_name`: TEXT (음식명)
+- `source_type`: TEXT (static, gemini, placeholder)
+- `access_count`: INTEGER (접근 횟수)
+- `last_accessed_at`: TIMESTAMPTZ
+- `created_at`: TIMESTAMPTZ
+
+**이미지 캐시 통계 테이블 (`image_cache_stats`)**
+- `id`: UUID (Primary Key)
+- `stat_date`: DATE (Unique, 통계 날짜)
+- `total_images`: INTEGER (총 이미지 수)
+- `static_images`: INTEGER (정적 이미지 수)
+- `gemini_images`: INTEGER (Gemini 생성 이미지 수)
+- `placeholder_images`: INTEGER (플레이스홀더 수)
+- `total_access_count`: INTEGER (총 접근 횟수)
+- `cache_hit_rate`: NUMERIC (캐시 적중률)
+- `storage_size_mb`: NUMERIC (저장소 크기)
+- `created_at`, `updated_at`: TIMESTAMPTZ
+
+**이미지 캐시 정리 로그 테이블 (`image_cache_cleanup_logs`)**
+- `id`: UUID (Primary Key)
+- `cleanup_date`: TIMESTAMPTZ
+- `images_removed`: INTEGER (삭제된 이미지 수)
+- `space_freed_mb`: NUMERIC (해제된 공간)
+- `cleanup_duration_ms`: INTEGER (정리 소요 시간)
+- `cleanup_type`: TEXT
+- `error_message`: TEXT
+- `created_at`: TIMESTAMPTZ
+
+##### 7.1.8. Storage 버킷
+
+**업로드 버킷 (`uploads`)**
+- 사용자별 폴더 구조: `{clerk_user_id}/{filename}`
+- 파일 크기 제한: 6MB
+- RLS 정책: 인증된 사용자만 자신의 폴더에 업로드/조회/삭제 가능
+
+**팝업 이미지 버킷 (`popup-images`)**
+- 공개 버킷 (public: true)
+- 관리자만 업로드 가능
 
 #### 7.2. 알고리즘 로직
 
@@ -252,13 +779,13 @@
 **동작 흐름**:
 1. 모든 활성 사용자 조회
 2. 각 사용자의 가족 구성원 조회
-3. **일일 식단 생성** (다음 날)
+3. **일일 식단 생성** (오늘)
    - 가족 구성원이 있으면: 가족 식단 생성
-   - 가족 구성원이 없으면: 본인 건강 정보로 AI 식단 생성
-   - AI 추천 로직 사용 (`generateAndSaveDietPlan`)
+   - 가족 구성원이 없으면: 본인 건강 정보로 건강 맞춤 식단 생성
+   - 건강 맞춤 추천 로직 사용 (`generateAndSaveDietPlan`)
 4. **주간 식단 생성** (일요일 오후 6시에만 실행)
    - 다음 주 월요일부터 7일치 식단 생성
-   - AI 식단 로직 반영 (개인/가족 식단 자동 적용)
+   - 건강 맞춤 식단 로직 반영 (개인/가족 식단 자동 적용)
    - 레시피 다양성 강화 (주간 내 중복 최소화)
      - 다양성 수준에 따른 중복 허용 범위: high(1회), medium(2회), low(3회)
      - 주간 레시피 사용 빈도 추적 및 통계
@@ -266,8 +793,8 @@
 5. 데이터베이스에 저장
 
 **생성 시점**:
-- 전날 오후 6시에 생성하여 사용자가 재료 확인 및 구매할 시간 확보
-- 일일 식단: 매일 오후 6시에 다음 날 식단 생성
+- 매일 오후 6시에 오늘 날짜의 식단을 생성하여 사용자가 당일 식단을 확인할 수 있도록 함
+- 일일 식단: 매일 오후 6시에 오늘 식단 생성
 - 주간 식단: 일요일 오후 6시에 다음 주 식단 생성
 
 **구현 방법**:
@@ -325,7 +852,7 @@
 
 - **정적 매핑 기반 공급**: `docs/foodjpg.md`에서 Define한 음식명 → 이미지 경로 매핑을 단일 소스로 사용합니다. 모든 경로는 `public/images/food/` 이하의 로컬 자산 또는 카테고리별 SVG 폴백으로 구성됩니다.
 - **서버 액션 연동**: `actions/recipe-create.ts`가 `foodImageService.getFoodImage()`를 호출해 레시피 생성 시 자동으로 썸네일을 배정합니다. 실패 시 `lib/food-image-fallback.ts`의 카테고리 이미지가 반환됩니다.
-- **클라이언트 폴백**: `getRecipeImageUrlEnhanced()`가 상세/카드/AI 식단 컴포넌트 전반에서 동일한 우선순위(썸네일 → 특정 매핑 → 카테고리 SVG)를 적용해 항상 이미지를 노출합니다.
+- **클라이언트 폴백**: `getRecipeImageUrlEnhanced()`가 상세/카드/건강 맞춤 식단 컴포넌트 전반에서 동일한 우선순위(썸네일 → 특정 매핑 → 카테고리 SVG)를 적용해 항상 이미지를 노출합니다.
 - **관리 도구**: `components/admin/image-monitoring-dashboard.tsx` + `app/api/cache/stats`를 통해 현재 매핑 상태를 조회할 수 있으며, 더 이상 Pixabay/Gemini 파이프라인에 의존하지 않습니다.
 - **남은 작업**: 매핑에 없는 음식은 SVG 폴백을 사용하므로, 장기적으로는 `docs/foodjpg.md` 보강 또는 외부 생성 파이프라인 재도입 여부를 별도 결정해야 합니다.
 
@@ -383,47 +910,90 @@
 #### 7.8. 홈페이지 UI/UX 개선 (배달의민족 앱 참고)
 
 - **아키텍처**: 고정 영역과 스크롤 영역을 분리하여 중요한 CTA는 항상 접근 가능하도록 설계
-- **고정 헤더**:
-  - `components/home/fixed-header.tsx`: 검색바와 프리미엄 배너를 포함하는 고정 헤더
-  - `position: sticky`, `top: 0`, `z-index: 50` 설정
-  - 배경색 흰색, 그림자 효과로 다른 콘텐츠와 구분
+- **레이아웃 구조** (`app/layout.tsx`):
+  - RootLayout에서 전체 레이아웃 관리
+  - Navbar: `position: fixed`, `top: 44px` (프리미엄 배너 아래), `z-index: 50`
+  - 메인 콘텐츠: `marginTop: 108px` (프리미엄 배너 44px + Navbar 64px), `paddingBottom: 80px` (하단 네비게이션 공간)
+  - 하단 네비게이션: `position: fixed`, `bottom: 0`, 모바일에서만 표시 (`md:hidden`)
 - **프리미엄 배너**:
+  - `components/home/fixed-header.tsx`: 프리미엄 배너를 포함하는 고정 헤더
   - `components/home/premium-banner.tsx`: 청록색 배경(`bg-teal-500`), 흰색 텍스트
+  - `position: fixed`, `top: 0`, `z-index: 50` 설정
   - 클릭 시 `/pricing` 페이지로 이동
   - 텍스트: "프리미엄 결제 혜택을 받아보세요"
+  - 성능 최적화: `willChange: 'transform'`, `backfaceVisibility: 'hidden'`
+- **검색바**:
+  - `components/Navbar.tsx`: Navbar 내부에 검색 기능 직접 구현
+  - `components/home/search-bar.tsx`: 독립적인 검색바 컴포넌트 (재사용 가능)
+  - 둥근 모서리 (`rounded-lg`), 흰색 배경
+  - 플레이스홀더: "레시피, 명인, 재료를 검색해보세요"
+  - 검색어 입력 시 `/search?q={query}`로 이동
+  - 엔터 키 입력 시 검색 실행
+  - 포커스 애니메이션: 테두리 색상 변경 (`ring-2 ring-teal-500`), 그림자 효과 (`shadow-md`)
+  - 검색 아이콘 색상 변경: 포커스/입력 시 `text-teal-600`
+  - 접근성: `aria-label`, `aria-describedby`, `role="searchbox"` 속성
+  - Escape 키로 포커스 해제 지원
 - **바로가기 메뉴**:
-  - `components/home/quick-access-menu.tsx`: 8개 주요 기능을 아이콘 그리드로 제공
-  - 반응형 그리드: 모바일 4열, 태블릿 5열, 데스크톱 6-8열
-  - 각 아이템별 고유 색상 (Tailwind 클래스)
-  - 호버/터치 효과: `hover:scale-105`, `active:scale-95`
+  - `components/home/quick-access-menu.tsx`: 6개 주요 기능을 아이콘 그리드로 제공
+  - 아이템: 궁중 레시피, 레시피, AI 식단, 주간 식단, 장보기, 즐겨찾기
+  - 반응형 그리드: 모바일 4열 (`grid-cols-4`), 태블릿 5열 (`sm:grid-cols-5`), 데스크톱 6-8열 (`md:grid-cols-6 lg:grid-cols-8`)
+  - 각 아이템별 고유 색상 (Tailwind 클래스: `bg-{color}-100`, `text-{color}-700`)
+  - 호버/터치 효과: `hover:scale-105`, `hover:shadow-lg`, `hover:-translate-y-1`, `active:scale-95`
+  - 터치 영역: 최소 88x88px (`min-h-[88px] min-w-[88px]`)
+  - 성능 최적화: `willChange: 'transform'`, `touchAction: 'manipulation'`
 - **하단 네비게이션**:
   - `components/layout/bottom-navigation.tsx`: 5개 메뉴 (홈, 레시피, 찜, 식단, 마이)
-  - `position: fixed`, `bottom: 0` (모바일에서만 표시)
-  - 현재 페이지 하이라이트: 활성 색상 `text-teal-600`
+  - `position: fixed`, `bottom: 0`, `z-index: 50` (모바일에서만 표시, `md:hidden`)
+  - 현재 페이지 하이라이트: 활성 색상 `text-teal-600`, 비활성 `text-gray-500`
+  - 활성 상태: 아이콘 `scale-110`, 텍스트 `font-semibold`, 전체 `scale-105`
+  - 아이콘 크기: 24px (`w-6 h-6`), 텍스트: 12px (`text-xs`)
+  - 키보드 네비게이션: Tab, Enter/Space 키 지원 (`onKeyDown` 핸들러)
+  - 스크린리더: `aria-label`, `aria-current="page"`, `role="button"` 속성
+  - 성능 최적화: `willChange: 'transform'`, `backfaceVisibility: 'hidden'`
+  - Safe area 지원: `safe-area-inset-bottom` 클래스
 - **주간 식단 요약**:
   - `components/home/weekly-diet-summary.tsx`: 7일 캘린더 미리보기 및 총 칼로리 표시
   - 배경: 그라데이션 (`from-teal-50 to-blue-50`)
   - "전체보기" 링크로 `/diet/weekly` 페이지로 이동
+  - 지연 로딩: `LazyWeeklyDietSummary` 컴포넌트로 동적 import (`React.lazy`)
+  - 데이터 소스: `GET /api/diet/weekly/current` API 호출
+  - 캐싱: `weeklyDietCache` 유틸리티로 클라이언트 사이드 캐싱
+  - 로딩 상태: 스켈레톤 UI 표시
+  - 에러 처리: 에러 발생 시 사용자에게 친화적인 메시지 표시
 - **자주 구매하는 식자재**:
   - `components/home/frequent-items-section.tsx`: 사용자의 주간 식단 기반 재료 추천
   - API: `GET /api/shopping/frequent-items` (인증 필요)
   - 최근 4주간의 주간 식단에서 재료 빈도순 집계, 상위 8개 반환
   - 원클릭 장바구니 추가 기능
+  - 지연 로딩: `LazyFrequentItemsSection` 컴포넌트로 동적 import
+  - 로딩 상태: 스켈레톤 UI
+  - 빈 상태: 데이터 없을 때 섹션 숨김
+- **홈페이지 레이아웃** (`app/page.tsx`):
+  - 고정 헤더 (`FixedHeader`) 최상단 배치
+  - 응급조치 바로가기 (`EmergencyQuickAccess`) 배치
+  - 즉시 렌더링: `HomeLanding` 컴포넌트 (바로가기 메뉴 포함)
+  - 병렬 로딩: 각 섹션을 `Suspense`와 `ErrorBoundary`로 감싸서 독립적으로 로딩
+  - 섹션: 궁중 레시피, 추천 레시피, 식약처 레시피, 건강 맞춤 식단, 주간 식단 요약, 자주 구매하는 식자재
+  - 하단 네비게이션 높이만큼 패딩 추가 (`h-16 md:hidden`)
 - **반응형 디자인**:
-  - 모바일 우선 접근: 터치 영역 최소 44x44px
-  - 하단 네비게이션 높이: 64px (h-16)
-  - 스크롤 성능: 60fps 유지 목표
+  - 모바일 우선 접근: 터치 영역 최소 44x44px (실제 구현: 88x88px)
+  - 하단 네비게이션 높이: 64px (`h-16`)
+  - 스크롤 성능 최적화: `contain: 'layout style paint'`, `willChange: 'transform'`
+  - 터치 최적화: `touchAction: 'manipulation'`
 - **접근성**:
-  - 키보드 네비게이션: Tab, Enter/Space 키 지원
-  - 스크린리더: `aria-label`, `aria-current` 속성
+  - 키보드 네비게이션: Tab, Enter/Space 키 지원 (`onKeyDown` 핸들러)
+  - 스크린리더: `aria-label`, `aria-labelledby`, `aria-current`, `role` 속성
+  - 포커스 표시: `focus-visible:ring-2 focus-visible:ring-teal-500`
   - 색상 대비: WCAG AA 기준 준수 (4.5:1)
+  - 스크린리더 전용 텍스트: `sr-only` 클래스 사용
 - **성능 최적화**:
-  - 이미지 lazy loading
-  - 코드 스플리팅: 각 섹션별 동적 import
+  - 이미지 lazy loading: Next.js Image 컴포넌트 사용
+  - 코드 스플리팅: 각 섹션별 동적 import (`React.lazy`, `Suspense`)
   - API 호출 최적화: 병렬 요청, 캐싱
+  - 스크롤 성능: `willChange`, `backfaceVisibility`, `contain` 속성 적용
   - Lighthouse 성능 점수: 90점 이상 목표
 
-#### 7.9. 어제 AI 식단 가족 탭 동작
+#### 7.9. 어제 건강 맞춤 식단 가족 탭 동작
 
 - **데이터 계약**
   - `GET /api/family/diet/[date]?scope=previous` 응답에 `memberTabs[]`(id, name, included, healthFlags), `nutrientTotals`(kcal, carb, protein, fat), `exclusionNotes[]` 필드를 포함합니다.
@@ -439,7 +1009,7 @@
 
 ---
 
-### 8. 참고 문서
+### 9. 참고 문서
 
 - **상세 구현 계획서**: 
   - [implementation-plan-family-diet.md](./implementation-plan-family-diet.md) — 가족 식단 세부 로드맵

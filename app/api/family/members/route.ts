@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { canAddFamilyMember, SUBSCRIPTION_LIMITS } from "@/types/subscription";
+import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 
 /**
  * GET /api/family/members
@@ -100,10 +101,10 @@ export async function GET() {
     const subscriptionPlan = subscription?.subscription_plan || "free";
     const maxMembers = SUBSCRIPTION_LIMITS[subscriptionPlan]?.maxFamilyMembers ?? 1;
 
-    // 가족 구성원 조회 (include_in_unified_diet 컬럼이 없을 수 있으므로 제외)
+    // 가족 구성원 조회
     const { data: members, error } = await supabase
       .from("family_members")
-      .select("id, user_id, name, birth_date, gender, relationship, diseases, allergies, height_cm, weight_kg, activity_level, dietary_preferences, created_at, updated_at")
+      .select("id, user_id, name, birth_date, gender, relationship, diseases, allergies, height_cm, weight_kg, activity_level, dietary_preferences, include_in_unified_diet, created_at, updated_at")
       .eq("user_id", supabaseUserId)
       .order("created_at", { ascending: true });
 
@@ -176,9 +177,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    console.log("요청 데이터:", body);
+    // 요청 본문 파싱
+    let body: any;
+    try {
+      body = await request.json();
+      console.log("요청 데이터:", body);
+    } catch (parseError) {
+      console.error("❌ 요청 본문 파싱 실패:", parseError);
+      console.groupEnd();
+      return NextResponse.json(
+        {
+          error: "Invalid request body",
+          message: "요청 데이터 형식이 올바르지 않습니다.",
+          details: parseError instanceof Error ? parseError.message : String(parseError)
+        },
+        { status: 400 }
+      );
+    }
 
+    // 사용자 확인 및 자동 동기화
+    const userData = await ensureSupabaseUser();
+
+    if (!userData) {
+      console.error("❌ 사용자를 찾을 수 없거나 동기화 실패");
+      console.groupEnd();
+      return NextResponse.json(
+        { 
+          error: "User not found",
+          message: "사용자 정보를 찾을 수 없습니다. 잠시 후 다시 시도해주세요."
+        },
+        { status: 404 }
+      );
+    }
+
+    const supabaseUserId = userData.id;
+    
     // Service role 클라이언트 사용 (관리자 권한)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -187,7 +220,8 @@ export async function POST(request: NextRequest) {
       console.error("❌ Supabase 환경 변수 없음");
       console.groupEnd();
       return NextResponse.json({
-        error: "Supabase configuration error"
+        error: "Supabase configuration error",
+        message: "서버 설정 오류가 발생했습니다."
       }, { status: 500 });
     }
 
@@ -197,31 +231,6 @@ export async function POST(request: NextRequest) {
         persistSession: false
       }
     });
-
-    // 사용자의 Supabase user_id 조회
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    if (userError) {
-      console.error("❌ 사용자 조회 실패:", userError);
-      console.groupEnd();
-      return NextResponse.json({
-        error: "User lookup failed",
-        details: userError.message,
-        code: userError.code
-      }, { status: 500 });
-    }
-
-    if (!userData) {
-      console.error("❌ 사용자를 찾을 수 없음");
-      console.groupEnd();
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    const supabaseUserId = userData.id;
 
     // 구독 플랜 확인
     const { data: subscription } = await supabase
@@ -265,19 +274,19 @@ export async function POST(request: NextRequest) {
       console.groupEnd();
     }
 
-    // 가족 구성원 추가 (include_in_unified_diet 컬럼이 없을 수 있으므로 조건부로 추가)
+    // 가족 구성원 추가 데이터 준비 (NULL 값 명시적 처리)
     const memberData: any = {
       user_id: supabaseUserId,
       name: body.name,
       birth_date: body.birth_date,
-      gender: body.gender,
+      gender: body.gender || null,
       relationship: body.relationship,
-      diseases: body.diseases || [],
-      allergies: body.allergies || [],
-      height_cm: body.height_cm,
-      weight_kg: body.weight_kg,
+      diseases: Array.isArray(body.diseases) ? body.diseases : [],
+      allergies: Array.isArray(body.allergies) ? body.allergies : [],
+      height_cm: body.height_cm != null ? parseInt(String(body.height_cm)) : null,
+      weight_kg: body.weight_kg != null ? parseFloat(String(body.weight_kg)) : null,
       activity_level: body.activity_level || "sedentary",
-      dietary_preferences: body.dietary_preferences || [],
+      dietary_preferences: Array.isArray(body.dietary_preferences) ? body.dietary_preferences : [],
     };
 
     // include_in_unified_diet 컬럼이 존재하는 경우에만 추가
@@ -285,7 +294,20 @@ export async function POST(request: NextRequest) {
       memberData.include_in_unified_diet = body.include_in_unified_diet !== false;
     }
 
-    console.log("추가할 데이터:", memberData);
+    console.log("추가할 데이터:", JSON.stringify(memberData, null, 2));
+    console.log("데이터 타입 확인:", {
+      user_id: typeof memberData.user_id,
+      name: typeof memberData.name,
+      birth_date: typeof memberData.birth_date,
+      gender: typeof memberData.gender,
+      relationship: typeof memberData.relationship,
+      diseases: Array.isArray(memberData.diseases),
+      allergies: Array.isArray(memberData.allergies),
+      height_cm: typeof memberData.height_cm,
+      weight_kg: typeof memberData.weight_kg,
+      activity_level: typeof memberData.activity_level,
+      dietary_preferences: Array.isArray(memberData.dietary_preferences),
+    });
 
     const { data: newMember, error } = await supabase
       .from("family_members")
@@ -299,15 +321,28 @@ export async function POST(request: NextRequest) {
       console.error("  - 에러 메시지:", error.message);
       console.error("  - 에러 상세:", error.details);
       console.error("  - 에러 힌트:", error.hint);
+      console.error("  - 전체 에러 객체:", JSON.stringify(error, null, 2));
+      console.error("  - 시도한 데이터:", JSON.stringify(memberData, null, 2));
+      console.error("  - 사용자 ID:", supabaseUserId);
       console.groupEnd();
+      
+      // 트리거 함수 에러인 경우 특별 처리
+      const isTriggerError = error.message?.includes('가족 구성원은 최대') || 
+                            error.message?.includes('family_member_limit');
+      
       return NextResponse.json(
         { 
-          error: "가족 구성원 추가 실패",
+          error: isTriggerError ? "Family member limit exceeded" : "가족 구성원 추가 실패",
           message: error.message || "데이터베이스 오류가 발생했습니다.",
           details: error.details,
-          code: error.code
+          code: error.code,
+          hint: error.hint,
+          ...(process.env.NODE_ENV === "development" && {
+            attemptedData: memberData,
+            userId: supabaseUserId
+          })
         },
-        { status: 500 }
+        { status: isTriggerError ? 403 : 500 }
       );
     }
 
@@ -317,12 +352,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ member: newMember }, { status: 201 });
   } catch (error) {
     console.error("❌ 서버 오류:", error);
+    console.error("❌ 에러 타입:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("❌ 에러 메시지:", error instanceof Error ? error.message : String(error));
+    if (error instanceof Error && error.stack) {
+      console.error("❌ 스택 트레이스:", error.stack);
+    }
     console.groupEnd();
+    
+    // 개발 환경에서는 자세한 에러 정보 제공
+    const isDevelopment = process.env.NODE_ENV === "development";
     return NextResponse.json(
       {
         error: "Internal server error",
-        message: "서버에서 오류가 발생했습니다.",
-        ...(process.env.NODE_ENV === "development" && {
+        message: "서버에서 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        ...(isDevelopment && {
           details: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
         }),

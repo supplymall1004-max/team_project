@@ -15,7 +15,7 @@ import { getRecipes } from "@/lib/recipes/queries";
 import { LoadingSpinner } from "@/components/loading-spinner";
 
 export const metadata = {
-  title: "레시피 북 | 맛의 아카이브",
+  title: "레시피 아카이브 | 맛의 아카이브",
   description: "다양한 레시피를 검색하고 탐색해보세요",
 };
 
@@ -27,7 +27,7 @@ export default async function RecipesPage() {
     <div className="min-h-screen bg-gray-50">
       <Section className="pt-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">레시피 북</h1>
+          <h1 className="text-4xl font-bold mb-2">레시피 아카이브</h1>
           <p className="text-muted-foreground">
             다양한 레시피를 검색하고 탐색해보세요
           </p>

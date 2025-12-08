@@ -231,6 +231,66 @@ export function DietMealCard({
                   <p className="text-gray-600">지방</p>
                 </div>
               </div>
+
+              {/* 주의사항 */}
+              {(meal as RecipeDetailForDiet).warnings && (meal as RecipeDetailForDiet).warnings!.length > 0 && (
+                <div className="mt-3 rounded-md border border-yellow-200 bg-yellow-50 p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-yellow-800 mb-1">주의사항</p>
+                      <div className="space-y-1">
+                        {(meal as RecipeDetailForDiet).warnings!.map((warning, index) => (
+                          <div key={index} className="text-xs">
+                            <p className="text-yellow-800">{warning.message}</p>
+                            <p className="text-yellow-700 mt-0.5">
+                              {warning.type === 'sugar' ? '당 함량' : 
+                               warning.type === 'sodium' ? '나트륨 함량' : 
+                               warning.type === 'fat' ? '지방 함량' : 
+                               warning.type === 'potassium' ? '칼륨 함량' : 
+                               warning.type === 'phosphorus' ? '인 함량' : '영양소 함량'}: 
+                              {warning.value.toFixed(1)}{warning.unit}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 영양소 상세 정보 */}
+              {(meal as RecipeDetailForDiet).nutritionDetails && (
+                <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 p-3">
+                  <p className="text-xs font-semibold text-blue-800 mb-2">영양소 상세 정보</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {(meal as RecipeDetailForDiet).nutritionDetails!.sugar !== undefined && (
+                      <div>
+                        <span className="text-blue-700">당 함량:</span>{' '}
+                        <span className="font-semibold">{(meal as RecipeDetailForDiet).nutritionDetails!.sugar!.toFixed(1)}g</span>
+                      </div>
+                    )}
+                    {(meal as RecipeDetailForDiet).nutritionDetails!.sodium !== undefined && (
+                      <div>
+                        <span className="text-blue-700">나트륨:</span>{' '}
+                        <span className="font-semibold">{(meal as RecipeDetailForDiet).nutritionDetails!.sodium!.toFixed(0)}mg</span>
+                      </div>
+                    )}
+                    {(meal as RecipeDetailForDiet).nutritionDetails!.fat !== undefined && (
+                      <div>
+                        <span className="text-blue-700">지방:</span>{' '}
+                        <span className="font-semibold">{(meal as RecipeDetailForDiet).nutritionDetails!.fat!.toFixed(1)}g</span>
+                      </div>
+                    )}
+                    {(meal as RecipeDetailForDiet).nutritionDetails!.potassium !== undefined && (
+                      <div>
+                        <span className="text-blue-700">칼륨:</span>{' '}
+                        <span className="font-semibold">{(meal as RecipeDetailForDiet).nutritionDetails!.potassium!.toFixed(0)}mg</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 재료 목록 */}

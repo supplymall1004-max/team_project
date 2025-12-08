@@ -42,11 +42,15 @@ export function useSyncUser() {
           headers: {
             "Content-Type": "application/json",
           },
+        }).catch((fetchError) => {
+          // 네트워크 에러 처리
+          console.error("❌ 네트워크 에러:", fetchError);
+          throw new Error(`네트워크 연결 실패: ${fetchError.message}`);
         });
 
         if (!response.ok) {
           // 에러 응답 처리
-          const errorText = await response.text();
+          const errorText = await response.text().catch(() => "응답 본문을 읽을 수 없습니다");
           console.error("❌ 사용자 동기화 실패:", response.status, errorText);
 
           // 404 에러의 경우 (새로운 계정에서 Clerk 정보가 아직 준비되지 않음)
@@ -68,7 +72,10 @@ export function useSyncUser() {
         // 응답이 JSON인지 확인
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
-          const data = await response.json();
+          const data = await response.json().catch((jsonError) => {
+            console.error("❌ JSON 파싱 실패:", jsonError);
+            return { success: false };
+          });
           if (data.success) {
             syncedRef.current = true;
             console.log("✅ 사용자 동기화 성공");
@@ -83,7 +90,9 @@ export function useSyncUser() {
         console.groupEnd();
       } catch (error) {
         // 네트워크 오류나 기타 예외 처리
-        console.error("❌ 사용자 동기화 중 예외 발생:", error);
+        const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류";
+        console.error("❌ 사용자 동기화 중 예외 발생:", errorMessage);
+        console.error("❌ 전체 에러 객체:", error);
         console.groupEnd();
         // 에러가 발생해도 페이지 로딩을 방해하지 않음
       }

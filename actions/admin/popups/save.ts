@@ -12,7 +12,7 @@
 
 import { z } from "zod";
 import { currentUser } from "@clerk/nextjs/server";
-import { createClerkSupabaseClient } from "@/lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidateTag } from "next/cache";
 
 // 입력 스키마
@@ -20,12 +20,23 @@ const SavePopupSchema = z.object({
   id: z.string().uuid().optional(), // 없으면 새로 생성
   title: z.string().min(1).max(200),
   body: z.string().min(1).max(2000),
-  image_url: z.string().url().nullable().optional(),
-  link_url: z.string().url().nullable().optional(),
+  image_url: z
+    .string()
+    .url()
+    .nullable()
+    .optional()
+    .or(z.literal("").transform(() => null)),
+  link_url: z
+    .string()
+    .url()
+    .nullable()
+    .optional()
+    .or(z.literal("").transform(() => null)),
   active_from: z.string().datetime(),
   active_until: z.string().datetime().nullable().optional(),
   priority: z.number().min(0).max(100).default(0),
   target_segments: z.array(z.string()).default([]),
+  display_type: z.enum(["modal", "checkpoint"]).default("modal"),
   metadata: z.record(z.any()).optional(),
 }).refine(
   (data) => {
@@ -56,6 +67,7 @@ export interface SavePopupResponse {
     status: "draft" | "published" | "archived";
     priority: number;
     target_segments: string[];
+    display_type: "modal" | "checkpoint";
     metadata: Record<string, any>;
     created_by: string;
     updated_by: string;
@@ -105,41 +117,86 @@ export async function savePopup(input: SavePopupInput): Promise<SavePopupResult>
       active_until,
       priority,
       target_segments,
+      display_type,
       metadata = {},
     } = validatedInput;
 
-    // Supabase 클라이언트 생성 (Clerk 인증 사용)
-    const supabase = await createClerkSupabaseClient();
+    // Supabase 클라이언트 생성 (Service Role 사용 - RLS 우회)
+    const supabase = getServiceRoleClient();
 
-    // upsert 수행
-    const upsertData = {
-      title,
-      body,
-      image_url: image_url || null,
-      link_url: link_url || null,
-      active_from,
-      active_until: active_until || null,
-      priority,
-      target_segments,
-      metadata,
-      updated_by: clerkUser.id,
-      ...(id ? { id } : { created_by: clerkUser.id, status: "draft" as const }),
-    };
+    // id가 있으면 업데이트, 없으면 새로 생성
+    let data, error;
+    let attemptedData: any;
+    
+    if (id) {
+      // 기존 팝업 업데이트
+      attemptedData = {
+        title: title.trim(),
+        body: body.trim(),
+        image_url: image_url && image_url.trim() ? image_url.trim() : null,
+        link_url: link_url && link_url.trim() ? link_url.trim() : null,
+        active_from: new Date(active_from).toISOString(),
+        active_until: active_until ? new Date(active_until).toISOString() : null,
+        priority: priority ?? 0,
+        target_segments: Array.isArray(target_segments) ? target_segments : [],
+        display_type: display_type || "modal",
+        metadata: metadata || {},
+        updated_by: clerkUser.id,
+      };
+      
+      console.log("update_data", JSON.stringify(attemptedData, null, 2));
 
-    const { data, error } = await supabase
-      .from("popup_announcements")
-      .upsert(upsertData, {
-        onConflict: id ? undefined : "title", // 새로 생성할 때는 title 중복 방지
-      })
-      .select("*")
-      .single();
+      const result = await supabase
+        .from("popup_announcements")
+        .update(attemptedData)
+        .eq("id", id)
+        .select("*")
+        .single();
+      
+      data = result.data;
+      error = result.error;
+    } else {
+      // 새 팝업 생성
+      attemptedData = {
+        title: title.trim(),
+        body: body.trim(),
+        image_url: image_url && image_url.trim() ? image_url.trim() : null,
+        link_url: link_url && link_url.trim() ? link_url.trim() : null,
+        active_from: new Date(active_from).toISOString(),
+        active_until: active_until ? new Date(active_until).toISOString() : null,
+        priority: priority ?? 0,
+        target_segments: Array.isArray(target_segments) ? target_segments : [],
+        display_type: display_type || "modal",
+        metadata: metadata || {},
+        created_by: clerkUser.id,
+        updated_by: clerkUser.id,
+        status: "draft" as const,
+      };
+      
+      console.log("insert_data", JSON.stringify(attemptedData, null, 2));
+
+      const result = await supabase
+        .from("popup_announcements")
+        .insert(attemptedData)
+        .select("*")
+        .single();
+      
+      data = result.data;
+      error = result.error;
+    }
 
     if (error) {
-      console.error("upsert_error", error);
+      console.error("save_error", error);
+      console.error("error_code", error.code);
+      console.error("error_message", error.message);
+      console.error("error_hint", error.hint);
+      console.error("error_details", error.details);
+      console.error("error_full", JSON.stringify(error, null, 2));
+      console.error("attempted_data", JSON.stringify(attemptedData, null, 2));
       console.groupEnd();
       return {
         success: false,
-        error: `저장 오류: ${error.message}`,
+        error: `저장 오류: ${error.message}${error.hint ? ` (${error.hint})` : ""}${error.details ? ` - ${error.details}` : ""}`,
       };
     }
 
@@ -163,6 +220,7 @@ export async function savePopup(input: SavePopupInput): Promise<SavePopupResult>
         status: data.status,
         priority: data.priority,
         target_segments: data.target_segments,
+        display_type: data.display_type || "modal",
         metadata: data.metadata,
         created_by: data.created_by,
         updated_by: data.updated_by,

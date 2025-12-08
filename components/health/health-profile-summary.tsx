@@ -35,21 +35,52 @@ export function HealthProfileSummary() {
         console.log("사용자 ID:", user.id);
 
         const response = await fetch("/api/health/profile");
+        
+        console.log("📡 API 응답 상태:", response.status, response.statusText);
+        console.log("📡 응답 헤더:", Object.fromEntries(response.headers.entries()));
+        
         if (!response.ok) {
+          let errorData: any = {};
+          try {
+            // Content-Type 확인
+            const contentType = response.headers.get("content-type");
+            console.log("📡 응답 Content-Type:", contentType);
+            
+            if (contentType && contentType.includes("application/json")) {
+              // JSON 응답인 경우
+              errorData = await response.json();
+            } else {
+              // 텍스트 응답인 경우
+              const text = await response.text();
+              console.error("❌ 응답 본문 (텍스트):", text);
+              if (text) {
+                try {
+                  errorData = JSON.parse(text);
+                } catch {
+                  errorData = { message: text, error: "Internal Server Error" };
+                }
+              }
+            }
+          } catch (parseError) {
+            console.error("❌ 응답 파싱 실패:", parseError);
+            errorData = { error: "Failed to parse error response" };
+          }
+          
           console.error("❌ 건강 정보 조회 실패:", response.status, response.statusText);
-          const errorText = await response.text();
-          console.error("❌ 응답 내용:", errorText);
+          console.error("❌ 에러 상세:", errorData);
           console.groupEnd();
           setIsLoading(false);
           return;
         }
 
         const result = await response.json();
+        console.log("✅ API 응답 데이터:", result);
+        
         if (result.profile) {
           setProfile(result.profile);
-          console.log("건강 정보 요약 로드 성공");
+          console.log("✅ 건강 정보 요약 로드 성공:", result.profile);
         } else {
-          console.log("건강 정보가 아직 입력되지 않았습니다");
+          console.log("ℹ️ 건강 정보가 아직 입력되지 않았습니다");
         }
         console.groupEnd();
       } catch (err) {

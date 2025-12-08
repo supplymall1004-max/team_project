@@ -12,7 +12,6 @@
 
 import { useState, useEffect } from "react";
 import { Star } from "lucide-react";
-import { useClerkSupabaseClient } from "@/lib/supabase/clerk-client";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { getRatingStars } from "@/lib/recipes/utils";
@@ -33,7 +32,6 @@ export function RecipeRating({
   onRatingChange,
 }: RecipeRatingProps) {
   const { user } = useUser();
-  const supabase = useClerkSupabaseClient();
   const [hoveredRating, setHoveredRating] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userRating, setUserRating] = useState<number | undefined>(currentRating);
@@ -44,48 +42,108 @@ export function RecipeRating({
       return;
     }
 
-    console.groupCollapsed("[RecipeRating] 별점 평가");
+    console.group("[RecipeRating] 별점 평가");
     console.log("recipeId", recipeId);
     console.log("rating", rating);
-    console.groupEnd();
+    console.log("clerk_id", user.id);
 
     setIsSubmitting(true);
 
     try {
-      // 사용자 ID 조회
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("id")
-        .eq("clerk_id", user.id)
-        .single();
+      // 서버 사이드 API 호출 (사용자 조회 및 평가 저장 모두 처리)
+      console.log("💾 평가 저장 중...", {
+        recipe_id: recipeId,
+        rating: rating,
+      });
 
-      if (userError || !userData) {
-        throw new Error("사용자 정보를 찾을 수 없습니다");
-      }
+      const ratingResponse = await fetch(`/api/recipes/${recipeId}/rating`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ rating }),
+      });
 
-      // 평가 생성 또는 업데이트
-      const { error: ratingError } = await supabase
-        .from("recipe_ratings")
-        .upsert(
-          {
-            recipe_id: recipeId,
-            user_id: userData.id,
-            rating: rating,
-          },
-          {
-            onConflict: "recipe_id,user_id",
+      if (!ratingResponse.ok) {
+        const errorData = await ratingResponse.json().catch(() => ({}));
+        console.error("❌ 평가 저장 실패:", {
+          status: ratingResponse.status,
+          error: errorData,
+        });
+        
+        // 사용자가 없는 경우 동기화 안내
+        if (ratingResponse.status === 404 && errorData.error?.includes("사용자")) {
+          // 사용자 동기화 시도
+          console.log("⚠️ 사용자 동기화 시도 중...");
+          const syncResponse = await fetch("/api/sync-user", {
+            method: "POST",
+          });
+
+          if (syncResponse.ok) {
+            // 동기화 성공 후 재시도
+            console.log("✅ 사용자 동기화 성공 - 재시도 중...");
+            const retryResponse = await fetch(`/api/recipes/${recipeId}/rating`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ rating }),
+            });
+
+            if (!retryResponse.ok) {
+              const retryErrorData = await retryResponse.json().catch(() => ({}));
+              throw new Error(retryErrorData.error || "평가 저장에 실패했습니다. 잠시 후 다시 시도해주세요.");
+            }
+
+            const retryResult = await retryResponse.json();
+            console.log("✅ 재시도 후 평가 저장 성공:", retryResult.data);
+            setUserRating(rating);
+            onRatingChange?.();
+            console.groupEnd();
+            return;
           }
-        );
-
-      if (ratingError) {
-        throw ratingError;
+        }
+        
+        const errorMessage = errorData.error || 
+          `평가 저장 실패 (상태 코드: ${ratingResponse.status})`;
+        
+        throw new Error(errorMessage);
       }
+
+      const ratingResult = await ratingResponse.json();
+      console.log("✅ 평가 저장 성공:", ratingResult.data);
+
+      console.log("✅ 평가 저장 성공");
+      console.groupEnd();
 
       setUserRating(rating);
       onRatingChange?.();
     } catch (error) {
-      console.error("rating error", error);
-      alert("평가 저장에 실패했습니다");
+      console.error("❌ 평가 오류:", {
+        error,
+        name: error instanceof Error ? error.name : "Unknown",
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        fullError: error instanceof Error ? JSON.stringify(error, Object.getOwnPropertyNames(error), 2) : String(error),
+      });
+      console.groupEnd();
+      
+      let errorMessage = "평가 저장에 실패했습니다. 잠시 후 다시 시도해주세요.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      } else if (error && typeof error === "object") {
+        // Supabase 에러 객체 처리
+        const supabaseError = error as { message?: string; details?: string; hint?: string; code?: string };
+        errorMessage = supabaseError.message || 
+          supabaseError.details || 
+          supabaseError.hint || 
+          errorMessage;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

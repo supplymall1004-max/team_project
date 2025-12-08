@@ -56,16 +56,33 @@ function isFileMatchingTitle(filename: string, title: string): boolean {
     .toLowerCase()
     .trim();
   
-  // 제목 정리 (괄호 내용 정규화)
+  // 제목 정리 (괄호 내용 정규화, 슬래시를 공백으로 변환)
   const titleClean = title
-    .replace(/[()（）]/g, "")
-    .replace(/\s*\/\s*/g, "")
+    .replace(/[()（）]/g, "") // 괄호 제거
+    .replace(/\s*\/\s*/g, "") // 슬래시 제거 (예: "웅어회/구이" -> "웅어회구이")
+    .replace(/\s+/g, " ")
     .toLowerCase()
     .trim();
   
+  // 파일명도 괄호 제거하여 비교
+  const filenameCleanNoBrackets = filenameClean
+    .replace(/[()（）]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  
+  // 정확히 일치하는 경우
+  if (filenameCleanNoBrackets === titleClean) {
+    return true;
+  }
+  
+  // 파일명이 제목을 포함하거나 제목이 파일명을 포함하는 경우
+  if (filenameCleanNoBrackets.includes(titleClean) || titleClean.includes(filenameCleanNoBrackets)) {
+    return true;
+  }
+  
   // 주요 키워드 추출 (2글자 이상)
   const titleKeywords = titleClean.split(/\s+/).filter(word => word.length >= 2);
-  const filenameKeywords = filenameClean.split(/\s+/).filter(word => word.length >= 2);
+  const filenameKeywords = filenameCleanNoBrackets.split(/\s+/).filter(word => word.length >= 2);
   
   // 첫 번째 주요 키워드가 일치하는지 확인 (예: "웅어", "맥적" 등)
   if (titleKeywords.length > 0 && filenameKeywords.length > 0) {
@@ -73,7 +90,7 @@ function isFileMatchingTitle(filename: string, title: string): boolean {
     const firstFilenameKeyword = filenameKeywords[0];
     
     if (firstTitleKeyword === firstFilenameKeyword || 
-        filenameClean.includes(firstTitleKeyword) ||
+        filenameCleanNoBrackets.includes(firstTitleKeyword) ||
         titleClean.includes(firstFilenameKeyword)) {
       return true;
     }
@@ -82,7 +99,7 @@ function isFileMatchingTitle(filename: string, title: string): boolean {
   // 전체 키워드 매칭 확인
   let matchCount = 0;
   for (const keyword of titleKeywords) {
-    if (filenameClean.includes(keyword)) {
+    if (filenameCleanNoBrackets.includes(keyword)) {
       matchCount++;
     }
   }
@@ -93,10 +110,11 @@ function isFileMatchingTitle(filename: string, title: string): boolean {
 
 /**
  * 레시피에 해당하는 궁중 사진 파일을 찾습니다.
+ * public/images/royalrecipe 폴더에 있는 이미지를 직접 URL로 반환합니다.
  */
 export function findPalaceImage(recipe: RoyalRecipe): string | null {
   const imageDir = IMAGE_DIRS[recipe.era].palace;
-  const dirPath = path.join(process.cwd(), "docs", "royalrecipe", imageDir);
+  const dirPath = path.join(process.cwd(), "public", "images", "royalrecipe", imageDir);
   
   if (!fs.existsSync(dirPath)) {
     console.warn(`[findPalaceImage] 디렉토리가 없습니다: ${dirPath}`);
@@ -106,8 +124,11 @@ export function findPalaceImage(recipe: RoyalRecipe): string | null {
   try {
     const files = fs.readdirSync(dirPath);
     const imageFiles = files.filter(
-      (file) => file.toLowerCase().endsWith(".png") || file.toLowerCase().endsWith(".jpg")
+      (file) => file.toLowerCase().endsWith(".png") || file.toLowerCase().endsWith(".jpg") || file.toLowerCase().endsWith(".jpeg")
     );
+    
+    console.log(`[findPalaceImage] ${recipe.era} - ${recipe.title} (번호: ${recipe.number})`);
+    console.log(`[findPalaceImage] 찾은 이미지 파일 수: ${imageFiles.length}`);
     
     // 번호로 먼저 매칭 시도
     const numberedFile = imageFiles.find((file) => {
@@ -116,7 +137,10 @@ export function findPalaceImage(recipe: RoyalRecipe): string | null {
     });
     
     if (numberedFile) {
-      return `/api/royal-recipes/images/${imageDir}/${numberedFile}`;
+      // public/images/royalrecipe 폴더는 /images/royalrecipe/ URL로 접근 가능
+      const imageUrl = `/images/royalrecipe/${encodeURIComponent(imageDir)}/${encodeURIComponent(numberedFile)}`;
+      console.log(`[findPalaceImage] 번호로 매칭 성공: ${numberedFile} -> ${imageUrl}`);
+      return imageUrl;
     }
     
     // 제목으로 매칭 시도
@@ -125,12 +149,16 @@ export function findPalaceImage(recipe: RoyalRecipe): string | null {
     );
     
     if (titleMatchedFile) {
-      return `/api/royal-recipes/images/${imageDir}/${titleMatchedFile}`;
+      // public/images/royalrecipe 폴더는 /images/royalrecipe/ URL로 접근 가능
+      const imageUrl = `/images/royalrecipe/${encodeURIComponent(imageDir)}/${encodeURIComponent(titleMatchedFile)}`;
+      console.log(`[findPalaceImage] 제목으로 매칭 성공: ${titleMatchedFile} -> ${imageUrl}`);
+      return imageUrl;
     }
     
     console.warn(
-      `[findPalaceImage] ${recipe.era} - ${recipe.title}에 해당하는 궁중 사진을 찾을 수 없습니다.`
+      `[findPalaceImage] ${recipe.era} - ${recipe.title} (번호: ${recipe.number})에 해당하는 궁중 사진을 찾을 수 없습니다.`
     );
+    console.log(`[findPalaceImage] 사용 가능한 파일 목록:`, imageFiles.slice(0, 5));
     return null;
   } catch (error) {
     console.error(`[findPalaceImage] 이미지 검색 실패:`, error);
@@ -140,6 +168,7 @@ export function findPalaceImage(recipe: RoyalRecipe): string | null {
 
 /**
  * 레시피에 해당하는 현대 이미지 파일을 찾습니다.
+ * public/images/royalrecipe 폴더에 있는 이미지를 직접 URL로 반환합니다.
  */
 export function findModernImage(recipe: RoyalRecipe): string | null {
   const imageDir = IMAGE_DIRS[recipe.era].modern;
@@ -149,17 +178,21 @@ export function findModernImage(recipe: RoyalRecipe): string | null {
     return null;
   }
   
-  const dirPath = path.join(process.cwd(), "docs", "royalrecipe", imageDir);
+  const dirPath = path.join(process.cwd(), "public", "images", "royalrecipe", imageDir);
   
   if (!fs.existsSync(dirPath)) {
+    console.warn(`[findModernImage] 디렉토리가 없습니다: ${dirPath}`);
     return null;
   }
   
   try {
     const files = fs.readdirSync(dirPath);
     const imageFiles = files.filter(
-      (file) => file.toLowerCase().endsWith(".png") || file.toLowerCase().endsWith(".jpg")
+      (file) => file.toLowerCase().endsWith(".png") || file.toLowerCase().endsWith(".jpg") || file.toLowerCase().endsWith(".jpeg")
     );
+    
+    console.log(`[findModernImage] ${recipe.era} - ${recipe.title}`);
+    console.log(`[findModernImage] 찾은 현대 이미지 파일 수: ${imageFiles.length}`);
     
     // 제목으로 매칭 시도
     const titleMatchedFile = imageFiles.find((file) =>
@@ -167,9 +200,16 @@ export function findModernImage(recipe: RoyalRecipe): string | null {
     );
     
     if (titleMatchedFile) {
-      return `/api/royal-recipes/images/${imageDir}/${titleMatchedFile}`;
+      // public/images/royalrecipe 폴더는 /images/royalrecipe/ URL로 접근 가능
+      const imageUrl = `/images/royalrecipe/${encodeURIComponent(imageDir)}/${encodeURIComponent(titleMatchedFile)}`;
+      console.log(`[findModernImage] 제목으로 매칭 성공: ${titleMatchedFile} -> ${imageUrl}`);
+      return imageUrl;
     }
     
+    console.warn(
+      `[findModernImage] ${recipe.era} - ${recipe.title}에 해당하는 현대 이미지를 찾을 수 없습니다.`
+    );
+    console.log(`[findModernImage] 사용 가능한 파일 목록:`, imageFiles.slice(0, 5));
     return null;
   } catch (error) {
     console.error(`[findModernImage] 이미지 검색 실패:`, error);

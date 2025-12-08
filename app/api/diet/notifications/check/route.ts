@@ -29,16 +29,24 @@ export async function GET(request: NextRequest) {
     const supabase = await createClerkSupabaseClient();
 
     // 사용자의 Supabase user_id 조회
-    const { data: userData } = await supabase
+    const { data: userData, error: userError } = await supabase
       .from("users")
       .select("id")
       .eq("clerk_id", userId)
-      .single();
+      .maybeSingle();
 
-    if (!userData) {
-      console.error("❌ 사용자를 찾을 수 없음");
+    // 사용자가 없거나 조회 실패 시 팝업 표시하지 않음
+    if (userError || !userData) {
+      if (userError) {
+        console.error("❌ 사용자 조회 오류:", userError);
+      } else {
+        console.log("⚠️ 사용자를 찾을 수 없음 - 팝업 표시하지 않음");
+      }
       console.groupEnd();
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({
+        shouldShow: false,
+        reason: "user_not_found"
+      });
     }
 
     const supabaseUserId = userData.id;

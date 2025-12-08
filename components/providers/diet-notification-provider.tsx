@@ -28,14 +28,30 @@ export function DietNotificationProvider({ children }: { children: React.ReactNo
       console.group("🔔 식단 알림 확인 시작");
       setLoading(true);
 
-      const response = await fetch("/api/diet/notifications/check");
+      const response = await fetch("/api/diet/notifications/check").catch((fetchError) => {
+        // 네트워크 에러 처리
+        console.error("❌ 네트워크 에러:", fetchError);
+        throw new Error(`네트워크 연결 실패: ${fetchError.message}`);
+      });
+
       if (!response.ok) {
-        console.error("❌ 알림 확인 실패:", response.status);
+        // 404 에러는 사용자가 없을 때 발생할 수 있으므로 정상 처리
+        if (response.status === 404) {
+          console.log("⚠️ 사용자를 찾을 수 없음 - 알림 확인 건너뜀");
+          console.groupEnd();
+          return;
+        }
+        
+        const errorText = await response.text().catch(() => "응답 본문을 읽을 수 없습니다");
+        console.error("❌ 알림 확인 실패:", response.status, errorText);
         console.groupEnd();
         return;
       }
 
-      const result = await response.json();
+      const result = await response.json().catch((jsonError) => {
+        console.error("❌ JSON 파싱 실패:", jsonError);
+        return { shouldShow: false, reason: "parse_error" };
+      });
       console.log("알림 확인 결과:", result);
 
       if (result.shouldShow) {
@@ -68,7 +84,9 @@ export function DietNotificationProvider({ children }: { children: React.ReactNo
 
       console.groupEnd();
     } catch (error) {
-      console.error("❌ 알림 확인 오류:", error);
+      const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류";
+      console.error("❌ 알림 확인 오류:", errorMessage);
+      console.error("❌ 전체 에러 객체:", error);
       console.groupEnd();
     } finally {
       setLoading(false);

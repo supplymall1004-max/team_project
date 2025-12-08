@@ -33,11 +33,25 @@ export interface GetSubscriptionResponse {
 
 /**
  * 현재 사용자의 구독 정보 조회
+ * 
+ * 개발 환경에서는 모든 사용자에게 프리미엄 기능을 임시로 허용합니다.
  */
 export async function getCurrentSubscription(): Promise<GetSubscriptionResponse> {
   console.group('[GetSubscription] 구독 정보 조회');
 
   try {
+    // 개발 환경에서는 모든 사용자에게 프리미엄 기능 허용
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 개발 모드: 모든 사용자에게 프리미엄 기능 허용');
+      console.groupEnd();
+      return {
+        success: true,
+        isPremium: true,
+        subscription: null,
+        premiumExpiresAt: null,
+      };
+    }
+
     // 1. 인증 확인
     const { userId } = await auth();
     if (!userId) {

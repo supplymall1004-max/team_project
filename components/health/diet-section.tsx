@@ -1,6 +1,6 @@
 /**
  * @file diet-section.tsx
- * @description 홈페이지 AI 맞춤 식단 섹션 (Section C)
+ * @description 홈페이지 건강 맞춤 식단 섹션 (Section C)
  *
  * 주요 기능:
  * 1. 오늘의 추천 식단 미리보기
@@ -22,7 +22,7 @@ export async function DietSection() {
   ]);
 
   const sectionTitle =
-    sectionContent["diet-section-title"]?.content.title || "🧠 AI 맞춤 식단 큐레이션";
+    sectionContent["diet-section-title"]?.content.title || "🧠 건강 맞춤 식단 큐레이션";
   const sectionDescription =
     sectionContent["diet-section-description"]?.content.description ||
     "건강 정보를 기반으로 개인 맞춤 식단을 추천해드립니다";

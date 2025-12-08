@@ -9,7 +9,8 @@
  * 4. 공개 URL 반환
  */
 
-import { supabase } from "@/lib/supabase/client";
+// 클라이언트 사이드 Supabase 클라이언트는 더 이상 사용하지 않음
+// 서버 사이드 API를 통해 업로드/삭제 처리
 
 // 허용되는 이미지 MIME 타입
 const ALLOWED_IMAGE_TYPES = [
@@ -31,6 +32,7 @@ export interface UploadImageResult {
 
 /**
  * 팝업 이미지를 Supabase Storage에 업로드
+ * 서버 사이드 API를 통해 Service Role 클라이언트로 업로드 (RLS 우회)
  */
 export async function uploadPopupImage(
   file: File,
@@ -61,43 +63,45 @@ export async function uploadPopupImage(
       };
     }
 
-    // 3. 고유한 파일명 생성
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 9);
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${timestamp}-${randomString}.${fileExt}`;
-    const filePath = `${userId}/${fileName}`;
+    console.log("서버 API로 업로드 시작");
 
-    console.log("uploading_to", filePath);
+    // 3. 서버 사이드 API를 통해 업로드 (Service Role 클라이언트 사용)
+    const formData = new FormData();
+    formData.append("file", file);
 
-    // 4. Supabase Storage에 업로드
-    const { data, error } = await supabase.storage
-      .from("popup-images")
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
+    const response = await fetch("/api/admin/popups/upload-image", {
+      method: "POST",
+      body: formData,
+    });
 
-    if (error) {
-      console.error("upload_error", error);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error || `업로드 실패 (${response.status})`;
+      console.error("upload_error", errorMessage);
       console.groupEnd();
       return {
         success: false,
-        error: `이미지 업로드 실패: ${error.message}`,
+        error: `이미지 업로드 실패: ${errorMessage}`,
       };
     }
 
-    // 5. 공개 URL 가져오기
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("popup-images").getPublicUrl(filePath);
+    const result = await response.json();
 
-    console.log("upload_success", publicUrl);
+    if (!result.success || !result.url) {
+      console.error("upload_error", result.error || "알 수 없는 오류");
+      console.groupEnd();
+      return {
+        success: false,
+        error: result.error || "이미지 업로드 실패",
+      };
+    }
+
+    console.log("upload_success", result.url);
     console.groupEnd();
 
     return {
       success: true,
-      url: publicUrl,
+      url: result.url,
     };
   } catch (error) {
     console.error("[UploadImage] unexpected_error", error);
@@ -113,6 +117,7 @@ export async function uploadPopupImage(
 
 /**
  * Storage에서 이미지 삭제
+ * 서버 사이드 API를 통해 Service Role 클라이언트로 삭제 (RLS 우회)
  */
 export async function deletePopupImage(
   imageUrl: string
@@ -121,32 +126,34 @@ export async function deletePopupImage(
     console.group("[DeleteImage]");
     console.log("imageUrl", imageUrl);
 
-    // URL에서 파일 경로 추출
-    const url = new URL(imageUrl);
-    const pathParts = url.pathname.split("/popup-images/");
-    if (pathParts.length < 2) {
-      console.error("invalid_url", imageUrl);
+    // 서버 사이드 API를 통해 삭제
+    const response = await fetch("/api/admin/popups/delete-image", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ imageUrl }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error || `삭제 실패 (${response.status})`;
+      console.error("delete_error", errorMessage);
       console.groupEnd();
       return {
         success: false,
-        error: "잘못된 이미지 URL입니다.",
+        error: `이미지 삭제 실패: ${errorMessage}`,
       };
     }
 
-    const filePath = pathParts[1];
-    console.log("deleting", filePath);
+    const result = await response.json();
 
-    // Supabase Storage에서 삭제
-    const { error } = await supabase.storage
-      .from("popup-images")
-      .remove([filePath]);
-
-    if (error) {
-      console.error("delete_error", error);
+    if (!result.success) {
+      console.error("delete_error", result.error || "알 수 없는 오류");
       console.groupEnd();
       return {
         success: false,
-        error: `이미지 삭제 실패: ${error.message}`,
+        error: result.error || "이미지 삭제 실패",
       };
     }
 

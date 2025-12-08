@@ -10,7 +10,8 @@ import type {
 import type { DailyDietPlan as StoredDailyDietPlan } from "./health";
 
 export type WeeklyDailyPlan = LegacyDailyDietPlan | StoredDailyDietPlan;
-import type { FamilyMember, UserHealthProfile } from "./family";
+import type { FamilyMember } from "./family";
+import type { UserHealthProfile } from "./health";
 
 /**
  * 주간 식단 메타데이터

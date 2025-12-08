@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClerkSupabaseClient } from "@/lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 
 /**
@@ -68,7 +68,7 @@ export async function PUT(
     }
 
     const supabaseUserId = userData.id;
-    const supabase = await createClerkSupabaseClient();
+    const supabase = getServiceRoleClient();
 
     // 권한 확인 (본인의 가족 구성원인지 체크)
     console.log("🔍 구성원 조회 중...");
@@ -101,12 +101,19 @@ export async function PUT(
     console.log("  - UUID 형식 검증 통과");
     
     // 권한 확인 (본인의 가족 구성원인지 체크)
-    // .single() 대신 .maybeSingle() 사용하여 에러 방지
+    // Service Role 클라이언트 사용으로 RLS 우회
+    // UUID를 명시적으로 문자열로 처리하여 비교
+    console.log("🔍 구성원 조회 쿼리 실행 중...");
+    console.log("  - memberId 타입:", typeof memberId);
+    console.log("  - memberId 값:", memberId);
+    console.log("  - supabaseUserId 타입:", typeof supabaseUserId);
+    console.log("  - supabaseUserId 값:", supabaseUserId);
+    
     const { data: existingMember, error: memberError } = await supabase
       .from("family_members")
       .select("id, name, user_id")
-      .eq("id", memberId)
-      .eq("user_id", supabaseUserId)
+      .eq("id", String(memberId).trim())
+      .eq("user_id", String(supabaseUserId).trim())
       .maybeSingle();
 
     if (memberError) {
@@ -194,10 +201,14 @@ export async function PUT(
     console.log("수정할 데이터:", updateData);
 
     // 수정 (UUID 비교 문제 해결을 위해 처리된 ID 사용)
+    console.log("✏️ 구성원 수정 쿼리 실행 중...");
+    console.log("  - memberId:", memberId);
+    console.log("  - updateData:", JSON.stringify(updateData, null, 2));
+    
     const { data: updatedMember, error } = await supabase
       .from("family_members")
       .update(updateData)
-      .eq("id", memberId)  // UUID 타입으로 직접 비교
+      .eq("id", String(memberId).trim())  // UUID를 명시적으로 문자열로 변환
       .select()
       .single();
 
@@ -320,7 +331,7 @@ export async function DELETE(
     }
 
     const supabaseUserId = userData.id;
-    const supabase = await createClerkSupabaseClient();
+    const supabase = getServiceRoleClient();
 
     // UUID 비교 문제 해결: ID를 명시적으로 문자열로 변환하고 trim
     const memberId = trimmedId;
@@ -333,8 +344,8 @@ export async function DELETE(
     const { data: existingMember, error: checkError } = await supabase
       .from("family_members")
       .select("id, name, user_id")
-      .eq("id", memberId)  // UUID 타입으로 직접 비교
-      .eq("user_id", supabaseUserId)
+      .eq("id", String(memberId).trim())  // UUID를 명시적으로 문자열로 변환
+      .eq("user_id", String(supabaseUserId).trim())
       .maybeSingle();
 
     if (checkError) {
@@ -405,8 +416,8 @@ export async function DELETE(
     const { error } = await supabase
       .from("family_members")
       .delete()
-      .eq("id", memberId)  // UUID 타입으로 직접 비교
-      .eq("user_id", supabaseUserId);
+      .eq("id", String(memberId).trim())  // UUID를 명시적으로 문자열로 변환
+      .eq("user_id", String(supabaseUserId).trim());
 
     if (error) {
       console.error("❌ 삭제 실패:", error);
@@ -414,12 +425,23 @@ export async function DELETE(
       console.error("  - 에러 메시지:", error.message);
       console.error("  - 에러 상세:", error.details);
       console.error("  - 에러 힌트:", error.hint);
+      console.error("  - 구성원 ID:", memberId);
+      console.error("  - 사용자 ID:", supabaseUserId);
       console.groupEnd();
+      
+      // 개발 환경에서는 더 자세한 정보 제공
+      const isDevelopment = process.env.NODE_ENV === "development";
       return NextResponse.json(
         { 
           error: "Delete failed",
-          message: "구성원 삭제 중 오류가 발생했습니다.",
-          details: error.message
+          message: error.message || "구성원 삭제 중 오류가 발생했습니다.",
+          details: error.details || error.message,
+          ...(isDevelopment && {
+            code: error.code,
+            hint: error.hint,
+            memberId,
+            userId: supabaseUserId
+          })
         },
         { status: 500 }
       );

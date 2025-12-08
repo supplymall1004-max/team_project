@@ -4,7 +4,7 @@
  * 질병별 제외 음식 조회, 칼로리 조정 계산, 영양소 비율 조정 등을 담당
  */
 
-import { createClerkSupabaseClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 export interface Disease {
     id: string;
@@ -36,7 +36,16 @@ export class DiseaseManager {
      * 모든 질병 목록 조회
      */
     static async getAllDiseases(): Promise<Disease[]> {
-        const supabase = await createClerkSupabaseClient();
+        // 공개 데이터이므로 anon key만 사용
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Supabase 환경 변수가 설정되지 않았습니다.');
+            return [];
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const { data, error } = await supabase
             .from('diseases')
@@ -56,7 +65,16 @@ export class DiseaseManager {
      * 특정 질병 정보 조회
      */
     static async getDiseaseByCode(code: string): Promise<Disease | null> {
-        const supabase = await createClerkSupabaseClient();
+        // 공개 데이터이므로 anon key만 사용
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Supabase 환경 변수가 설정되지 않았습니다.');
+            return null;
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const { data, error } = await supabase
             .from('diseases')
@@ -80,7 +98,16 @@ export class DiseaseManager {
     ): Promise<ExcludedFood[]> {
         if (diseaseCodes.length === 0) return [];
 
-        const supabase = await createClerkSupabaseClient();
+        // 공개 데이터이므로 anon key만 사용
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Supabase 환경 변수가 설정되지 않았습니다.');
+            return [];
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const { data, error } = await supabase
             .from('disease_excluded_foods_extended')

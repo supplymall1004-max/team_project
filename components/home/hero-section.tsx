@@ -14,7 +14,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChefHat, Film, Brain, Calendar } from "lucide-react";
+import { ChefHat, Film, Brain, Calendar, BookOpen } from "lucide-react";
 
 // 아이콘 매핑
 const iconMap: Record<string, typeof Film> = {
@@ -22,6 +22,7 @@ const iconMap: Record<string, typeof Film> = {
   "📚": ChefHat,
   "🤖": Brain,
   "📅": Calendar,
+  "📖": BookOpen,
 };
 
 interface QuickStartCard {
@@ -46,22 +47,17 @@ export function HeroSection({
   badgeText = "Flavor Archive Beta",
   title = "잊혀진 손맛을 연결하는\n디지털 식탁",
   subtitle,
-  description = "명인의 전통 레시피부터 AI 맞춤 식단까지, 세대와 세대를 넘나드는 요리 지식을 한 곳에서 경험하세요.",
-  searchPlaceholder = "레시피, 명인, 재료를 검색해보세요",
+  description = "궁중 레시피부터 건강 맞춤 식단까지, 세대와 세대를 넘나드는 요리 지식을 한 곳에서 경험하세요.",
+  searchPlaceholder = "레시피를 검색해보세요",
   searchButtonText = "검색",
   quickStartCards = [
     {
-      title: "🎬 레거시 아카이브",
-      description: "명인 인터뷰와 전통 조리법을 고화질로 감상하세요.",
-      href: "/legacy",
-    },
-    {
-      title: "📚 현대 레시피 북",
+      title: "📚 현대 레시피 아카이브",
       description: "별점과 난이도로 정리된 최신 레시피를 확인해요.",
       href: "/recipes",
     },
     {
-      title: "🤖 AI 맞춤 식단",
+      title: "🤖 건강 맞춤 식단",
       description: "건강 정보를 기반으로 개인 맞춤 식단을 추천받아요.",
       href: "/diet",
     },

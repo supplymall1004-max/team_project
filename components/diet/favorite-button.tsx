@@ -19,6 +19,7 @@ import { addFavoriteMeal, removeFavoriteMeal, isFavoriteMeal } from "@/lib/diet/
 import { PremiumGate } from "@/components/premium/premium-gate";
 import type { MealType } from "@/types/health";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface FavoriteButtonProps {
   /** 레시피 ID (null이면 레시피가 아닌 경우) */
@@ -116,7 +117,9 @@ export function FavoriteButton({
         const result = await removeFavoriteMeal(recipeId);
         if (result.success) {
           setIsFavorite(false);
-          toast.success("즐겨찾기에서 제거되었습니다.");
+          toast.success("💔 즐겨찾기에서 제거되었습니다.", {
+            duration: 2000,
+          });
           console.log("✅ 즐겨찾기 삭제 성공");
         } else {
           toast.error(result.error || "즐겨찾기 삭제에 실패했습니다.");
@@ -127,7 +130,10 @@ export function FavoriteButton({
         const result = await addFavoriteMeal(recipeId, recipeTitle, mealType, nutrition);
         if (result.success) {
           setIsFavorite(true);
-          toast.success("즐겨찾기에 추가되었습니다.");
+          toast.success("❤️ 즐겨찾기에 저장되었습니다!", {
+            duration: 2000,
+            description: recipeTitle,
+          });
           console.log("✅ 즐겨찾기 추가 성공");
         } else {
           toast.error(result.error || "즐겨찾기 추가에 실패했습니다.");
@@ -179,10 +185,20 @@ export function FavoriteButton({
       size={size}
       onClick={handleToggle}
       disabled={isToggling || !recipeId}
-      className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
+      className={cn(
+        isFavorite 
+          ? "text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100" 
+          : "text-gray-600 hover:text-red-500 hover:bg-red-50",
+        "transition-all duration-200"
+      )}
+      title={isFavorite ? "즐겨찾기에서 제거" : "즐겨찾기에 추가"}
     >
       <Heart
-        className={`w-4 h-4 ${isFavorite ? "fill-current" : ""} ${isToggling ? "animate-pulse" : ""}`}
+        className={cn(
+          "w-5 h-5 transition-all duration-200",
+          isFavorite && "fill-current scale-110",
+          isToggling && "animate-pulse"
+        )}
       />
     </Button>
   );

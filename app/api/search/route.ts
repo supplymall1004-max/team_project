@@ -1,12 +1,11 @@
 /**
  * @file api/search/route.ts
- * @description 통합 검색 API (레시피 + 레거시 아카이브 + 기타)
+ * @description 통합 검색 API (레시피 검색)
  *
  * 주요 기능:
  * 1. 레시피 검색
- * 2. 레거시 아카이브 검색
- * 3. 관련도순 정렬
- * 4. 타입별 태그 표시
+ * 2. 관련도순 정렬
+ * 3. 타입별 태그 표시
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -32,7 +31,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createClerkSupabaseClient();
     const results: Array<{
       id: string;
-      type: "recipe" | "legacy_video" | "legacy_document";
+      type: "recipe";
       title: string;
       description: string | null;
       thumbnail_url: string | null;
@@ -55,6 +54,7 @@ export async function GET(request: NextRequest) {
         `
       )
       .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     if (!recipesError && recipes) {
@@ -87,86 +87,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 2. 레거시 비디오 검색
-    const { data: legacyVideos, error: videosError } = await supabase
-      .from("legacy_videos")
-      .select(
-        `
-        id,
-        slug,
-        title,
-        description,
-        thumbnail_url,
-        master:legacy_masters(name, region)
-        `
-      )
-      .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
-      .limit(limit);
-
-    if (!videosError && legacyVideos) {
-      legacyVideos.forEach((video) => {
-        const titleMatch = video.title.toLowerCase().includes(query.toLowerCase());
-        const descriptionMatch = video.description?.toLowerCase().includes(query.toLowerCase());
-
-        let relevanceScore = 0;
-        if (titleMatch) relevanceScore += 100;
-        if (descriptionMatch) relevanceScore += 30;
-
-        results.push({
-          id: video.id,
-          type: "legacy_video",
-          title: video.title,
-          description: video.description,
-          thumbnail_url: video.thumbnail_url,
-          slug: video.slug,
-          relevance_score: relevanceScore,
-          metadata: {
-            master: (video.master as any)?.name,
-            region: (video.master as any)?.region,
-          },
-        });
-      });
-    }
-
-    // 3. 레거시 문서 검색
-    const { data: legacyDocs, error: docsError } = await supabase
-      .from("legacy_documents")
-      .select(
-        `
-        id,
-        title,
-        summary,
-        region,
-        era
-        `
-      )
-      .or(`title.ilike.%${query}%,summary.ilike.%${query}%`)
-      .limit(limit);
-
-    if (!docsError && legacyDocs) {
-      legacyDocs.forEach((doc) => {
-        const titleMatch = doc.title.toLowerCase().includes(query.toLowerCase());
-        const summaryMatch = doc.summary?.toLowerCase().includes(query.toLowerCase());
-
-        let relevanceScore = 0;
-        if (titleMatch) relevanceScore += 100;
-        if (summaryMatch) relevanceScore += 30;
-
-        results.push({
-          id: doc.id,
-          type: "legacy_document",
-          title: doc.title,
-          description: doc.summary,
-          thumbnail_url: null,
-          slug: `legacy/${doc.id}`, // 문서는 ID 기반
-          relevance_score: relevanceScore,
-          metadata: {
-            region: doc.region,
-            era: doc.era,
-          },
-        });
-      });
-    }
 
     // 관련도순 정렬
     results.sort((a, b) => b.relevance_score - a.relevance_score);

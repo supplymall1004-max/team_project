@@ -22,11 +22,11 @@ export const metadata = {
 
 const features = [
   {
-    title: "레거시 아카이브",
+    title: "궁중 레시피 아카이브",
     icon: Film,
     description:
-      "명인의 전통 조리법을 고화질 영상과 전문 문서로 아카이브합니다. 잊혀져가는 손맛을 디지털로 보존하고, 현대 대체재료 정보까지 제공합니다.",
-    href: "/legacy",
+      "잊혀져 가는 시대별 궁중 음식 레시피를 아카이브합니다. 삼국시대부터 조선시대까지의 전통 궁중 요리를 만나보세요.",
+    href: "/#royal-recipes",
     color: "orange",
   },
   {
@@ -91,7 +91,7 @@ export default function AboutPage() {
             잊혀진 손맛을 연결하는 디지털 식탁
           </p>
           <p className="text-base text-muted-foreground leading-relaxed">
-            명인의 전통 레시피부터 AI 맞춤 식단까지, 세대와 세대를 넘나드는
+            궁중 레시피부터 AI 맞춤 식단까지, 세대와 세대를 넘나드는
             요리 지식을 한 곳에서 경험하세요. Flavor Archive는 전통과 현대를
             잇는 레시피 아카이브 플랫폼입니다.
           </p>
@@ -139,8 +139,7 @@ export default function AboutPage() {
                 전통의 보존
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                명인의 손끝에서 배운 전통 조리법을 고화질 영상과 전문 문서로
-                기록하여 다음 세대에 전달합니다.
+                시대별 궁중 레시피를 체계적으로 아카이브하여 다음 세대에 전달합니다.
               </p>
             </div>
             <div className="space-y-3">

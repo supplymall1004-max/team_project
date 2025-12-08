@@ -12,7 +12,7 @@
 
 import { z } from "zod";
 import { currentUser } from "@clerk/nextjs/server";
-import { createClerkSupabaseClient } from "@/lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { revalidateTag } from "next/cache";
 
 // 입력 스키마
@@ -65,8 +65,22 @@ export async function deployPopup(input: DeployPopupInput): Promise<DeployPopupR
     const validatedInput = DeployPopupSchema.parse(input);
     const { id, action } = validatedInput;
 
-    // Supabase 클라이언트 생성 (Clerk 인증 사용)
-    const supabase = await createClerkSupabaseClient();
+    // Supabase 클라이언트 생성 (Service Role 사용 - RLS 우회)
+    let supabase;
+    try {
+      supabase = getServiceRoleClient();
+      console.log("✅ Supabase Service Role 클라이언트 생성 성공");
+    } catch (clientError) {
+      console.error("❌ Supabase 클라이언트 생성 실패:", {
+        error: clientError,
+        message: clientError instanceof Error ? clientError.message : String(clientError),
+      });
+      console.groupEnd();
+      return {
+        success: false,
+        error: `Supabase 클라이언트 생성 실패: ${clientError instanceof Error ? clientError.message : "알 수 없는 오류"}. 환경 변수를 확인해주세요.`,
+      };
+    }
 
     // 현재 팝업 정보 조회
     const { data: currentData, error: fetchError } = await supabase
@@ -76,11 +90,16 @@ export async function deployPopup(input: DeployPopupInput): Promise<DeployPopupR
       .single();
 
     if (fetchError) {
-      console.error("fetch_error", fetchError);
+      console.error("❌ 팝업 조회 오류:", {
+        code: fetchError.code,
+        message: fetchError.message,
+        details: fetchError.details,
+        hint: fetchError.hint,
+      });
       console.groupEnd();
       return {
         success: false,
-        error: `팝업 조회 오류: ${fetchError.message}`,
+        error: `팝업 조회 오류: ${fetchError.message}${fetchError.code ? ` (코드: ${fetchError.code})` : ""}`,
       };
     }
 
@@ -134,11 +153,16 @@ export async function deployPopup(input: DeployPopupInput): Promise<DeployPopupR
       .single();
 
     if (error) {
-      console.error("update_error", error);
+      console.error("❌ 상태 업데이트 오류:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
       console.groupEnd();
       return {
         success: false,
-        error: `상태 업데이트 오류: ${error.message}`,
+        error: `상태 업데이트 오류: ${error.message}${error.code ? ` (코드: ${error.code})` : ""}`,
       };
     }
 
@@ -159,12 +183,21 @@ export async function deployPopup(input: DeployPopupInput): Promise<DeployPopupR
       action,
     };
   } catch (error) {
-    console.error("[AdminConsole][Popups][Deploy] unexpected_error", error);
+    console.error("❌ [AdminConsole][Popups][Deploy] 예상치 못한 오류:", {
+      error,
+      name: error instanceof Error ? error.name : "Unknown",
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     console.groupEnd();
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다",
+      error: error instanceof Error 
+        ? error.message 
+        : typeof error === "string" 
+        ? error 
+        : "알 수 없는 오류가 발생했습니다",
     };
   }
 }

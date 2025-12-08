@@ -70,8 +70,13 @@ export function FamilyMemberSection() {
           },
         });
 
+        console.log("📡 가족 구성원 API 응답 상태:", membersResponse.status, membersResponse.statusText);
+        console.log("📡 응답 헤더:", Object.fromEntries(membersResponse.headers.entries()));
+        
         if (membersResponse.ok) {
           const membersResult = await membersResponse.json();
+          console.log("✅ API 응답 데이터:", membersResult);
+          
           setMembers(membersResult.members || []);
 
           // 구독 정보 설정
@@ -83,9 +88,19 @@ export function FamilyMemberSection() {
           console.log(`✅ ${membersResult.members?.length || 0}명의 가족 구성원 로드 성공`);
           console.log(`✅ 구독 플랜: ${membersResult.subscription?.plan || "free"}, 최대 구성원: ${membersResult.subscription?.maxMembers || 1}`);
         } else {
+          let errorData = {};
+          try {
+            const text = await membersResponse.text();
+            console.error("❌ 응답 본문 (텍스트):", text);
+            if (text) {
+              errorData = JSON.parse(text);
+            }
+          } catch (parseError) {
+            console.error("❌ 응답 파싱 실패:", parseError);
+          }
+          
           console.error("❌ 가족 구성원 데이터 로드 실패:", membersResponse.status, membersResponse.statusText);
-          const errorText = await membersResponse.text();
-          console.error("❌ 응답 내용:", errorText);
+          console.error("❌ 에러 상세:", errorData);
           setError(`가족 구성원 정보를 불러오는데 실패했습니다. (오류: ${membersResponse.status})`);
         }
 

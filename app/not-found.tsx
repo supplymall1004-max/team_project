@@ -1,12 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Home, Search, ChefHat } from "lucide-react";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "404 - 페이지를 찾을 수 없습니다",
-  description: "요청하신 페이지를 찾을 수 없습니다.",
-};
 
 export default function NotFound() {
   return (
@@ -23,24 +16,27 @@ export default function NotFound() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button asChild variant="default">
-            <Link href="/">
-              <Home className="mr-2 h-4 w-4" />
-              홈으로 가기
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/recipes">
-              <ChefHat className="mr-2 h-4 w-4" />
-              레시피 보기
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/search">
-              <Search className="mr-2 h-4 w-4" />
-              검색하기
-            </Link>
-          </Button>
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all h-9 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            <Home className="h-4 w-4" />
+            홈으로 가기
+          </Link>
+          <Link
+            href="/recipes"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all h-9 px-4 py-2 border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground"
+          >
+            <ChefHat className="h-4 w-4" />
+            레시피 보기
+          </Link>
+          <Link
+            href="/search"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all h-9 px-4 py-2 border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground"
+          >
+            <Search className="h-4 w-4" />
+            검색하기
+          </Link>
         </div>
 
         <div className="pt-6 border-t border-gray-200">

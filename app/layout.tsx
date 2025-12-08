@@ -21,6 +21,8 @@ import { ToastProvider } from "@/components/providers/toast-provider";
 import { Footer } from "@/components/footer";
 import { IntroVideo } from "@/components/intro-video";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { ErrorFallback } from "@/components/error-fallback";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -46,11 +48,11 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/icon.png", sizes: "512x512", type: "image/png" },
-      { url: "/icons/favicon.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/maca2.JPG", sizes: "512x512", type: "image/jpeg" },
+      { url: "/icons/maca2.JPG", sizes: "192x192", type: "image/jpeg" },
     ],
     apple: [
-      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/maca2.JPG", sizes: "512x512", type: "image/jpeg" },
     ],
   },
   appleWebApp: {
@@ -106,38 +108,85 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <ClerkProvider localization={koKR}>
+  // 환경 변수 검증 (개발 환경에서만)
+  if (process.env.NODE_ENV === "development") {
+    const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    const secretKey = process.env.CLERK_SECRET_KEY;
+
+    if (!publishableKey || !secretKey) {
+      console.error("❌ [Layout] Clerk 환경 변수가 설정되지 않았습니다.");
+      console.error("   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:", publishableKey ? "✅" : "❌");
+      console.error("   CLERK_SECRET_KEY:", secretKey ? "✅" : "❌");
+    } else {
+      console.log("✅ [Layout] Clerk 환경 변수 확인 완료");
+    }
+  }
+
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+  // Clerk 키가 없으면 에러 메시지 표시
+  if (!publishableKey) {
+    return (
       <html lang="ko" className="h-full">
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased w-full overflow-x-hidden`}
-          suppressHydrationWarning={true}
-        >
-          <SyncUserProvider>
+        <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}>
+          <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="max-w-md w-full space-y-4 text-center">
+              <h1 className="text-2xl font-bold text-red-600">환경 변수 오류</h1>
+              <p className="text-sm text-muted-foreground">
+                NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY가 설정되지 않았습니다.
+                <br />
+                .env 파일을 확인해주세요.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    );
+  }
+
+  return (
+    <ErrorBoundary
+      fallback={
+        <html lang="ko" className="h-full">
+          <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}>
+            <ErrorFallback />
+          </body>
+        </html>
+      }
+    >
+      <ClerkProvider
+        localization={koKR}
+        publishableKey={publishableKey}
+      >
+        <html lang="ko" className="h-full">
+          <body
+            className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased w-full overflow-x-hidden`}
+            suppressHydrationWarning={true}
+          >
+            <SyncUserProvider>
             <DietNotificationProvider>
               <KcdcAlertsProvider>
                 <PopupProvider>
                   <ToastProvider />
                   <IntroVideo>
                     <div className="flex flex-col h-screen w-full max-w-full overflow-hidden">
-                      {/* Navbar (고정) - 프리미엄 배너 아래에 위치 */}
-                      <div className="fixed left-0 right-0 z-50" style={{ top: '44px' }}>
-                        <Navbar />
-                      </div>
+                      {/* Navbar (최상단 고정) */}
+                      <Navbar />
 
                       {/* 메인 콘텐츠 영역 (스크롤 가능) */}
                       <main
-                        className="flex-1 bg-gradient-to-b from-white to-orange-50/40 w-full max-w-full overflow-y-auto pb-16 md:pb-0"
+                        className="flex-1 bg-gradient-to-b from-white to-orange-50/40 w-full max-w-full overflow-y-auto"
                         style={{
-                          marginTop: '108px', // 프리미엄 배너 높이(44px) + Navbar 높이(64px)
+                          marginTop: '64px', // Navbar 높이(64px)
                           paddingTop: '0.5rem',
+                          paddingBottom: '80px', // 하단 네비게이션 공간 확보 (모바일)
                         }}
                       >
                         {children}
+                        
+                        {/* Footer (회사소개) - 메인 콘텐츠 맨 아래에 위치, 고정하지 않음 */}
+                        <Footer />
                       </main>
-
-                      {/* Footer */}
-                      <Footer />
 
                       {/* 하단 네비게이션 (고정, 맨 아래, 모바일에서만 표시) */}
                       <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
@@ -148,9 +197,10 @@ export default function RootLayout({
                 </PopupProvider>
               </KcdcAlertsProvider>
             </DietNotificationProvider>
-          </SyncUserProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+            </SyncUserProvider>
+          </body>
+        </html>
+      </ClerkProvider>
+    </ErrorBoundary>
   );
 }

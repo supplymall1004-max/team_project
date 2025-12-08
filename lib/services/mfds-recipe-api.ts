@@ -128,7 +128,7 @@ export async function getMfdsRecipeList(
 
   try {
     const response = await fetch(url, {
-      cache: "no-store", // 실시간 데이터를 위해 캐시 비활성화
+      next: { revalidate: 3600 }, // 1시간마다 재검증 (정적 렌더링 지원)
     });
 
     if (!response.ok) {
@@ -282,7 +282,7 @@ export function parseIngredients(recipe: RecipeItem): string[] {
     // 예: "돼지고기 200g" -> "돼지고기"
     // 예: "양파(1개)" -> "양파"
     // 예: "고춧가루 1큰술" -> "고춧가루"
-    let normalized = ingredient
+    const normalized = ingredient
       .replace(/\s*\([^)]*\)/g, "") // 괄호 안 내용 제거
       .replace(/\s*\d+[가-힣]*\s*/g, "") // 숫자와 단위 제거
       .replace(/\s+/g, " ") // 여러 공백을 하나로

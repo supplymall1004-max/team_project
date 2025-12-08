@@ -68,18 +68,27 @@ export const DISEASE_LABELS: Record<string, string> = {
   hyperlipidemia: "고지혈증",
   obesity: "비만",
   heart_disease: "심장병",
+  liver_disease: "간질환",
+  cardiovascular_disease: "심혈관질환",
+  gastrointestinal_disorder: "위장 장애",
+  high_cholesterol: "고지혈증",
+  thyroid_disorder: "갑상선 질환",
 };
 
 // 알레르기 한글명 맵
 export const ALLERGY_LABELS: Record<string, string> = {
+  peanut: "땅콩",
   peanuts: "땅콩",
   shellfish: "갑각류",
   dairy: "유제품",
   eggs: "계란",
+  egg: "계란",
   soy: "대두",
   wheat: "밀",
   fish: "생선",
   tree_nuts: "견과류",
+  tree_nut: "견과류",
+  milk: "우유",
 };
 
 // 활동 수준 한글명 맵

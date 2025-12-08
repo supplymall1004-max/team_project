@@ -68,21 +68,34 @@ export function WeeklyDietSummary() {
       // 1. 캐시 확인
       const cachedData = weeklyDietCache.getCachedWeeklyDiet(user.id, 'this');
       if (cachedData) {
-        console.log("✅ 캐시된 데이터 사용");
-        console.log("📊 캐시된 영양 통계:", cachedData.nutritionStats);
-        const totalCal = cachedData.nutritionStats.reduce(
-          (sum: number, stat: any) => sum + (stat.total_calories || 0),
-          0
-        );
-        console.log("📊 총 칼로리 (캐시):", totalCal, "kcal");
-
-        setData({
-          exists: true,
-          nutritionStats: cachedData.nutritionStats,
-          weekStartDate: cachedData.weekStartDate,
+        // 캐시된 데이터의 칼로리가 비정상적으로 작은지 확인
+        const hasAbnormalCalories = cachedData.nutritionStats?.some(stat => {
+          const calories = typeof stat.total_calories === 'number' 
+            ? stat.total_calories 
+            : Number(stat.total_calories) || 0;
+          return calories < 1000; // 하루 1000kcal 미만이면 비정상
         });
-        console.groupEnd();
-        return;
+        
+        if (hasAbnormalCalories) {
+          console.warn("⚠️ 캐시된 데이터의 칼로리가 비정상적으로 작아 캐시를 무효화합니다");
+          weeklyDietCache.clearCache(user.id, 'this');
+        } else {
+          console.log("✅ 캐시된 데이터 사용");
+          console.log("📊 캐시된 영양 통계:", cachedData.nutritionStats);
+          const totalCal = cachedData.nutritionStats.reduce(
+            (sum: number, stat: any) => sum + (stat.total_calories || 0),
+            0
+          );
+          console.log("📊 총 칼로리 (캐시):", totalCal, "kcal");
+
+          setData({
+            exists: true,
+            nutritionStats: cachedData.nutritionStats,
+            weekStartDate: cachedData.weekStartDate,
+          });
+          console.groupEnd();
+          return;
+        }
       }
 
       console.log("⚠️ 캐시 없음 - API 호출: /api/diet/weekly/this");

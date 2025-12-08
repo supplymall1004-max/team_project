@@ -5,7 +5,6 @@
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { getRoyalRecipe, RecipeEra } from "@/lib/royal-recipes/queries";
 import { getRecipeImages } from "@/lib/royal-recipes/images";
 
@@ -56,16 +55,13 @@ export default async function RoyalRecipePage({ params }: RoyalRecipePageProps) 
         <article className="bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200">
           {/* 첫 번째 사진 */}
           {images.palace && (
-            <div className="relative w-full h-80 md:h-96 overflow-hidden">
-              <Image
+            <div className="w-full bg-gray-50 flex items-center justify-center py-4 px-2 sm:py-6 sm:px-4">
+              <img
                 src={images.palace}
                 alt={`${recipe.title} - 궁중 사진`}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 1024px"
-                priority
+                className="w-full h-auto max-h-[70vh] sm:max-h-[80vh] object-contain rounded-lg shadow-sm"
+                loading="eager"
               />
-              <div className="absolute inset-0 bg-black bg-opacity-10"></div>
             </div>
           )}
 
@@ -126,16 +122,15 @@ export default async function RoyalRecipePage({ params }: RoyalRecipePageProps) 
 
           {/* 두 번째 사진 */}
           {images.modern && (
-            <div className="relative w-full h-80 md:h-96 overflow-hidden">
-              <Image
+            <div className="relative w-full bg-gray-50 flex items-center justify-center py-4 px-2 sm:py-6 sm:px-4">
+              <img
                 src={images.modern}
                 alt={`${recipe.title} - 현대 재현 사진`}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 1024px"
+                className="w-full h-auto max-h-[70vh] sm:max-h-[80vh] object-contain rounded-lg shadow-sm"
+                loading="lazy"
               />
-              <div className="absolute bottom-4 left-4 bg-white bg-opacity-90 px-4 py-2 rounded-lg">
-                <p className="text-sm text-gray-800">현대 재현 이미지</p>
+              <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 bg-white bg-opacity-90 px-3 py-2 sm:px-4 rounded-lg pointer-events-none z-10 shadow-md">
+                <p className="text-xs sm:text-sm text-gray-800 font-medium">현대 재현 이미지</p>
               </div>
             </div>
           )}

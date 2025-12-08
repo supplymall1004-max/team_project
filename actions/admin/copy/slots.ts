@@ -51,7 +51,7 @@ export const TEXT_SLOTS: TextSlot[] = [
     label: "서브타이틀 / 설명",
     description: "메인 타이틀 아래의 설명 문구",
     defaultContent: {
-      text: "명인의 전통 레시피부터 AI 맞춤 식단까지, 세대와 세대를 넘나드는 요리 지식을 한 곳에서 경험하세요.",
+      text: "명인의 전통 레시피부터 건강 맞춤 식단까지, 세대와 세대를 넘나드는 요리 지식을 한 곳에서 경험하세요.",
     },
     location: "components/home/hero-section.tsx:117-120",
     isExisting: true, // 이미 생성된 블록
@@ -79,24 +79,12 @@ export const TEXT_SLOTS: TextSlot[] = [
   
   // Quick Start 섹션
   {
-    slug: "quick-start-legacy",
-    section: "빠른 시작",
-    label: "레거시 아카이브 카드",
-    description: "빠른 시작 - 레거시 아카이브 섹션",
-    defaultContent: {
-      title: "🎬 레거시 아카이브",
-      description: "명인 인터뷰와 전통 조리법을 고화질로 감상하세요.",
-      href: "/legacy",
-    },
-    location: "components/home/hero-section.tsx:24-28",
-  },
-  {
     slug: "quick-start-recipe",
     section: "빠른 시작",
-    label: "현대 레시피 북 카드",
-    description: "빠른 시작 - 현대 레시피 북 섹션",
+    label: "현대 레시피 아카이브 카드",
+    description: "빠른 시작 - 현대 레시피 아카이브 섹션",
     defaultContent: {
-      title: "📚 현대 레시피 북",
+      title: "📚 현대 레시피 아카이브",
       description: "별점과 난이도로 정리된 최신 레시피를 확인해요.",
       href: "/recipes",
     },
@@ -105,10 +93,10 @@ export const TEXT_SLOTS: TextSlot[] = [
   {
     slug: "quick-start-diet",
     section: "빠른 시작",
-    label: "AI 맞춤 식단 카드",
-    description: "빠른 시작 - AI 맞춤 식단 섹션",
+    label: "건강 맞춤 식단 카드",
+    description: "빠른 시작 - 건강 맞춤 식단 섹션",
     defaultContent: {
-      title: "🤖 AI 맞춤 식단",
+      title: "🤖 건강 맞춤 식단",
       description: "건강 정보를 기반으로 개인 맞춤 식단을 추천받아요.",
       href: "/diet",
     },
@@ -125,6 +113,18 @@ export const TEXT_SLOTS: TextSlot[] = [
       href: "/diet/weekly",
     },
     location: "components/home/hero-section.tsx:42-47",
+  },
+  {
+    slug: "quick-start-storybook",
+    section: "빠른 시작",
+    label: "마카의 음식 동화 카드",
+    description: "빠른 시작 - 마카의 음식 동화 섹션",
+    defaultContent: {
+      title: "📖 마카의 음식 동화",
+      description: "전통 음식의 탄생과 역사를 동화처럼 들려주는 이야기입니다.",
+      href: "/storybook",
+    },
+    location: "components/home/hero-section.tsx",
   },
   {
     slug: "hero-background-image",
@@ -192,7 +192,7 @@ export const TEXT_SLOTS: TextSlot[] = [
     label: "레시피 섹션 제목",
     description: "홈페이지 레시피 섹션 제목",
     defaultContent: {
-      title: "🍴 현대 레시피 북",
+      title: "🍴 현대 레시피 아카이브",
     },
     location: "components/recipes/recipe-section.tsx:40",
   },
@@ -212,7 +212,7 @@ export const TEXT_SLOTS: TextSlot[] = [
     label: "레시피 섹션 버튼 텍스트",
     description: "레시피 섹션 '전체 보기' 버튼 텍스트",
     defaultContent: {
-      text: "레시피 북 전체 보기",
+      text: "레시피 아카이브 전체 보기",
     },
     location: "components/recipes/recipe-section.tsx:51",
   },
@@ -222,9 +222,9 @@ export const TEXT_SLOTS: TextSlot[] = [
     slug: "diet-section-title",
     section: "Diet Section",
     label: "식단 섹션 제목",
-    description: "홈페이지 AI 맞춤 식단 섹션 제목",
+    description: "홈페이지 건강 맞춤 식단 섹션 제목",
     defaultContent: {
-      title: "🧠 AI 맞춤 식단 큐레이션",
+      title: "🧠 건강 맞춤 식단 큐레이션",
     },
     location: "components/health/diet-section.tsx:20",
   },
@@ -232,34 +232,13 @@ export const TEXT_SLOTS: TextSlot[] = [
     slug: "diet-section-description",
     section: "Diet Section",
     label: "식단 섹션 설명",
-    description: "홈페이지 AI 맞춤 식단 섹션 설명",
+    description: "홈페이지 건강 맞춤 식단 섹션 설명",
     defaultContent: {
       description: "건강 정보를 기반으로 개인 맞춤 식단을 추천해드립니다",
     },
     location: "components/health/diet-section.tsx:21",
   },
 
-  // Legacy Section
-  {
-    slug: "legacy-section-title",
-    section: "Legacy Section",
-    label: "레거시 섹션 제목",
-    description: "홈페이지 레거시 아카이브 섹션 제목",
-    defaultContent: {
-      title: "레거시 아카이브",
-    },
-    location: "components/legacy/legacy-archive-section.tsx:19",
-  },
-  {
-    slug: "legacy-section-description",
-    section: "Legacy Section",
-    label: "레거시 섹션 설명",
-    description: "홈페이지 레거시 아카이브 섹션 설명",
-    defaultContent: {
-      description: "명인의 인터뷰, 전문 기록, 대체재료 가이드를 한 번에 살펴보세요.",
-    },
-    location: "components/legacy/legacy-archive-section.tsx:20",
-  },
 
   // 메타데이터
   {
@@ -278,7 +257,7 @@ export const TEXT_SLOTS: TextSlot[] = [
     label: "페이지 설명",
     description: "검색 엔진에 표시되는 페이지 설명",
     defaultContent: {
-      text: "전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, AI 식단 추천을 한 곳에서 확인하세요.",
+      text: "전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, 건강 맞춤 식단 추천을 한 곳에서 확인하세요.",
     },
     location: "app/layout.tsx:40-41",
   },

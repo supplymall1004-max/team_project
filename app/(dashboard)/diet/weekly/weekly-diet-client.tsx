@@ -85,13 +85,6 @@ export function WeeklyDietClient() {
   const [weekType, setWeekType] = useState<"this" | "next">("this");
   const [showShoppingList, setShowShoppingList] = useState(false);
 
-  // 초기 로드 - 캐시 우선 확인
-  useEffect(() => {
-    if (user?.id) {
-      loadWeeklyDiet(weekType);
-    }
-  }, [weekType, user?.id, loadWeeklyDiet]);
-
   const loadWeeklyDiet = useCallback(async (type: "this" | "next") => {
     if (!user?.id) return;
 
@@ -198,6 +191,13 @@ export function WeeklyDietClient() {
       setLoading(false);
     }
   }, [user?.id]);
+
+  // 초기 로드 - 캐시 우선 확인
+  useEffect(() => {
+    if (user?.id) {
+      loadWeeklyDiet(weekType);
+    }
+  }, [weekType, user?.id, loadWeeklyDiet]);
 
   const generateWeeklyDiet = async () => {
     if (generating) return;

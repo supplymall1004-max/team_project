@@ -5,7 +5,7 @@
  * 엄격한 필터링 모드로 생명을 보호합니다.
  */
 
-import { createClerkSupabaseClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 export interface Allergy {
     id: string;
@@ -38,7 +38,16 @@ export class AllergyManager {
      * 모든 알레르기 목록 조회
      */
     static async getAllAllergies(): Promise<Allergy[]> {
-        const supabase = await createClerkSupabaseClient();
+        // 공개 데이터이므로 anon key만 사용
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Supabase 환경 변수가 설정되지 않았습니다.');
+            return [];
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const { data, error } = await supabase
             .from('allergies')
@@ -58,7 +67,16 @@ export class AllergyManager {
      * 특정 알레르기 정보 조회
      */
     static async getAllergyByCode(code: string): Promise<Allergy | null> {
-        const supabase = await createClerkSupabaseClient();
+        // 공개 데이터이므로 anon key만 사용
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Supabase 환경 변수가 설정되지 않았습니다.');
+            return null;
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const { data, error } = await supabase
             .from('allergies')
@@ -85,7 +103,16 @@ export class AllergyManager {
     ): Promise<DerivedIngredient[]> {
         if (allergyCodes.length === 0) return [];
 
-        const supabase = await createClerkSupabaseClient();
+        // 공개 데이터이므로 anon key만 사용
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Supabase 환경 변수가 설정되지 않았습니다.');
+            return [];
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const { data, error } = await supabase
             .from('allergy_derived_ingredients')
@@ -268,7 +295,16 @@ export class AllergyManager {
      * 8대 주요 알레르기 목록 조회
      */
     static async getMajor8Allergies(): Promise<Allergy[]> {
-        const supabase = await createClerkSupabaseClient();
+        // 공개 데이터이므로 anon key만 사용
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Supabase 환경 변수가 설정되지 않았습니다.');
+            return [];
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const { data, error } = await supabase
             .from('allergies')
@@ -288,7 +324,16 @@ export class AllergyManager {
      * 특수 알레르기 목록 조회
      */
     static async getSpecialAllergies(): Promise<Allergy[]> {
-        const supabase = await createClerkSupabaseClient();
+        // 공개 데이터이므로 anon key만 사용
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('Supabase 환경 변수가 설정되지 않았습니다.');
+            return [];
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
 
         const { data, error } = await supabase
             .from('allergies')

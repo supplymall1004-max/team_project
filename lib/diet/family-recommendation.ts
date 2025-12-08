@@ -21,6 +21,7 @@ export interface ExcludedFood {
   excluded_type: 'ingredient' | 'recipe_keyword';
   reason?: string;
   severity: 'mild' | 'moderate' | 'severe';
+  exclusion_type?: 'absolute' | 'moderate' | 'limit'; // 제외 유형
 }
 
 /**
@@ -39,10 +40,11 @@ export async function getExcludedFoods(diseases: string[]): Promise<ExcludedFood
   try {
     const supabase = getServiceRoleClient();
 
+    // disease_excluded_foods_extended 테이블에서 조회 (exclusion_type 포함)
     const { data, error } = await supabase
-      .from("disease_excluded_foods")
+      .from("disease_excluded_foods_extended")
       .select("*")
-      .in("disease", diseases);
+      .in("disease_code", diseases);
 
     if (error) {
       console.error("❌ 제외 음식 조회 실패:", error);
@@ -51,7 +53,17 @@ export async function getExcludedFoods(diseases: string[]): Promise<ExcludedFood
     }
 
     const records = data || [];
-    const validFoods = records.filter(food => Boolean(food.excluded_food_name?.trim()));
+    const validFoods = records
+      .filter(food => Boolean(food.food_name?.trim()))
+      .map(food => ({
+        id: food.id,
+        disease: food.disease_code,
+        excluded_food_name: food.food_name,
+        excluded_type: (food.food_type === 'ingredient' ? 'ingredient' : 'recipe_keyword') as 'ingredient' | 'recipe_keyword',
+        reason: food.reason,
+        severity: (food.severity || 'moderate') as 'mild' | 'moderate' | 'severe',
+        exclusion_type: (food.exclusion_type || 'absolute') as 'absolute' | 'moderate' | 'limit',
+      }));
     const invalidCount = records.length - validFoods.length;
 
     console.log(`✅ ${validFoods.length}개의 제외 음식 발견`);

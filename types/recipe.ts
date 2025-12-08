@@ -95,7 +95,7 @@ export interface RecipeRating {
   id: string;
   recipe_id: string;
   user_id: string;
-  rating: number; // 0.5, 1.0, 1.5, ..., 5.0
+  rating: number; // 0.5, 1.0, 1.5, ..., 5.0 (0.5점 단위)
   created_at: string;
   updated_at: string;
 }
@@ -172,6 +172,25 @@ export interface RecipeNutrition {
   gi?: number; // GI 지수
 }
 
+// 레시피 주의사항 인터페이스
+export interface RecipeWarning {
+  type: 'sugar' | 'sodium' | 'fat' | 'potassium' | 'phosphorus' | 'purine' | 'other';
+  message: string; // 주의사항 메시지
+  value: number; // 해당 영양소 함량
+  unit: string; // 단위 (g, mg 등)
+  severity: 'low' | 'moderate' | 'high'; // 심각도
+}
+
+// 영양소 상세 정보
+export interface NutritionDetails {
+  sugar?: number; // 당 함량 (g)
+  sodium?: number; // 나트륨 (mg)
+  fat?: number; // 지방 (g)
+  potassium?: number; // 칼륨 (mg)
+  phosphorus?: number; // 인 (mg)
+  purine?: number; // 퓨린 (mg)
+}
+
 // 레시피 상세 정보 (AI 식단용)
 export interface RecipeDetailForDiet {
   id?: string;
@@ -191,6 +210,9 @@ export interface RecipeDetailForDiet {
   imageUrl?: string; // 과일 이미지 URL
   featureDescription?: string; // 어린이 추천 이유 등
   compositionSummary?: string[]; // 식사 구성품 요약 (밥/반찬/국 등 이름 리스트)
+  warnings?: RecipeWarning[]; // 주의사항 배열
+  nutritionDetails?: NutritionDetails; // 영양소 상세 정보
+  exclusionType?: 'absolute' | 'moderate' | 'limit' | null; // 제외 유형
 }
 
 // 식사 구성 (밥 + 반찬 3개 + 국/찌개)

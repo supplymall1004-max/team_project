@@ -15,20 +15,19 @@
 
 import Link from "next/link";
 import {
-  Archive,
   BookOpen,
   Brain,
   Calendar,
   ShoppingCart,
   Star,
-  ChefHat,
-  UtensilsCrossed,
   Crown,
+  BookText,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface QuickAccessItem {
-  icon: typeof Archive;
+  icon: LucideIcon;
   label: string;
   href: string;
   bgColor: string; // Tailwind 배경색 클래스
@@ -37,11 +36,11 @@ interface QuickAccessItem {
 
 const quickAccessItems: QuickAccessItem[] = [
   {
-    icon: Archive,
-    label: "레거시",
-    href: "/legacy",
-    bgColor: "bg-orange-100",
-    textColor: "text-orange-700",
+    icon: Crown,
+    label: "궁중 레시피",
+    href: "/#royal-recipes",
+    bgColor: "bg-amber-100",
+    textColor: "text-amber-700",
   },
   {
     icon: BookOpen,
@@ -79,25 +78,11 @@ const quickAccessItems: QuickAccessItem[] = [
     textColor: "text-pink-700",
   },
   {
-    icon: ChefHat,
-    label: "명인",
-    href: "/legacy?filter=interview",
-    bgColor: "bg-red-100",
-    textColor: "text-red-700",
-  },
-  {
-    icon: UtensilsCrossed,
-    label: "전통",
-    href: "/legacy?filter=recipe",
+    icon: BookText,
+    label: "음식 동화",
+    href: "/storybook",
     bgColor: "bg-indigo-100",
     textColor: "text-indigo-700",
-  },
-  {
-    icon: Crown,
-    label: "궁중 레시피",
-    href: "/royal-recipes",
-    bgColor: "bg-amber-100",
-    textColor: "text-amber-700",
   },
 ];
 

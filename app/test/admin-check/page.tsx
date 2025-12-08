@@ -32,13 +32,6 @@ export default function AdminCheckPage() {
   const [results, setResults] = useState<AdminTestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
 
-  useEffect(() => {
-    if (isLoaded) {
-      // 자동으로 기본 체크 실행
-      runBasicChecks();
-    }
-  }, [isLoaded, user, runBasicChecks]);
-
   const runBasicChecks = useCallback(async () => {
     setIsRunning(true);
     setResults([]);
@@ -59,14 +52,10 @@ export default function AdminCheckPage() {
     if (user) {
       const publicRole = (user.publicMetadata?.role as string) || "";
       const publicRoles = (user.publicMetadata?.roles as string[]) || [];
-      const privateRole = (user.privateMetadata?.role as string) || "";
-      const privateRoles = (user.privateMetadata?.roles as string[]) || [];
 
       const isAdmin =
         publicRole === "admin" ||
-        publicRoles.includes("admin") ||
-        privateRole === "admin" ||
-        privateRoles.includes("admin");
+        publicRoles.includes("admin");
 
       checks.push({
         name: "관리자 권한",
@@ -167,6 +156,13 @@ export default function AdminCheckPage() {
     setResults([...checks]);
     setIsRunning(false);
   }, [user]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      // 자동으로 기본 체크 실행
+      runBasicChecks();
+    }
+  }, [isLoaded, user, runBasicChecks]);
 
   const runApiTests = async () => {
     if (!user) {

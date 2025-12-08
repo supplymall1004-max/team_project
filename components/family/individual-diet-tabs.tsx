@@ -19,6 +19,9 @@ import { Badge } from "@/components/ui/badge";
 import { User, Users } from "lucide-react";
 import { DailyDietView } from "@/components/diet/daily-diet-view";
 import { calculateAge } from "@/lib/utils/age-calculator";
+import { getHealthLabels, getAllergyLabels } from "@/lib/utils/health-labels";
+import { DISEASE_LABELS as HEALTH_DISEASE_LABELS, ALLERGY_LABELS as HEALTH_ALLERGY_LABELS } from "@/types/health";
+import { DISEASE_LABELS as FAMILY_DISEASE_LABELS, ALLERGY_LABELS as FAMILY_ALLERGY_LABELS } from "@/types/family";
 import type { FamilyDietPlan, DailyDietPlan } from "@/types/recipe";
 import type { FamilyMember } from "@/types/family";
 
@@ -36,6 +39,33 @@ export function IndividualDietTabs({
   onOpenInclusionSettings,
 }: IndividualDietTabsProps) {
   const [activeTab, setActiveTab] = useState("user");
+
+  // 질병/알레르기 한글 변환 함수 (두 파일의 라벨 통합)
+  const getDiseaseLabel = (disease: string): string => {
+    // types/health.ts의 라벨 먼저 확인
+    const healthLabel = HEALTH_DISEASE_LABELS[disease as keyof typeof HEALTH_DISEASE_LABELS];
+    if (healthLabel) return healthLabel;
+    
+    // types/family.ts의 라벨 확인
+    const familyLabel = FAMILY_DISEASE_LABELS[disease];
+    if (familyLabel) return familyLabel;
+    
+    // 둘 다 없으면 원본 반환
+    return disease;
+  };
+
+  const getAllergyLabel = (allergy: string): string => {
+    // types/health.ts의 라벨 먼저 확인
+    const healthLabel = HEALTH_ALLERGY_LABELS[allergy as keyof typeof HEALTH_ALLERGY_LABELS];
+    if (healthLabel) return healthLabel;
+    
+    // types/family.ts의 라벨 확인 (peanuts/peanut 호환성 처리)
+    const familyLabel = FAMILY_ALLERGY_LABELS[allergy] || FAMILY_ALLERGY_LABELS[allergy + 's'];
+    if (familyLabel) return familyLabel;
+    
+    // 둘 다 없으면 원본 반환
+    return allergy;
+  };
 
   // 탭 구성원 목록 생성
   const tabMembers = [
@@ -96,45 +126,45 @@ export function IndividualDietTabs({
             <TabsContent key={member.id} value={member.id} className="mt-6">
               <div className="space-y-4">
                 {/* 구성원 정보 헤더 */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3">
                         {member.name}님의 식단
                       </h3>
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4">
                         {member.diseases && member.diseases.length > 0 && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm text-gray-600">질병:</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-base font-bold text-gray-900">질병:</span>
                             {member.diseases.map((disease, index) => (
-                              <Badge key={index} variant="destructive" className="text-xs">
-                                {disease}
+                              <Badge key={index} variant="destructive" className="text-sm font-semibold px-3 py-1.5">
+                                {getDiseaseLabel(disease)}
                               </Badge>
                             ))}
                           </div>
                         )}
                         {member.allergies && member.allergies.length > 0 && (
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm text-gray-600">알레르기:</span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-base font-bold text-gray-900">알레르기:</span>
                             {member.allergies.map((allergy, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {allergy}
+                              <Badge key={index} variant="outline" className="text-sm font-semibold px-3 py-1.5 border-2 border-orange-300 text-gray-900">
+                                {getAllergyLabel(allergy)}
                               </Badge>
                             ))}
                           </div>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 flex-shrink-0">
                       {member.age && (
-                        <Badge variant="default" className="text-sm">
+                        <Badge variant="default" className="text-sm font-semibold px-3 py-1">
                           {member.age}세
                         </Badge>
                       )}
                       <button
                         type="button"
                         onClick={() => onOpenInclusionSettings?.(member.id)}
-                        className="text-xs font-medium text-orange-600 underline-offset-2 hover:underline"
+                        className="text-sm font-semibold text-orange-600 hover:text-orange-700 underline-offset-2 hover:underline transition-colors"
                       >
                         통합 식단 설정
                       </button>

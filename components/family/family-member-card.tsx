@@ -53,6 +53,7 @@ export function FamilyMemberCard({ member, onRefresh }: FamilyMemberCardProps) {
       });
 
       console.log("응답 상태:", response.status, response.statusText);
+      console.log("응답 헤더:", Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const contentType = response.headers.get("content-type");
@@ -60,12 +61,14 @@ export function FamilyMemberCard({ member, onRefresh }: FamilyMemberCardProps) {
         
         try {
           const responseText = await response.text();
-          console.log("응답 본문:", responseText);
+          console.log("응답 본문 (원본):", responseText);
+          console.log("응답 본문 길이:", responseText.length);
           console.log("Content-Type:", contentType);
           
           if (contentType?.includes("application/json") && responseText.trim()) {
             try {
               errorData = JSON.parse(responseText) as Record<string, unknown>;
+              console.log("파싱된 에러 데이터:", errorData);
             } catch (jsonError) {
               console.error("JSON 파싱 실패:", jsonError);
               errorData = { message: responseText || "삭제 실패" };
@@ -83,25 +86,33 @@ export function FamilyMemberCard({ member, onRefresh }: FamilyMemberCardProps) {
             };
             errorData = { 
               message: statusMessages[response.status] || "삭제에 실패했습니다.",
-              error: `HTTP ${response.status}` 
+              error: `HTTP ${response.status}`,
+              status: response.status,
+              statusText: response.statusText
             };
           }
         } catch (parseError) {
           console.error("응답 파싱 실패:", parseError);
           errorData = { 
             message: "삭제에 실패했습니다.",
-            error: "응답 파싱 오류"
+            error: "응답 파싱 오류",
+            parseError: parseError instanceof Error ? parseError.message : String(parseError)
           };
         }
         
         console.error("❌ 삭제 실패:");
         console.error("  - 상태 코드:", response.status);
+        console.error("  - 상태 텍스트:", response.statusText);
         console.error("  - 에러 데이터:", JSON.stringify(errorData, null, 2));
+        console.error("  - 요청 URL:", `/api/family/members/${member.id}`);
+        console.error("  - 구성원 ID:", member.id);
+        console.error("  - 구성원 ID 타입:", typeof member.id);
         
         const errorMessage = 
           (typeof errorData.message === "string" ? errorData.message : null) ||
           (typeof errorData.error === "string" ? errorData.error : null) ||
-          "삭제에 실패했습니다.";
+          (typeof errorData.details === "string" ? errorData.details : null) ||
+          `삭제에 실패했습니다. (상태 코드: ${response.status})`;
         
         throw new Error(errorMessage);
       }

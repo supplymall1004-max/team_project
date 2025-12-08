@@ -156,10 +156,17 @@ export function FamilyMemberForm({
         }
         
         console.error("❌ 최종 에러 데이터:", JSON.stringify(errorData, null, 2));
+        console.error("❌ 요청 URL:", url);
+        console.error("❌ 요청 메서드:", method);
+        console.error("❌ 요청 데이터:", JSON.stringify(requestData, null, 2));
         console.groupEnd();
         
         // 더 명확한 에러 메시지 표시 (message 우선, 없으면 error 사용)
-        const errorMessage = errorData.message || errorData.error || `저장 실패 (HTTP ${response.status})`;
+        const errorMessage = 
+          (typeof errorData.message === "string" ? errorData.message : null) ||
+          (typeof errorData.error === "string" ? errorData.error : null) ||
+          (typeof errorData.details === "string" ? errorData.details : null) ||
+          `저장 실패 (HTTP ${response.status})`;
         throw new Error(errorMessage);
       }
 

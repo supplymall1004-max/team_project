@@ -20,6 +20,9 @@ export const metadata = {
   description: "저장한 즐겨찾기 식단을 확인하고 관리하세요.",
 };
 
+// 동적 렌더링 강제 (인증 정보 필요)
+export const dynamic = 'force-dynamic';
+
 export default async function FavoritesPage() {
   const subscription = await getCurrentSubscription();
 

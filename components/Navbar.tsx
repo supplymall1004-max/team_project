@@ -17,6 +17,7 @@ import {
   SignOutButton,
 } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, X, Search } from "lucide-react";
@@ -26,7 +27,6 @@ import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/auth/login-modal";
 
 const navLinks = [
-  { label: "레거시", href: "/legacy" },
   { label: "레시피북", href: "/recipes" },
   { label: "AI 식단", href: "/diet" },
 ];
@@ -75,9 +75,17 @@ const Navbar = () => {
   );
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-white">
+    <header className="fixed top-0 left-0 right-0 z-[100] border-b border-border/60 bg-white shadow-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-0 px-6">
-        <Link href="/" className="text-xl font-bold tracking-tight">
+        <Link href="/" className="flex items-center gap-2 text-xl font-bold tracking-tight">
+          <Image
+            src="/icons/maca2.JPG"
+            alt="맛카 로고"
+            width={32}
+            height={32}
+            className="h-8 w-8 object-contain"
+            priority
+          />
           Flavor Archive
         </Link>
         <form onSubmit={handleSearch} className="flex-1 flex items-center gap-0 ml-4 mr-4">
@@ -93,7 +101,7 @@ const Navbar = () => {
             />
             <Input
               type="text"
-              placeholder="레시피, 명인, 재료를 검색해보세요"
+              placeholder="레시피를 검색해보세요"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
@@ -116,7 +124,7 @@ const Navbar = () => {
               role="searchbox"
             />
             <span id="search-description" className="sr-only">
-              레시피, 명인, 재료를 검색할 수 있습니다. 검색어를 입력한 후 Enter 키를 누르세요.
+              레시피를 검색할 수 있습니다. 검색어를 입력한 후 Enter 키를 누르세요.
             </span>
           </div>
         </form>

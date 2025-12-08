@@ -22,6 +22,7 @@ import {
 } from "@/lib/recipes/utils";
 import { Button } from "@/components/ui/button";
 import { RecipeStepCard } from "./recipe-step-card";
+import { RecipeBlogSteps } from "./recipe-blog-steps";
 import { CookingMode } from "./cooking-mode";
 import { RecipeRating } from "./recipe-rating";
 
@@ -268,15 +269,8 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
         </ul>
       </div>
 
-      {/* 단계별 레시피 */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">조리 과정</h2>
-        <div className="space-y-4">
-          {recipe.steps.map((step) => (
-            <RecipeStepCard key={step.id} step={step} />
-          ))}
-        </div>
-      </div>
+      {/* 조리 과정 (블로그 형태) */}
+      <RecipeBlogSteps steps={recipe.steps} />
     </div>
   );
 }

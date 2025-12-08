@@ -88,7 +88,9 @@ export function DietPlanClient() {
     const dateToUse = targetDate || today;
     try {
       console.log("[DietPlanClient] 가족 식단 데이터 로드");
-      const response = await fetch(`/api/family/diet/${dateToUse}`);
+      const response = await fetch(`/api/family/diet/${dateToUse}`, {
+        credentials: 'include', // 쿠키를 포함하여 인증 정보 전달
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -96,12 +98,19 @@ export function DietPlanClient() {
         setFamilyDietData(data);
         console.log("[DietPlanClient] 가족 식단 데이터 로드됨:", data);
       } else {
-        console.error("[DietPlanClient] 가족 식단 데이터 로드 실패:", response.status, response.statusText);
-        const errorText = await response.text();
-        console.error("[DietPlanClient] 가족 식단 에러 응답:", errorText);
+        // 404는 식단이 없는 것으로 정상적인 상황일 수 있음
+        if (response.status === 404) {
+          console.log("[DietPlanClient] 가족 식단 데이터 없음 (404)");
+          setFamilyDietData(null);
+        } else {
+          console.error("[DietPlanClient] 가족 식단 데이터 로드 실패:", response.status, response.statusText);
+          const errorText = await response.text();
+          console.error("[DietPlanClient] 가족 식단 에러 응답:", errorText);
+        }
       }
     } catch (err) {
       console.error("[DietPlanClient] 가족 식단 데이터 로드 에러:", err);
+      setFamilyDietData(null);
     }
   }, [user, today]);
 
@@ -211,6 +220,16 @@ export function DietPlanClient() {
       }
 
       if (!res.ok) {
+        // 404는 식단이 없는 것으로 정상적인 상황 (사용자가 생성 버튼을 눌러야 함)
+        if (res.status === 404) {
+          console.log("[DietPlanClient] 해당 날짜의 식단이 없습니다 (404)");
+          clearDietPlanCache(user.id, dateToUse);
+          setDietPlan(null);
+          setIsLoading(false);
+          console.groupEnd();
+          return;
+        }
+        
         const errorMessage = data.error || "식단을 불러오는데 실패했습니다";
         const errorDetails = data.details ? ` (${data.details})` : "";
         clearDietPlanCache(user.id, dateToUse);
@@ -315,6 +334,17 @@ export function DietPlanClient() {
         const errorMessage = data.error || "식단을 생성하는데 실패했습니다";
         const errorDetails = data.details ? ` (${data.details})` : "";
         console.error("❌ 식단 생성 실패:", errorMessage, errorDetails);
+        console.error("❌ API 응답 상태:", res.status);
+        console.error("❌ 전체 응답 데이터:", data);
+        
+        // 건강 정보가 없는 경우 특별 처리
+        if (res.status === 404 && errorMessage.includes("건강 정보")) {
+          setError(`${errorMessage}${errorDetails}`);
+          setHasHealthProfile(false);
+          setIsGenerating(false);
+          return;
+        }
+        
         throw new Error(`${errorMessage}${errorDetails}`);
       }
 
@@ -442,11 +472,11 @@ export function DietPlanClient() {
         <div className="mb-6">
           <div className="text-4xl mb-4">🤖</div>
           <h3 className="text-xl font-semibold mb-2">
-            AI 맞춤 식단 큐레이션
+            건강 맞춤 식단 큐레이션
           </h3>
           <p className="text-muted-foreground">
             당신의 건강 정보와 식이 취향을 분석하여<br />
-            최적의 식단을 AI가 큐레이션해드립니다
+            최적의 식단을 큐레이션해드립니다
           </p>
         </div>
         <Button
@@ -458,12 +488,12 @@ export function DietPlanClient() {
           {isGenerating ? (
             <>
               <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-              AI가 식단을 큐레이션하는 중...
+              식단을 큐레이션하는 중...
             </>
           ) : (
             <>
               <RefreshCw className="h-5 w-5 mr-2" />
-              AI 맞춤 식단 큐레이션 생성하기
+              건강 맞춤 식단 큐레이션 생성하기
             </>
           )}
         </Button>
@@ -543,12 +573,12 @@ export function DietPlanClient() {
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">오늘의 추천 식단</h2>
-          <p className="text-sm text-muted-foreground">{today}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex-shrink-0">
+          <h2 className="text-2xl font-bold text-foreground whitespace-nowrap">오늘의 추천 식단</h2>
+          <p className="text-sm text-muted-foreground mt-1">{today}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* 주간 식단 버튼 */}
           <Link href="/diet/weekly">
             <Button variant="outline" size="sm" className="gap-2">
@@ -639,10 +669,10 @@ export function DietPlanClient() {
       ) : (
         /* 개인 식단 카드 그리드 */
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <DietCard mealType="breakfast" dietPlan={convertToDietPlan(dietPlan.breakfast, "breakfast")} />
-          <DietCard mealType="lunch" dietPlan={convertToDietPlan(dietPlan.lunch, "lunch")} />
-          <DietCard mealType="dinner" dietPlan={convertToDietPlan(dietPlan.dinner, "dinner")} />
-          <DietCard mealType="snack" dietPlan={convertToDietPlan(dietPlan.snack, "snack")} />
+          <DietCard mealType="breakfast" dietPlan={convertToDietPlan(dietPlan.breakfast, "breakfast")} date={today} />
+          <DietCard mealType="lunch" dietPlan={convertToDietPlan(dietPlan.lunch, "lunch")} date={today} />
+          <DietCard mealType="dinner" dietPlan={convertToDietPlan(dietPlan.dinner, "dinner")} date={today} />
+          <DietCard mealType="snack" dietPlan={convertToDietPlan(dietPlan.snack, "snack")} date={today} />
         </div>
       )}
 
@@ -669,7 +699,7 @@ export function DietPlanClient() {
             <div>
               <p className="text-sm text-muted-foreground">칼로리</p>
               <p className="text-xl font-bold">
-                {(dietPlan.totalNutrition?.calories || 0)}kcal
+                {Math.round(dietPlan.totalNutrition?.calories || 0)}kcal
               </p>
             </div>
             <div>

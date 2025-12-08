@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Check, Plus, X } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Disease {
     code: string;
@@ -40,12 +40,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 export function DiseaseSelector({
     selectedDiseases,
     onChange,
-    allowCustomInput = true,
+    allowCustomInput = false,
 }: DiseaseSelectorProps) {
     const [diseases, setDiseases] = useState<Disease[]>([]);
     const [loading, setLoading] = useState(true);
-    const [customInput, setCustomInput] = useState('');
-    const [showCustomInput, setShowCustomInput] = useState(false);
 
     useEffect(() => {
         fetchDiseases();
@@ -56,8 +54,13 @@ export function DiseaseSelector({
             const response = await fetch('/api/health/diseases');
             const result = await response.json();
 
+            console.log('[DiseaseSelector] API 응답:', result);
+            console.log('[DiseaseSelector] 질병 개수:', result.data?.length || 0);
+
             if (result.success) {
-                setDiseases(result.data);
+                setDiseases(result.data || []);
+            } else {
+                console.error('[DiseaseSelector] API 실패:', result.error);
             }
         } catch (error) {
             console.error('질병 목록 조회 오류:', error);
@@ -87,23 +90,6 @@ export function DiseaseSelector({
         }
     };
 
-    const addCustomDisease = () => {
-        if (!customInput.trim()) return;
-
-        const customCode = `custom_${Date.now()}`;
-        onChange([
-            ...selectedDiseases,
-            { code: customCode, custom_name: customInput.trim() },
-        ]);
-
-        setCustomInput('');
-        setShowCustomInput(false);
-    };
-
-    const removeCustomDisease = (code: string) => {
-        onChange(selectedDiseases.filter((d) => d.code !== code));
-    };
-
     if (loading) {
         return (
             <div className="flex items-center justify-center py-8">
@@ -112,132 +98,51 @@ export function DiseaseSelector({
         );
     }
 
+
     return (
         <div className="space-y-6">
-            {/* 카테고리별 질병 선택 */}
-            {Object.entries(groupedDiseases).map(([category, categoryDiseases]) => (
-                <div key={category} className="space-y-3">
-                    <h4 className="font-medium text-sm text-muted-foreground">
-                        {CATEGORY_LABELS[category] || category}
-                    </h4>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {categoryDiseases.map((disease) => (
-                            <button
-                                key={disease.code}
-                                type="button"
-                                onClick={() => toggleDisease(disease)}
-                                className={`
-                  flex items-center gap-3 p-3 rounded-lg border-2 transition-all
-                  ${isSelected(disease.code)
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border hover:border-primary/50'
-                                    }
-                `}
-                            >
-                                <div
-                                    className={`
-                    flex items-center justify-center w-5 h-5 rounded border-2
-                    ${isSelected(disease.code)
-                                            ? 'border-primary bg-primary'
-                                            : 'border-muted-foreground'
-                                        }
-                  `}
-                                >
-                                    {isSelected(disease.code) && (
-                                        <Check className="w-3 h-3 text-primary-foreground" />
-                                    )}
-                                </div>
-
-                                <div className="flex-1 text-left">
-                                    <div className="font-medium text-sm">{disease.name_ko}</div>
-                                    {disease.description && (
-                                        <div className="text-xs text-muted-foreground mt-0.5">
-                                            {disease.description}
-                                        </div>
-                                    )}
-                                </div>
-                            </button>
-                        ))}
+            {/* 체크리스트 형태로 질병 목록 표시 */}
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                {/* 데이터베이스 질병 목록 */}
+                {diseases.length === 0 && !loading && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                        등록된 질병이 없습니다.
                     </div>
-                </div>
-            ))}
-
-            {/* 사용자 정의 질병 입력 */}
-            {allowCustomInput && (
-                <div className="space-y-3">
-                    <h4 className="font-medium text-sm text-muted-foreground">
-                        사용자 정의 질병
-                    </h4>
-
-                    {/* 선택된 사용자 정의 질병 */}
-                    {selectedDiseases
-                        .filter((d) => d.code.startsWith('custom_'))
-                        .map((disease) => (
-                            <div
-                                key={disease.code}
-                                className="flex items-center gap-2 p-3 rounded-lg border-2 border-primary bg-primary/5"
-                            >
-                                <div className="flex-1 font-medium text-sm">
-                                    {disease.custom_name}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => removeCustomDisease(disease.code)}
-                                    className="text-muted-foreground hover:text-destructive"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </div>
-                        ))}
-
-                    {/* 추가 버튼 또는 입력 폼 */}
-                    {showCustomInput ? (
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={customInput}
-                                onChange={(e) => setCustomInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        addCustomDisease();
-                                    }
-                                }}
-                                placeholder="질병명 입력"
-                                className="flex-1 px-3 py-2 rounded-lg border-2 border-border focus:border-primary outline-none"
-                                autoFocus
-                            />
-                            <button
-                                type="button"
-                                onClick={addCustomDisease}
-                                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
-                            >
-                                추가
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowCustomInput(false);
-                                    setCustomInput('');
-                                }}
-                                className="px-4 py-2 border-2 border-border rounded-lg hover:bg-muted"
-                            >
-                                취소
-                            </button>
-                        </div>
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={() => setShowCustomInput(true)}
-                            className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-colors"
+                )}
+                
+                {diseases.map((disease) => {
+                    const selected = isSelected(disease.code);
+                    return (
+                        <label
+                            key={disease.code}
+                            htmlFor={`disease-${disease.code}`}
+                            className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                                selected
+                                    ? 'border-primary bg-primary/5 shadow-sm'
+                                    : 'border-border hover:border-primary/50 hover:bg-muted/30'
+                            }`}
                         >
-                            <Plus className="w-4 h-4" />
-                            <span className="text-sm">사용자 정의 질병 추가</span>
-                        </button>
-                    )}
+                            <Checkbox
+                                id={`disease-${disease.code}`}
+                                checked={selected}
+                                onCheckedChange={() => toggleDisease(disease)}
+                                className="mt-0.5 flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                                <div className={`font-medium text-sm ${selected ? 'text-primary' : 'text-foreground'}`}>
+                                    {disease.name_ko}
+                                </div>
+                                {disease.description && (
+                                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                        {disease.description}
+                                    </div>
+                                )}
+                            </div>
+                        </label>
+                    );
+                })}
+
                 </div>
-            )}
         </div>
     );
 }

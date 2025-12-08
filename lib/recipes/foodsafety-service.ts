@@ -439,7 +439,7 @@ export async function saveFoodSafetyRecipeToDb(
   console.log("RCP_NM", recipeRow.RCP_NM);
 
   try {
-    const supabase = createClerkSupabaseClient();
+    const supabase = await createClerkSupabaseClient();
     const recipeDetail = convertFoodSafetyToRecipeDetail(recipeRow, userId);
 
     // 1. 레시피 기본 정보 저장

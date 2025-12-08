@@ -101,15 +101,42 @@ export function HealthProfileForm() {
         }
 
         const result = await response.json();
+        console.log("[HealthProfileForm] 로드된 프로필 데이터:", result.profile);
+        
         if (result.profile) {
           setFormData(result.profile);
 
           // UI 컴포넌트용 상태 초기화
-          if (result.profile.diseases) {
-            setSelectedDiseases(result.profile.diseases.map((d: string) => ({ code: d, custom_name: null })));
+          // diseases_jsonb가 있으면 사용 (사용자 정의 질병 이름 포함), 없으면 diseases 배열 사용
+          if (result.profile.diseases_jsonb && Array.isArray(result.profile.diseases_jsonb)) {
+            // diseases_jsonb는 { code: string, custom_name: string | null }[] 형식
+            setSelectedDiseases(result.profile.diseases_jsonb);
+            console.log("[HealthProfileForm] diseases_jsonb에서 질병 로드:", result.profile.diseases_jsonb);
+          } else if (result.profile.diseases && Array.isArray(result.profile.diseases)) {
+            // diseases는 string[] 형식이므로 변환 필요
+            setSelectedDiseases(result.profile.diseases.map((d: string) => ({ 
+              code: d, 
+              custom_name: d.startsWith('custom_') ? null : null // 사용자 정의 질병의 경우 이름이 없을 수 있음
+            })));
+            console.log("[HealthProfileForm] diseases 배열에서 질병 로드:", result.profile.diseases);
+          } else {
+            setSelectedDiseases([]);
+            console.log("[HealthProfileForm] 질병 데이터 없음");
           }
-          if (result.profile.allergies) {
-            setSelectedAllergies(result.profile.allergies.map((a: string) => ({ code: a, custom_name: null })));
+          
+          // 알레르기도 동일하게 처리
+          if (result.profile.allergies_jsonb && Array.isArray(result.profile.allergies_jsonb)) {
+            setSelectedAllergies(result.profile.allergies_jsonb);
+            console.log("[HealthProfileForm] allergies_jsonb에서 알레르기 로드:", result.profile.allergies_jsonb);
+          } else if (result.profile.allergies && Array.isArray(result.profile.allergies)) {
+            setSelectedAllergies(result.profile.allergies.map((a: string) => ({ 
+              code: a, 
+              custom_name: a.startsWith('custom_') ? null : null
+            })));
+            console.log("[HealthProfileForm] allergies 배열에서 알레르기 로드:", result.profile.allergies);
+          } else {
+            setSelectedAllergies([]);
+            console.log("[HealthProfileForm] 알레르기 데이터 없음");
           }
         }
       } catch (err) {
@@ -187,23 +214,43 @@ export function HealthProfileForm() {
     setIsSubmitting(true);
 
     try {
-      // 사용자 확인/생성
-      const ensureResponse = await fetch("/api/users/ensure", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      // 먼저 사용자 동기화 확인 및 시도
+      console.log("[HealthProfileForm] 사용자 동기화 확인 중...");
+      try {
+        const syncResponse = await fetch("/api/sync-user", {
+          method: "POST",
+        });
+        
+        if (!syncResponse.ok) {
+          const syncError = await syncResponse.json().catch(() => ({}));
+          console.warn("[HealthProfileForm] 사용자 동기화 실패 (계속 진행):", syncError);
+          // 동기화 실패해도 저장 시도는 계속 진행
+        } else {
+          const syncResult = await syncResponse.json();
+          console.log("[HealthProfileForm] 사용자 동기화 성공:", syncResult);
+        }
+      } catch (syncErr) {
+        console.warn("[HealthProfileForm] 사용자 동기화 중 오류 (계속 진행):", syncErr);
+        // 동기화 실패해도 저장 시도는 계속 진행
+      }
 
-      if (!ensureResponse.ok) throw new Error("사용자 확인 실패");
-
-      // 건강 정보 저장
+      // 건강 정보 저장 (서버에서 자동으로 사용자 확인/생성 처리)
       // UI 상태를 formData로 변환
+      // selectedDiseases와 selectedAllergies가 undefined일 수 있으므로 방어적으로 처리
+      const safeSelectedDiseases = selectedDiseases || [];
+      const safeSelectedAllergies = selectedAllergies || [];
+      
       const dataToSave = {
         ...formData,
-        diseases: selectedDiseases.map(d => d.code), // 코드만 저장 (커스텀 이름 처리는 백엔드 로직에 따라 다를 수 있음, 여기서는 단순화)
-        allergies: selectedAllergies.map(a => a.code),
+        diseases: safeSelectedDiseases.map(d => d.code), // 코드 배열 (하위 호환성)
+        diseases_jsonb: safeSelectedDiseases, // 전체 객체 배열 (사용자 정의 질병 이름 포함)
+        allergies: safeSelectedAllergies.map(a => a.code), // 코드 배열 (하위 호환성)
+        allergies_jsonb: safeSelectedAllergies, // 전체 객체 배열 (사용자 정의 알레르기 이름 포함)
         // 프리미엄 기능은 dietary_preferences에 매핑됨
-        premium_features: formData.dietary_preferences,
+        premium_features: formData.dietary_preferences || [],
       };
+      
+      console.log("[HealthProfileForm] 저장할 데이터:", dataToSave);
 
       const response = await fetch("/api/health/profile", {
         method: "PUT",
@@ -211,17 +258,109 @@ export function HealthProfileForm() {
         body: JSON.stringify(dataToSave),
       });
 
-      if (!response.ok) throw new Error("저장 실패");
+      if (!response.ok) {
+        // 응답 본문 읽기 (한 번만 읽을 수 있으므로 먼저 텍스트로 읽기)
+        let errorData: any = {};
+        const contentType = response.headers.get("content-type");
+        
+        try {
+          // 응답 본문을 텍스트로 먼저 읽기
+          const responseText = await response.text();
+          console.log("[HealthProfileForm] 에러 응답 본문:", responseText);
+          
+          if (responseText) {
+            // JSON인지 확인하고 파싱 시도
+            if (contentType && contentType.includes("application/json")) {
+              try {
+                errorData = JSON.parse(responseText);
+              } catch (parseError) {
+                console.error("❌ JSON 파싱 실패:", parseError);
+                errorData = { 
+                  error: "응답 파싱 실패",
+                  rawResponse: responseText.substring(0, 200)
+                };
+              }
+            } else {
+              // JSON이 아닌 경우 텍스트를 에러 메시지로 사용
+              errorData = { error: responseText };
+            }
+          } else {
+            // 응답 본문이 비어있는 경우
+            errorData = { error: `서버 오류 (${response.status})` };
+          }
+        } catch (readError) {
+          console.error("❌ 응답 본문 읽기 실패:", readError);
+          errorData = { error: "응답을 읽을 수 없습니다" };
+        }
+        
+        const errorMessage = errorData.message || errorData.error || `저장 실패 (${response.status})`;
+        
+        console.error("❌ 저장 실패:", {
+          status: response.status,
+          statusText: response.statusText,
+          contentType,
+          errorData: JSON.stringify(errorData, null, 2),
+          errorMessage,
+        });
+        
+        // 사용자에게 친화적인 에러 메시지 표시
+        if (response.status === 404 && errorMessage.includes("사용자 정보를 찾을 수 없습니다")) {
+          // 사용자 동기화 시도
+          console.log("[HealthProfileForm] 사용자 동기화 시도 중...");
+          try {
+            const syncResponse = await fetch("/api/sync-user", {
+              method: "POST",
+            });
+            
+            if (syncResponse.ok) {
+              console.log("[HealthProfileForm] 사용자 동기화 성공, 저장 재시도 가능");
+              setError("사용자 정보가 동기화되었습니다. 저장 버튼을 다시 눌러주세요.");
+            } else {
+              const syncError = await syncResponse.json().catch(() => ({}));
+              console.error("[HealthProfileForm] 사용자 동기화 실패:", syncError);
+              setError("사용자 정보를 찾을 수 없습니다. 페이지를 새로고침하거나 다시 로그인해주세요.");
+            }
+          } catch (syncErr) {
+            console.error("[HealthProfileForm] 사용자 동기화 중 오류:", syncErr);
+            setError("사용자 정보를 찾을 수 없습니다. 페이지를 새로고침하거나 다시 로그인해주세요.");
+          }
+        } else {
+          setError(errorMessage);
+        }
+        
+        setIsSubmitting(false);
+        return; // 에러 발생 시 함수 종료
+      }
+
+      // 성공 응답 처리
+      try {
+        const result = await response.json();
+        console.log("[HealthProfileForm] 저장 성공 응답:", result);
+      } catch (parseError) {
+        console.warn("⚠️ 성공 응답 파싱 실패 (무시 가능):", parseError);
+        // 성공 응답 파싱 실패는 치명적이지 않으므로 계속 진행
+      }
 
       setIsSubmitting(false);
       setIsSuccess(true);
+
+      // 건강 정보 업데이트 후 식단 캐시 무효화
+      if (user?.id) {
+        const { clearDietPlanCache } = await import("@/lib/cache/diet-plan-cache");
+        clearDietPlanCache(user.id);
+        console.log("[HealthProfileForm] 건강 정보 업데이트 후 식단 캐시 무효화 완료");
+      }
 
       // 스크롤 상단으로 이동
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
     } catch (err) {
-      console.error(err);
-      setError("저장 중 오류가 발생했습니다.");
+      console.error("❌ 저장 중 예외 발생:", err);
+      
+      // 네트워크 오류나 기타 예외 처리
+      // (response.ok === false인 경우는 이미 위에서 처리하고 return했으므로 여기까지 오지 않음)
+      const errorMessage = err instanceof Error ? err.message : "저장 중 오류가 발생했습니다.";
+      setError(errorMessage);
       setIsSubmitting(false);
     }
   };

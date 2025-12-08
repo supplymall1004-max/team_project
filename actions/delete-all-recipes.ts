@@ -13,7 +13,7 @@ export async function deleteAllRecipes(): Promise<{ success: boolean; message: s
   console.group("[DeleteAllRecipes] 현대 레시피북 데이터 삭제 시작");
 
   try {
-    const supabase = createClerkSupabaseClient();
+    const supabase = await createClerkSupabaseClient();
 
     // 외래 키 제약조건 때문에 참조하는 테이블부터 삭제해야 함
 
@@ -94,4 +94,8 @@ export async function deleteAllRecipes(): Promise<{ success: boolean; message: s
     };
   }
 }
+
+
+
+
 

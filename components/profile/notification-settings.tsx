@@ -18,7 +18,6 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useClerkSupabaseClient } from "@/lib/supabase/clerk-client";
 
 interface NotificationSettings {
   healthPopups: boolean;
@@ -35,7 +34,6 @@ const DEFAULT_SETTINGS: NotificationSettings = {
 export function NotificationSettings() {
   const { user: clerkUser } = useUser();
   const { toast } = useToast();
-  const supabase = useClerkSupabaseClient();
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -52,25 +50,21 @@ export function NotificationSettings() {
         console.group("[NotificationSettings] 설정 불러오기");
         console.log("사용자 ID:", clerkUser.id);
 
-        const { data, error } = await supabase
-          .from("users")
-          .select("notification_settings")
-          .eq("clerk_id", clerkUser.id)
-          .maybeSingle();
+        // API를 통해 설정 불러오기 (더 안전하고 일관성 있는 방식)
+        const response = await fetch("/api/users/notification-settings");
 
-        if (error) {
-          // 컬럼이 없는 경우도 처리 (마이그레이션 미적용 시)
-          if (error.code === "42703" || error.message?.includes("column") || error.message?.includes("does not exist")) {
-            console.warn("⚠️ notification_settings 컬럼이 없습니다. 마이그레이션을 적용해주세요.");
-            console.log("에러 상세:", error);
-            setSettings(DEFAULT_SETTINGS);
-          } else {
-            console.log("사용자 데이터 조회 에러:", error.message);
-            setSettings(DEFAULT_SETTINGS);
-          }
-        } else if (data?.notification_settings) {
-          console.log("저장된 설정:", data.notification_settings);
-          setSettings({ ...DEFAULT_SETTINGS, ...data.notification_settings });
+        if (!response.ok) {
+          console.warn("⚠️ 설정 조회 실패:", response.status);
+          setSettings(DEFAULT_SETTINGS);
+          console.groupEnd();
+          return;
+        }
+
+        const result = await response.json();
+        
+        if (result.settings) {
+          console.log("저장된 설정:", result.settings);
+          setSettings({ ...DEFAULT_SETTINGS, ...result.settings });
         } else {
           console.log("알림 설정 없음, 기본값 사용");
           setSettings(DEFAULT_SETTINGS);
@@ -88,7 +82,7 @@ export function NotificationSettings() {
     };
 
     loadSettings();
-  }, [clerkUser, supabase]);
+  }, [clerkUser]);
 
   // 설정 저장
   const saveSettings = async () => {
@@ -112,35 +106,36 @@ export function NotificationSettings() {
         generalNotifications: settings.generalNotifications,
       });
 
-      // 먼저 사용자가 존재하는지 확인하고, 없으면 생성 또는 업데이트
-      const { data, error: upsertError } = await supabase
-        .from("users")
-        .upsert({
-          clerk_id: clerkUser.id,
-          name: clerkUser.fullName || clerkUser.firstName || "사용자",
-          notification_settings: settings,
-        }, {
-          onConflict: "clerk_id"
-        })
-        .select()
-        .single();
+      // API를 통해 설정 저장 (더 안전하고 일관성 있는 방식)
+      const response = await fetch("/api/users/notification-settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          kcdcAlerts: settings.kcdcAlerts,
+          healthPopups: settings.healthPopups,
+          generalNotifications: settings.generalNotifications,
+        }),
+      });
 
-      if (upsertError) {
-        console.error("❌ Supabase 업데이트 오류:", upsertError);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ API 응답 오류:", response.status, errorData);
         
-        // 컬럼이 없는 경우 명확한 에러 메시지 제공
-        if (upsertError.code === "42703" || upsertError.message?.includes("column") || upsertError.message?.includes("does not exist")) {
-          const errorMsg = "데이터베이스에 notification_settings 컬럼이 없습니다. 마이그레이션을 적용해주세요.";
-          console.error("⚠️", errorMsg);
-          throw new Error(errorMsg);
-        }
-        
-        throw upsertError;
+        const errorMessage = errorData.details || errorData.error || "알림 설정 저장에 실패했습니다.";
+        throw new Error(errorMessage);
       }
 
+      const result = await response.json();
       console.log("✅ 설정 저장 성공");
-      console.log("저장된 데이터:", data);
+      console.log("저장된 데이터:", result);
       console.groupEnd();
+
+      // 저장된 설정으로 상태 업데이트
+      if (result.settings) {
+        setSettings({ ...DEFAULT_SETTINGS, ...result.settings });
+      }
 
       toast({
         title: "설정 저장 완료",

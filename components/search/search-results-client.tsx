@@ -14,14 +14,14 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, ChefHat, Film, BookOpen, AlertCircle } from "lucide-react";
+import { Search, ChefHat, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/loading-spinner";
 
 interface SearchResult {
   id: string;
-  type: "recipe" | "legacy_video" | "legacy_document";
+  type: "recipe";
   title: string;
   description: string | null;
   thumbnail_url: string | null;
@@ -93,10 +93,6 @@ export function SearchResultsClient({
     switch (type) {
       case "recipe":
         return "레시피";
-      case "legacy_video":
-        return "명인 인터뷰";
-      case "legacy_document":
-        return "전문 문서";
       default:
         return "기타";
     }
@@ -106,10 +102,6 @@ export function SearchResultsClient({
     switch (type) {
       case "recipe":
         return ChefHat;
-      case "legacy_video":
-        return Film;
-      case "legacy_document":
-        return BookOpen;
       default:
         return ChefHat;
     }
@@ -119,10 +111,6 @@ export function SearchResultsClient({
     switch (type) {
       case "recipe":
         return "bg-orange-100 text-orange-700";
-      case "legacy_video":
-        return "bg-slate-100 text-slate-700";
-      case "legacy_document":
-        return "bg-blue-100 text-blue-700";
       default:
         return "bg-gray-100 text-gray-700";
     }
@@ -132,10 +120,6 @@ export function SearchResultsClient({
     switch (result.type) {
       case "recipe":
         return `/recipes/${result.slug}`;
-      case "legacy_video":
-        return `/legacy/${result.slug}`;
-      case "legacy_document":
-        return `/legacy/${result.slug}`;
       default:
         return "#";
     }
@@ -149,7 +133,7 @@ export function SearchResultsClient({
           <Search className="absolute left-3 sm:left-4 top-1/2 h-4 w-4 sm:h-5 sm:w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="레시피, 명인, 재료를 검색해보세요"
+            placeholder="레시피를 검색해보세요"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="pl-9 sm:pl-10 h-10 sm:h-12 text-sm sm:text-base"
@@ -245,15 +229,6 @@ export function SearchResultsClient({
                         )}
                         {result.metadata?.rating_count && (
                           <span>({result.metadata.rating_count}개 평가)</span>
-                        )}
-                        {result.metadata?.master && (
-                          <span>명인: {result.metadata.master}</span>
-                        )}
-                        {result.metadata?.region && (
-                          <span>지역: {result.metadata.region}</span>
-                        )}
-                        {result.metadata?.era && (
-                          <span>시대: {result.metadata.era}</span>
                         )}
                       </div>
                     </div>

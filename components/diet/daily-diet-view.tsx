@@ -58,7 +58,7 @@ export function DailyDietView({ diet }: DailyDietViewProps) {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">칼로리</p>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {diet.totalNutrition.calories || 0}
+                {Math.round(diet.totalNutrition.calories || 0)}
                 <span className="text-sm font-normal">kcal</span>
               </p>
             </div>

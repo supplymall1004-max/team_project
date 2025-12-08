@@ -8,6 +8,8 @@
 
 import { useState } from 'react';
 import { Plus, X, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 interface IngredientPreferencesProps {
     preferredIngredients: string[];
@@ -94,21 +96,31 @@ export function IngredientPreferences({
 
                 {/* 선호 식재료 목록 */}
                 {preferredIngredients.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-2">
                         {preferredIngredients.map((ingredient) => (
                             <div
                                 key={ingredient}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border-2 border-green-200 rounded-full"
+                                className="flex items-center gap-3 p-3 rounded-lg border border-green-200 bg-green-50"
                             >
-                                <span className="text-sm font-medium text-green-900">
+                                <Checkbox
+                                    id={`preferred-${ingredient}`}
+                                    checked={true}
+                                    onCheckedChange={() => removePreferred(ingredient)}
+                                    className="mt-0.5"
+                                />
+                                <Label
+                                    htmlFor={`preferred-${ingredient}`}
+                                    className="flex-1 cursor-pointer font-medium text-sm text-green-900"
+                                >
                                     {ingredient}
-                                </span>
+                                </Label>
                                 <button
                                     type="button"
                                     onClick={() => removePreferred(ingredient)}
                                     className="text-green-600 hover:text-green-800"
+                                    aria-label={`${ingredient} 제거`}
                                 >
-                                    <X className="w-3 h-3" />
+                                    <X className="w-4 h-4" />
                                 </button>
                             </div>
                         ))}
@@ -177,21 +189,31 @@ export function IngredientPreferences({
 
                 {/* 비선호 식재료 목록 */}
                 {excludedIngredients.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="space-y-2">
                         {excludedIngredients.map((ingredient) => (
                             <div
                                 key={ingredient}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 border-2 border-red-200 rounded-full"
+                                className="flex items-center gap-3 p-3 rounded-lg border border-red-200 bg-red-50"
                             >
-                                <span className="text-sm font-medium text-red-900">
+                                <Checkbox
+                                    id={`excluded-${ingredient}`}
+                                    checked={true}
+                                    onCheckedChange={() => removeExcluded(ingredient)}
+                                    className="mt-0.5"
+                                />
+                                <Label
+                                    htmlFor={`excluded-${ingredient}`}
+                                    className="flex-1 cursor-pointer font-medium text-sm text-red-900"
+                                >
                                     {ingredient}
-                                </span>
+                                </Label>
                                 <button
                                     type="button"
                                     onClick={() => removeExcluded(ingredient)}
                                     className="text-red-600 hover:text-red-800"
+                                    aria-label={`${ingredient} 제거`}
                                 >
-                                    <X className="w-3 h-3" />
+                                    <X className="w-4 h-4" />
                                 </button>
                             </div>
                         ))}

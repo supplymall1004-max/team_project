@@ -19,6 +19,7 @@ export interface ActivePopup {
   image_url: string | null;
   link_url: string | null;
   priority: number;
+  display_type: "modal" | "checkpoint";
 }
 
 export interface GetActivePopupsResponse {
@@ -54,7 +55,8 @@ export async function getActivePopups(): Promise<GetActivePopupsResult> {
         body,
         image_url,
         link_url,
-        priority
+        priority,
+        display_type
         `
       )
       .eq("status", "published")

@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
+import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 
 /**
  * GET /api/health/profile
@@ -19,17 +20,46 @@ export async function GET() {
   try {
     console.group("📋 GET /api/health/profile");
 
-    const { userId } = await auth();
-    console.log("🔐 인증된 사용자 ID:", userId);
+    // 인증 확인
+    let userId: string | null = null;
+    try {
+      const authResult = await auth();
+      userId = authResult.userId;
+      console.log("🔐 인증된 사용자 ID:", userId);
+    } catch (authError) {
+      console.error("❌ 인증 오류:", authError);
+      console.groupEnd();
+      return NextResponse.json(
+        { 
+          error: "Authentication failed",
+          message: authError instanceof Error ? authError.message : "인증 중 오류가 발생했습니다."
+        },
+        { status: 401 }
+      );
+    }
 
     if (!userId) {
-      console.error("❌ 인증 실패");
+      console.error("❌ 인증 실패 - userId가 null");
       console.groupEnd();
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const supabase = getServiceRoleClient();
-    console.log("🔗 Supabase 클라이언트 생성됨");
+    // Supabase 클라이언트 생성
+    let supabase;
+    try {
+      supabase = getServiceRoleClient();
+      console.log("🔗 Supabase 클라이언트 생성됨");
+    } catch (clientError) {
+      console.error("❌ Supabase 클라이언트 생성 실패:", clientError);
+      console.groupEnd();
+      return NextResponse.json(
+        {
+          error: "Database connection failed",
+          message: clientError instanceof Error ? clientError.message : "데이터베이스 연결에 실패했습니다."
+        },
+        { status: 500 }
+      );
+    }
 
     // 데이터베이스 연결 및 테이블 존재 테스트
     try {
@@ -112,15 +142,25 @@ export async function GET() {
     return NextResponse.json({ profile });
   } catch (error) {
     console.error("❌ 서버 오류:", error);
-    console.groupEnd();
+    console.error("❌ 에러 타입:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("❌ 에러 메시지:", error instanceof Error ? error.message : String(error));
+    console.error("❌ 에러 스택:", error instanceof Error ? error.stack : "스택 없음");
+    
+    try {
+      console.groupEnd();
+    } catch {
+      // groupEnd 실패 무시
+    }
 
     // 개발 환경에서는 자세한 에러 정보 제공
     const isDevelopment = process.env.NODE_ENV === "development";
     const errorResponse = {
       error: "Internal server error",
+      message: error instanceof Error ? error.message : String(error),
       ...(isDevelopment && {
         details: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
+        type: error instanceof Error ? error.constructor.name : typeof error,
       }),
     };
 
@@ -147,32 +187,29 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("요청 데이터:", body);
 
-    const supabase = getServiceRoleClient();
-
-    // 사용자의 Supabase user_id 조회
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    if (userError) {
-      console.error("❌ 사용자 조회 실패:", userError);
-      console.groupEnd();
-      return NextResponse.json({
-        error: "User lookup failed",
-        details: userError.message,
-        code: userError.code
-      }, { status: 500 });
-    }
+    // 사용자 확인 및 자동 동기화
+    console.log("👤 사용자 확인 및 동기화 시작...");
+    const userData = await ensureSupabaseUser();
 
     if (!userData) {
-      console.error("❌ 사용자를 찾을 수 없음");
+      console.error("❌ 사용자를 찾을 수 없거나 동기화 실패");
+      console.error("  - Clerk User ID:", userId);
+      console.error("  - ensureSupabaseUser가 null을 반환했습니다.");
       console.groupEnd();
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { 
+          error: "User not found",
+          message: "사용자 정보를 찾을 수 없습니다. 잠시 후 다시 시도해주세요.",
+          details: "Clerk 사용자가 Supabase users 테이블에 동기화되지 않았습니다. 페이지를 새로고침하거나 다시 로그인해주세요."
+        },
+        { status: 404 }
+      );
     }
 
+    console.log("✅ 사용자 확인 완료:", { id: userData.id, name: userData.name });
+
     const supabaseUserId = userData.id;
+    const supabase = getServiceRoleClient();
 
     // 기존 프로필 확인
     const { data: existing } = await supabase
@@ -196,7 +233,9 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: supabaseUserId,
         diseases: body.diseases || [],
+        diseases_jsonb: body.diseases_jsonb || body.diseases?.map((d: string) => ({ code: d, custom_name: null })) || [],
         allergies: body.allergies || [],
+        allergies_jsonb: body.allergies_jsonb || body.allergies?.map((a: string) => ({ code: a, custom_name: null })) || [],
         preferred_ingredients: body.preferred_ingredients || [],
         disliked_ingredients: body.disliked_ingredients || [],
         daily_calorie_goal: body.daily_calorie_goal,
@@ -223,19 +262,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ profile: newProfile }, { status: 201 });
   } catch (error) {
     console.error("❌ 서버 오류:", error);
-    console.groupEnd();
+    console.error("  - 에러 타입:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("  - 에러 메시지:", error instanceof Error ? error.message : String(error));
+    console.error("  - 에러 스택:", error instanceof Error ? error.stack : "스택 없음");
+    
+    try {
+      console.groupEnd();
+    } catch {
+      // groupEnd 실패 무시
+    }
 
     // 개발 환경에서는 자세한 에러 정보 제공
     const isDevelopment = process.env.NODE_ENV === "development";
     const errorResponse = {
       error: "Internal server error",
+      message: error instanceof Error ? error.message : "서버 오류가 발생했습니다.",
       ...(isDevelopment && {
         details: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
+        type: error instanceof Error ? error.constructor.name : typeof error,
       }),
     };
 
-    return NextResponse.json(errorResponse, { status: 500 });
+    return NextResponse.json(errorResponse, { 
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
   }
 }
 
@@ -258,58 +312,96 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     console.log("수정 데이터:", body);
 
-    const supabase = getServiceRoleClient();
-
-    // 사용자의 Supabase user_id 조회
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    if (userError) {
-      console.error("❌ 사용자 조회 실패:", userError);
-      console.groupEnd();
-      return NextResponse.json({
-        error: "User lookup failed",
-        details: userError.message,
-        code: userError.code
-      }, { status: 500 });
-    }
+    // 사용자 확인 및 자동 동기화
+    console.log("👤 사용자 확인 및 동기화 시작...");
+    const userData = await ensureSupabaseUser();
 
     if (!userData) {
-      console.error("❌ 사용자를 찾을 수 없음");
+      console.error("❌ 사용자를 찾을 수 없거나 동기화 실패");
+      console.error("  - Clerk User ID:", userId);
+      console.error("  - ensureSupabaseUser가 null을 반환했습니다.");
       console.groupEnd();
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { 
+          error: "User not found",
+          message: "사용자 정보를 찾을 수 없습니다. 잠시 후 다시 시도해주세요.",
+          details: "Clerk 사용자가 Supabase users 테이블에 동기화되지 않았습니다. 페이지를 새로고침하거나 다시 로그인해주세요."
+        },
+        { status: 404 }
+      );
     }
 
-    const supabaseUserId = userData.id;
+    console.log("✅ 사용자 확인 완료:", { id: userData.id, name: userData.name });
 
-    // 프로필 수정 (upsert 사용)
+    const supabaseUserId = userData.id;
+    const supabase = getServiceRoleClient();
+
+    // 프로필 수정 (upsert 사용 - user_id 기준으로 충돌 처리)
+    // 데이터 검증 및 기본값 설정
+    const diseases_jsonb = Array.isArray(body.diseases_jsonb) 
+      ? body.diseases_jsonb 
+      : (Array.isArray(body.diseases) 
+          ? body.diseases.map((d: string) => ({ code: d, custom_name: null })) 
+          : []);
+    
+    const allergies_jsonb = Array.isArray(body.allergies_jsonb) 
+      ? body.allergies_jsonb 
+      : (Array.isArray(body.allergies) 
+          ? body.allergies.map((a: string) => ({ code: a, custom_name: null })) 
+          : []);
+    
+    const updateData: any = {
+      user_id: supabaseUserId,
+      diseases: Array.isArray(body.diseases) ? body.diseases : diseases_jsonb.map((d: any) => d.code || d),
+      diseases_jsonb: diseases_jsonb,
+      allergies: Array.isArray(body.allergies) ? body.allergies : allergies_jsonb.map((a: any) => a.code || a),
+      allergies_jsonb: allergies_jsonb,
+      preferred_ingredients: Array.isArray(body.preferred_ingredients) ? body.preferred_ingredients : [],
+      disliked_ingredients: Array.isArray(body.disliked_ingredients) ? body.disliked_ingredients : [],
+      daily_calorie_goal: body.daily_calorie_goal ?? null,
+      dietary_preferences: Array.isArray(body.dietary_preferences) ? body.dietary_preferences : [],
+      height_cm: body.height_cm ?? null,
+      weight_kg: body.weight_kg ?? null,
+      age: body.age ?? null,
+      gender: body.gender || null,
+      activity_level: body.activity_level || "sedentary",
+      premium_features: Array.isArray(body.premium_features) ? body.premium_features : [],
+    };
+
+    console.log("업데이트할 데이터:", JSON.stringify(updateData, null, 2));
+
     const { data: updatedProfile, error } = await supabase
       .from("user_health_profiles")
-      .upsert({
-        user_id: supabaseUserId,
-        diseases: body.diseases,
-        allergies: body.allergies,
-        preferred_ingredients: body.preferred_ingredients,
-        disliked_ingredients: body.disliked_ingredients,
-        daily_calorie_goal: body.daily_calorie_goal,
-        dietary_preferences: body.dietary_preferences,
-        height_cm: body.height_cm,
-        weight_kg: body.weight_kg,
-        age: body.age,
-        gender: body.gender,
-        activity_level: body.activity_level,
-        premium_features: body.premium_features,
+      .upsert(updateData, {
+        onConflict: "user_id", // user_id 기준으로 upsert
       })
       .select()
       .single();
 
     if (error) {
       console.error("❌ 수정 실패:", error);
+      console.error("  - 에러 코드:", error.code);
+      console.error("  - 에러 메시지:", error.message);
+      console.error("  - 에러 상세:", error.details);
+      console.error("  - 에러 힌트:", error.hint);
+      console.error("  - 전체 에러 객체:", JSON.stringify(error, null, 2));
+      console.error("  - 시도한 데이터:", JSON.stringify(updateData, null, 2));
+      console.error("  - 사용자 ID:", supabaseUserId);
       console.groupEnd();
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json(
+        { 
+          error: "건강 프로필 저장 실패",
+          message: error.message || "데이터베이스 오류가 발생했습니다.",
+          details: error.details,
+          code: error.code,
+          hint: error.hint,
+          ...(process.env.NODE_ENV === "development" && {
+            attemptedData: updateData,
+            userId: supabaseUserId
+          })
+        },
+        { status: 500 }
+      );
     }
 
     console.log("✅ 건강 프로필 수정 성공");
@@ -318,19 +410,34 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ profile: updatedProfile });
   } catch (error) {
     console.error("❌ 서버 오류:", error);
-    console.groupEnd();
+    console.error("  - 에러 타입:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("  - 에러 메시지:", error instanceof Error ? error.message : String(error));
+    console.error("  - 에러 스택:", error instanceof Error ? error.stack : "스택 없음");
+    
+    try {
+      console.groupEnd();
+    } catch {
+      // groupEnd 실패 무시
+    }
 
     // 개발 환경에서는 자세한 에러 정보 제공
     const isDevelopment = process.env.NODE_ENV === "development";
     const errorResponse = {
       error: "Internal server error",
+      message: error instanceof Error ? error.message : "서버 오류가 발생했습니다.",
       ...(isDevelopment && {
         details: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
+        type: error instanceof Error ? error.constructor.name : typeof error,
       }),
     };
 
-    return NextResponse.json(errorResponse, { status: 500 });
+    return NextResponse.json(errorResponse, { 
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
   }
 }
 

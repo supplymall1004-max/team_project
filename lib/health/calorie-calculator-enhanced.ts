@@ -329,7 +329,8 @@ export class CalorieCalculatorEnhanced {
         params: CalorieParams | MaternityParams | CKDParams,
         results: { bmr: number; tdee: number; finalCalories: number }
     ): string {
-        const { gender, age, weight, height, activityLevel } = params;
+        const { gender, age, weight, height } = params;
+        const activityLevel = 'activityLevel' in params ? params.activityLevel : 'moderate';
         const { bmr, tdee, finalCalories } = results;
 
         const lines: string[] = [];

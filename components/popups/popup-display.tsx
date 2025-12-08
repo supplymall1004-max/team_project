@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CheckpointBanner } from "@/components/checkpoint-banner";
 
 interface PopupData {
   id: string;
@@ -31,6 +32,7 @@ interface PopupData {
   image_url: string | null;
   link_url: string | null;
   priority: number;
+  display_type: "modal" | "checkpoint";
 }
 
 interface PopupDisplayProps {
@@ -82,14 +84,16 @@ export function PopupDisplay({ popups }: PopupDisplayProps) {
 
     const filtered = popups.filter((popup) => {
       const hidden = isPopupHidden(popup.id);
-      console.log("popup", popup.id, popup.title, "hidden", hidden);
+      console.log("popup", popup.id, popup.title, "hidden", hidden, "display_type", popup.display_type);
       return !hidden;
     });
 
     console.log("visible_popups", filtered.length);
     setVisiblePopups(filtered);
 
-    if (filtered.length > 0) {
+    // 모달 타입 팝업만 자동으로 열기 (체크포인트는 별도 처리)
+    const modalPopups = filtered.filter(p => p.display_type === "modal");
+    if (modalPopups.length > 0) {
       setIsOpen(true);
       setCurrentPopupIndex(0);
     }
@@ -98,6 +102,9 @@ export function PopupDisplay({ popups }: PopupDisplayProps) {
   }, [popups]);
 
   const currentPopup = visiblePopups[currentPopupIndex];
+  
+  // 체크포인트 배너 팝업들
+  const checkpointPopups = visiblePopups.filter(p => p.display_type === "checkpoint");
 
   // 팝업 닫기
   const handleClose = useCallback(() => {
@@ -140,12 +147,45 @@ export function PopupDisplay({ popups }: PopupDisplayProps) {
     console.groupEnd();
   }, [currentPopup]);
 
-  if (!isOpen || !currentPopup) {
-    return null;
+  // 체크포인트 배너 렌더링
+  const checkpointBanners = checkpointPopups.map((popup) => {
+    // 체크포인트 배너용 닫기 핸들러 (팝업 시스템과 호환)
+    const handleCheckpointClose = () => {
+      hidePopupUntilTomorrow(popup.id);
+      console.log("체크포인트 배너 닫기:", popup.id);
+    };
+
+    return (
+      <CheckpointBanner
+        key={popup.id}
+        title={popup.title}
+        message={popup.body}
+        actionUrl={popup.link_url || undefined}
+        storageKey={`hide_popup_until_${popup.id}`}
+        shouldShow={!isPopupHidden(popup.id)}
+        onClose={handleCheckpointClose}
+        onAction={() => {
+          if (popup.link_url) {
+            window.open(popup.link_url, "_blank", "noopener,noreferrer");
+          }
+        }}
+      />
+    );
+  });
+
+  // 모달 팝업이 없으면 체크포인트 배너만 표시
+  if (!isOpen || !currentPopup || currentPopup.display_type !== "modal") {
+    return (
+      <>
+        {checkpointBanners}
+      </>
+    );
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <>
+      {checkpointBanners}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent 
         className="max-w-lg"
         onPointerDownOutside={(e) => e.preventDefault()} // 외부 클릭으로 닫기 방지
@@ -226,6 +266,7 @@ export function PopupDisplay({ popups }: PopupDisplayProps) {
         </div>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
 

@@ -6,6 +6,7 @@
  * 1. 식사 유형별 카드 표시
  * 2. 레시피 정보 및 영양소 표시
  * 3. 레시피 바로가기 링크
+ * 4. 즐겨찾기 기능 (프리미엄 전용)
  */
 
 "use client";
@@ -16,6 +17,7 @@ import { ImageOff } from "lucide-react";
 import { DietPlan, MealType, MEAL_TYPE_LABELS } from "@/types/health";
 import { cn } from "@/lib/utils";
 import { FOOD_IMAGE_DIRECT_LINKS } from "@/data/food-image-links";
+import { FavoriteButton } from "@/components/diet/favorite-button";
 
 const SOUP_KEYWORDS = ["국", "찌개", "탕"];
 const SOUP_IMAGE_ENTRIES = Object.entries(FOOD_IMAGE_DIRECT_LINKS).filter(
@@ -40,9 +42,10 @@ interface DietCardProps {
   mealType: MealType;
   dietPlan: DietPlan | null;
   className?: string;
+  date?: string; // 날짜 정보 추가
 }
 
-export function DietCard({ mealType, dietPlan, className }: DietCardProps) {
+export function DietCard({ mealType, dietPlan, className, date }: DietCardProps) {
   if (!dietPlan || !dietPlan.recipe) {
     return (
       <div
@@ -59,7 +62,7 @@ export function DietCard({ mealType, dietPlan, className }: DietCardProps) {
   }
 
   return (
-    <DietCardContent mealType={mealType} dietPlan={dietPlan} className={className} />
+    <DietCardContent mealType={mealType} dietPlan={dietPlan} className={className} date={date} />
   );
 }
 
@@ -67,9 +70,10 @@ interface DietCardContentProps {
   mealType: MealType;
   dietPlan: DietPlan;
   className?: string;
+  date?: string;
 }
 
-function DietCardContent({ mealType, dietPlan, className }: DietCardContentProps) {
+function DietCardContent({ mealType, dietPlan, className, date }: DietCardContentProps) {
   const recipe = dietPlan.recipe;
   const soupImageFromSummary = getSoupImageFromSummary(dietPlan.compositionSummary);
   const [useDefaultImage, setUseDefaultImage] = useState(false);
@@ -90,16 +94,54 @@ function DietCardContent({ mealType, dietPlan, className }: DietCardContentProps
     setImageError(true);
   };
 
+  // 식단 상세 페이지 링크 생성 (날짜가 있으면 상세 페이지로, 없으면 레시피로)
+  const href = date && mealType !== "snack" 
+    ? `/diet/${mealType}/${date}`
+    : `/recipes/${recipe.slug}`;
+
+  // 레시피 제목 (compositionSummary가 있으면 첫 번째 항목, 없으면 recipe.title)
+  const recipeTitle = dietPlan.compositionSummary && dietPlan.compositionSummary.length > 0
+    ? dietPlan.compositionSummary.join(", ")
+    : recipe.title;
+
+  // 영양 정보
+  const nutrition = {
+    calories: dietPlan.calories ?? null,
+    protein: dietPlan.protein ?? null,
+    carbs: dietPlan.carbohydrates ?? null,
+    fat: dietPlan.fat ?? null,
+  };
+
   return (
-    <Link
-      href={`/recipes/${recipe.slug}`}
+    <div
       className={cn(
-        "group block rounded-2xl border border-border/60 bg-white overflow-hidden shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg",
+        "group relative rounded-2xl border border-border/60 bg-white overflow-hidden shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg",
         className
       )}
     >
+      {/* 즐겨찾기 버튼 (우측 상단) */}
+      <div 
+        className="absolute top-3 right-3 z-20" 
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
+      >
+        <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg border border-gray-200/50">
+          <FavoriteButton
+            recipeId={recipe.id}
+            recipeTitle={recipeTitle}
+            mealType={mealType}
+            nutrition={nutrition}
+            size="sm"
+            variant="ghost"
+          />
+        </div>
+      </div>
+
       {/* 썸네일 */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
+      <Link href={href} className="block">
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
         {!imageError ? (
           <img
             src={displayedImageUrl}
@@ -116,10 +158,12 @@ function DietCardContent({ mealType, dietPlan, className }: DietCardContentProps
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </Link>
 
       {/* 카드 내용 */}
-      <div className="p-4 space-y-3">
+      <Link href={href} className="block">
+        <div className="p-4 space-y-3">
         {/* 식사 유형 및 구성품 목록 */}
         <div>
           <p className="text-sm font-semibold text-emerald-600">
@@ -144,7 +188,7 @@ function DietCardContent({ mealType, dietPlan, className }: DietCardContentProps
           {dietPlan.calories && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">칼로리</span>
-              <span className="font-medium">{dietPlan.calories}kcal</span>
+              <span className="font-medium">{Math.round(dietPlan.calories)}kcal</span>
             </div>
           )}
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -160,7 +204,8 @@ function DietCardContent({ mealType, dietPlan, className }: DietCardContentProps
           </div>
         </div>
       </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
 

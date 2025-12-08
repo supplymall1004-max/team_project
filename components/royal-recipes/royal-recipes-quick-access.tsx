@@ -12,43 +12,48 @@ const eras = [
     id: "sanguk",
     name: "삼국시대",
     description: "삼국시대 및 통일신라 궁중 레시피",
-    iconImage: "/api/royal-recipes/images/삼국시대 아이콘.jpg",
+    iconImage: "/images/royalrecipe/삼국시대 아이콘.jpg",
     color: "from-blue-500 to-cyan-500",
     bgColor: "bg-blue-50",
     textColor: "text-blue-700",
     borderColor: "border-blue-200",
-    backgroundImage: "/api/royal-recipes/images/삼국시대.jpg",
+    backgroundImage: "/images/royalrecipe/삼국시대.jpg",
     count: 14,
   },
   {
     id: "goryeo",
     name: "고려시대",
     description: "불교와 원나라 교류의 영향이 담긴 궁중 레시피",
-    iconImage: "/api/royal-recipes/images/고려시대 아이콘.jpg",
+    iconImage: "/images/royalrecipe/고려시대 아이콘.jpg",
     color: "from-purple-500 to-pink-500",
     bgColor: "bg-purple-50",
     textColor: "text-purple-700",
     borderColor: "border-purple-200",
-    backgroundImage: "/api/royal-recipes/images/고려시대.jpg",
+    backgroundImage: "/images/royalrecipe/고려시대.jpg",
     count: 16,
   },
   {
     id: "joseon",
     name: "조선시대",
     description: "체계적으로 발달한 궁중 음식 레시피",
-    iconImage: "/api/royal-recipes/images/조선시대 아이콘.jpg",
+    iconImage: "/images/royalrecipe/조선시대 아이콘.jpg",
     color: "from-orange-500 to-red-500",
     bgColor: "bg-orange-50",
     textColor: "text-orange-700",
     borderColor: "border-orange-200",
-    backgroundImage: "/api/royal-recipes/images/조선시대.jpg",
+    backgroundImage: "/images/royalrecipe/조선시대.jpg",
     count: 20,
   },
 ];
 
-export function RoyalRecipesQuickAccess() {
+interface RoyalRecipesQuickAccessProps {
+  id?: string;
+}
+
+export function RoyalRecipesQuickAccess({ id = "royal-recipes" }: RoyalRecipesQuickAccessProps) {
   return (
     <Section
+      id={id}
       title="궁중 레시피 아카이브"
       description="잊혀져 가는 시대별 궁중 음식 레시피를 만나보세요"
     >
