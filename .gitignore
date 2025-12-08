@@ -13,12 +13,17 @@
 # pnpm
 pnpm-lock.yaml
 
+# npm (pnpm 사용 시 불필요)
+package-lock.json
+
 # testing
 /coverage
 
 # next.js
 /.next/
 /out/
+tc/christmas-storybook-player/.next/
+tc/christmas-storybook-player/node_modules/
 
 # production
 /build
