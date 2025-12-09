@@ -424,6 +424,160 @@
   - [x] 크론 잡 설정 가이드 문서 작성
 - [ ] 리마인더 주기 설정 (주간/월간) - DB 설정 테이블 추가 필요
 
+### B-2. KCDC 프리미엄 기능 (Phase 1 & Phase 9)
+- [x] 데이터베이스 스키마 마이그레이션 (`supabase/migrations/20250127120000_create_kcdc_premium_tables.sql`)
+- [x] 구현 계획서 작성 (`docs/kcdc-premium-implementation-plan.md`)
+- [ ] **Phase 1: 핵심 프리미엄 기능**
+  - [ ] 타입 정의 (`types/kcdc.ts` 확장)
+    - [ ] `InfectionRiskScore` 인터페이스
+    - [ ] `VaccinationRecord`, `VaccinationSchedule` 인터페이스
+    - [ ] `TravelRiskAssessment` 인터페이스
+    - [ ] `HealthCheckupRecord`, `HealthCheckupRecommendation` 인터페이스
+  - [ ] 비즈니스 로직 구현
+    - [ ] `lib/kcdc/risk-calculator.ts` - 감염병 위험 지수 계산
+    - [ ] `lib/kcdc/vaccination-manager.ts` - 예방접종 기록/일정 관리
+    - [ ] `lib/kcdc/travel-risk-assessor.ts` - 여행 위험도 평가
+    - [ ] `lib/kcdc/checkup-manager.ts` - 건강검진 기록/권장 일정 관리
+  - [ ] API 라우트 구현
+    - [ ] `app/api/health/kcdc-premium/risk-scores/route.ts`
+    - [ ] `app/api/health/kcdc-premium/vaccinations/route.ts`
+    - [ ] `app/api/health/kcdc-premium/travel-risk/route.ts`
+    - [ ] `app/api/health/kcdc-premium/checkups/route.ts`
+  - [ ] UI 컴포넌트 구현
+    - [ ] `components/health/infection-risk-card.tsx`
+    - [ ] `components/health/vaccination-record-card.tsx`
+    - [ ] `components/health/vaccination-schedule-list.tsx`
+    - [ ] `components/health/travel-risk-form.tsx`
+    - [ ] `components/health/checkup-record-card.tsx`
+  - [ ] 페이지 구현
+    - [ ] `app/(dashboard)/health/premium/page.tsx` (대시보드)
+    - [ ] `app/(dashboard)/health/premium/infection-risk/page.tsx`
+    - [ ] `app/(dashboard)/health/premium/vaccinations/page.tsx`
+    - [ ] `app/(dashboard)/health/premium/travel-risk/page.tsx`
+    - [ ] `app/(dashboard)/health/premium/checkups/page.tsx`
+- [ ] **Phase 9: 주기적 건강 관리 서비스**
+  - [ ] 타입 정의 (`types/kcdc.ts` 확장)
+    - [ ] `PeriodicHealthService` 인터페이스
+    - [ ] `DewormingRecord`, `DewormingMedication` 인터페이스
+    - [ ] `UserNotificationSettings` 인터페이스
+  - [ ] 비즈니스 로직 구현
+    - [ ] `lib/kcdc/periodic-service-manager.ts`
+    - [ ] `lib/kcdc/deworming-manager.ts`
+  - [ ] API 라우트 구현
+    - [ ] `app/api/health/kcdc-premium/periodic-services/route.ts`
+    - [ ] `app/api/health/kcdc-premium/deworming/route.ts`
+    - [ ] `app/api/health/kcdc-premium/notification-settings/route.ts`
+  - [ ] UI 컴포넌트 구현
+    - [ ] `components/health/periodic-service-list.tsx`
+    - [ ] `components/health/deworming-record-card.tsx`
+    - [ ] `components/health/premium-notification-settings.tsx`
+  - [ ] 페이지 구현
+    - [ ] `app/(dashboard)/health/premium/periodic-services/page.tsx`
+
+### B-3. 건강정보 자동 연동 및 예방주사 알림 서비스
+- [x] **Phase 1: 데이터베이스 스키마 확장**
+  - [x] 건강정보 자동 연동 관련 테이블 생성 (`supabase/migrations/20250201000000_create_health_data_integration_tables.sql`)
+    - [x] `health_data_sources` 테이블 생성 (데이터 소스 연결 정보)
+    - [x] `hospital_records` 테이블 생성 (병원 방문 기록)
+    - [x] `medication_records` 테이블 생성 (약물 복용 기록)
+    - [x] `disease_records` 테이블 생성 (질병 진단 기록)
+    - [x] `health_data_sync_logs` 테이블 생성 (동기화 로그)
+  - [x] 예방주사 알림 서비스 스키마 확장
+    - [x] `vaccination_notification_logs` 테이블 생성 (알림 발송 로그)
+    - [x] `lifecycle_vaccination_schedules` 테이블 생성 (생애주기별 예방주사 마스터 데이터)
+    - [x] `user_vaccination_schedules` 테이블에 알림 관련 필드 추가
+  - [x] 기존 스키마 관계도 유지 (users → family_members, diseases 등)
+  - [x] 인덱스 및 트리거 생성
+- [x] **Phase 2: 공공 API 연동 인프라 구축**
+  - [x] 마이데이터 서비스 연동
+    - [x] 마이데이터 API 클라이언트 구현 (`lib/health/mydata-client.ts`)
+    - [x] 사용자 인증 및 동의 처리
+    - [x] 토큰 관리 및 갱신 로직
+  - [x] 건강정보고속도로 API 클라이언트 구현 (`lib/health/health-highway-client.ts`)
+    - [x] 보건복지부 건강정보고속도로 API 연동
+    - [x] 진료기록, 건강검진 결과, 투약 정보 조회
+  - [x] API 연동 서비스 레이어 구현 (`lib/health/health-data-sync-service.ts`)
+    - [x] 데이터 소스별 동기화 로직 통합
+    - [x] 에러 처리 및 재시도 로직
+    - [x] 데이터 변환 및 정규화
+  - [x] 공공 API 설정 및 문서화
+    - [x] 환경 변수 추가 (`docs/env-setup-guide.md` 업데이트)
+    - [x] API 연동 가이드 문서 작성 (`docs/health-data-integration-guide.md`)
+    - [x] 타입 정의 파일 생성 (`types/health-data-integration.ts`)
+- [ ] **Phase 3: 건강정보 자동 연동 기능 구현**
+  - [ ] 데이터 소스 연결 관리
+    - [ ] 데이터 소스 연결 UI 컴포넌트 구현 (`components/health/data-source-connector.tsx`)
+    - [ ] 데이터 소스 연결 API 구현 (`app/api/health/data-sources/route.ts`)
+    - [ ] 사용자 동의 처리 페이지 구현 (`app/(dashboard)/health/data-sources/consent/page.tsx`)
+  - [ ] 병원기록 자동 연동
+    - [ ] 병원기록 동기화 로직 구현 (`lib/health/hospital-records-sync.ts`)
+    - [ ] 병원기록 조회 API 구현 (`app/api/health/hospital-records/route.ts`)
+    - [ ] 병원기록 UI 컴포넌트 구현 (`components/health/hospital-records-list.tsx`)
+  - [ ] 약물 복용 기록 자동 연동
+    - [ ] 약물 복용 기록 동기화 로직 구현 (`lib/health/medication-records-sync.ts`)
+    - [ ] 약물 복용 기록 관리 API 구현 (`app/api/health/medications/route.ts`)
+    - [ ] 약물 복용 기록 UI 컴포넌트 구현 (`components/health/medication-records-list.tsx`)
+  - [ ] 질병 기록 자동 연동
+    - [ ] 질병 기록 동기화 로직 구현 (`lib/health/disease-records-sync.ts`)
+    - [ ] 질병 기록 관리 API 구현 (`app/api/health/diseases/records/route.ts`)
+    - [ ] 질병 기록 UI 컴포넌트 구현 (`components/health/disease-records-list.tsx`)
+  - [ ] 건강검진 정보 자동 연동
+    - [ ] 건강검진 결과 동기화 로직 구현 (`lib/health/checkup-results-sync.ts`)
+    - [ ] 건강검진 결과 연동 API 확장 (`app/api/health/kcdc-premium/checkups/sync/route.ts`)
+    - [ ] 건강검진 결과 UI 개선 (`components/health/premium/checkup-record-card.tsx` 확장)
+- [x] **Phase 4: 생애주기별 예방주사 알림 서비스 고도화**
+  - [x] 생애주기별 예방주사 일정 생성 알고리즘
+    - [x] 예방주사 일정 생성 로직 개선 (`lib/health/lifecycle-vaccination-scheduler.ts`)
+    - [x] KCDC 표준 생애주기별 예방주사 마스터 데이터 구현
+    - [x] 출생일 기준 생애주기 계산 및 일정 생성
+  - [x] 예방주사 알림 시스템 구현
+    - [x] 알림 발송 서비스 구현 (`lib/health/vaccination-notification-service.ts`)
+    - [x] 예방주사 알림 API 구현 (`app/api/health/vaccinations/notifications/route.ts`)
+    - [x] 크론 잡 설정 (Supabase Edge Function: `supabase/functions/schedule-vaccination-notifications/`)
+  - [x] 예방주사 알림 UI 구현
+    - [x] 예방주사 알림 설정 컴포넌트 (`components/health/vaccination-notification-settings.tsx`)
+    - [ ] 예방주사 알림 내역 컴포넌트 (`components/health/vaccination-notification-history.tsx`)
+  - [x] 예방주사 일정 관리 UI 개선
+    - [x] 생애주기별 예방주사 일정 생성 API (`app/api/health/lifecycle-vaccinations/route.ts`)
+    - [x] 예방주사 캘린더 뷰 개선 (`components/health/vaccination-lifecycle-calendar.tsx`)
+- [ ] **Phase 5: 통합 건강 관리 대시보드**
+  - [ ] 건강 정보 통합 대시보드 페이지 구현 (`app/(dashboard)/health/dashboard/page.tsx`)
+  - [ ] 건강 정보 요약 컴포넌트 구현 (`components/health/health-summary-dashboard.tsx`)
+  - [ ] 가족 구성원별 건강 관리
+    - [ ] 가족 구성원별 건강 정보 탭 구현 (`components/health/family-health-tabs.tsx`)
+    - [ ] 가족 건강 정보 통합 뷰 (`components/health/family-health-overview.tsx`)
+- [ ] **Phase 6: 알림 시스템 통합**
+  - [ ] 통합 알림 설정 페이지 구현 (`app/(dashboard)/health/notifications/settings/page.tsx`)
+  - [ ] 알림 설정 컴포넌트 구현 (`components/health/unified-notification-settings.tsx`)
+  - [ ] 알림 발송 인프라
+    - [ ] 알림 발송 서비스 확장 (`lib/notifications/health-notification-service.ts`)
+    - [ ] 알림 템플릿 관리 (`lib/notifications/notification-templates.ts`)
+- [ ] **Phase 7: 데이터 동기화 및 모니터링**
+  - [ ] 자동 동기화 스케줄러
+    - [ ] 데이터 동기화 크론 잡 구현 (`supabase/functions/sync-health-data`)
+    - [ ] 수동 동기화 API 구현 (`app/api/health/sync/route.ts`)
+  - [ ] 동기화 모니터링
+    - [ ] 동기화 로그 조회 API 구현 (`app/api/health/sync/logs/route.ts`)
+    - [ ] 동기화 상태 UI 컴포넌트 구현 (`components/health/sync-status-indicator.tsx`)
+- [ ] **Phase 8: 보안 및 개인정보 보호**
+  - [ ] 개인정보 암호화
+    - [ ] 민감 건강정보 암호화 적용
+    - [ ] 암호화 키 관리 (`lib/security/encryption.ts`)
+  - [ ] 접근 제어 강화
+    - [ ] RLS 정책 추가 (프로덕션 환경)
+    - [ ] API 인증 강화
+  - [ ] 개인정보 처리 방침 업데이트 (`app/privacy/page.tsx`)
+- [ ] **Phase 9: 테스트 및 문서화**
+  - [ ] 테스트 작성
+    - [ ] 건강정보 동기화 로직 단위 테스트 (`__tests__/health-data-sync.test.ts`)
+    - [ ] 예방주사 일정 생성 알고리즘 테스트 (`__tests__/vaccination-scheduler.test.ts`)
+    - [ ] 알림 발송 서비스 테스트 (`__tests__/vaccination-notification.test.ts`)
+    - [ ] 통합 테스트 작성 (E2E 테스트)
+  - [ ] 문서화
+    - [ ] 건강정보 자동 연동 사용 가이드 작성 (`docs/user-manual/health-data-integration-guide.md`)
+    - [ ] 예방주사 알림 서비스 사용 가이드 작성 (`docs/user-manual/vaccination-notification-guide.md`)
+    - [ ] API 문서 업데이트 (Swagger/OpenAPI)
+
 ### C. 테스트 & 품질
 - [ ] 유닛 테스트 확대 (현재: 이미지 파이프라인만 완료)
 - [ ] 통합 테스트 작성

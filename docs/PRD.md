@@ -66,6 +66,8 @@
 | **C-7.1** | 건강 맞춤 식단 탭 | "어제의 건강 맞춤 식단" 옆에 사용자 + 가족 이름 탭 배치, On/Off 스위치 제공. | `components/diet/family-diet-tabs.tsx` |
 | **C-8** | 엄격한 알레르기 필터링 | 질병별 제외 음식뿐만 아니라, 알레르기 유발 재료의 파생 재료(예: 새우 -> 새우젓, 김치)까지 엄격하게 필터링. | `lib/diet/food-filtering.ts` (ALLERGY_DERIVED_INGREDIENTS) |
 | **C-9** | 질병관리청 예방접종/독감 알림 | 질병관리청 공개 데이터를 동기화하여 독감 유행 단계와 예방접종 일정 알림. | `app/api/health/kcdc/*` |
+| **C-40** | KCDC 프리미엄 기능 (Phase 1) | 감염병 위험 지수, 예방접종 기록/일정, 여행 위험도 평가, 건강검진 기록/권장 일정 관리. | `app/(dashboard)/health/premium/*`, `app/api/health/kcdc-premium/*` |
+| **C-41** | 주기적 건강 관리 서비스 (Phase 9) | 예방접종, 건강검진, 구충제 복용 등 주기적 건강 관리 서비스 통합 관리 및 알림 설정. | `app/(dashboard)/health/premium/periodic-services`, `app/api/health/kcdc-premium/periodic-services/*` |
 | **C-10** | 앱 상태 팝업 인프라 | 공통 팝업 컴포넌트 및 QA 체크리스트 정의. | `components/diet/diet-notification-popup.tsx` |
 | **C-11** | 즐겨찾기 식단 저장 | 식단 카드에 즐겨찾기 버튼 추가, 프리미엄 사용자 무제한 저장. | `components/diet/favorite-button.tsx` |
 | **C-12** | 밀키트 식단 기능 | 쿠팡 파트너스 API 연동(시뮬레이션), 밀키트 옵션 토글. | `lib/diet/meal-kit-service.ts` |

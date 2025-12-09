@@ -1,0 +1,75 @@
+/**
+ * @file app/api/health/data-sources/auth-url/route.ts
+ * @description 데이터 소스 연결 인증 URL 생성 API
+ * 
+ * POST /api/health/data-sources/auth-url - 인증 URL 생성
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { checkPremiumAccess } from "@/lib/kcdc/premium-guard";
+import { generateConnectionUrl } from "@/lib/health/health-data-sync-service";
+import type { DataSourceType } from "@/types/health-data-integration";
+
+/**
+ * POST /api/health/data-sources/auth-url
+ * 데이터 소스 연결 인증 URL 생성
+ */
+export async function POST(request: NextRequest) {
+  try {
+    console.group("[API] POST /api/health/data-sources/auth-url");
+
+    // 1. 프리미엄 체크
+    const premiumCheck = await checkPremiumAccess();
+    if (!premiumCheck.isPremium || !premiumCheck.userId) {
+      console.log("❌ 프리미엄 접근 거부");
+      console.groupEnd();
+      return NextResponse.json(
+        {
+          error: "Premium access required",
+          message: premiumCheck.error || "이 기능은 프리미엄 전용입니다.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 2. 요청 본문 파싱
+    const body = await request.json();
+    const { source_type, redirect_uri } = body;
+
+    if (!source_type) {
+      return NextResponse.json(
+        {
+          error: "Validation error",
+          message: "데이터 소스 유형은 필수 입력 항목입니다.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 3. 인증 URL 생성
+    const authUrl = await generateConnectionUrl(
+      premiumCheck.userId,
+      source_type as DataSourceType,
+      redirect_uri || `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/health/data-sources/callback`
+    );
+
+    console.log("✅ 인증 URL 생성 완료");
+    console.groupEnd();
+
+    return NextResponse.json({
+      success: true,
+      auth_url: authUrl,
+    });
+  } catch (error) {
+    console.error("❌ 서버 오류:", error);
+    console.groupEnd();
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "서버 오류가 발생했습니다.",
+      },
+      { status: 500 }
+    );
+  }
+}
+

@@ -58,6 +58,45 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
+## 🔧 건강정보 자동 연동 설정 (선택)
+
+건강정보 자동 연동 기능을 사용하려면 다음 설정이 필요합니다.
+
+### 마이데이터 서비스 설정
+
+1. [공공 마이데이터 유통 시스템](https://www.mydata.go.kr) 접속
+2. 개발자 등록 및 애플리케이션 등록
+3. 건강정보 API 사용 신청
+4. Client ID 및 Client Secret 발급
+5. `.env.local` 파일에 입력:
+
+```env
+MYDATA_API_BASE_URL=https://api.mydata.go.kr
+MYDATA_CLIENT_ID=your_mydata_client_id_here
+MYDATA_CLIENT_SECRET=your_mydata_client_secret_here
+MYDATA_REDIRECT_URI=https://your-domain.com/api/health/mydata/callback
+```
+
+### 건강정보고속도로 설정
+
+1. [건강정보고속도로](https://www.healthhighway.go.kr) 접속
+2. 개발자 등록 및 애플리케이션 등록
+3. 건강정보 API 사용 신청
+4. API Key, Client ID 및 Client Secret 발급
+5. `.env.local` 파일에 입력:
+
+```env
+HEALTH_HIGHWAY_API_BASE_URL=https://api.healthhighway.go.kr
+HEALTH_HIGHWAY_API_KEY=your_health_highway_api_key_here
+HEALTH_HIGHWAY_CLIENT_ID=your_health_highway_client_id_here
+HEALTH_HIGHWAY_CLIENT_SECRET=your_health_highway_client_secret_here
+HEALTH_HIGHWAY_REDIRECT_URI=https://your-domain.com/api/health/health-highway/callback
+```
+
+**자세한 설정 방법은 [health-data-integration-guide.md](./health-data-integration-guide.md) 문서를 참고하세요.**
+
+---
+
 ## 🔧 선택적 설정 항목
 
 ### 3. 소셜 로그인 설정 (선택)
