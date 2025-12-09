@@ -31,7 +31,9 @@ export function SettlementCards() {
         if (result.success) {
           setStatistics(result.data.overall);
         } else {
-          setError(result.error);
+          // 타입 가드: result.success가 false면 GetStatisticsError 타입
+          const errorResult = result as { success: false; error: string };
+          setError(errorResult.error || '통계 조회에 실패했습니다.');
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');

@@ -475,14 +475,12 @@ export async function filterFavoriteMeals(
       .map((fav) => fav.recipe!)
       .filter((recipe): recipe is NonNullable<typeof recipe> => recipe !== undefined);
 
-    // 통합 필터링 적용
+    // 통합 필터링 적용 (이미 필터링된 레시피 배열 반환)
     const filterResults = await filterRecipes(recipes, healthProfile);
 
     // 필터링을 통과한 레시피 ID 추출
     const passedRecipeIds = new Set(
-      filterResults
-        .filter((result) => result.passed)
-        .map((result) => result.recipe.id)
+      filterResults.map((recipe) => recipe.id)
     );
 
     // 필터링을 통과한 찜한 식단만 반환

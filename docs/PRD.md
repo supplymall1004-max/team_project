@@ -124,6 +124,10 @@
 | :--- | :--- | :--- | :--- |
 | **D-1** | 관리자 콘솔 베타 | `/admin` 경로에 기본 레이아웃을 제공하고, 페이지 내 텍스트/공지/팝업 콘텐츠를 수정하거나 일괄 배포할 수 있는 에디터와 권한 체크를 탑재합니다. | `app/admin/layout.tsx`, `components/admin/*` |
 | **D-2** | 홈페이지 콘텐츠 관리 | 홈페이지의 모든 하드코딩된 텍스트, 링크, 이미지 URL을 관리자 페이지에서 쉽게 수정할 수 있도록 데이터베이스 기반 콘텐츠 관리 시스템을 구축합니다. | `actions/admin/copy/slots.ts`, `lib/admin/copy-reader.ts`, `components/home/*`, `components/footer.tsx` |
+| **D-3** | 프로모션 코드 관리 | 프로모션 코드 생성, 수정, 삭제 및 사용 내역 추적 기능을 제공합니다. 할인율, 최대 사용 횟수, 유효 기간 등을 설정할 수 있습니다. | `app/admin/promo-codes`, `components/admin/promo-codes/*`, `actions/admin/promo-codes/*` |
+| **D-4** | 정산 내역 관리 | 결제 내역 및 정산 통계를 조회하고 관리할 수 있습니다. 카드/현금/프로모션 코드별 결제 내역 필터링 및 통계 제공. | `app/admin/settlements`, `components/admin/settlements/*`, `actions/admin/settlements/*` |
+| **D-5** | 밀키트 관리 | 밀키트 제품을 수동으로 등록하고 관리할 수 있습니다. 쿠팡 파트너스 API 연동(시뮬레이션) 및 제품 정보 CRUD 기능 제공. | `app/admin/meal-kits`, `components/admin/meal-kits/*`, `actions/admin/meal-kits/*` |
+| **D-6** | 레시피 관리 | 사용자가 업로드한 레시피를 관리하고, 일괄 삭제, 시드 데이터 생성 등의 기능을 제공합니다. | `app/admin/recipes`, `components/admin/recipes/*`, `actions/admin/recipes/*` |
 
 #### 3.7. 🎨 홈페이지 UI/UX 개선 (배달의민족 앱 참고)
 
@@ -180,7 +184,7 @@
 | **건강정보 관리 시스템** | C-19, C-20, C-21, C-22, C-23, C-25, C-26, C-27, C-28, C-29, C-30, C-31, C-32, C-33, C-34, C-35, C-36, C-37, C-38, C-39 |
 | **결제 및 프리미엄 시스템** | F-1, F-2, F-3, F-4, F-5 |
 | **궁중 레시피 아카이브** | G-1, G-2, G-3 |
-| **관리자 페이지** | D-1, D-2 |
+| **관리자 페이지** | D-1, D-2, D-3, D-4, D-5, D-6 |
 | **홈페이지 UI/UX 개선** | E-1, E-2, E-3, E-4, E-5, E-6 |
 
 #### 6.2. 후속 고려 대상
@@ -898,12 +902,16 @@
 
 - **경로**: `/admin` (Server Component 레이아웃 + Client Shell)
 - **인증**: Clerk 역할 기반 가드 (`role === 'admin'`)
-- **핵심 모듈** (✅ Phase 0-4 완료):
+- **핵심 모듈** (✅ Phase 0-5 완료):
   - **"페이지 문구 편집" 패널**: JSON 블록 CRUD, 버전 히스토리, diff 비교, 미리보기 모달
   - **"팝업 공지" 패널**: 팝업 CRUD, 배포/배포취소, 우선순위/세그먼트 관리, 미리보기 모달
   - **"알림 로그" 패널**: KCDC/식단 팝업 로그 조회, 필터링/검색, JSON 상세 Drawer
   - **"보안 설정" 패널**: 비밀번호 변경/2FA/세션 관리/보안 감사 로그
-- **데이터베이스**: `admin_copy_blocks`, `popup_announcements`, `notification_logs`, `admin_security_audit` 테이블
+  - **"프로모션 코드 관리" 패널**: 프로모션 코드 생성/수정/삭제, 사용 내역 추적, 할인율 및 유효기간 설정
+  - **"정산 내역" 패널**: 결제 내역 조회, 결제 방법별 필터링(카드/현금/프로모션 코드), 기간별 통계
+  - **"밀키트 관리" 패널**: 밀키트 제품 등록/수정/삭제, 쿠팡 파트너스 API 연동(시뮬레이션)
+  - **"레시피 관리" 패널**: 레시피 목록 조회, 일괄 삭제, 시드 데이터 생성
+- **데이터베이스**: `admin_copy_blocks`, `popup_announcements`, `notification_logs`, `admin_security_audit`, `promo_codes`, `promo_code_uses`, `meal_kits`, `meal_kit_products` 테이블
 - **확장 포인트**: 이미지 매핑, 식단/구성원 데이터 모듈 추가를 위한 모듈러 카드 레이아웃
 
 #### 7.9. 홈페이지 콘텐츠 관리 시스템

@@ -92,7 +92,7 @@ export function SettingsNavigation() {
             <div className="flex flex-col h-full">
               <div className="flex items-start gap-4 mb-4">
                 <div className={cn("p-3 rounded-lg", iconStyle.bg)}>
-                  <Icon className={cn("h-6 w-6", iconStyle.color)} strokeWidth={2} />
+                  <Icon className={cn("h-6 w-6", iconStyle.color)} />
                 </div>
                 <div className="flex-1">
                   <CardTitle className="mb-2 text-lg font-semibold">{item.title}</CardTitle>

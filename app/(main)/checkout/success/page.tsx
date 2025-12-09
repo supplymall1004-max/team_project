@@ -4,12 +4,14 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, ArrowRight, Tag } from 'lucide-react';
 import Link from 'next/link';
-import { createClerkSupabaseClient } from '@/lib/supabase/clerk-client';
+import { useClerkSupabaseClient } from '@/lib/supabase/clerk-client';
+import { getCurrentSubscription } from '@/actions/payments/get-subscription';
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams?.get('orderId');
   const promoCodeId = searchParams?.get('promoCodeId');
+  const supabase = useClerkSupabaseClient();
   const [promoCodeInfo, setPromoCodeInfo] = useState<{
     code: string;
     discount_type: string;
@@ -26,7 +28,6 @@ function SuccessContent() {
       if (!promoCodeId) return;
 
       try {
-        const supabase = await createClerkSupabaseClient();
         const { data, error } = await supabase
           .from('promo_codes')
           .select('code, discount_type, discount_value, description')
@@ -43,30 +44,18 @@ function SuccessContent() {
 
     const fetchSubscriptionInfo = async () => {
       try {
-        const supabase = await createClerkSupabaseClient();
-        const { data: user } = await supabase.auth.getUser();
-        if (!user?.user) return;
-
-        const { data: userData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('clerk_id', user.user.id)
-          .single();
-
-        if (!userData) return;
-
-        const { data: subscription, error } = await supabase
-          .from('subscriptions')
-          .select('current_period_end, plan_type')
-          .eq('user_id', userData.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (!error && subscription) {
+        const result = await getCurrentSubscription();
+        
+        if (result.success && result.subscription) {
           setSubscriptionInfo({
-            expires_at: subscription.current_period_end,
-            plan_type: subscription.plan_type,
+            expires_at: result.subscription.currentPeriodEnd,
+            plan_type: result.subscription.planType,
+          });
+        } else if (result.premiumExpiresAt) {
+          // 프리미엄 만료일이 있으면 사용
+          setSubscriptionInfo({
+            expires_at: result.premiumExpiresAt,
+            plan_type: 'monthly', // 기본값
           });
         }
       } catch (error) {
@@ -76,7 +65,7 @@ function SuccessContent() {
 
     fetchPromoCodeInfo();
     fetchSubscriptionInfo();
-  }, [promoCodeId]);
+  }, [promoCodeId, supabase]);
 
   const formatDiscount = () => {
     if (!promoCodeInfo) return '';

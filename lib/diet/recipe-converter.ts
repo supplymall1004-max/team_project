@@ -17,24 +17,24 @@ export async function convertRecipeToRecipeDetailForDiet(
 ): Promise<RecipeDetailForDiet> {
   // 재료 변환
   const ingredients: Ingredient[] = (recipe.ingredients || []).map((ing) => ({
-    name: ing.ingredient_name || ing.name || "",
-    amount: ing.amount || "",
+    name: ing.ingredient_name || "",
+    amount: ing.quantity?.toString() || "",
     unit: ing.unit || "",
   }));
 
-  // 영양 정보 변환
+  // 영양 정보 변환 (식약처 API 필드 사용)
   const nutrition: RecipeNutrition = {
-    calories: recipe.calories ?? 0,
-    protein: recipe.protein ?? 0,
-    carbs: recipe.carbohydrates ?? 0,
-    fat: recipe.fat ?? 0,
-    sodium: recipe.sodium ?? 0,
-    fiber: 0, // DB에 fiber 정보가 없으면 0
+    calories: recipe.foodsafety_info_eng ?? 0,
+    protein: recipe.foodsafety_info_pro ?? 0,
+    carbs: recipe.foodsafety_info_car ?? 0,
+    fat: recipe.foodsafety_info_fat ?? 0,
+    sodium: recipe.foodsafety_info_na ?? 0,
+    fiber: recipe.foodsafety_info_fiber ?? 0,
   };
 
   // 단계 정보 변환
   const instructions = recipe.steps
-    ? recipe.steps.map((step) => step.instruction || "").filter(Boolean)
+    ? recipe.steps.map((step) => step.content || "").filter(Boolean)
     : undefined;
 
   return {
