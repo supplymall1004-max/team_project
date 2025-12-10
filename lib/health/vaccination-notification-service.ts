@@ -219,7 +219,7 @@ export async function scheduleVaccinationNotifications(): Promise<{
         // 알림 발송 여부 결정
         let shouldSendNotification = false;
         let notificationType: "scheduled" | "reminder" | "overdue" = "reminder";
-        let daysBefore = daysUntilVaccination;
+        const daysBefore = daysUntilVaccination;
 
         if (daysUntilVaccination < 0) {
           // 예정일이 지남

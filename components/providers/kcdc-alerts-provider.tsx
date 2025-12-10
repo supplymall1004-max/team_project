@@ -52,6 +52,31 @@ export function KcdcAlertsProvider({ children }: { children: React.ReactNode }) 
       });
       
       if (!response.ok) {
+        // 서버 에러(5xx)인 경우 재시도를 시도하고, 비정상 종료를 피합니다.
+        if (response.status >= 500) {
+          console.warn("⚠️ 알림 설정 조회 실패(서버에러, 재시도):", response.status);
+          if (groupOpened) console.groupEnd();
+          // 간단 재시도: 1회 시도 후 실패 시 null 반환
+          try {
+            await new Promise((r) => setTimeout(r, 1500));
+            // 재시도 시도
+            const retryResponse = await fetch("/api/users/notification-settings", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+            if (retryResponse.ok) {
+              const retryData = await retryResponse.json();
+              const retrySettings = retryData.settings as NotificationSettings;
+              console.log("✅ 재시도 알림 설정:", retrySettings);
+              return retrySettings;
+            }
+          } catch {
+            // 두 번째 시도 실패 시 무시하고 null 반환
+          }
+          return null;
+        }
         console.warn("⚠️ 알림 설정 조회 실패:", response.status);
         if (groupOpened) console.groupEnd();
         return null;

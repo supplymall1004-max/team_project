@@ -41,6 +41,16 @@ export function DietNotificationProvider({ children }: { children: React.ReactNo
           console.groupEnd();
           return;
         }
+        // 서버 에러(500 등)인 경우에도 재시도 시도
+        if (response.status >= 500) {
+          console.warn("⚠️ 서버 오류(5xx) 추정 - 알림 확인 재시도 예정");
+          setTimeout(() => {
+            console.log("🔄 알림 확인 재시도");
+            checkNotification();
+          }, 2000);
+          console.groupEnd();
+          return;
+        }
         
         const errorText = await response.text().catch(() => "응답 본문을 읽을 수 없습니다");
         console.error("❌ 알림 확인 실패:", response.status, errorText);

@@ -65,6 +65,18 @@ export function useSyncUser() {
             }, 2000);
             return;
           }
+          // 5xx 서버 에러인 경우에도 재시도 시도
+          if (response.status >= 500) {
+            console.warn("⚠️ 서버 에러(5xx) 추정 - 재시도 시도");
+            setTimeout(() => {
+              if (!syncedRef.current) {
+                console.log("🔄 사용자 동기화 재시도(서버에러)");
+                syncUser();
+              }
+            }, 2000);
+            return;
+          }
+          this; // noop to keep patch context valid
           console.groupEnd();
           return;
         }
