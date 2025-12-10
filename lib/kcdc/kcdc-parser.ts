@@ -1,13 +1,17 @@
 /**
  * @file lib/kcdc/kcdc-parser.ts
- * @description KCDC 공개 API/RSS 파싱 유틸리티
- * 
+ * @description KCDC 공개 API/RSS 파싱 유틸리티 (캐싱 기능 포함)
+ *
  * 핵심 기능:
  * 1. 질병관리청 공개 API에서 데이터 가져오기
  * 2. RSS/JSON 파싱
  * 3. 데이터 정규화 및 유효성 검사
+ * 4. 데이터베이스 캐싱 (6시간 TTL)
+ * 5. Next.js 서버 사이드 캐싱
  */
 
+import { unstable_cache } from "next/cache";
+import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import type { KcdcApiResponse, KcdcAlert, FluStage, KcdcSeverity, TargetAgeGroup } from "@/types/kcdc";
 
 /**
@@ -25,37 +29,188 @@ const KCDC_API_ENDPOINTS = {
   rss: "https://www.kdca.go.kr/board/board.es?mid=a20501010000&bid=0015",
 };
 
+// 캐시 설정
+const KCDC_CACHE_TTL_HOURS = 6; // 6시간 캐시
+const CACHE_KEY_PREFIX = "kcdc-data";
+
 /**
- * KCDC 데이터 가져오기 (메인 함수)
+ * 캐시된 KCDC 데이터를 데이터베이스에서 조회
  */
-export async function fetchKcdcData(): Promise<KcdcApiResponse> {
-  console.group("🏥 KCDC 데이터 가져오기");
+async function getCachedKcdcData(): Promise<KcdcApiResponse | null> {
+  console.log("🗄️ KCDC 캐시 데이터 확인 중...");
 
   try {
-    // API 키 확인
+    const supabase = getServiceRoleClient();
+    const cacheExpiry = new Date();
+    cacheExpiry.setHours(cacheExpiry.getHours() - KCDC_CACHE_TTL_HOURS);
+
+    // 활성 상태이고 최근에 가져온 데이터 조회
+    const { data: alerts, error } = await supabase
+      .from("kcdc_alerts")
+      .select("*")
+      .eq("is_active", true)
+      .gte("fetched_at", cacheExpiry.toISOString())
+      .order("published_at", { ascending: false });
+
+    if (error) {
+      console.error("❌ KCDC 캐시 조회 실패:", error);
+      return null;
+    }
+
+    if (!alerts || alerts.length === 0) {
+      console.log("ℹ️ 유효한 KCDC 캐시 데이터 없음");
+      return null;
+    }
+
+    // DB 데이터를 KcdcApiResponse 형식으로 변환
+    const response: KcdcApiResponse = {
+      flu: undefined,
+      vaccinations: [],
+      diseaseOutbreaks: [],
+    };
+
+    for (const alert of alerts) {
+      if (alert.alert_type === "flu" && !response.flu) {
+        response.flu = {
+          stage: alert.flu_stage as FluStage,
+          week: alert.flu_week || getISOWeekString(new Date()),
+          description: alert.content,
+          publishedAt: alert.published_at,
+        };
+      } else if (alert.alert_type === "vaccination") {
+        response.vaccinations.push({
+          name: alert.vaccine_name || alert.title,
+          targetAgeGroup: alert.target_age_group as TargetAgeGroup,
+          recommendedDate: alert.recommended_date || undefined,
+          description: alert.content,
+          publishedAt: alert.published_at,
+        });
+      } else if (alert.alert_type === "disease_outbreak") {
+        response.diseaseOutbreaks.push({
+          name: alert.title.replace(" 발생 알림", ""),
+          description: alert.content,
+          publishedAt: alert.published_at,
+        });
+      }
+    }
+
+    console.log(`✅ 캐시에서 ${alerts.length}개 알림 데이터 로드`);
+    return response;
+
+  } catch (error) {
+    console.error("❌ KCDC 캐시 조회 중 오류:", error);
+    return null;
+  }
+}
+
+/**
+ * KCDC 데이터를 데이터베이스에 캐시 저장
+ */
+async function saveKcdcDataToCache(response: KcdcApiResponse): Promise<void> {
+  console.log("💾 KCDC 데이터 캐시 저장 중...");
+
+  try {
+    const supabase = getServiceRoleClient();
+    const now = new Date().toISOString();
+    const alerts = parseKcdcResponseToAlerts(response);
+
+    // 기존 캐시 데이터 비활성화 (중복 방지)
+    await supabase
+      .from("kcdc_alerts")
+      .update({ is_active: false })
+      .eq("is_active", true);
+
+    // 새로운 데이터 저장
+    const { error } = await supabase
+      .from("kcdc_alerts")
+      .insert(
+        alerts.map(alert => ({
+          ...alert,
+          fetched_at: now,
+          is_active: true,
+        }))
+      );
+
+    if (error) {
+      console.error("❌ KCDC 캐시 저장 실패:", error);
+      throw error;
+    }
+
+    console.log(`✅ ${alerts.length}개 알림 데이터 캐시 저장 완료`);
+
+  } catch (error) {
+    console.error("❌ KCDC 캐시 저장 중 오류:", error);
+    throw error;
+  }
+}
+
+/**
+ * KCDC 데이터 가져오기 (메인 함수) - 캐싱 기능 포함
+ */
+async function fetchKcdcDataInternal(): Promise<KcdcApiResponse> {
+  console.group("🏥 KCDC 데이터 가져오기 (캐싱 적용)");
+
+  try {
+    // 1. 캐시 확인
+    const cachedData = await getCachedKcdcData();
+    if (cachedData) {
+      console.log("✅ 캐시된 KCDC 데이터 사용");
+      console.groupEnd();
+      return cachedData;
+    }
+
+    console.log("ℹ️ 캐시 미스, API 호출 진행");
+
+    // 2. API 키 확인
     if (!KCDC_API_KEY) {
-      console.warn("⚠️ KCDC_API_KEY 미설정, 더미 데이터 사용");
+      console.warn("⚠️ KCDC_API_KEY 미설정, 더미 데이터 사용 및 캐시");
       const response = await fetchKcdcDummyData();
+      await saveKcdcDataToCache(response);
       console.groupEnd();
       return response;
     }
 
-    // 실제 API 호출
+    // 3. 실제 API 호출
     console.log("📡 실제 KCDC API 호출");
     const response = await fetchKcdcRealApi();
 
-    console.log("✅ KCDC 데이터 가져오기 완료");
+    // 4. 캐시 저장
+    await saveKcdcDataToCache(response);
+
+    console.log("✅ KCDC 데이터 가져오기 및 캐시 저장 완료");
     console.groupEnd();
 
     return response;
   } catch (error) {
-    console.error("❌ KCDC API 호출 실패, 더미 데이터로 폴백:", error);
-    // API 실패 시 더미 데이터로 폴백
+    console.error("❌ KCDC API 호출 실패:", error);
+
+    // 5. API 실패 시 캐시된 데이터로 폴백 (Stale-While-Revalidate 패턴)
+    const cachedData = await getCachedKcdcData();
+    if (cachedData) {
+      console.log("✅ 오래된 캐시 데이터로 폴백");
+      console.groupEnd();
+      return cachedData;
+    }
+
+    // 캐시도 없으면 더미 데이터 사용
+    console.log("⚠️ 캐시 데이터 없음, 더미 데이터로 폴백");
     const fallbackResponse = await fetchKcdcDummyData();
     console.groupEnd();
     return fallbackResponse;
   }
 }
+
+/**
+ * KCDC 데이터 가져오기 (메인 함수) - Next.js 캐싱 적용
+ */
+export const fetchKcdcData = unstable_cache(
+  fetchKcdcDataInternal,
+  [CACHE_KEY_PREFIX],
+  {
+    revalidate: KCDC_CACHE_TTL_HOURS * 60 * 60, // 6시간 (초 단위)
+    tags: ["kcdc-data"],
+  }
+);
 
 /**
  * 더미 KCDC 데이터 (실제 API 연동 전까지 사용)

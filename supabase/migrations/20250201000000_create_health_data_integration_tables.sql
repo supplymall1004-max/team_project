@@ -330,38 +330,288 @@ GRANT ALL ON TABLE vaccination_notification_logs TO anon, authenticated, service
 GRANT ALL ON TABLE lifecycle_vaccination_schedules TO anon, authenticated, service_role;
 
 -- ============================================================================
--- 8. 관계도 요약
+-- 8. 관계도 요약 (실제 Supabase 스키마 기반)
 -- ============================================================================
--- 
--- users (id)
+--
+-- users (id) - 중앙 허브 테이블
+--   ├── user_health_profiles (user_id) → users(id) UNIQUE (사용자 건강 프로필)
+--   ├── family_members (user_id) → users(id) (가족 구성원)
+--   │   ├── user_vaccination_records (family_member_id) → family_members(id)
+--   │   ├── user_vaccination_schedules (family_member_id) → family_members(id)
+--   │   ├── user_health_checkup_records (family_member_id) → family_members(id)
+--   │   ├── user_health_checkup_recommendations (family_member_id) → family_members(id)
+--   │   ├── user_periodic_health_services (family_member_id) → family_members(id)
+--   │   ├── user_deworming_records (family_member_id) → family_members(id)
+--   │   ├── user_infection_risk_scores (family_member_id) → family_members(id)
+--   │   ├── hospital_records (family_member_id) → family_members(id) SET NULL
+--   │   ├── medication_records (family_member_id) → family_members(id) SET NULL
+--   │   ├── disease_records (family_member_id) → family_members(id) SET NULL
+--   │   ├── vaccination_notification_logs (family_member_id) → family_members(id) SET NULL
+--   │   ├── recipe_usage_history (family_member_id) → family_members(id)
+--   │   └── diet_plans (family_member_id) → family_members(id)
 --   ├── health_data_sources (user_id) → users(id) CASCADE
+--   │   ├── hospital_records (data_source_id) → health_data_sources(id) SET NULL
+--   │   ├── medication_records (data_source_id) → health_data_sources(id) SET NULL
+--   │   ├── disease_records (data_source_id) → health_data_sources(id) SET NULL
+--   │   └── health_data_sync_logs (data_source_id) → health_data_sources(id) SET NULL
 --   ├── hospital_records (user_id) → users(id) CASCADE
---   │   └── medication_records (hospital_record_id) → hospital_records(id) SET NULL
+--   │   ├── medication_records (hospital_record_id) → hospital_records(id) SET NULL
 --   │   └── disease_records (hospital_record_id) → hospital_records(id) SET NULL
 --   ├── medication_records (user_id) → users(id) CASCADE
 --   ├── disease_records (user_id) → users(id) CASCADE
 --   │   └── disease_records (disease_code) → diseases(code) SET NULL
 --   ├── health_data_sync_logs (user_id) → users(id) CASCADE
 --   ├── vaccination_notification_logs (user_id) → users(id) CASCADE
---   │   └── vaccination_notification_logs (vaccination_schedule_id) → user_vaccination_schedules(id) CASCADE
+--   │   ├── vaccination_notification_logs (vaccination_schedule_id) → user_vaccination_schedules(id) CASCADE
 --   │   └── vaccination_notification_logs (vaccination_record_id) → user_vaccination_records(id) SET NULL
---   └── user_vaccination_schedules (user_id) → users(id) CASCADE (기존)
---       └── user_vaccination_schedules (family_member_id) → family_members(id) CASCADE (기존)
+--   ├── user_vaccination_schedules (user_id) → users(id) CASCADE
+--   │   └── user_vaccination_schedules (family_member_id) → family_members(id) CASCADE
+--   ├── user_vaccination_records (user_id) → users(id) CASCADE
+--   │   └── user_vaccination_records (family_member_id) → family_members(id) CASCADE
+--   ├── user_health_checkup_records (user_id) → users(id) CASCADE
+--   │   └── user_health_checkup_records (family_member_id) → family_members(id) CASCADE
+--   ├── user_health_checkup_recommendations (user_id) → users(id) CASCADE
+--   │   └── user_health_checkup_recommendations (family_member_id) → family_members(id) CASCADE
+--   ├── user_periodic_health_services (user_id) → users(id) CASCADE
+--   │   ├── user_periodic_health_services (family_member_id) → family_members(id) CASCADE
+--   │   └── user_periodic_service_reminders (service_id) → user_periodic_health_services(id)
+--   ├── user_deworming_records (user_id) → users(id) CASCADE
+--   │   └── user_deworming_records (family_member_id) → family_members(id) CASCADE
+--   ├── user_periodic_service_reminders (user_id) → users(id) CASCADE
+--   ├── user_notification_settings (user_id) → users(id) UNIQUE CASCADE
+--   ├── user_infection_risk_scores (user_id) → users(id) CASCADE
+--   │   └── user_infection_risk_scores (family_member_id) → family_members(id) CASCADE
+--   ├── user_travel_risk_assessments (user_id) → users(id) CASCADE
+--   ├── subscriptions (user_id) → users(id) CASCADE
+--   │   ├── payment_transactions (subscription_id) → subscriptions(id)
+--   │   └── promo_code_uses (subscription_id) → subscriptions(id)
+--   ├── promo_code_uses (user_id) → users(id) CASCADE
+--   │   └── promo_code_uses (promo_code_id) → promo_codes(id)
+--   ├── recipes (user_id) → users(id) SET NULL
+--   │   ├── recipe_ingredients (recipe_id) → recipes(id)
+--   │   ├── recipe_steps (recipe_id) → recipes(id)
+--   │   ├── favorite_meals (recipe_id) → recipes(id) SET NULL
+--   │   ├── recipe_ratings (recipe_id) → recipes(id)
+--   │   └── recipe_reports (recipe_id) → recipes(id)
+--   ├── favorite_meals (user_id) → users(id)
+--   ├── recipe_ratings (user_id) → users(id)
+--   ├── recipe_reports (user_id) → users(id)
+--   ├── recipe_usage_history (user_id) → users(id)
+--   ├── diet_plans (user_id) → users(id)
+--   ├── weekly_diet_plans (user_id) → users(id)
+--   │   ├── weekly_shopping_lists (weekly_diet_plan_id) → weekly_diet_plans(id)
+--   │   └── weekly_nutrition_stats (weekly_diet_plan_id) → weekly_diet_plans(id)
+--   ├── diet_notification_settings (user_id) → users(id) UNIQUE
+--   ├── meal_kits (created_by) → users(id) SET NULL
+--   └── payment_transactions (user_id) → users(id) CASCADE
 --
--- family_members (id)
---   ├── hospital_records (family_member_id) → family_members(id) SET NULL
---   ├── medication_records (family_member_id) → family_members(id) SET NULL
---   ├── disease_records (family_member_id) → family_members(id) SET NULL
---   └── vaccination_notification_logs (family_member_id) → family_members(id) SET NULL
+-- diseases (code) - 질병 마스터 데이터
+--   ├── disease_records (disease_code) → diseases(code) SET NULL
+--   ├── disease_excluded_foods_extended (disease_code) → diseases(code) SET NULL
+--   └── emergency_procedures (allergy_code) → allergies(code) SET NULL*
 --
--- diseases (code)
---   └── disease_records (disease_code) → diseases(code) SET NULL
+-- allergies (code) - 알레르기 마스터 데이터
+--   ├── allergy_derived_ingredients (allergy_code) → allergies(code)
+--   └── emergency_procedures (allergy_code) → allergies(code)
 --
--- health_data_sources (id)
---   ├── hospital_records (data_source_id) → health_data_sources(id) SET NULL
---   ├── medication_records (data_source_id) → health_data_sources(id) SET NULL
---   ├── disease_records (data_source_id) → health_data_sources(id) SET NULL
---   └── health_data_sync_logs (data_source_id) → health_data_sources(id) SET NULL
+-- promo_codes (id) - 프로모션 코드
+--   ├── promo_codes (created_by) → users(id) SET NULL
+--   └── promo_code_uses (promo_code_id) → promo_codes(id)
 --
+-- legacy_masters (id) - 레거시 명인 정보
+--   └── legacy_videos (master_id) → legacy_masters(id)
+--
+-- legacy_videos (id) - 레거시 비디오
+--   └── legacy_documents (video_id) → legacy_videos(id)
+--
+-- foodsafety_recipes_cache (id) - 식약처 레시피 캐시
+--
+-- kcdc_alerts (id) - KCDC 알림
+--
+-- image_cache_cleanup_logs (id) - 이미지 캐시 정리 로그
+--
+-- image_usage_logs (id) - 이미지 사용 로그
+--
+-- image_cache_stats (id) - 이미지 캐시 통계
+--
+-- notification_logs (id) - 알림 로그
+--
+-- meal_kit_products (id) - 쿠팡 밀키트 제품 캐시
+--
+-- popup_announcements (id) - 팝업 공지
+--
+-- kcdc_disease_outbreaks (id) - 감염병 발생 정보
+--
+-- kcdc_health_checkup_statistics (id) - 건강검진 통계
+--
+-- deworming_medications (id) - 구충제 마스터 데이터
+--
+-- calorie_calculation_formulas (id) - 칼로리 계산 공식
+--
+-- legacy_replacement_guides (id) - 레거시 대체 가이드
+--
+-- admin_security_audit (id) - 관리자 보안 감사 로그
+--
+-- admin_copy_blocks (id) - 페이지 문구 관리
+--
+-- royal_recipes_posts (id) - 궁중 레시피 블로그
+--
+-- * emergency_procedures는 allergy_code를 사용하지만, 실제로는 allergies.code를 참조
+--
+-- ============================================================================
+-- 참조 관계별 분류
+-- ============================================================================
+--
+-- CASCADE 삭제 (부모 삭제시 자식도 삭제):
+-- - user_health_profiles → users (UNIQUE)
+-- - family_members → users
+-- - health_data_sources → users
+-- - hospital_records → users
+-- - medication_records → users
+-- - disease_records → users
+-- - health_data_sync_logs → users
+-- - vaccination_notification_logs → users
+-- - user_vaccination_schedules → users
+-- - user_vaccination_records → users
+-- - user_health_checkup_records → users
+-- - user_health_checkup_recommendations → users
+-- - user_periodic_health_services → users
+-- - user_deworming_records → users
+-- - user_periodic_service_reminders → users
+-- - user_notification_settings → users (UNIQUE)
+-- - user_infection_risk_scores → users
+-- - user_travel_risk_assessments → users
+-- - subscriptions → users
+-- - payment_transactions → users
+-- - payment_transactions → subscriptions
+--
+-- SET NULL (부모 삭제시 자식 필드 NULL):
+-- - hospital_records → family_members
+-- - medication_records → family_members
+-- - disease_records → family_members
+-- - vaccination_notification_logs → family_members
+-- - hospital_records → data_source_id
+-- - medication_records → data_source_id
+-- - disease_records → data_source_id
+-- - health_data_sync_logs → data_source_id
+-- - medication_records → hospital_record_id
+-- - disease_records → hospital_record_id
+-- - disease_records → diseases.code
+-- - vaccination_notification_logs → user_vaccination_records
+-- - recipes → users (SET NULL)
+-- - favorite_meals → recipes (SET NULL)
+-- - promo_codes → users (SET NULL)
+-- - meal_kits → users (SET NULL)
+--
+-- 기타 참조:
+-- - user_vaccination_schedules → family_members (CASCADE)
+-- - user_vaccination_records → family_members (CASCADE)
+-- - user_health_checkup_records → family_members (CASCADE)
+-- - user_health_checkup_recommendations → family_members (CASCADE)
+-- - user_periodic_health_services → family_members (CASCADE)
+-- - user_deworming_records → family_members (CASCADE)
+-- - user_infection_risk_scores → family_members (CASCADE)
+-- - recipe_usage_history → family_members
+-- - diet_plans → family_members
+-- - promo_code_uses → promo_codes
+-- - promo_code_uses → subscriptions
+-- - recipe_ingredients → recipes
+-- - recipe_steps → recipes
+-- - favorite_meals → recipes (SET NULL)
+-- - recipe_ratings → recipes
+-- - recipe_reports → recipes
+-- - weekly_shopping_lists → weekly_diet_plans
+-- - weekly_nutrition_stats → weekly_diet_plans
+-- - user_periodic_service_reminders → user_periodic_health_services
+-- - disease_excluded_foods_extended → diseases.code
+-- - allergy_derived_ingredients → allergies.code
+-- - emergency_procedures → allergies.code
+-- - legacy_videos → legacy_masters
+-- - legacy_documents → legacy_videos
+-- ============================================================================
+-- 6. 알림 시스템 관련 테이블 추가 (Phase 6)
+-- ============================================================================
+
+-- 사용자 알림 설정
+CREATE TABLE IF NOT EXISTS user_notification_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+  settings JSONB NOT NULL DEFAULT '{
+    "vaccinationReminders": true,
+    "vaccinationChannels": ["in_app", "push"],
+    "vaccinationDaysBefore": [0, 1, 7],
+    "medicationReminders": true,
+    "medicationChannels": ["in_app", "push"],
+    "medicationTimes": ["09:00", "21:00"],
+    "checkupReminders": true,
+    "checkupChannels": ["in_app", "email"],
+    "checkupDaysBefore": [7, 30],
+    "appointmentReminders": true,
+    "appointmentChannels": ["in_app", "sms"],
+    "appointmentDaysBefore": [1, 7],
+    "quietHours": {
+      "enabled": true,
+      "start": "22:00",
+      "end": "08:00"
+    },
+    "timezone": "Asia/Seoul"
+  }'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 건강 알림 발송 로그
+CREATE TABLE IF NOT EXISTS health_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  family_member_id UUID REFERENCES family_members(id) ON DELETE SET NULL,
+  type TEXT NOT NULL CHECK (type IN ('vaccination', 'medication', 'checkup', 'appointment', 'general')),
+  channel TEXT NOT NULL CHECK (channel IN ('push', 'sms', 'email', 'in_app')),
+  template_id TEXT,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+  context_data JSONB DEFAULT '{}'::jsonb,
+  sent_at TIMESTAMPTZ DEFAULT now(),
+  scheduled_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'failed', 'pending', 'cancelled')),
+  recipient TEXT, -- 이메일, 전화번호 등 수신자 정보
+  is_read BOOLEAN DEFAULT false,
+  read_at TIMESTAMPTZ,
+  is_test BOOLEAN DEFAULT false,
+  error_message TEXT,
+  retry_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================================================
+-- 7. 알림 시스템 인덱스 생성
+-- ============================================================================
+
+-- user_notification_settings 인덱스
+CREATE INDEX IF NOT EXISTS idx_user_notification_settings_user_id ON user_notification_settings(user_id);
+
+-- health_notifications 인덱스
+CREATE INDEX IF NOT EXISTS idx_health_notifications_user_id ON health_notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_health_notifications_family_member_id ON health_notifications(family_member_id);
+CREATE INDEX IF NOT EXISTS idx_health_notifications_type ON health_notifications(type);
+CREATE INDEX IF NOT EXISTS idx_health_notifications_channel ON health_notifications(channel);
+CREATE INDEX IF NOT EXISTS idx_health_notifications_sent_at ON health_notifications(sent_at DESC);
+CREATE INDEX IF NOT EXISTS idx_health_notifications_status ON health_notifications(status);
+CREATE INDEX IF NOT EXISTS idx_health_notifications_is_read ON health_notifications(is_read) WHERE is_read = false;
+CREATE INDEX IF NOT EXISTS idx_health_notifications_priority ON health_notifications(priority);
+CREATE INDEX IF NOT EXISTS idx_health_notifications_scheduled_at ON health_notifications(scheduled_at) WHERE scheduled_at IS NOT NULL;
+
+-- ============================================================================
+-- 8. 알림 시스템 트리거 생성
+-- ============================================================================
+
+-- user_notification_settings 트리거
+DROP TRIGGER IF EXISTS trigger_user_notification_settings_updated_at ON user_notification_settings;
+CREATE TRIGGER trigger_user_notification_settings_updated_at
+    BEFORE UPDATE ON user_notification_settings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- ============================================================================
 

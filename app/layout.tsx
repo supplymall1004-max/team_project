@@ -18,6 +18,7 @@ import { DietNotificationProvider } from "@/components/providers/diet-notificati
 import { KcdcAlertsProvider } from "@/components/providers/kcdc-alerts-provider";
 import { PopupProvider } from "@/components/providers/popup-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { Footer } from "@/components/footer";
 import { IntroVideo } from "@/components/intro-video";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
@@ -181,8 +182,9 @@ export default function RootLayout({
             <DietNotificationProvider>
               <KcdcAlertsProvider>
                 <PopupProvider>
-                  <ToastProvider />
-                  <IntroVideo>
+                  <QueryProvider>
+                    <ToastProvider />
+                    <IntroVideo>
                     <div className="flex flex-col h-screen w-full max-w-full overflow-hidden">
                       {/* Navbar (최상단 고정) */}
                       <Navbar />
@@ -207,7 +209,8 @@ export default function RootLayout({
                         <BottomNavigation />
                       </div>
                     </div>
-                  </IntroVideo>
+                    </IntroVideo>
+                  </QueryProvider>
                 </PopupProvider>
               </KcdcAlertsProvider>
             </DietNotificationProvider>
