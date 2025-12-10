@@ -8,25 +8,28 @@
  * 3. 식단 페이지로 이동
  */
 
-import Link from "next/link";
+"use client";
+
 import { Section } from "@/components/section";
-import { Button } from "@/components/ui/button";
 import { DietSectionClient } from "./diet-section-client";
 import { HealthVisualizationPreview } from "@/components/home/health-visualization-preview";
-import { getMultipleCopyContent } from "@/lib/admin/copy-reader";
 
+/**
+ * 서버 컴포넌트 버전 (홈페이지 등에서 사용)
+ * 서버 컴포넌트에서는 DietSectionWrapper를 직접 import
+ */
 export async function DietSection() {
-  // 섹션 콘텐츠 조회
-  const sectionContent = await getMultipleCopyContent([
-    "diet-section-title",
-    "diet-section-description",
-  ]);
+  const { DietSectionWrapper } = await import("./diet-section-wrapper");
+  return <DietSectionWrapper />;
+}
 
-  const sectionTitle =
-    sectionContent["diet-section-title"]?.content.title || "🧠 건강 맞춤 식단 큐레이션";
-  const sectionDescription =
-    sectionContent["diet-section-description"]?.content.description ||
-    "건강 정보를 기반으로 개인 맞춤 식단을 추천해드립니다";
+/**
+ * 클라이언트 컴포넌트 버전 (식단 페이지 등에서 사용)
+ * 기본값만 사용하여 서버 컴포넌트 호출 없이 렌더링
+ */
+export function DietSectionClientOnly() {
+  const sectionTitle = "🧠 건강 맞춤 식단 큐레이션";
+  const sectionDescription = "건강 정보를 기반으로 개인 맞춤 식단을 추천해드립니다";
 
   return (
     <Section id="ai" title={sectionTitle} description={sectionDescription}>

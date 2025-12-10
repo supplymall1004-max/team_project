@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,14 +32,18 @@ export function HealthVisualizationPreview({
   const [healthMetrics, setHealthMetrics] = useState<HealthMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
+    const maxRetries = 3;
+    const retryDelay = 2000; // 2초
+
     async function fetchHealthMetrics() {
       try {
         setIsLoading(true);
         setError(null);
 
-        console.log('[HealthVisualizationPreview] 건강 메트릭스 조회 시작');
+        console.log('[HealthVisualizationPreview] 건강 메트릭스 조회 시작', { retryCount: retryCountRef.current });
 
         const response = await fetch('/api/health/metrics', {
           method: 'GET',
@@ -49,13 +53,58 @@ export function HealthVisualizationPreview({
         });
 
         if (!response.ok) {
-          throw new Error('건강 메트릭스 조회에 실패했습니다.');
+          // 오류 응답의 상세 정보 확인
+          let errorData: any = null;
+          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          
+          try {
+            const text = await response.text();
+            console.log('[HealthVisualizationPreview] 에러 응답 본문:', text);
+            
+            if (text && text.trim()) {
+              try {
+                errorData = JSON.parse(text);
+                errorMessage = errorData?.error || errorData?.message || errorMessage;
+              } catch (parseError) {
+                // JSON 파싱 실패 시 텍스트를 그대로 사용
+                console.warn('[HealthVisualizationPreview] JSON 파싱 실패, 텍스트 그대로 사용:', parseError);
+                errorMessage = text || errorMessage;
+              }
+            } else {
+              console.warn('[HealthVisualizationPreview] 에러 응답 본문이 비어있음');
+            }
+          } catch (readError) {
+            // 응답 본문 읽기 실패
+            console.error('[HealthVisualizationPreview] 에러 응답 본문 읽기 실패:', readError);
+          }
+          
+          // 사용자를 찾을 수 없는 경우 재시도 (사용자 동기화 대기)
+          if (response.status === 404 && errorMessage.includes('사용자를 찾을 수 없습니다') && retryCountRef.current < maxRetries) {
+            console.log(`[HealthVisualizationPreview] 사용자 동기화 대기 중... (${retryCountRef.current + 1}/${maxRetries})`);
+            retryCountRef.current++;
+            setTimeout(fetchHealthMetrics, retryDelay);
+            return;
+          }
+          
+          console.error('[HealthVisualizationPreview] 건강 메트릭스 조회 실패:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorData: errorData,
+            errorMessage: errorMessage,
+            retryCount: retryCountRef.current
+          });
+          throw new Error(errorMessage);
         }
 
         const data = await response.json();
         console.log('[HealthVisualizationPreview] 건강 메트릭스 조회 완료:', data);
+        
+        if (data.message) {
+          console.log('[HealthVisualizationPreview] 메시지:', data.message);
+        }
 
         setHealthMetrics(data.metrics);
+        retryCountRef.current = 0; // 성공 시 재시도 카운터 리셋
       } catch (err) {
         console.error('[HealthVisualizationPreview] 건강 메트릭스 조회 실패:', err);
         setError(err instanceof Error ? err.message : '건강 데이터를 불러올 수 없습니다.');

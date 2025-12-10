@@ -653,6 +653,16 @@ export async function generateAndSaveDietPlan(
         const ingredients = (recipe as any).ingredients || [];
         const instructions = (recipe as any).instructions || (recipe as any).steps?.join("\n") || "";
 
+        // ingredients를 JSONB 형식으로 변환 (배열이면 그대로, 아니면 null)
+        const ingredientsJsonb = Array.isArray(ingredients) && ingredients.length > 0
+          ? ingredients
+          : null;
+
+        // instructions를 문자열로 변환 (배열인 경우 join)
+        const instructionsText = Array.isArray(instructions)
+          ? instructions.join("\n")
+          : instructions || null;
+
         return {
           user_id: userId,
           plan_date: date,
@@ -660,8 +670,8 @@ export async function generateAndSaveDietPlan(
           recipe_id: isFallbackRecipe ? null : recipeId, // 폴백 레시피는 null로 저장
           recipe_title: recipeTitle, // 필수 필드 (NOT NULL)
           recipe_description: recipeDescription || null,
-          ingredients: ingredients.length > 0 ? ingredients : null,
-          instructions: instructions || null,
+          ingredients: ingredientsJsonb, // JSONB 형식으로 저장
+          instructions: instructionsText,
           calories: recipe.calories || 0,
           carbs_g: recipe.carbohydrates || 0,
           protein_g: recipe.protein || 0,

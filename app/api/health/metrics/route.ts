@@ -4,7 +4,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { auth } from '@clerk/nextjs/server';
+import { createClerkSupabaseClient } from '@/lib/supabase/server';
+import { ensureSupabaseUser } from '@/lib/supabase/ensure-user';
 import {
   HealthMetrics,
   NutritionBalance,
@@ -17,30 +19,69 @@ import { UserHealthProfile } from '@/types/health';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // Clerk 인증 확인
+    const { userId } = await auth();
 
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (!userId) {
       return NextResponse.json(
         { error: '인증이 필요합니다.' },
         { status: 401 }
       );
     }
 
+    // Supabase 클라이언트 생성
+    const supabase = await createClerkSupabaseClient();
+
+    // 사용자의 Supabase user_id 조회 (없으면 자동 동기화)
+    console.log('[Health Metrics API] 사용자 확인 및 동기화 시도...');
+    const userData = await ensureSupabaseUser();
+
+    if (!userData) {
+      console.error('[Health Metrics API] 사용자 동기화 실패:', {
+        clerkId: userId
+      });
+      return NextResponse.json(
+        { 
+          error: '사용자 정보를 동기화할 수 없습니다. 잠시 후 다시 시도해주세요.',
+          details: 'Clerk 사용자 정보를 Supabase에 동기화하는 중 오류가 발생했습니다.'
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log('[Health Metrics API] 사용자 확인 완료:', userData.id);
+
     // 건강 프로필 조회
     const { data: healthProfile, error: profileError } = await supabase
-      .from('users')
+      .from('user_health_profiles')
       .select('*')
-      .eq('clerk_id', user.id)
+      .eq('user_id', userData.id)
       .single();
 
+    // 건강 프로필이 없는 경우 기본값으로 메트릭스 계산
     if (profileError || !healthProfile) {
-      return NextResponse.json(
-        { error: '건강 정보를 찾을 수 없습니다.' },
-        { status: 404 }
-      );
+      console.log('[Health Metrics API] 건강 프로필이 없습니다. 기본값으로 계산합니다.');
+      
+      // 기본 건강 프로필 생성
+      const defaultHealthProfile: Partial<UserHealthProfile> = {
+        user_id: userData.id,
+        age: null,
+        gender: null,
+        height_cm: null,
+        weight_kg: null,
+        activity_level: null,
+        diseases: null,
+        allergies: null,
+      };
+
+      // 기본값으로 메트릭스 계산
+      const healthMetrics = await calculateHealthMetrics(defaultHealthProfile as UserHealthProfile);
+      
+      return NextResponse.json({
+        success: true,
+        metrics: healthMetrics,
+        message: '건강 정보가 없어 기본값으로 계산되었습니다.'
+      });
     }
 
     // 건강 메트릭스 계산
@@ -64,8 +105,10 @@ export async function GET(request: NextRequest) {
  * 건강 프로필을 기반으로 건강 메트릭스 계산
  */
 async function calculateHealthMetrics(profile: UserHealthProfile): Promise<HealthMetrics> {
-  // 기본 건강 지표 계산
-  const bmi = calculateBMI(profile.weight_kg!, profile.height_cm!);
+  // 기본 건강 지표 계산 (null 값 처리)
+  const bmi = (profile.weight_kg && profile.height_cm) 
+    ? calculateBMI(profile.weight_kg, profile.height_cm)
+    : 22; // 기본 BMI 값
   const bodyFatPercentage = estimateBodyFatPercentage(profile);
   const muscleMass = estimateMuscleMass(profile);
   const basalMetabolicRate = calculateBMR(profile);

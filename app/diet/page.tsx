@@ -13,7 +13,7 @@
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Section } from '@/components/section';
-import { DietSection } from '@/components/health/diet-section';
+import { DietSectionClientOnly } from '@/components/health/diet-section';
 import { LazyWeeklyDietSummary } from '@/components/home/lazy-sections';
 import { HealthVisualizationPreview } from '@/components/home/health-visualization-preview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -52,9 +52,7 @@ function DietManagementContent() {
 
           <TabsContent value="today" className="space-y-6">
             <ErrorBoundary>
-              <Suspense fallback={<SectionSkeleton />}>
-                <DietSection />
-              </Suspense>
+              <DietSectionClientOnly />
             </ErrorBoundary>
           </TabsContent>
 

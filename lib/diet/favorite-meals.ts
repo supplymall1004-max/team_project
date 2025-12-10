@@ -246,8 +246,12 @@ export async function isFavoriteMeal(recipeId: string): Promise<boolean> {
     // 2. recipeId가 UUID 형식인지 확인
     const validRecipeId = recipeId && isValidUUID(recipeId) ? recipeId : null;
     if (!validRecipeId) {
-      console.log("⚠️ recipeId가 UUID 형식이 아님:", recipeId);
-      console.log("⚠️ UUID가 없어 즐겨찾기 조회 불가");
+      // UUID가 아닌 경우 (임시 ID 등) 조용히 false 반환
+      // 로그는 개발 환경에서만 출력
+      if (process.env.NODE_ENV === 'development') {
+        console.log("⚠️ recipeId가 UUID 형식이 아님:", recipeId);
+        console.log("⚠️ UUID가 없어 즐겨찾기 조회 불가");
+      }
       console.groupEnd();
       return false;
     }

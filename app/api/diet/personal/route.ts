@@ -136,39 +136,53 @@ export async function POST(request: NextRequest) {
 
     // 간식
     if (dietPlan.snack) {
-      planRecords.push({
-        user_id: supabaseUserId,
-        plan_date: targetDate,
-        meal_type: "snack",
-        recipe_title: dietPlan.snack.title,
-        recipe_description: dietPlan.snack.description,
-        ingredients: dietPlan.snack.ingredients,
-        instructions: dietPlan.snack.instructions,
-        calories: dietPlan.snack.nutrition.calories,
-        protein_g: dietPlan.snack.nutrition.protein,
-        carbs_g: dietPlan.snack.nutrition.carbs,
-        fat_g: dietPlan.snack.nutrition.fat,
-        sodium_mg: dietPlan.snack.nutrition.sodium,
-        fiber_g: dietPlan.snack.nutrition.fiber,
-        potassium_mg: dietPlan.snack.nutrition.potassium ?? null,
-        phosphorus_mg: dietPlan.snack.nutrition.phosphorus ?? null,
-        gi_index: dietPlan.snack.nutrition.gi ?? null,
-        is_unified: false,
-      });
+      planRecords.push(createDietPlanRecord(
+        supabaseUserId,
+        targetDate,
+        "snack",
+        dietPlan.snack,
+        false
+      ));
     }
 
-    const { error: insertError } = await supabase
+    if (planRecords.length === 0) {
+      console.warn("⚠️ 저장할 식단 레코드가 없습니다");
+      console.groupEnd();
+      return NextResponse.json(
+        { error: "No diet plan records to save" },
+        { status: 400 }
+      );
+    }
+
+    console.log(`💾 ${planRecords.length}개 식단 레코드 저장 시도...`);
+    console.log("💾 저장할 데이터 샘플:", JSON.stringify(planRecords[0], null, 2));
+
+    const { error: insertError, data: insertedData } = await supabase
       .from("diet_plans")
-      .insert(planRecords);
+      .insert(planRecords)
+      .select();
 
     if (insertError) {
       console.error("❌ 저장 실패:", insertError);
+      console.error("❌ 저장 오류 상세:", {
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+      });
+      console.error("❌ 저장하려던 데이터:", JSON.stringify(planRecords, null, 2));
       console.groupEnd();
       return NextResponse.json(
-        { error: "Failed to save diet plan" },
+        { 
+          error: "Failed to save diet plan",
+          details: insertError.message,
+          code: insertError.code
+        },
         { status: 500 }
       );
     }
+
+    console.log(`✅ ${insertedData?.length || planRecords.length}개 식단 레코드 저장 완료`);
 
     // 레시피 사용 이력 기록
     console.log("레시피 사용 이력 기록 중...");
@@ -267,21 +281,42 @@ function createDietPlanRecord(
   recipe: RecipeDetailForDiet,
   isUnified: boolean
 ) {
+  // recipe_id 검증: UUID 형식이 아니면 null로 저장
+  const recipeId = recipe.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(recipe.id)
+    ? recipe.id
+    : null;
+
+  // recipe_title 필수 필드 검증
+  const recipeTitle = recipe.title?.trim() || `레시피-${mealType}`;
+  if (!recipeTitle || recipeTitle.trim() === "") {
+    console.error(`❌ ${mealType}의 recipe_title이 비어있습니다. 기본값 사용: 레시피-${mealType}`);
+  }
+
+  // ingredients를 JSONB 형식으로 변환
+  const ingredientsJsonb = Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0
+    ? recipe.ingredients
+    : null;
+
+  // instructions를 문자열로 변환 (배열인 경우 join)
+  const instructionsText = Array.isArray(recipe.instructions)
+    ? recipe.instructions.join("\n")
+    : recipe.instructions || null;
+
   return {
     user_id: userId,
     plan_date: planDate,
     meal_type: mealType,
-    recipe_id: recipe.id,
-    recipe_title: recipe.title,
-    recipe_description: recipe.description,
-    ingredients: recipe.ingredients,
-    instructions: recipe.instructions,
-    calories: recipe.nutrition.calories,
-    protein_g: recipe.nutrition.protein,
-    carbs_g: recipe.nutrition.carbs,
-    fat_g: recipe.nutrition.fat,
-    sodium_mg: recipe.nutrition.sodium,
-    fiber_g: recipe.nutrition.fiber,
+    recipe_id: recipeId,
+    recipe_title: recipeTitle,
+    recipe_description: recipe.description || null,
+    ingredients: ingredientsJsonb,
+    instructions: instructionsText,
+    calories: recipe.nutrition.calories || 0,
+    protein_g: recipe.nutrition.protein || 0,
+    carbs_g: recipe.nutrition.carbs || 0,
+    fat_g: recipe.nutrition.fat || 0,
+    sodium_mg: recipe.nutrition.sodium || 0,
+    fiber_g: recipe.nutrition.fiber ?? null,
     potassium_mg: recipe.nutrition.potassium ?? null,
     phosphorus_mg: recipe.nutrition.phosphorus ?? null,
     gi_index: recipe.nutrition.gi ?? null,
