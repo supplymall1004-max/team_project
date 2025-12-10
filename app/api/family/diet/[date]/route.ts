@@ -6,8 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { createClerkSupabaseClient } from "@/lib/supabase/server";
+import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NutritionInfo } from "@/types/health";
@@ -37,18 +38,23 @@ export async function GET(
     const { date } = await params;
     console.log("조회 날짜:", date);
 
-    const supabase = await createClerkSupabaseClient();
-
-    // 사용자의 Supabase user_id 조회
-    const userRow = await ensureSupabaseUser(userId);
+    // 사용자 정보 확인 및 자동 동기화
+    console.log("🔍 사용자 정보 확인 중...");
+    const userRow = await ensureSupabaseUser();
 
     if (!userRow) {
-      console.error("❌ Supabase 사용자 동기화 실패");
+      console.error("❌ 사용자 정보 없음 (동기화 실패)");
       console.groupEnd();
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "User not found. Please try again after user synchronization." },
+        { status: 404 }
+      );
     }
 
+    console.log("✅ 사용자 정보 확인 완료:", userRow.id);
     const supabaseUserId = userRow.id;
+
+    const supabase = await createClerkSupabaseClient();
 
     // 해당 날짜의 모든 식단 조회
     let plans: any[] = [];
@@ -279,52 +285,6 @@ async function buildFamilyDietSummary({
   };
 }
 
-async function ensureSupabaseUser(clerkUserId: string) {
-  const supabase = await createClerkSupabaseClient();
-  const { data } = await supabase
-    .from("users")
-    .select("id, name")
-    .eq("clerk_id", clerkUserId)
-    .maybeSingle();
-
-  if (data) {
-    return data;
-  }
-
-  try {
-    const serviceClient = getServiceRoleClient();
-    const clerk = await clerkClient();
-    const clerkUser = await clerk.users.getUser(clerkUserId);
-
-    const displayName =
-      clerkUser.fullName ||
-      clerkUser.username ||
-      clerkUser.emailAddresses[0]?.emailAddress ||
-      "사용자";
-
-    const { data: upserted, error } = await serviceClient
-      .from("users")
-      .upsert(
-        {
-          clerk_id: clerkUserId,
-          name: displayName,
-        },
-        { onConflict: "clerk_id" },
-      )
-      .select("id, name")
-      .single();
-
-    if (error) {
-      console.error("❌ 서비스 클라이언트 사용자 동기화 실패:", error);
-      return null;
-    }
-
-    return upserted;
-  } catch (error) {
-    console.error("❌ Clerk 사용자 조회 실패:", error);
-    return null;
-  }
-}
 
 function aggregateNutritionFromPlan(plan?: MemberMeals | null): NutritionInfo | null {
   if (!plan) {

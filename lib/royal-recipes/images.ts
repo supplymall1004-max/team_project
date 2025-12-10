@@ -14,7 +14,7 @@ const IMAGE_DIRS: Record<RecipeEra, { palace: string; modern?: string }> = {
   },
   goryeo: {
     palace: "고려시대 궁중레시피 사진",
-    // modern: "고려시대 레시피 현대 이미지", // 나중에 추가 예정
+    modern: "고려시대 레시피 현대 이미지",
   },
   joseon: {
     palace: "조선시대 궁중 레시피 사진",

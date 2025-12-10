@@ -115,13 +115,33 @@ export function KcdcAlertsProvider({ children }: { children: React.ReactNode }) 
       // API에서 알림 가져오기
       const response = await fetch("/api/health/kcdc/alerts?limit=5").catch((fetchError) => {
         // 네트워크 에러 처리
-        console.error("❌ 네트워크 에러:", fetchError);
-        throw new Error(`네트워크 연결 실패: ${fetchError.message}`);
+        console.warn("⚠️ 네트워크 에러:", fetchError);
+        console.groupEnd();
+        return null;
       });
 
+      // fetch 실패 시 (네트워크 에러 등)
+      if (!response) {
+        console.log("⚠️ API 요청 실패, 알림을 표시하지 않습니다");
+        console.groupEnd();
+        return;
+      }
+
+      // 404 에러 처리 (API 라우트가 존재하지 않는 경우)
+      if (response.status === 404) {
+        console.warn("⚠️ KCDC 알림 API를 찾을 수 없습니다 (404). 알림 기능이 비활성화되었을 수 있습니다.");
+        console.groupEnd();
+        return;
+      }
+
       if (!response.ok) {
+        // 404가 아닌 다른 에러
         const errorText = await response.text().catch(() => "응답 본문을 읽을 수 없습니다");
-        console.error("❌ 알림 조회 실패:", response.status, errorText);
+        // HTML 응답인 경우 (404 페이지 등) 첫 200자만 로그
+        const truncatedError = errorText.length > 200 
+          ? errorText.substring(0, 200) + "..."
+          : errorText;
+        console.warn("⚠️ 알림 조회 실패:", response.status, truncatedError);
         console.groupEnd();
         return;
       }

@@ -12,6 +12,7 @@ import Link from "next/link";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { DietSectionClient } from "./diet-section-client";
+import { HealthVisualizationPreview } from "@/components/home/health-visualization-preview";
 import { getMultipleCopyContent } from "@/lib/admin/copy-reader";
 
 export async function DietSection() {
@@ -29,7 +30,18 @@ export async function DietSection() {
 
   return (
     <Section id="ai" title={sectionTitle} description={sectionDescription}>
-      <DietSectionClient />
+      <div className="space-y-6">
+        {/* 건강 시각화 미리보기 */}
+        <div className="rounded-xl border border-orange-200 bg-orange-50/30 p-4">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            💚 건강 시각화 미리보기
+          </h3>
+          <HealthVisualizationPreview compact={true} />
+        </div>
+        
+        {/* 식단 섹션 */}
+        <DietSectionClient />
+      </div>
     </Section>
   );
 }

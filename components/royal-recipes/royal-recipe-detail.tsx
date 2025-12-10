@@ -6,6 +6,7 @@
 
 import { RoyalRecipe } from "@/lib/royal-recipes/parser";
 import { getRecipeImages } from "@/lib/royal-recipes/images";
+import { RoyalRecipeTitle } from "./royal-recipe-title";
 
 /**
  * 이미지 경로에서 파일명을 추출하여 제목으로 변환합니다.
@@ -82,12 +83,10 @@ export function RoyalRecipeDetail({ recipe }: RoyalRecipeDetailProps) {
           <div className="space-y-8">
             {/* 제목 - 사진 파일명 기반 */}
             <div className="text-center border-b-2 border-amber-800/30 pb-6">
-              <h1 className="text-4xl sm:text-5xl font-bold text-amber-900 mb-4 tracking-wide" style={{
-                fontFamily: 'serif',
-                textShadow: '2px 2px 4px rgba(139, 69, 19, 0.2)',
-              }}>
-                {images.palace ? getTitleFromImage(images.palace) : recipe.title}
-              </h1>
+              <RoyalRecipeTitle
+                title={images.palace ? (getTitleFromImage(images.palace) || recipe.title) : recipe.title}
+                className="mb-4"
+              />
               {content.characteristics && (
                 <p className="text-lg sm:text-xl text-amber-800 font-medium leading-relaxed max-w-3xl mx-auto">
                   {content.characteristics}

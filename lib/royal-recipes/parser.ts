@@ -201,6 +201,22 @@ export function parseRoyalRecipes(era: RecipeEra): RoyalRecipe[] {
 }
 
 /**
+ * 제목에서 한자 표기를 분리합니다.
+ */
+export function parseTitleWithHanja(title: string): { korean: string; hanja?: string } {
+  // 괄호 안의 한자 표기 추출 (例: 감시해 (甘시해))
+  const hanjaMatch = title.match(/\(([^)]+)\)$/);
+
+  if (hanjaMatch) {
+    const korean = title.replace(/\s*\([^)]+\)$/, "").trim();
+    const hanja = hanjaMatch[1].trim();
+    return { korean, hanja };
+  }
+
+  return { korean: title };
+}
+
+/**
  * 제목에서 slug를 생성합니다.
  */
 function createSlug(title: string): string {

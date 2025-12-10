@@ -27,8 +27,10 @@ import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/auth/login-modal";
 
 const navLinks = [
-  { label: "레시피북", href: "/recipes" },
-  { label: "AI 식단", href: "/diet" },
+  { label: "레시피", href: "/archive/recipes" },
+  { label: "식단", href: "/diet" },
+  { label: "건강", href: "/health" },
+  { label: "스토리", href: "/stories" },
 ];
 
 const Navbar = () => {

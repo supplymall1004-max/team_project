@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getRoyalRecipe, RecipeEra } from "@/lib/royal-recipes/queries";
 import { getRecipeImages } from "@/lib/royal-recipes/images";
+import { RoyalRecipeTitle } from "@/components/royal-recipes/royal-recipe-title";
 
 interface RoyalRecipePageProps {
   params: Promise<{ era: string; slug: string }>;
@@ -68,7 +69,10 @@ export default async function RoyalRecipePage({ params }: RoyalRecipePageProps) 
           {/* 콘텐츠 */}
           <div className="p-8">
             <header className="mb-8">
-              <h1 className="text-4xl font-bold text-gray-800 mb-4" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>{recipe.title}</h1>
+              <RoyalRecipeTitle
+                title={recipe.title}
+                className="mb-4"
+              />
               <div className="flex items-center text-gray-700 space-x-4">
                 <span className="px-4 py-2 bg-amber-200 text-amber-900 rounded-full text-sm font-semibold shadow-sm">
                   {era === 'sanguk' ? '삼국시대' : era === 'goryeo' ? '고려시대' : '조선시대'}

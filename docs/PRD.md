@@ -13,7 +13,7 @@
 | **제품명** | 맛의 아카이브 (Flavor Archive) |
 | **슬로건** | 잊혀진 손맛을 연결하는 디지털 식탁 |
 | **버전** | V1.0 (MVP) |
-| **작성일** | 2025년 11월 (가상) |
+| **작성일** | 2025년 1월 (최종 업데이트: 2025-01-27) |
 | **제품 비전** | 시대와 세대를 아울러 모든 요리 지식을 통합하고 보존하며, 데이터 기반의 건강한 식생활을 제안하고 요리 창작자의 상업적 활동을 지원하는 세계 최고의 요리 전문 아카이브. |
 | **핵심 목표 (MVP 기준)** | 레거시 콘텐츠 뷰어 및 현대 레시피 검색 기능 안정화 및 초기 사용자 5,000명 확보. |
 
@@ -33,7 +33,7 @@
 
 ### 3. 기능 요구 사항 (구현 완료)
 
-아래 표는 **2025년 12월 기준**으로 실제 서비스에 반영된 기능을 정리한 것입니다. 모든 기능은 MVP 범위 내에서 구현 완료되었으며, 데이터베이스 스키마와 API, UI 컴포넌트가 모두 연동되어 동작합니다.
+아래 표는 **2025년 1월 기준**으로 실제 서비스에 반영된 기능을 정리한 것입니다. 모든 기능은 MVP 범위 내에서 구현 완료되었으며, 데이터베이스 스키마와 API, UI 컴포넌트가 모두 연동되어 동작합니다.
 
 #### 3.1. 📜 레거시 아카이브
 
@@ -141,6 +141,8 @@
 | **E-4** | 주간 식단 요약 | 홈 화면에 이번 주 식단을 한눈에 볼 수 있는 요약 섹션을 제공합니다. 7일 캘린더 미리보기와 총 칼로리 표시를 포함합니다. | `components/home/weekly-diet-summary.tsx` ✅ 완료 |
 | **E-5** | 자주 구매하는 식자재 | 사용자의 주간 식단 기반으로 자주 구매하는 식자재를 추천하고, 원클릭 장바구니 추가 기능을 제공합니다. | `components/home/frequent-items-section.tsx`, `app/api/shopping/frequent-items/route.ts` ✅ 완료 |
 | **E-6** | 마카의 음식 동화 | 전통 음식의 탄생과 역사를 동화처럼 들려주는 인터랙티브 스토리북 플레이어를 제공합니다. YouTube 비디오를 방 형태로 재생하며, 선물 상자를 클릭하여 다양한 음식 이야기를 선택할 수 있습니다. | `app/(main)/storybook/page.tsx`, `components/storybook/storybook-room.tsx`, `components/storybook/storybook-section.tsx` ✅ 완료 |
+| **E-7** | 챕터 구조 레이아웃 | 홈페이지의 여러 섹션을 두 개의 챕터로 재구성하고, 메인 화면에 대표적인 부분을 배치하는 레이아웃 설계. 챕터 1(레시피 & 식단 아카이브)과 챕터 2(건강 관리 현황)로 구분. | `app/chapters/recipes-diet/page.tsx`, `app/chapters/health/page.tsx`, `components/home/chapter-preview.tsx` ✅ 완료 |
+| **E-8** | 건강 시각화 대시보드 | 현재 건강 상태, 영양 균형, 식단 효과 예측, 질병 위험도 등을 시각화하여 제공하는 종합 대시보드. | `components/health/visualization/*`, `app/api/health/metrics`, `app/api/health/meal-impact` ✅ 완료 |
 
 ---
 
@@ -187,7 +189,7 @@
 | **결제 및 프리미엄 시스템** | F-1, F-2, F-3, F-4, F-5 |
 | **궁중 레시피 아카이브** | G-1, G-2, G-3 |
 | **관리자 페이지** | D-1, D-2, D-3, D-4, D-5, D-6 |
-| **홈페이지 UI/UX 개선** | E-1, E-2, E-3, E-4, E-5, E-6 |
+| **홈페이지 UI/UX 개선** | E-1, E-2, E-3, E-4, E-5, E-6, E-7, E-8 |
 
 #### 6.2. 후속 고려 대상
 
@@ -1035,13 +1037,60 @@
   - `GET /api/family/diet/[date]?scope=previous` 응답에 `memberTabs[]`(id, name, included, healthFlags), `nutrientTotals`(kcal, carb, protein, fat), `exclusionNotes[]` 필드를 포함합니다.
   - `memberTabs[].healthFlags`에는 질병, 알레르기, 사용자 정의 메모가 담겨 탭 하단 설명란에 그대로 노출됩니다.
 - **UI 흐름**
-  - “전체” 기본 탭 + 구성원별 탭을 가로 스크롤로 배치하고, 토글은 탭 헤더 우측에 배치합니다.
+  - "전체" 기본 탭 + 구성원별 탭을 가로 스크롤로 배치하고, 토글은 탭 헤더 우측에 배치합니다.
   - On/Off 전환 시 Optimistic 업데이트 → `/api/family/members/[id]/toggle-unified` PATCH 호출 → 실패 시 이전 상태로 롤백하고 토스트/로그를 출력합니다.
-  - 탭 콘텐츠에는 선택된 구성원이 먹을 수 있는 메뉴 카드(칼로리, 탄/단/지)를 보여주고, 하단 “특이 사항” 박스에 제외 음식·대체 조리법을 요약합니다.
+  - 탭 콘텐츠에는 선택된 구성원이 먹을 수 있는 메뉴 카드(칼로리, 탄/단/지)를 보여주고, 하단 "특이 사항" 박스에 제외 음식·대체 조리법을 요약합니다.
 - **로그 및 접근성**
   - 주요 상호작용마다 `console.group('[FamilyDietTabs]')` + 이벤트명(`tab-change`, `toggle`, `note-expand`)과 payload를 기록합니다.
   - 탭/토글은 모두 키보드 포커스 가능해야 하며, `aria-controls`, `aria-pressed` 속성을 통해 스크린리더가 현재 포함 상태를 읽을 수 있도록 합니다.
   - 포함 인원/영양 합산 패널은 표 구조(`<table>`)를 사용해 스크린리더 친화적으로 제공하고, 합산 기준(온 상태 구성원) 설명을 시각적으로 함께 표기합니다.
+
+#### 7.10. 홈페이지 챕터 구조 시스템
+
+- **아키텍처**: 홈페이지의 여러 섹션을 논리적으로 두 개의 챕터로 재구성
+  - **챕터 1: 레시피 & 식단 아카이브** (`/chapters/recipes-diet`)
+    - 현대 레시피, 궁중 레시피, 건강 맞춤 식단, 주간 식단, 마카의 음식 동화 통합
+    - 건강 시각화 대시보드 미리보기 포함
+  - **챕터 2: 건강 관리 현황** (`/chapters/health`)
+    - 가족 건강 대시보드, 건강 트렌드, 건강 알림, 건강 시각화 대시보드 통합
+- **메인 화면 미리보기**: `components/home/chapter-preview.tsx`
+  - 챕터별 미리보기 카드 제공
+  - "전체보기" 링크로 각 챕터 페이지로 이동
+  - 반응형 레이아웃 (데스크톱 2열, 태블릿 2열, 모바일 1열)
+- **페이지 구조**:
+  - `app/chapters/recipes-diet/page.tsx`: 챕터 1 전체 페이지
+  - `app/chapters/health/page.tsx`: 챕터 2 전체 페이지
+  - 각 페이지는 섹션별로 `Suspense`와 `ErrorBoundary`로 감싸서 독립적으로 로딩
+- **네비게이션 통합**: 
+  - 홈페이지에서 챕터 미리보기 섹션 제공
+  - Navbar에서 "레시피북" → 챕터 1, "건강관리" → 챕터 2로 이동
+
+#### 7.11. 건강 시각화 시스템
+
+- **시각화 컴포넌트** (`components/health/visualization/`):
+  - `HealthDashboard.tsx`: 건강 종합 대시보드 (모든 시각화 통합)
+  - `HealthMetricsCard.tsx`: 건강 지표 카드 (BMI, 체지방률, 근육량, 기초대사율, 건강 점수)
+  - `NutritionBalanceChart.tsx`: 영양 균형 도넛 차트 (탄수화물/단백질/지방 비율, 비타민/미네랄 레벨)
+  - `MealImpactPredictor.tsx`: 식단 효과 예측 (식사 전/후 비교, 목표 달성률, 영양소 개선량)
+  - `DiseaseRiskGauge.tsx`: 질병 위험도 게이지 (심혈관, 당뇨, 신장 질병 위험도)
+  - `HealthInsightsCard.tsx`: 건강 인사이트 카드 (우선순위별 인사이트, 실행 가능한 추천사항)
+- **API 엔드포인트**:
+  - `GET /api/health/metrics`: 현재 건강 상태 계산
+    - 건강 메트릭스 (BMI, 체지방률, 근육량, 기초대사율)
+    - 질병 위험도 평가 (심혈관, 당뇨, 신장)
+    - 전체 건강 점수 계산 (0-100)
+  - `GET /api/health/meal-impact`: 식단 효과 예측
+    - 식사 섭취 시뮬레이션
+    - 영양소별 개선량 계산
+    - 목표 달성률 계산
+- **타입 정의**: `types/health-visualization.ts`
+  - `HealthMetrics`, `MealImpactPrediction`, `HealthInsight`, `NutritionBalance`, `DiseaseRiskScores` 인터페이스
+  - 시각화 컴포넌트용 설정 및 데이터 포맷 표준화
+- **통합 위치**:
+  - 홈페이지: `components/home/health-visualization-preview.tsx` (컴팩트 버전)
+  - 챕터 1: 건강 맞춤 식단 섹션에 시각화 미리보기
+  - 챕터 2: 건강 관리 현황에 시각화 대시보드 통합
+  - 식단 상세 페이지: 식단 효과 예측 표시
 
 ---
 
@@ -1050,7 +1099,11 @@
 - **상세 구현 계획서**: 
   - [implementation-plan-family-diet.md](./implementation-plan-family-diet.md) — 가족 식단 세부 로드맵
   - [implementation-plan-homepage-ui-ux.md](./implementation-plan-homepage-ui-ux.md) — 홈페이지 UI/UX 개선 상세 계획
+  - [home-chapter-layout-design.md](./home-chapter-layout-design.md) — 홈페이지 챕터 구조 레이아웃 구상도
 - **UI/UX 분석 문서**: [ui-ux-analysis-baemin.md](./ui-ux-analysis-baemin.md) — 배달의민족 앱 UI/UX 분석 및 적용 방안
+- **건강 시각화 문서**:
+  - [health-visualization-implementation-summary.md](./health-visualization-implementation-summary.md) — 건강 시각화 기능 구현 완료 요약
+  - [health-visualization-verification-report.md](./health-visualization-verification-report.md) — 건강 시각화 검증 보고서
 - **개발 TODO 리스트**: [TODO.md](./TODO.md)
 
 ---

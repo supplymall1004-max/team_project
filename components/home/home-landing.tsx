@@ -27,32 +27,32 @@ export async function HomeLanding() {
     "hero-background-image",
   ]);
 
-  // 빠른 시작 카드 데이터 구성
+  // 빠른 시작 카드 데이터 구성 (새로운 카테고리 구조)
   const quickStartCards = [
     {
-      title: allContent["quick-start-recipe"]?.content.title || "📚 현대 레시피 아카이브",
-      description: allContent["quick-start-recipe"]?.content.description || "별점과 난이도로 정리된 최신 레시피를 확인해요.",
-      href: allContent["quick-start-recipe"]?.content.href || "/recipes",
+      title: allContent["quick-start-recipe"]?.content.title || "📚 레시피 아카이브",
+      description: allContent["quick-start-recipe"]?.content.description || "현대부터 전통까지, 모든 요리 지식을 한 곳에서",
+      href: allContent["quick-start-recipe"]?.content.href || "/archive/recipes",
     },
     {
-      title: allContent["quick-start-royal"]?.content.title || "👑 궁중 레시피 아카이브",
-      description: allContent["quick-start-royal"]?.content.description || "삼국시대부터 조선시대까지 전통 궁중 음식 레시피를 만나보세요.",
-      href: allContent["quick-start-royal"]?.content.href || "/royal-recipes",
-    },
-    {
-      title: allContent["quick-start-diet"]?.content.title || "🤖 건강 맞춤 식단",
-      description: allContent["quick-start-diet"]?.content.description || "건강 정보를 기반으로 개인 맞춤 식단을 추천받아요.",
+      title: allContent["quick-start-diet"]?.content.title || "🍽️ 식단 관리",
+      description: allContent["quick-start-diet"]?.content.description || "AI 기반 개인 맞춤 식단으로 건강한 식생활을 시작하세요",
       href: allContent["quick-start-diet"]?.content.href || "/diet",
     },
     {
-      title: allContent["quick-start-weekly"]?.content.title || "📅 주간 식단",
-      description: allContent["quick-start-weekly"]?.content.description || "7일간의 식단을 한눈에 확인하고 장보기 리스트를 관리하세요.",
-      href: allContent["quick-start-weekly"]?.content.href || "/diet/weekly",
+      title: "💚 건강 관리",
+      description: "가족 건강을 한눈에 확인하고 관리하세요",
+      href: "/health",
     },
     {
-      title: allContent["quick-start-storybook"]?.content.title || "📖 마카의 음식 동화",
-      description: allContent["quick-start-storybook"]?.content.description || "전통 음식의 탄생과 역사를 동화처럼 들려주는 이야기입니다.",
-      href: allContent["quick-start-storybook"]?.content.href || "/storybook",
+      title: allContent["quick-start-storybook"]?.content.title || "📖 스토리 & 학습",
+      description: allContent["quick-start-storybook"]?.content.description || "전통 음식의 탄생과 역사를 동화처럼 들려드립니다",
+      href: allContent["quick-start-storybook"]?.content.href || "/stories",
+    },
+    {
+      title: "🛠️ 유틸리티",
+      description: "편리한 기능들로 요리와 건강 관리를 더 쉽게",
+      href: "/search",
     },
   ];
 

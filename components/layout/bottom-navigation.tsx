@@ -20,10 +20,10 @@ import { cn } from "@/lib/utils";
 
 const menuItems = [
   { icon: Home, label: "홈", href: "/" },
-  { icon: BookOpen, label: "레시피", href: "/recipes" },
-  { icon: Heart, label: "찜", href: "/diet/favorites" },
+  { icon: BookOpen, label: "레시피", href: "/archive/recipes" },
   { icon: Calendar, label: "식단", href: "/diet" },
-  { icon: User, label: "마이", href: "/profile" },
+  { icon: Heart, label: "건강", href: "/health" },
+  { icon: User, label: "마이", href: "/settings" },
 ];
 
 export function BottomNavigation() {

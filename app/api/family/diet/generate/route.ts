@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClerkSupabaseClient } from "@/lib/supabase/server";
+import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 import { generateFamilyDiet } from "@/lib/diet/family-diet-generator";
 import { trackRecipeUsage } from "@/lib/diet/recipe-history";
 import type { MealComposition, RecipeDetailForDiet } from "@/types/recipe";
@@ -37,22 +38,23 @@ export async function POST(request: NextRequest) {
     console.log("대상 날짜:", targetDate);
     console.log("통합 식단 포함:", includeUnified);
 
-    const supabase = await createClerkSupabaseClient();
-
-    // 사용자의 Supabase user_id 조회
-    const { data: userData } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
+    // 사용자 정보 확인 및 자동 동기화
+    console.log("🔍 사용자 정보 확인 중...");
+    const userData = await ensureSupabaseUser();
 
     if (!userData) {
-      console.error("❌ 사용자를 찾을 수 없음");
+      console.error("❌ 사용자 정보 없음 (동기화 실패)");
       console.groupEnd();
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "User not found. Please try again after user synchronization." },
+        { status: 404 }
+      );
     }
 
+    console.log("✅ 사용자 정보 확인 완료:", userData.id);
     const supabaseUserId = userData.id;
+
+    const supabase = await createClerkSupabaseClient();
 
     // 건강 프로필 조회
     const { data: profile } = await supabase

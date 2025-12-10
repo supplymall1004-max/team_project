@@ -15,6 +15,7 @@
 import { Suspense } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { createClerkSupabaseClient } from "@/lib/supabase/server";
+import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 import { FamilyDietView } from "@/components/family/family-diet-view";
 import type { FamilyMember } from "@/types/family";
 
@@ -48,17 +49,12 @@ export default async function FamilyDietPage({ params }: PageProps) {
       );
     }
 
-    const supabase = await createClerkSupabaseClient();
-
-    // 사용자의 Supabase user_id 조회
-    const { data: userData } = await supabase
-      .from("users")
-      .select("id, name")
-      .eq("clerk_id", userId)
-      .single();
+    // 사용자 정보 확인 및 자동 동기화
+    console.log("🔍 사용자 정보 확인 중...");
+    const userData = await ensureSupabaseUser();
 
     if (!userData) {
-      console.error("❌ 사용자 정보 없음");
+      console.error("❌ 사용자 정보 없음 (동기화 실패)");
       console.groupEnd();
       return (
         <div className="container mx-auto px-4 py-8">
@@ -66,10 +62,23 @@ export default async function FamilyDietPage({ params }: PageProps) {
             <h1 className="text-2xl font-bold text-red-600 mb-4">
               사용자 정보를 찾을 수 없습니다
             </h1>
+            <p className="text-gray-600 mb-4">
+              사용자 동기화에 실패했습니다. 잠시 후 다시 시도해주세요.
+            </p>
+            <a
+              href={`/health/family/diet/${date}`}
+              className="inline-block px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+            >
+              새로고침
+            </a>
           </div>
         </div>
       );
     }
+
+    console.log("✅ 사용자 정보 확인 완료:", userData.id);
+
+    const supabase = await createClerkSupabaseClient();
 
     // 가족 구성원 조회
     const { data: familyMembers } = await supabase

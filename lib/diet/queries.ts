@@ -113,7 +113,7 @@ export async function getUserSubscription(
  * 레시피 목록 조회 (영양소 정보 포함)
  * DB 레시피와 식약처 API 레시피를 병합하여 반환합니다.
  */
-export async function getRecipesWithNutrition(): Promise<
+export async function getRecipesWithNutrition(limitPerCategory: number = 100): Promise<
   (RecipeListItem & {
     calories: number | null;
     carbohydrates: number | null;
@@ -125,62 +125,75 @@ export async function getRecipesWithNutrition(): Promise<
     gi?: number | null;
   })[]
 > {
-  console.group("[DietQueries] 레시피 목록 조회 (병합)");
-  
+  console.group("[DietQueries] 레시피 목록 조회 (카테고리별 제한)");
+  console.log(`카테고리당 최대 ${limitPerCategory}개 레시피 로드`);
+
   try {
     // 레시피는 공개 데이터이므로 서비스 롤 클라이언트 사용
     const supabase = getServiceRoleClient();
 
-    const { data, error } = await supabase
-      .from("recipes")
-      .select(
-        `
-        id,
-        slug,
-        title,
-        thumbnail_url,
-        difficulty,
-        cooking_time_minutes,
-        calories,
-        carbohydrates,
-        protein,
-        fat,
-        sodium,
-        created_at,
-        foodsafety_rcp_seq,
-        rating_stats:recipe_rating_stats(rating_count, average_rating)
-        `
-      )
-      .order("created_at", { ascending: false });
+    // 병렬로 각 카테고리의 레시피 조회 (성능 최적화)
+    const categories = ['밥', '반찬', '국', '찌개', '국&찌개', '간식', '과일'];
+    const categoryPromises = categories.map(async (category) => {
+      const { data, error } = await supabase
+        .from("recipes")
+        .select(`
+          id,
+          slug,
+          title,
+          thumbnail_url,
+          difficulty,
+          cooking_time_minutes,
+          calories,
+          carbohydrates,
+          protein,
+          fat,
+          sodium,
+          created_at,
+          foodsafety_rcp_seq,
+          rating_stats:recipe_rating_stats(rating_count, average_rating)
+        `)
+        .ilike('title', `%${category}%`) // 카테고리별 필터링
+        .limit(limitPerCategory)
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("데이터베이스 조회 실패:", error);
+      if (error) {
+        console.warn(`${category} 카테고리 조회 실패:`, error);
+        return [];
+      }
+
+      return (data as any)?.map((item: any) => ({
+        id: item.id,
+        slug: item.slug,
+        title: item.title,
+        thumbnail_url: item.thumbnail_url,
+        difficulty: item.difficulty,
+        cooking_time_minutes: item.cooking_time_minutes,
+        rating_count: (item.rating_stats as any)?.[0]?.rating_count || 0,
+        average_rating: parseFloat((item.rating_stats as any)?.[0]?.average_rating || "0") || 0,
+        user: { name: "익명" },
+        calories: item.calories,
+        carbohydrates: item.carbohydrates,
+        protein: item.protein,
+        fat: item.fat,
+        sodium: item.sodium,
+        created_at: item.created_at,
+        foodsafety_rcp_seq: item.foodsafety_rcp_seq,
+      })) || [];
+    });
+
+    // 병렬 실행하여 모든 카테고리 레시피 가져오기
+    const categoryResults = await Promise.all(categoryPromises);
+    const dbRecipes = categoryResults.flat();
+
+    console.log(`데이터베이스에서 ${dbRecipes.length}개 레시피 조회됨 (${categories.length}개 카테고리)`);
+
+    // 식약처 API는 필요한 경우에만 호출 (현재 DB 레시피가 충분하면 생략)
+    if (dbRecipes.length >= limitPerCategory * 2) { // 최소 요구량 이상이면 DB만 사용
+      console.log("✅ DB 레시피가 충분하여 식약처 API 생략");
       console.groupEnd();
-      // 데이터베이스 오류 시 식약처 API만 사용
-      return await getMfdsRecipesOnly();
+      return dbRecipes;
     }
-
-    const dbRecipes = (data as any)?.map((item: any) => ({
-      id: item.id,
-      slug: item.slug,
-      title: item.title,
-      thumbnail_url: item.thumbnail_url,
-      difficulty: item.difficulty,
-      cooking_time_minutes: item.cooking_time_minutes,
-      rating_count: (item.rating_stats as any)?.[0]?.rating_count || 0,
-      average_rating:
-        parseFloat((item.rating_stats as any)?.[0]?.average_rating || "0") || 0,
-      user: { name: "익명" }, // 필요시 조인
-      calories: item.calories,
-      carbohydrates: item.carbohydrates,
-      protein: item.protein,
-      fat: item.fat,
-      sodium: item.sodium,
-      created_at: item.created_at,
-      foodsafety_rcp_seq: item.foodsafety_rcp_seq,
-    })) || [];
-
-    console.log(`데이터베이스에서 ${dbRecipes.length}개 레시피 조회됨`);
 
     // 식약처 API 레시피 가져오기 (병합)
     try {
@@ -188,7 +201,7 @@ export async function getRecipesWithNutrition(): Promise<
       const { mergeRecipes } = await import("./recipe-merger");
 
       console.log("식약처 API 레시피 조회 중...");
-      const mfdsRecipes = await fetchMfdsRecipesQuick(500); // 최대 500개만 가져오기 (성능 고려)
+      const mfdsRecipes = await fetchMfdsRecipesQuick(limitPerCategory * categories.length);
       console.log(`식약처 API에서 ${mfdsRecipes.length}개 레시피 조회됨`);
 
       // 병합
@@ -199,7 +212,6 @@ export async function getRecipesWithNutrition(): Promise<
     } catch (mfdsError) {
       console.warn("식약처 API 조회 실패, DB 레시피만 사용:", mfdsError);
       console.groupEnd();
-      // 식약처 API 실패 시 DB 레시피만 반환
       return dbRecipes;
     }
   } catch (error) {
@@ -475,9 +487,9 @@ export async function generateAndSaveDietPlan(
       disliked_ingredients: healthProfile.disliked_ingredients?.length || 0,
     });
 
-    // 레시피 목록 조회 (데이터베이스 + 폴백)
+    // 레시피 목록 조회 (최적화: 카테고리별 제한)
     console.log("🍽️ 레시피 목록 조회 중...");
-    const recipes = await getRecipesWithNutrition();
+    const recipes = await getRecipesWithNutrition(50); // 카테고리당 50개로 제한
     console.log("🍽️ 데이터베이스 레시피 개수:", recipes.length);
 
     // 데이터베이스 레시피가 없으면 폴백 레시피 사용

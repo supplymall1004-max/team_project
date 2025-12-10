@@ -1,8 +1,9 @@
 # 맛의 아카이브 (Flavor Archive) 개발 현황 & TODO
 
-> **최종 업데이트: 2025-12-01**  
+> **최종 업데이트: 2025-01-27**  
 > PRD/Design 문서와 실제 구현을 교차 검토하여 **구현 완료 기능**과 **남은 우선순위 작업**을 정리했습니다.  
-> Supabase MCP를 통해 데이터베이스 스키마를 직접 확인하여 실제 구현 상태를 반영했습니다.
+> Supabase MCP를 통해 데이터베이스 스키마를 직접 확인하여 실제 구현 상태를 반영했습니다.  
+> 프로젝트 파일 정리 작업 완료 (레거시 파일 삭제, 중복 파일 통합).
 
 ---
 
@@ -232,6 +233,50 @@
 - [x] 키보드 네비게이션 지원 (shadcn/ui 기본)
 - [x] 색상 대비 비율 WCAG AA 기준 준수
 
+### 11. 🏠 홈페이지 챕터 구조
+- [x] 챕터 1: 레시피 & 식단 아카이브 페이지 (`app/chapters/recipes-diet/page.tsx`)
+  - [x] 현대 레시피 섹션 통합
+  - [x] 궁중 레시피 섹션 통합
+  - [x] 건강 맞춤 식단 섹션 통합
+  - [x] 주간 식단 섹션 통합
+  - [x] 마카의 음식 동화 섹션 통합
+  - [x] 건강 시각화 대시보드 통합
+- [x] 챕터 2: 건강 관리 현황 페이지 (`app/chapters/health/page.tsx`)
+  - [x] 건강 시각화 대시보드 통합
+  - [x] 가족 건강 대시보드 통합
+  - [x] 건강 트렌드 섹션
+  - [x] 건강 알림 및 권장사항 섹션
+- [x] 챕터 미리보기 컴포넌트 (`components/home/chapter-preview.tsx`)
+  - [x] 챕터 1 미리보기 카드
+  - [x] 챕터 2 미리보기 카드
+  - [x] 전체보기 링크 통합
+
+### 12. 💚 건강 시각화 시스템
+- [x] 건강 시각화 타입 정의 (`types/health-visualization.ts`)
+- [x] 건강 메트릭스 카드 (`components/health/visualization/HealthMetricsCard.tsx`)
+  - [x] BMI, 체지방률, 근육량, 기초대사율 표시
+  - [x] 건강 점수 및 상태 등급 표시
+- [x] 영양 균형 차트 (`components/health/visualization/NutritionBalanceChart.tsx`)
+  - [x] 탄수화물/단백질/지방 비율 도넛 차트
+  - [x] 비타민 및 미네랄 레벨 바 차트
+- [x] 식단 효과 예측 (`components/health/visualization/MealImpactPredictor.tsx`)
+  - [x] 식사 전/후 건강 상태 비교
+  - [x] 목표 달성률 링 차트
+  - [x] 영양소별 개선량 표시
+- [x] 질병 위험도 게이지 (`components/health/visualization/DiseaseRiskGauge.tsx`)
+  - [x] 심혈관, 당뇨, 신장 질병 위험도 표시
+- [x] 건강 인사이트 카드 (`components/health/visualization/HealthInsightsCard.tsx`)
+  - [x] 우선순위별 인사이트 분류
+  - [x] 실행 가능한 개선 추천사항
+- [x] 건강 종합 대시보드 (`components/health/visualization/HealthDashboard.tsx`)
+  - [x] 모든 시각화 컴포넌트 통합
+- [x] 건강 시각화 API
+  - [x] `/api/health/metrics` - 현재 건강 상태 계산
+  - [x] `/api/health/meal-impact` - 식단 효과 예측
+- [x] 건강 시각화 미리보기 (`components/home/health-visualization-preview.tsx`)
+  - [x] 홈페이지용 컴팩트 버전
+  - [x] 챕터 페이지용 전체 버전
+
 ---
 
 ## ⏳ 진행 중 · 후속 작업
@@ -251,6 +296,11 @@
   - [x] 선물 상자 플레이리스트 (`components/storybook/gift-box.tsx`)
   - [x] HeroSection 빠른 시작 카드에 추가
   - [x] 바로가기 메뉴에 추가
+- [x] 홈페이지 챕터 구조 레이아웃 설계 (`docs/home-chapter-layout-design.md`)
+  - [x] 챕터 1: 레시피 & 식단 아카이브 페이지 구현 (`app/chapters/recipes-diet/page.tsx`)
+  - [x] 챕터 2: 건강 관리 현황 페이지 구현 (`app/chapters/health/page.tsx`)
+  - [x] 챕터 미리보기 컴포넌트 구현 (`components/home/chapter-preview.tsx`)
+  - [x] 건강 시각화 미리보기 컴포넌트 구현 (`components/home/health-visualization-preview.tsx`)
 
 #### Phase 1: 핵심 레이아웃 (1주)
 - [x] 고정 헤더 컴포넌트 (`components/home/fixed-header.tsx`)
@@ -346,6 +396,24 @@
   - [x] API 호출 최적화: 병렬 요청, 캐싱
   - [x] 스크롤 성능 최적화 (will-change, contain 속성)
   - [ ] Lighthouse 성능 점수: 90점 이상 목표 (실제 테스트 권장)
+
+#### Phase 5: 챕터 구조 및 건강 시각화 통합 (완료)
+- [x] 챕터 구조 레이아웃 설계 문서 작성 (`docs/home-chapter-layout-design.md`)
+- [x] 챕터 1 페이지 구현 (`app/chapters/recipes-diet/page.tsx`)
+  - [x] 현대 레시피, 궁중 레시피, 건강 맞춤 식단, 주간 식단, 마카의 음식 동화 통합
+  - [x] 건강 시각화 대시보드 통합
+- [x] 챕터 2 페이지 구현 (`app/chapters/health/page.tsx`)
+  - [x] 가족 건강 대시보드, 건강 트렌드, 건강 알림 통합
+  - [x] 건강 시각화 대시보드 통합
+- [x] 챕터 미리보기 컴포넌트 (`components/home/chapter-preview.tsx`)
+  - [x] 챕터 1 미리보기 카드
+  - [x] 챕터 2 미리보기 카드
+  - [x] 전체보기 링크 통합
+- [x] 건강 시각화 시스템 구현
+  - [x] 건강 시각화 타입 정의 (`types/health-visualization.ts`)
+  - [x] 6개 시각화 컴포넌트 구현 (`components/health/visualization/*`)
+  - [x] 건강 시각화 API 구현 (`/api/health/metrics`, `/api/health/meal-impact`)
+  - [x] 건강 시각화 미리보기 컴포넌트 (`components/home/health-visualization-preview.tsx`)
 
 ### B. 이미지 자산 후속 조치
 - [ ] `docs/foodjpg.md` 미등록 음식 정리 및 SVG 폴백 감소
@@ -754,8 +822,11 @@
 
 ---
 
-**마지막 업데이트**: 2025-12-02  
+**마지막 업데이트**: 2025-01-27  
 **업데이트 내용**: 
+- 홈페이지 챕터 구조 기능 추가 (챕터 1, 챕터 2 페이지 및 미리보기 컴포넌트)
+- 건강 시각화 시스템 완료 상태 반영 (6개 시각화 컴포넌트, 2개 API 엔드포인트)
+- 프로젝트 파일 정리 작업 완료 (레거시 파일 삭제, 중복 파일 통합)
 - 관리자 콘솔 추가 기능 반영 (프로모션 코드 관리, 정산 내역 관리, 밀키트 관리, 레시피 관리)
 - 실제 구현된 컴포넌트 및 페이지 확인 및 문서화
 - PRD.md에 관리자 페이지 기능 추가 (D-3 ~ D-6)

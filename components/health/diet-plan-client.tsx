@@ -53,67 +53,58 @@ export function DietPlanClient() {
   const getToday = () => new Date().toISOString().split("T")[0]; // YYYY-MM-DD
   const [today, setToday] = useState<string>(getToday());
 
-  // 가족 구성원 데이터 로드
-  const loadFamilyMembers = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      console.log("[DietPlanClient] 가족 구성원 데이터 로드");
-      const token = await getToken();
-      const response = await fetch("/api/family/members", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("[DietPlanClient] 가족 구성원 API 응답:", data);
-        setFamilyMembers(data.members || []);
-        console.log(`[DietPlanClient] ${data.members?.length || 0}명의 가족 구성원 로드됨`);
-        console.log("[DietPlanClient] 가족 구성원 목록:", data.members);
-      } else {
-        console.error("[DietPlanClient] 가족 구성원 로드 실패:", response.status, response.statusText);
-        const errorText = await response.text();
-        console.error("[DietPlanClient] 에러 응답:", errorText);
-      }
-    } catch (err) {
-      console.error("[DietPlanClient] 가족 구성원 로드 에러:", err);
-    }
-  }, [user, getToken]);
-
-  // 가족 식단 데이터 로드
-  const loadFamilyDietData = useCallback(async (targetDate?: string) => {
+  // 가족 구성원 및 식단 데이터 병렬 로드
+  const loadFamilyData = useCallback(async (targetDate?: string) => {
     if (!user) return;
 
     const dateToUse = targetDate || today;
-    try {
-      console.log("[DietPlanClient] 가족 식단 데이터 로드");
-      const response = await fetch(`/api/family/diet/${dateToUse}`, {
-        credentials: 'include', // 쿠키를 포함하여 인증 정보 전달
-      });
+    console.log("[DietPlanClient] 가족 데이터 병렬 로드 시작");
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("[DietPlanClient] 가족 식단 API 응답:", data);
-        setFamilyDietData(data);
-        console.log("[DietPlanClient] 가족 식단 데이터 로드됨:", data);
+    try {
+      const token = await getToken();
+      const [membersResponse, dietResponse] = await Promise.all([
+        fetch("/api/family/members", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }).catch(() => ({ ok: false, json: () => Promise.resolve({ members: [] }) })),
+        fetch(`/api/family/diet/${dateToUse}`, {
+          credentials: 'include',
+        }).catch(() => ({ ok: false, status: 404, json: () => Promise.resolve(null) }))
+      ]);
+
+      // 가족 구성원 처리
+      if (membersResponse.ok) {
+        const membersData = await membersResponse.json();
+        console.log("[DietPlanClient] 가족 구성원 API 응답:", membersData);
+        setFamilyMembers(membersData.members || []);
+        console.log(`[DietPlanClient] ${membersData.members?.length || 0}명의 가족 구성원 로드됨`);
       } else {
-        // 404는 식단이 없는 것으로 정상적인 상황일 수 있음
-        if (response.status === 404) {
-          console.log("[DietPlanClient] 가족 식단 데이터 없음 (404)");
-          setFamilyDietData(null);
-        } else {
-          console.error("[DietPlanClient] 가족 식단 데이터 로드 실패:", response.status, response.statusText);
-          const errorText = await response.text();
-          console.error("[DietPlanClient] 가족 식단 에러 응답:", errorText);
-        }
+        console.warn("[DietPlanClient] 가족 구성원 로드 실패, 빈 배열로 설정");
+        setFamilyMembers([]);
       }
+
+      // 가족 식단 처리
+      if (dietResponse.ok) {
+        const dietData = await dietResponse.json();
+        console.log("[DietPlanClient] 가족 식단 API 응답:", dietData);
+        setFamilyDietData(dietData);
+        console.log("[DietPlanClient] 가족 식단 데이터 로드됨");
+      } else if (dietResponse.status === 404) {
+        console.log("[DietPlanClient] 가족 식단 데이터 없음 (404)");
+        setFamilyDietData(null);
+      } else {
+        console.warn("[DietPlanClient] 가족 식단 데이터 로드 실패, null로 설정");
+        setFamilyDietData(null);
+      }
+
+      console.log("[DietPlanClient] 가족 데이터 병렬 로드 완료");
     } catch (err) {
-      console.error("[DietPlanClient] 가족 식단 데이터 로드 에러:", err);
+      console.error("[DietPlanClient] 가족 데이터 로드 에러:", err);
+      setFamilyMembers([]);
       setFamilyDietData(null);
     }
-  }, [user, today]);
+  }, [user, today, getToken]);
 
   const loadDietPlan = useCallback(async (options: { forceRefresh?: boolean; targetDate?: string } = {}) => {
     if (!user) {
@@ -152,9 +143,13 @@ export function DietPlanClient() {
       console.log("userId", user.id);
       console.log("date", dateToUse);
 
-      // 건강 정보 확인
+      // 병렬로 건강 정보 확인 및 프로필 로드
       console.log("🔍 건강 정보 확인 중...");
-      const healthCheckRes = await fetch(`/api/health/check?userId=${user.id}`);
+      const [healthCheckRes, profileResponse] = await Promise.all([
+        fetch(`/api/health/check?userId=${user.id}`),
+        fetch("/api/health/profile").catch(() => ({ ok: false, json: () => Promise.resolve(null) }))
+      ]);
+
       console.log("📡 건강 정보 API 응답 상태:", healthCheckRes.status);
 
       let healthCheck;
@@ -189,20 +184,17 @@ export function DietPlanClient() {
       console.log("✅ 건강 정보 확인됨");
       setHasHealthProfile(true);
 
-      // 알레르기 정보 확인을 위해 건강 프로필 상세 정보 로드
-      try {
-        console.log("🔍 건강 프로필 상세 정보 로드 중...");
-        const profileResponse = await fetch("/api/health/profile");
-        if (profileResponse.ok) {
+      // 프로필 정보 로드 결과 처리
+      if (profileResponse.ok) {
+        try {
           const profileData = await profileResponse.json();
-          if (profileData.profile) {
+          if (profileData?.profile) {
             console.log("✅ 건강 프로필 정보 로드 성공");
             setUserHealthProfile(profileData.profile);
           }
+        } catch (profileError) {
+          console.warn("⚠️ 건강 프로필 로드 실패:", profileError);
         }
-      } catch (profileError) {
-        console.warn("⚠️ 건강 프로필 로드 실패:", profileError);
-        // 프로필 로드 실패해도 식단 로드는 계속 진행
       }
 
       // 식단 조회 또는 생성
@@ -275,7 +267,7 @@ export function DietPlanClient() {
         // 새 식단 로드 (캐시 우선 확인)
         if (user && isLoaded) {
           loadDietPlan({ targetDate: currentDate }); // forceRefresh 제거하여 캐시 우선 사용
-          loadFamilyDietData(currentDate);
+          loadFamilyData(currentDate);
         }
       }
     };
@@ -289,21 +281,19 @@ export function DietPlanClient() {
     return () => {
       clearInterval(intervalId);
     };
-  }, [user, isLoaded, today, loadDietPlan, loadFamilyDietData]);
+  }, [user, isLoaded, today, loadDietPlan, loadFamilyData]);
 
   // 사용자 로드 및 날짜 변경 시 식단 로드
   useEffect(() => {
     if (isLoaded) {
       loadDietPlan();
-      loadFamilyMembers();
-      loadFamilyDietData();
+      loadFamilyData();
     }
-  }, [user, isLoaded, today, loadDietPlan, loadFamilyMembers, loadFamilyDietData]);
+  }, [user, isLoaded, today, loadDietPlan, loadFamilyData]);
 
   const handleRefresh = () => {
     loadDietPlan({ forceRefresh: true });
-    loadFamilyMembers();
-    loadFamilyDietData();
+    loadFamilyData();
   };
 
   const handleGenerateDiet = async () => {
@@ -691,7 +681,7 @@ export function DietPlanClient() {
             onMemberIncludeChange={(memberId, include) => {
               // 가족 구성원 포함 상태 변경 시 데이터 새로고침
               console.log(`[DietPlanClient] 가족 구성원 ${memberId} 포함 상태 변경: ${include}`);
-              loadFamilyDietData();
+              loadFamilyData();
             }}
           />
         </>

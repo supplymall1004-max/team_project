@@ -52,115 +52,55 @@ export function DietSectionClient() {
   }, []);
 
   const handleFamilyTabChange = (tabId: string) => {
-    console.group("[FamilyDietTabs]");
-    console.log("tab-change", { tabId });
-    console.groupEnd();
     setActiveFamilyTab(tabId);
   };
 
   const loadFamilySummary = useCallback(
     async (dateString: string) => {
-      console.group("[FamilyDietTabs]");
-      console.log("summary-fetch-date", dateString);
+      console.log("[FamilySummary] 조회 시작:", dateString);
       setSummaryDate(dateString);
       setFamilySummaryLoading(true);
 
-      const syncUserIfNeeded = async () => {
-        try {
-          console.log("summary-sync-request");
-        const response = await fetch("/api/sync-user", { method: "POST" }).catch((fetchError) => {
-          // 네트워크 에러 처리
-          console.error("❌ 네트워크 에러:", fetchError);
-          throw new Error(`네트워크 연결 실패: ${fetchError.message}`);
-        });
+      try {
+        // 간소화된 가족 요약 조회 - 재시도 로직 제거
+        const response = await fetch(`/api/family/diet/${dateString}?scope=previous`);
 
         if (!response.ok) {
-          const errorText = await response.text().catch(() => "응답 본문을 읽을 수 없습니다");
-          console.error("summary-sync-failed", response.status, errorText);
-        } else {
-          console.log("summary-sync-success");
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류";
-        console.error("summary-sync-error:", errorMessage);
-        console.error("❌ 전체 에러 객체:", error);
-      }
-      };
-
-      try {
-        let allowSyncRetry = true;
-
-        while (true) {
-          const response = await fetch(`/api/family/diet/${dateString}?scope=previous`).catch((fetchError) => {
-          // 네트워크 에러 처리
-          console.error("❌ 네트워크 에러:", fetchError);
-          throw new Error(`네트워크 연결 실패: ${fetchError.message}`);
-        });
-
           if (response.status === 404) {
-            console.warn(
-              allowSyncRetry ? "summary-fetch-404-retry" : "summary-fetch-404-final",
-              dateString,
-            );
-            if (allowSyncRetry) {
-              allowSyncRetry = false;
-              await syncUserIfNeeded();
-              continue;
-            }
+            console.log("[FamilySummary] 데이터 없음 (정상):", dateString);
             resetFamilySummaryState();
-            break;
+            return;
           }
+          throw new Error(`HTTP ${response.status}`);
+        }
 
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-
-          const payload = await response.json().catch((jsonError) => {
-            console.error("❌ JSON 파싱 실패:", jsonError);
-            throw new Error("응답 파싱 실패");
+        const payload = await response.json();
+        if (payload.summary) {
+          const summary: FamilyDietSummary = payload.summary;
+          const nextIncludedIds = deriveIncludedMemberIds({
+            memberTabs: summary.memberTabs,
+            includedMemberIds: summary.includedMemberIds,
           });
-          console.log("[DietSectionClient] API 응답 payload:", payload);
-          if (payload.summary) {
-            const summary: FamilyDietSummary = payload.summary;
-            console.log("[DietSectionClient] summary.memberTabs:", summary.memberTabs);
-            console.log("[DietSectionClient] summary.memberTabs 개수:", summary.memberTabs?.length ?? 0);
-            const nextIncludedIds = deriveIncludedMemberIds({
-              memberTabs: summary.memberTabs,
-              includedMemberIds: summary.includedMemberIds,
-            });
-            console.log("[DietSectionClient] 계산된 nextIncludedIds:", nextIncludedIds);
-            setFamilySummary(summary);
-            setIncludedMemberIds(nextIncludedIds);
-            setActiveFamilyTab("all");
-          } else {
-            console.warn("[DietSectionClient] summary가 없습니다. payload:", payload);
-            resetFamilySummaryState();
-          }
-          break;
+
+          setFamilySummary(summary);
+          setIncludedMemberIds(nextIncludedIds);
+          setActiveFamilyTab("all");
+        } else {
+          resetFamilySummaryState();
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류";
-        console.error("[FamilyDietTabs] summary-fetch-error:", errorMessage);
-        console.error("❌ 전체 에러 객체:", error);
+        console.error("[FamilySummary] 조회 실패:", error);
         resetFamilySummaryState();
       } finally {
         setFamilySummaryLoading(false);
-        console.groupEnd();
       }
     },
     [resetFamilySummaryState],
   );
 
   const handleFamilyToggle = async (memberId: string, include: boolean) => {
-    console.group("[FamilyDietTabs]");
-    console.log("toggle-request", { memberId, include });
-    console.groupEnd();
-
     if (memberId === "self") {
-      console.group("[FamilyDietTabs]");
-      console.log("toggle-blocked", { reason: "self member is always included" });
-      console.groupEnd();
-      return;
+      return; // self member is always included
     }
 
     setTogglingMemberIds((prev) => {
@@ -209,9 +149,7 @@ export function DietSectionClient() {
         };
       });
 
-      console.group("[FamilyDietTabs]");
-      console.log("toggle-success", { memberId, include: serverInclude });
-      console.groupEnd();
+      // Toggle completed successfully
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류";
       console.error("[FamilyDietTabs] toggle-error:", errorMessage);
@@ -246,35 +184,25 @@ export function DietSectionClient() {
     checkPremium();
   }, [user, isLoaded]);
 
+  // 건강 정보와 식단 데이터를 순차적으로 로드 (병렬 → 순차 변경)
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !user) {
+      setIsLoading(false);
+      return;
+    }
 
-    const loadPreview = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-
+    const loadDataSequentially = async () => {
       try {
-        // 건강 정보 확인
-        const healthCheckRes = await fetch(`/api/health/check?userId=${user.id}`).catch((fetchError) => {
-          // 네트워크 에러 처리
-          console.error("❌ 네트워크 에러:", fetchError);
-          throw new Error(`네트워크 연결 실패: ${fetchError.message}`);
-        });
-
+        // 1. 건강 정보 확인 (가장 먼저)
+        console.log("[DietSection] 건강 정보 확인 시작");
+        const healthCheckRes = await fetch(`/api/health/check?userId=${user.id}`);
         if (!healthCheckRes.ok) {
-          const errorText = await healthCheckRes.text().catch(() => "응답 본문을 읽을 수 없습니다");
-          console.error("❌ 건강 정보 확인 실패:", healthCheckRes.status, errorText);
+          setHasHealthProfile(false);
           setIsLoading(false);
           return;
         }
 
-        const healthCheck = await healthCheckRes.json().catch((jsonError) => {
-          console.error("❌ JSON 파싱 실패:", jsonError);
-          return { hasProfile: false };
-        });
-
+        const healthCheck = await healthCheckRes.json();
         if (!healthCheck.hasProfile) {
           setHasHealthProfile(false);
           setIsLoading(false);
@@ -283,56 +211,36 @@ export function DietSectionClient() {
 
         setHasHealthProfile(true);
 
-        // 오늘의 식단 미리보기 (아침/점심/저녁만)
-        // 크론 작업이 오후 6시에 오늘 날짜의 식단을 생성하므로 오늘 날짜 조회
+        // 2. 오늘 식단 조회 (건강 정보 확인 후)
         const today = new Date();
         const todayStr = today.toISOString().split("T")[0];
-        console.log("[DietSection] 오늘 식단 조회:", todayStr);
         setSummaryDate(todayStr);
 
-        const res = await fetch(`/api/diet/plan?date=${todayStr}`).catch((fetchError) => {
-          // 네트워크 에러 처리
-          console.error("❌ 네트워크 에러:", fetchError);
-          throw new Error(`네트워크 연결 실패: ${fetchError.message}`);
-        });
+        console.log("[DietSection] 식단 조회 시작:", todayStr);
+        const dietRes = await fetch(`/api/diet/plan?date=${todayStr}`);
 
-        // 404는 식단이 없는 정상적인 상황이므로 에러로 처리하지 않음
-        if (!res.ok) {
-          if (res.status === 404) {
-            console.log("[DietSection] 오늘 식단 없음 (정상 상황 - 아직 생성되지 않음)");
-            setIsLoading(false);
-            return;
+        if (dietRes.ok) {
+          const dietData = await dietRes.json();
+          if (dietData.dietPlan) {
+            setDietPlan(dietData.dietPlan);
           }
-          // 404가 아닌 다른 에러만 로깅
-          const errorText = await res.text().catch(() => "응답 본문을 읽을 수 없습니다");
-          console.error("❌ 식단 조회 실패:", res.status, errorText);
-          setIsLoading(false);
-          return;
         }
+        // 404는 정상 상황이므로 무시
 
-        const data = await res.json().catch((jsonError) => {
-          console.error("❌ JSON 파싱 실패:", jsonError);
-          return { dietPlan: null };
-        });
-
-        console.log("[DietSection] 전날 식단 조회 결과:", data);
-
-        if (res.ok && data.dietPlan) {
-          setDietPlan(data.dietPlan);
-        }
-
+        // 3. 가족 요약 데이터 (식단 조회 후)
+        console.log("[DietSection] 가족 요약 조회 시작");
         await loadFamilySummary(todayStr);
+
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "알 수 없는 오류";
-        console.error("❌ preview load error:", errorMessage);
-        console.error("❌ 전체 에러 객체:", err);
+        console.error("❌ 데이터 로드 오류:", err);
+        setError(err instanceof Error ? err.message : "데이터 로드 실패");
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadPreview();
-  }, [user, isLoaded, loadFamilySummary]);
+    loadDataSequentially();
+  }, [user, isLoaded]); // loadFamilySummary 의존성 제거
 
   const scaledSummaryTotals = useMemo(() => {
     // 우선 통합 식단 영양소 사용
@@ -355,8 +263,17 @@ export function DietSectionClient() {
 
   if (!isLoaded || isLoading) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        로딩 중...
+      <div className="space-y-6">
+        {/* 로딩 스켈레톤 */}
+        <div className="rounded-xl sm:rounded-2xl border border-border/60 bg-white p-6 animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -483,13 +400,7 @@ export function DietSectionClient() {
           </Button>
         </div>
 
-        {familySummary && (() => {
-          console.group("[DietSectionClient] 가족 구성원 데이터 확인");
-          console.log("전체 memberTabs:", familySummary.memberTabs);
-          console.log("memberTabs 개수:", familySummary.memberTabs?.length ?? 0);
-          console.log("includedMemberIds:", includedMemberIds);
-          console.groupEnd();
-          return (
+        {familySummary && (
             <PremiumGate
               isPremium={isPremium}
               variant="card"
@@ -508,8 +419,7 @@ export function DietSectionClient() {
                 togglingMemberIds={Array.from(togglingMemberIds)}
               />
             </PremiumGate>
-          );
-        })()}
+          )}
       </div>
 
       {/* 식단 카드 미리보기 (아침/점심/저녁/간식) */}
