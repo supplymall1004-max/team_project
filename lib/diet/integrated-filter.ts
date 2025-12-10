@@ -42,7 +42,13 @@ export interface IntegratedFilterResult {
 }
 
 /**
- * 질병별 영양소 제한 기준
+ * 질병별 영양소 제한 기준 (개선됨)
+ * 
+ * 출처: 
+ * - 당뇨병: 대한당뇨병학회, ADA (American Diabetes Association) 가이드라인
+ * - 신장질환: KDOQI (Kidney Disease Outcomes Quality Initiative) 가이드라인
+ * - 심혈관질환: AHA (American Heart Association) 가이드라인
+ * - 통풍: ACR (American College of Rheumatology) 가이드라인
  */
 const NUTRITION_LIMITS: Record<string, {
   potassium?: number; // 칼륨 (mg)
@@ -52,30 +58,46 @@ const NUTRITION_LIMITS: Record<string, {
   carbs?: number; // 탄수화물 (g)
   protein?: number; // 단백질 (g)
   fat?: number; // 지방 (g)
+  sugar?: number; // 당(sugar) (g) - 새로 추가
   gi?: number; // GI 지수
 }> = {
   diabetes: {
-    carbs: 50, // 식사당 탄수화물 50g 이하
-    gi: 70, // GI 지수 70 이하
+    carbs: 60, // 식사당 탄수화물 60g 이하 (개선: 문서 기반으로 상향 조정)
+    sugar: 15, // 식사당 당(sugar) 15g 이하 (새로 추가: 일일 50g의 1/3)
+    gi: 70, // GI 지수 70 이하 (저혈당지수 식품 권장)
+  },
+  diabetes_type2: {
+    carbs: 60, // 2형 당뇨도 동일 기준 적용
+    sugar: 15, // 식사당 당(sugar) 15g 이하
+    gi: 70,
   },
   hypertension: {
-    sodium: 700, // 식사당 나트륨 700mg 이하
+    sodium: 700, // 식사당 나트륨 700mg 이하 (일일 2000mg의 1/3)
   },
   kidney_disease: {
-    potassium: 200, // 식사당 칼륨 200mg 이하
-    phosphorus: 200, // 식사당 인 200mg 이하
-    protein: 30, // 식사당 단백질 30g 이하
+    potassium: 200, // 식사당 칼륨 200mg 이하 (일일 2000mg 기준)
+    phosphorus: 200, // 식사당 인 200mg 이하 (일일 800mg 기준)
+    protein: 30, // 식사당 단백질 30g 이하 (체중당 0.6-0.8g 기준)
     sodium: 700, // 식사당 나트륨 700mg 이하
   },
+  ckd: {
+    potassium: 200,
+    phosphorus: 200,
+    protein: 30,
+    sodium: 700,
+  },
   cardiovascular_disease: {
-    sodium: 400, // 식사당 나트륨 400mg 이하 (강화)
+    sodium: 400, // 식사당 나트륨 400mg 이하 (강화: 일일 1500mg 기준)
     fat: 20, // 식사당 지방 20g 이하
   },
   gout: {
-    purine: 100, // 식사당 퓨린 100mg 이하
+    purine: 100, // 식사당 퓨린 100mg 이하 (일일 400mg 기준)
   },
   gastrointestinal_disorder: {
-    fat: 15, // 식사당 지방 15g 이하
+    fat: 15, // 식사당 지방 15g 이하 (위장 부담 최소화)
+  },
+  hyperlipidemia: {
+    fat: 20, // 식사당 지방 20g 이하
   },
 };
 
@@ -257,23 +279,30 @@ function checkNutritionLimits(
       }
     }
 
-    // 단순당 함량 체크 (당뇨) - 새로운 분류 로직 사용
-    if (disease === "diabetes" || disease === "diabetes_type2") {
-      const classification = classifySideDish(recipe);
+    // 당(sugar) 함량 체크 (당뇨) - 개선된 g 기반 제한
+    if ((disease === "diabetes" || disease === "diabetes_type2") && limits.sugar !== undefined) {
+      const sugarContent = estimateSugarContent(recipe);
+      
+      // 당 함량이 제한을 초과하는 경우 제외 (엄격한 제한)
+      if (sugarContent > limits.sugar) {
+        return {
+          passed: false,
+          reason: `당 함량이 높음 (${sugarContent.toFixed(1)}g > ${limits.sugar}g)`,
+          stage: "nutrition-limits",
+        };
+      }
 
-      // 고당류 반찬은 제외 (이미 Step 2에서 처리되지만 이중 체크)
+      // 고당류 반찬은 완전 제외 (이중 체크)
+      const classification = classifySideDish(recipe);
       if (classification.type === 'high_sugar') {
         return {
           passed: false,
-          reason: "고당류 반찬으로 제외",
+          reason: "고당류 반찬으로 절대 제외 (당뇨 환자에게 부적합)",
           stage: "nutrition-limits",
         };
       }
 
       // 채소 요리나 저당 반찬은 통과
-      if (classification.type === 'vegetable' || classification.type === 'low_sugar') {
-        // 통과
-      }
       // 조미료 포함 반찬은 허용 (주의사항은 Step 2에서 추가됨)
     }
 
@@ -312,7 +341,7 @@ function checkNutritionLimits(
       }
     }
 
-    // 퓨린 함유 식품 체크 (통풍)
+    // 퓨린 함유 식품 체크 (통풍) - 강화된 제외 로직
     if (disease === "gout") {
       const recipeText = [
         recipe.title,
@@ -320,6 +349,24 @@ function checkNutritionLimits(
         ...(recipe.ingredients?.map(ing => ing.name) || []),
       ].join(" ").toLowerCase();
 
+      // 고퓨린 식품 완전 제외 (절대 금지)
+      const HIGH_PURINE_FOODS = [
+        "내장", "간", "콩팥", "심장", "뇌", "췌장", "곱창",
+        "멸치", "정어리", "꽁치", "고등어",
+      ];
+      const hasHighPurineFood = HIGH_PURINE_FOODS.some(food =>
+        recipeText.includes(food.toLowerCase())
+      );
+
+      if (hasHighPurineFood) {
+        return {
+          passed: false,
+          reason: "고퓨린 식품 포함 (통풍 환자 절대 금지)",
+          stage: "nutrition-limits",
+        };
+      }
+
+      // 중간 퓨린 식품 체크
       const hasPurineFood = PURINE_FOODS.some(food =>
         recipeText.includes(food.toLowerCase())
       );
@@ -327,12 +374,12 @@ function checkNutritionLimits(
       if (hasPurineFood) {
         return {
           passed: false,
-          reason: "퓨린 함유 식품 포함",
+          reason: "퓨린 함유 식품 포함 (통풍 악화 위험)",
           stage: "nutrition-limits",
         };
       }
 
-      // 과당 함량 체크 (통풍)
+      // 과당 함량 체크 (통풍) - 요산 생성 촉진
       const hasFructoseFood = FRUCTOSE_FOODS.some(food =>
         recipeText.includes(food.toLowerCase())
       );
@@ -340,13 +387,13 @@ function checkNutritionLimits(
       if (hasFructoseFood) {
         return {
           passed: false,
-          reason: "과당 함유 식품 포함",
+          reason: "과당 함유 식품 포함 (요산 생성 촉진)",
           stage: "nutrition-limits",
         };
       }
     }
 
-    // 산성 음식 및 자극성 조리법 체크 (위장 질환)
+    // 산성 음식 및 자극성 조리법 체크 (위장 질환) - 강화된 제외 로직
     if (disease === "gastrointestinal_disorder") {
       const recipeText = [
         recipe.title,
@@ -357,7 +404,24 @@ function checkNutritionLimits(
           : recipe.instructions ? [recipe.instructions] : []),
       ].join(" ").toLowerCase();
 
-      // FODMAPs 함유 식품 체크
+      // FODMAPs 함유 식품 완전 제외 (IBS 환자 절대 금지)
+      const HIGH_FODMAP_FOODS = [
+        "양파", "마늘", "밀", "보리", "호밀",
+        "우유", "요거트", "치즈", "꿀", "설탕"
+      ];
+      const hasHighFodmapFood = HIGH_FODMAP_FOODS.some(food =>
+        recipeText.includes(food.toLowerCase())
+      );
+
+      if (hasHighFodmapFood) {
+        return {
+          passed: false,
+          reason: "FODMAPs 고함량 식품 포함 (위장 질환 환자 절대 금지)",
+          stage: "nutrition-limits",
+        };
+      }
+
+      // 기타 FODMAPs 함유 식품 체크
       const hasFodmapFood = FODMAP_FOODS.some(food =>
         recipeText.includes(food.toLowerCase())
       );
@@ -365,12 +429,12 @@ function checkNutritionLimits(
       if (hasFodmapFood) {
         return {
           passed: false,
-          reason: "FODMAPs 함유 식품 포함",
+          reason: "FODMAPs 함유 식품 포함 (복부 팽만 및 통증 유발)",
           stage: "nutrition-limits",
         };
       }
 
-      // 산성 음식 체크
+      // 산성 음식 체크 (역류성 식도염)
       const hasAcidicFood = ACIDIC_FOODS.some(food =>
         recipeText.includes(food.toLowerCase())
       );
@@ -378,12 +442,12 @@ function checkNutritionLimits(
       if (hasAcidicFood) {
         return {
           passed: false,
-          reason: "산성 음식 포함",
+          reason: "산성 음식 포함 (식도 자극 및 역류 유발)",
           stage: "nutrition-limits",
         };
       }
 
-      // 자극성 조리법 체크
+      // 자극성 조리법 체크 (위염, 위궤양)
       const hasIrritatingMethod = IRRITATING_COOKING_METHODS.some(method =>
         recipeText.includes(method.toLowerCase())
       );
@@ -391,7 +455,7 @@ function checkNutritionLimits(
       if (hasIrritatingMethod) {
         return {
           passed: false,
-          reason: "자극성 조리법 포함",
+          reason: "자극성 조리법 포함 (위점막 손상 위험)",
           stage: "nutrition-limits",
         };
       }

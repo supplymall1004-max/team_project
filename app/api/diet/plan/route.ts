@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const date = searchParams.get("date") || new Date().toISOString().split("T")[0];
     const force = searchParams.get("force") === "true";
-    
+
     // 요청 본문에서 includeFavorites 읽기
     let includeFavorites = false;
     try {

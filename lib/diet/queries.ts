@@ -113,7 +113,15 @@ export async function getUserSubscription(
  * 레시피 목록 조회 (영양소 정보 포함)
  * DB 레시피와 식약처 API 레시피를 병합하여 반환합니다.
  */
-export async function getRecipesWithNutrition(limitPerCategory: number = 100): Promise<
+/**
+ * 영양소 정보가 포함된 레시피 목록 조회 (개선됨)
+ * 
+ * 개선 사항:
+ * - 기본 limitPerCategory를 50으로 감소 (메모리 효율성 개선)
+ * - 식약처 API 호출 시 필요한 만큼만 가져오기 (최대 150개)
+ * - DB 레시피 우선 사용 정책 강화
+ */
+export async function getRecipesWithNutrition(limitPerCategory: number = 50): Promise<
   (RecipeListItem & {
     calories: number | null;
     carbohydrates: number | null;
@@ -125,8 +133,8 @@ export async function getRecipesWithNutrition(limitPerCategory: number = 100): P
     gi?: number | null;
   })[]
 > {
-  console.group("[DietQueries] 레시피 목록 조회 (카테고리별 제한)");
-  console.log(`카테고리당 최대 ${limitPerCategory}개 레시피 로드`);
+  console.group("[DietQueries] 레시피 목록 조회 (카테고리별 제한, 최적화됨)");
+  console.log(`카테고리당 최대 ${limitPerCategory}개 레시피 로드 (DB 우선)`);
 
   try {
     // 레시피는 공개 데이터이므로 서비스 롤 클라이언트 사용
@@ -188,21 +196,28 @@ export async function getRecipesWithNutrition(limitPerCategory: number = 100): P
 
     console.log(`데이터베이스에서 ${dbRecipes.length}개 레시피 조회됨 (${categories.length}개 카테고리)`);
 
-    // 식약처 API는 필요한 경우에만 호출 (현재 DB 레시피가 충분하면 생략)
-    if (dbRecipes.length >= limitPerCategory * 2) { // 최소 요구량 이상이면 DB만 사용
-      console.log("✅ DB 레시피가 충분하여 식약처 API 생략");
+    // 식약처 API는 필요한 경우에만 호출 (DB 레시피 우선 정책, 개선됨)
+    const minRequiredRecipes = limitPerCategory * 2; // 최소 요구량
+    if (dbRecipes.length >= minRequiredRecipes) {
+      console.log(`✅ DB 레시피가 충분 (${dbRecipes.length} >= ${minRequiredRecipes}), 식약처 API 생략`);
       console.groupEnd();
       return dbRecipes;
     }
 
-    // 식약처 API 레시피 가져오기 (병합)
+    // 식약처 API 레시피 가져오기 (필요한 만큼만, 개선됨)
     try {
       const { fetchMfdsRecipesQuick } = await import("./mfds-recipe-fetcher");
       const { mergeRecipes } = await import("./recipe-merger");
 
-      console.log("식약처 API 레시피 조회 중...");
-      const mfdsRecipes = await fetchMfdsRecipesQuick(limitPerCategory * categories.length);
-      console.log(`식약처 API에서 ${mfdsRecipes.length}개 레시피 조회됨`);
+      // 필요한 개수만 계산하여 호출 (최대 150개로 제한)
+      const neededRecipes = Math.min(
+        minRequiredRecipes - dbRecipes.length,
+        150 // 최대 150개로 제한 (개선)
+      );
+      
+      console.log(`📥 식약처 API에서 ${neededRecipes}개 레시피 조회 중...`);
+      const mfdsRecipes = await fetchMfdsRecipesQuick(neededRecipes);
+      console.log(`✅ 식약처 API에서 ${mfdsRecipes.length}개 레시피 조회됨`);
 
       // 병합
       const mergedRecipes = mergeRecipes(dbRecipes, mfdsRecipes);

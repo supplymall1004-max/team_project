@@ -11,7 +11,7 @@ import { Play, Calendar } from "lucide-react";
 import { FoodStoryVideo } from "@/lib/youtube";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface FoodStoryCardProps {
   video: FoodStoryVideo;
@@ -93,6 +93,7 @@ export function FoodStoryCard({ video, layout = "default" }: FoodStoryCardProps)
               </Button>
             </DialogTrigger>
             <DialogContent className={cn(dialogWidthClass, "p-0")}>
+              <DialogTitle className="sr-only">{video.title}</DialogTitle>
               <div className={aspectClass}>
                 <iframe
                   src={`${video.embedUrl}?autoplay=1&rel=0`}
