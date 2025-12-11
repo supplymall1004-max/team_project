@@ -156,7 +156,7 @@ const Navbar = () => {
           </SignedOut>
           <SignedIn>
             <div className="hidden md:flex items-center gap-3">
-              <Link href="/health/manage">
+              <Link href="/settings">
                 <Button variant="ghost" size="sm">
                   설정
                 </Button>
@@ -200,7 +200,7 @@ const Navbar = () => {
           </SignedOut>
           <SignedIn>
             <div className="flex flex-col gap-3">
-              <Link href="/health/manage" onClick={() => setMenuOpen(false)}>
+              <Link href="/settings" onClick={() => setMenuOpen(false)}>
                 <Button variant="outline" className="w-full justify-center">
                   설정
                 </Button>

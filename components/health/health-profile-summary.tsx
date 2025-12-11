@@ -194,9 +194,13 @@ export function HealthProfileSummary() {
               <span className="text-sm font-medium">질병 정보</span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {profile.diseases.map((disease) => (
-                <Badge key={disease} variant="secondary" className="text-xs">
-                  {DISEASE_LABELS[disease]}
+              {profile.diseases.map((disease, index) => (
+                <Badge 
+                  key={disease.code || `disease-${index}`} 
+                  variant="secondary" 
+                  className="text-xs"
+                >
+                  {disease.custom_name || DISEASE_LABELS[disease.code as Disease] || disease.code}
                 </Badge>
               ))}
             </div>
@@ -211,9 +215,13 @@ export function HealthProfileSummary() {
               <span className="text-sm font-medium">알레르기 정보</span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {profile.allergies.map((allergy) => (
-                <Badge key={allergy} variant="secondary" className="text-xs">
-                  {ALLERGY_LABELS[allergy]}
+              {profile.allergies.map((allergy, index) => (
+                <Badge 
+                  key={allergy.code || `allergy-${index}`} 
+                  variant="secondary" 
+                  className="text-xs"
+                >
+                  {allergy.custom_name || ALLERGY_LABELS[allergy.code as Allergy] || allergy.code}
                 </Badge>
               ))}
             </div>

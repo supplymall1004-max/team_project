@@ -228,24 +228,43 @@ export async function POST(request: NextRequest) {
     }
 
     // 프로필 생성
+    // JSONB 컬럼만 사용 (TEXT[] 컬럼 제거됨)
+    const diseases = Array.isArray(body.diseases_jsonb) 
+      ? body.diseases_jsonb 
+      : (Array.isArray(body.diseases) 
+          ? body.diseases.map((d: string) => ({ code: d, custom_name: null })) 
+          : []);
+    
+    const allergies = Array.isArray(body.allergies_jsonb) 
+      ? body.allergies_jsonb 
+      : (Array.isArray(body.allergies) 
+          ? body.allergies.map((a: string) => ({ code: a, custom_name: null })) 
+          : []);
+    
+    const preferred_ingredients = Array.isArray(body.preferred_ingredients_jsonb) 
+      ? body.preferred_ingredients_jsonb 
+      : (Array.isArray(body.preferred_ingredients) ? body.preferred_ingredients : []);
+    
+    const dietary_preferences = Array.isArray(body.dietary_preferences_jsonb) 
+      ? body.dietary_preferences_jsonb 
+      : (Array.isArray(body.dietary_preferences) ? body.dietary_preferences : []);
+
     const { data: newProfile, error } = await supabase
       .from("user_health_profiles")
       .insert({
         user_id: supabaseUserId,
-        diseases: body.diseases || [],
-        diseases_jsonb: body.diseases_jsonb || body.diseases?.map((d: string) => ({ code: d, custom_name: null })) || [],
-        allergies: body.allergies || [],
-        allergies_jsonb: body.allergies_jsonb || body.allergies?.map((a: string) => ({ code: a, custom_name: null })) || [],
-        preferred_ingredients: body.preferred_ingredients || [],
-        disliked_ingredients: body.disliked_ingredients || [],
+        diseases: diseases, // JSONB 컬럼
+        allergies: allergies, // JSONB 컬럼
+        preferred_ingredients: preferred_ingredients, // JSONB 컬럼
+        disliked_ingredients: Array.isArray(body.disliked_ingredients) ? body.disliked_ingredients : [],
         daily_calorie_goal: body.daily_calorie_goal,
-        dietary_preferences: body.dietary_preferences || [],
+        dietary_preferences: dietary_preferences, // JSONB 컬럼
         height_cm: body.height_cm,
         weight_kg: body.weight_kg,
         age: body.age,
         gender: body.gender,
         activity_level: body.activity_level || "sedentary",
-        premium_features: body.premium_features || [],
+        premium_features: Array.isArray(body.premium_features) ? body.premium_features : [],
       })
       .select()
       .single();
@@ -337,29 +356,35 @@ export async function PUT(request: NextRequest) {
     const supabase = getServiceRoleClient();
 
     // 프로필 수정 (upsert 사용 - user_id 기준으로 충돌 처리)
-    // 데이터 검증 및 기본값 설정
-    const diseases_jsonb = Array.isArray(body.diseases_jsonb) 
+    // JSONB 컬럼만 사용 (TEXT[] 컬럼 제거됨)
+    const diseases = Array.isArray(body.diseases_jsonb) 
       ? body.diseases_jsonb 
       : (Array.isArray(body.diseases) 
           ? body.diseases.map((d: string) => ({ code: d, custom_name: null })) 
           : []);
     
-    const allergies_jsonb = Array.isArray(body.allergies_jsonb) 
+    const allergies = Array.isArray(body.allergies_jsonb) 
       ? body.allergies_jsonb 
       : (Array.isArray(body.allergies) 
           ? body.allergies.map((a: string) => ({ code: a, custom_name: null })) 
           : []);
     
+    const preferred_ingredients = Array.isArray(body.preferred_ingredients_jsonb) 
+      ? body.preferred_ingredients_jsonb 
+      : (Array.isArray(body.preferred_ingredients) ? body.preferred_ingredients : []);
+    
+    const dietary_preferences = Array.isArray(body.dietary_preferences_jsonb) 
+      ? body.dietary_preferences_jsonb 
+      : (Array.isArray(body.dietary_preferences) ? body.dietary_preferences : []);
+    
     const updateData: any = {
       user_id: supabaseUserId,
-      diseases: Array.isArray(body.diseases) ? body.diseases : diseases_jsonb.map((d: any) => d.code || d),
-      diseases_jsonb: diseases_jsonb,
-      allergies: Array.isArray(body.allergies) ? body.allergies : allergies_jsonb.map((a: any) => a.code || a),
-      allergies_jsonb: allergies_jsonb,
-      preferred_ingredients: Array.isArray(body.preferred_ingredients) ? body.preferred_ingredients : [],
+      diseases: diseases, // JSONB 컬럼
+      allergies: allergies, // JSONB 컬럼
+      preferred_ingredients: preferred_ingredients, // JSONB 컬럼
       disliked_ingredients: Array.isArray(body.disliked_ingredients) ? body.disliked_ingredients : [],
       daily_calorie_goal: body.daily_calorie_goal ?? null,
-      dietary_preferences: Array.isArray(body.dietary_preferences) ? body.dietary_preferences : [],
+      dietary_preferences: dietary_preferences, // JSONB 컬럼
       height_cm: body.height_cm ?? null,
       weight_kg: body.weight_kg ?? null,
       age: body.age ?? null,

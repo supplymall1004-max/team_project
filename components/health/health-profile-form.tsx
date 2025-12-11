@@ -107,33 +107,40 @@ export function HealthProfileForm() {
           setFormData(result.profile);
 
           // UI 컴포넌트용 상태 초기화
-          // diseases_jsonb가 있으면 사용 (사용자 정의 질병 이름 포함), 없으면 diseases 배열 사용
-          if (result.profile.diseases_jsonb && Array.isArray(result.profile.diseases_jsonb)) {
-            // diseases_jsonb는 { code: string, custom_name: string | null }[] 형식
-            setSelectedDiseases(result.profile.diseases_jsonb);
-            console.log("[HealthProfileForm] diseases_jsonb에서 질병 로드:", result.profile.diseases_jsonb);
-          } else if (result.profile.diseases && Array.isArray(result.profile.diseases)) {
-            // diseases는 string[] 형식이므로 변환 필요
-            setSelectedDiseases(result.profile.diseases.map((d: string) => ({ 
-              code: d, 
-              custom_name: d.startsWith('custom_') ? null : null // 사용자 정의 질병의 경우 이름이 없을 수 있음
-            })));
-            console.log("[HealthProfileForm] diseases 배열에서 질병 로드:", result.profile.diseases);
+          // JSONB 컬럼만 사용 (TEXT[] 컬럼 제거됨)
+          // diseases는 JSONB 형식: { code: string, custom_name: string | null }[]
+          if (result.profile.diseases && Array.isArray(result.profile.diseases)) {
+            // JSONB 형식인지 확인 (객체 배열)
+            if (result.profile.diseases.length > 0 && typeof result.profile.diseases[0] === 'object') {
+              setSelectedDiseases(result.profile.diseases);
+              console.log("[HealthProfileForm] diseases (JSONB)에서 질병 로드:", result.profile.diseases);
+            } else {
+              // 문자열 배열인 경우 (하위 호환성)
+              setSelectedDiseases(result.profile.diseases.map((d: string) => ({ 
+                code: d, 
+                custom_name: null
+              })));
+              console.log("[HealthProfileForm] diseases (문자열 배열)에서 질병 로드:", result.profile.diseases);
+            }
           } else {
             setSelectedDiseases([]);
             console.log("[HealthProfileForm] 질병 데이터 없음");
           }
           
           // 알레르기도 동일하게 처리
-          if (result.profile.allergies_jsonb && Array.isArray(result.profile.allergies_jsonb)) {
-            setSelectedAllergies(result.profile.allergies_jsonb);
-            console.log("[HealthProfileForm] allergies_jsonb에서 알레르기 로드:", result.profile.allergies_jsonb);
-          } else if (result.profile.allergies && Array.isArray(result.profile.allergies)) {
-            setSelectedAllergies(result.profile.allergies.map((a: string) => ({ 
-              code: a, 
-              custom_name: a.startsWith('custom_') ? null : null
-            })));
-            console.log("[HealthProfileForm] allergies 배열에서 알레르기 로드:", result.profile.allergies);
+          if (result.profile.allergies && Array.isArray(result.profile.allergies)) {
+            // JSONB 형식인지 확인 (객체 배열)
+            if (result.profile.allergies.length > 0 && typeof result.profile.allergies[0] === 'object') {
+              setSelectedAllergies(result.profile.allergies);
+              console.log("[HealthProfileForm] allergies (JSONB)에서 알레르기 로드:", result.profile.allergies);
+            } else {
+              // 문자열 배열인 경우 (하위 호환성)
+              setSelectedAllergies(result.profile.allergies.map((a: string) => ({ 
+                code: a, 
+                custom_name: null
+              })));
+              console.log("[HealthProfileForm] allergies (문자열 배열)에서 알레르기 로드:", result.profile.allergies);
+            }
           } else {
             setSelectedAllergies([]);
             console.log("[HealthProfileForm] 알레르기 데이터 없음");
@@ -236,16 +243,16 @@ export function HealthProfileForm() {
 
       // 건강 정보 저장 (서버에서 자동으로 사용자 확인/생성 처리)
       // UI 상태를 formData로 변환
-      // selectedDiseases와 selectedAllergies가 undefined일 수 있으므로 방어적으로 처리
+      // JSONB 컬럼만 사용 (TEXT[] 컬럼 제거됨)
       const safeSelectedDiseases = selectedDiseases || [];
       const safeSelectedAllergies = selectedAllergies || [];
       
       const dataToSave = {
         ...formData,
-        diseases: safeSelectedDiseases.map(d => d.code), // 코드 배열 (하위 호환성)
-        diseases_jsonb: safeSelectedDiseases, // 전체 객체 배열 (사용자 정의 질병 이름 포함)
-        allergies: safeSelectedAllergies.map(a => a.code), // 코드 배열 (하위 호환성)
-        allergies_jsonb: safeSelectedAllergies, // 전체 객체 배열 (사용자 정의 알레르기 이름 포함)
+        diseases_jsonb: safeSelectedDiseases, // JSONB 형식: { code: string, custom_name: string | null }[]
+        allergies_jsonb: safeSelectedAllergies, // JSONB 형식: { code: string, custom_name: string | null }[]
+        preferred_ingredients_jsonb: formData.preferred_ingredients || [], // JSONB 형식
+        dietary_preferences_jsonb: formData.dietary_preferences || [], // JSONB 형식
         // 프리미엄 기능은 dietary_preferences에 매핑됨
         premium_features: formData.dietary_preferences || [],
       };

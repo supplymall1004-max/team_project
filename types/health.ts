@@ -62,6 +62,17 @@ export type SpecialDietType =
   | "vegan" // 비건
   | "vegetarian"; // 베지테리언
 
+// 질병/알레르기 JSONB 형식
+export interface DiseaseItem {
+  code: string;
+  custom_name: string | null;
+}
+
+export interface AllergyItem {
+  code: string;
+  custom_name: string | null;
+}
+
 export interface UserHealthProfile {
   id: string;
   user_id: string;
@@ -71,11 +82,12 @@ export interface UserHealthProfile {
   weight_kg: number | null;
   activity_level: ActivityLevel | null;
   daily_calorie_goal: number;
-  diseases: string[];
-  allergies: string[];
-  preferred_ingredients: string[];
+  // JSONB 컬럼 (TEXT[] 컬럼 제거됨)
+  diseases: DiseaseItem[]; // JSONB 형식: [{ code: string, custom_name: string | null }]
+  allergies: AllergyItem[]; // JSONB 형식: [{ code: string, custom_name: string | null }]
+  preferred_ingredients: string[]; // JSONB 형식
   disliked_ingredients: string[];
-  dietary_preferences: SpecialDietType[]; // 특수 식단 타입 배열
+  dietary_preferences: SpecialDietType[]; // JSONB 형식: 특수 식단 타입 배열
   premium_features?: string[]; // 프리미엄 기능 목록
   created_at: string;
   updated_at: string;

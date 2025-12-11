@@ -552,7 +552,7 @@ export async function generateAndSaveDietPlan(
     }
 
     // 식단 추천 (개인 맞춤 식단 생성)
-    console.log("🤖 AI 식단 추천 생성 중...");
+    console.log("🤖 건강 맞춤 식단 추천 생성 중...");
     console.log("📋 사용 가능한 레시피:", availableRecipes.length, "개");
     
     let recommendations;

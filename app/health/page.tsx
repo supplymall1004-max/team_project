@@ -128,7 +128,7 @@ function HealthManagementContent() {
               </CardHeader>
               <CardContent>
                 <Button asChild>
-                  <Link href="/health/manage">가족 관리</Link>
+                  <Link href="/settings/family">가족 관리</Link>
                 </Button>
               </CardContent>
             </Card>

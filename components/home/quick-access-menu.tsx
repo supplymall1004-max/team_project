@@ -51,7 +51,7 @@ const quickAccessItems: QuickAccessItem[] = [
   },
   {
     icon: Brain,
-    label: "AI 식단",
+    label: "건강 맞춤 식단",
     href: "/diet",
     bgColor: "bg-blue-100",
     textColor: "text-blue-700",

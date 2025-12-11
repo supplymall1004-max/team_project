@@ -14,7 +14,7 @@ import {
 import { SettlementCards } from "@/components/admin/settlements/settlement-cards";
 
 const overviewMetrics = [
-  { label: "오늘 생성된 AI 식단", value: "128건", delta: "+12% vs 어제" },
+  { label: "오늘 생성된 건강 맞춤 식단", value: "128건", delta: "+12% vs 어제" },
   { label: "활성 팝업", value: "3건", delta: "1건 예정" },
   { label: "미확인 알림 실패", value: "2건", delta: "조치 필요" },
 ];

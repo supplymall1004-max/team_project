@@ -62,7 +62,7 @@ export async function GET(
 
     console.log("✅ 인증 완료:", clerkUserId);
 
-    // 2. 사용자 ID 조회 (AI 맞춤 식단 큐레이션과 동일한 방식)
+    // 2. 사용자 ID 조회 (건강 맞춤 식단 큐레이션과 동일한 방식)
     const supabase = getServiceRoleClient();
 
     const { data: userData, error: userError } = await supabase
@@ -154,7 +154,7 @@ export async function GET(
       );
     }
 
-    // 5. 일별 식단 조회 (AI 맞춤 식단 큐레이션과 동일한 방식)
+    // 5. 일별 식단 조회 (건강 맞춤 식단 큐레이션과 동일한 방식)
     const dates = generateWeekDates(weekStartDate);
     
     // recipe_id가 TEXT 타입이고 recipes.id가 UUID 타입이므로 조인 없이 조회

@@ -124,7 +124,7 @@ export function SubscriptionManager() {
             프리미엄으로 업그레이드하세요
           </h2>
           <p className="text-gray-700 mb-6">
-            광고 없는 영상, 가족 맞춤 AI 식단, 무제한 북마크와 더 많은 혜택을 누리세요.
+            광고 없는 영상, 가족 맞춤 건강 식단, 무제한 북마크와 더 많은 혜택을 누리세요.
           </p>
           <Link
             href="/pricing"
@@ -274,7 +274,7 @@ export function SubscriptionManager() {
           <ul className="grid md:grid-cols-2 gap-3">
             {[
               '광고 없는 HD 영상',
-              '가족 맞춤 AI 식단',
+              '가족 맞춤 건강 식단',
               '무제한 북마크',
               '전체 식단 히스토리',
               '주간 식단 다운로드',

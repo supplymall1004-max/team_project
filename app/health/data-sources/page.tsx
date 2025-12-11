@@ -27,6 +27,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
+import { useClerkSupabaseClient } from "@/lib/supabase/clerk-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +92,7 @@ export default function HealthDataSourcesPage() {
 
   const { user, isLoaded, isSignedIn } = useUser();
   console.log("[HealthDataSourcesPage] Clerk User Status:", { isLoaded, isSignedIn, userId: user?.id });
+  const supabase = useClerkSupabaseClient();
   const [isConnectDialogOpen, setIsConnectDialogOpen] = useState(false);
   const [selectedSourceType, setSelectedSourceType] = useState<DataSourceType | "">("");
   const [sourceName, setSourceName] = useState("");
@@ -315,8 +317,19 @@ export default function HealthDataSourcesPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error("[HealthDataSourcesPage] 인증 URL 생성 실패:", errorData);
-        throw new Error(errorData.message || "인증 URL 생성에 실패했습니다.");
+        console.error("[HealthDataSourcesPage] 인증 URL 생성 실패:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
+        
+        // 더 명확한 오류 메시지 제공
+        const errorMessage = errorData.message || 
+          (response.status === 400 ? "API 설정이 필요합니다. 관리자에게 문의해주세요." : 
+           response.status === 403 ? "접근 권한이 없습니다. 프리미엄 회원이거나 신원확인이 필요합니다." :
+           "인증 URL 생성에 실패했습니다.");
+        
+        throw new Error(errorMessage);
       }
 
       const { auth_url } = await response.json();

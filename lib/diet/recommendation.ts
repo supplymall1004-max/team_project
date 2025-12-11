@@ -1,6 +1,6 @@
 /**
  * @file recommendation.ts
- * @description AI 식단 추천 알고리즘 (규칙 기반)
+ * @description 건강 맞춤 식단 추천 알고리즘 (규칙 기반)
  *
  * 주요 기능:
  * 1. 칼로리/영양소 기반 필터링

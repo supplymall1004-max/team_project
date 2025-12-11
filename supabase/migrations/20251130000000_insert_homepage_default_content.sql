@@ -15,7 +15,7 @@ ON CONFLICT (slug, locale) DO NOTHING;
 
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by)
 VALUES
-  ('hero-description', 'ko', '{"text": "명인의 전통 레시피부터 AI 맞춤 식단까지, 세대와 세대를 넘나드는 요리 지식을 한 곳에서 경험하세요."}'::jsonb, 'system')
+  ('hero-description', 'ko', '{"text": "명인의 전통 레시피부터 건강 맞춤 식단까지, 세대와 세대를 넘나드는 요리 지식을 한 곳에서 경험하세요."}'::jsonb, 'system')
 ON CONFLICT (slug, locale) DO NOTHING;
 
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by)
@@ -46,7 +46,7 @@ ON CONFLICT (slug, locale) DO NOTHING;
 
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by)
 VALUES
-  ('quick-start-diet', 'ko', '{"title": "🤖 AI 맞춤 식단", "description": "건강 정보를 기반으로 개인 맞춤 식단을 추천받아요.", "href": "/diet"}'::jsonb, 'system')
+  ('quick-start-diet', 'ko', '{"title": "🤖 건강 맞춤 식단", "description": "건강 정보를 기반으로 개인 맞춤 식단을 추천받아요.", "href": "/diet"}'::jsonb, 'system')
 ON CONFLICT (slug, locale) DO NOTHING;
 
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by)
@@ -89,7 +89,7 @@ ON CONFLICT (slug, locale) DO NOTHING;
 -- Diet Section
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by)
 VALUES
-  ('diet-section-title', 'ko', '{"title": "🧠 AI 맞춤 식단 큐레이션"}'::jsonb, 'system')
+  ('diet-section-title', 'ko', '{"title": "🧠 건강 맞춤 식단 큐레이션"}'::jsonb, 'system')
 ON CONFLICT (slug, locale) DO NOTHING;
 
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by)

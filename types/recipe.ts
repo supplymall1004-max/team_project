@@ -149,7 +149,7 @@ export type CookingTimeFormat = {
 };
 
 // =============================================================================
-// AI 맞춤 식단 시스템 타입 정의
+// 건강 맞춤 식단 시스템 타입 정의
 // =============================================================================
 
 // 재료 정보
@@ -191,7 +191,7 @@ export interface NutritionDetails {
   purine?: number; // 퓨린 (mg)
 }
 
-// 레시피 상세 정보 (AI 식단용)
+// 레시피 상세 정보 (건강 맞춤 식단용)
 export interface RecipeDetailForDiet {
   id?: string;
   title: string;

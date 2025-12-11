@@ -1,6 +1,6 @@
 /**
  * @file components/health/yesterday-family-tabs.tsx
- * @description 어제 AI 식단 가족 탭 요약 컴포넌트
+ * @description 어제 건강 맞춤 식단 가족 탭 요약 컴포넌트
  *
  * 본 컴포넌트는 홈 섹션에서 가족 구성원별 토글과 영양 합계를 표시합니다.
  */

@@ -48,8 +48,8 @@ export const metadata: Metadata = {
   ),
   title: "맛카 | Flavor Archive, Flavor Eureka!",
   description:
-    "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, AI 식단 추천을 한 곳에서 확인하세요.",
-  keywords: ["맛카", "레시피", "요리", "전통 음식", "AI 식단", "레시피 북", "요리 아카이브", "Flavor Archive"],
+    "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, 건강 맞춤 식단 추천을 한 곳에서 확인하세요.",
+  keywords: ["맛카", "레시피", "요리", "전통 음식", "건강 맞춤 식단", "레시피 북", "요리 아카이브", "Flavor Archive"],
   authors: [{ name: "맛카" }],
   manifest: "/manifest.json",
   icons: {
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "맛카 | Flavor Archive, Flavor Eureka!",
     description:
-      "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, AI 식단 추천을 한 곳에서 확인하세요.",
+      "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, 건강 맞춤 식단 추천을 한 곳에서 확인하세요.",
     type: "website",
     locale: "ko_KR",
     siteName: "맛카",
@@ -89,7 +89,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "맛카 | Flavor Archive, Flavor Eureka!",
     description:
-      "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, AI 식단 추천을 한 곳에서 확인하세요.",
+      "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, 건강 맞춤 식단 추천을 한 곳에서 확인하세요.",
     images: ["/icons/maca2.JPG"],
   },
   robots: {

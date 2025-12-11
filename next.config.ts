@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 /**
  * Next 이미지 최적화 설정을 동적으로 확장하기 위한 헬퍼.
  * Supabase 스토리지 호스트를 자동으로 허용 목록에 추가하여
- * 현대 레시피 북/AI 식단 섹션 이미지가 차단되지 않도록 한다.
+ * 현대 레시피 북/건강 맞춤 식단 섹션 이미지가 차단되지 않도록 한다.
  */
 const buildRemotePatterns = () => {
   const remotePatterns = [

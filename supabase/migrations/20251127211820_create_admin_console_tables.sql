@@ -118,6 +118,6 @@ CREATE TRIGGER update_popup_announcements_updated_at
 -- 샘플 데이터 삽입
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by) VALUES
 ('hero-title', 'ko', '{"title": "잊혀진 손맛을 연결하는 디지털 식탁", "subtitle": "전통과 현대를 잇는 레시피 아카이브"}', 'system'),
-('hero-description', 'ko', '{"text": "명인 인터뷰, 현대 레시피, AI 식단 추천을 한 곳에서 확인하세요."}', 'system'),
+('hero-description', 'ko', '{"text": "명인 인터뷰, 현대 레시피, 건강 맞춤 식단 추천을 한 곳에서 확인하세요."}', 'system'),
 ('footer-about', 'ko', '{"text": "맛의 아카이브는 전통 요리 문화의 보존과 현대인의 건강한 식생활을 위한 플랫폼입니다."}', 'system')
 ON CONFLICT (slug, locale) DO NOTHING;

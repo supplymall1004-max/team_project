@@ -156,7 +156,20 @@ export async function generateWeeklyDiet(
 
   // 5. 주간 영양 통계 생성
   console.log("\n📊 주간 영양 통계 생성 중...");
+  console.log("📊 dailyPlans 키:", Object.keys(dailyPlans));
+  console.log("📊 dates:", dates);
   const nutritionStats = generateNutritionStats(dailyPlans, dates);
+  console.log("📊 생성된 영양 통계:", nutritionStats.length, "일");
+  if (nutritionStats.length > 0) {
+    const totalCalories = nutritionStats.reduce((sum, stat) => sum + (stat.total_calories || 0), 0);
+    console.log("📊 총 칼로리:", totalCalories, "kcal");
+    console.log("📊 일별 칼로리 상세:", nutritionStats.map(stat => ({
+      날짜: stat.date,
+      요일: stat.day_of_week,
+      칼로리: stat.total_calories,
+      식사수: stat.meal_count
+    })));
+  }
 
   const duration = Date.now() - startTime;
   console.log(`\n⏱️ 생성 완료: ${duration}ms`);
@@ -581,7 +594,10 @@ function generateNutritionStats(
 
     // 식단이 있는 경우에만 계산
     if (dailyPlan) {
-      if (isStoredDailyPlan(dailyPlan)) {
+      const isStored = isStoredDailyPlan(dailyPlan);
+      console.log(`📊 ${date} 식단 타입: ${isStored ? 'StoredDailyPlan' : 'MealComposition/RecipeDetailForDiet'}`);
+      
+      if (isStored) {
         for (const mealType of meals) {
           const meal = dailyPlan[mealType] as DietPlan | null;
           if (!meal) continue;
@@ -593,6 +609,8 @@ function generateNutritionStats(
           const fat = typeof meal.fat === 'number' ? meal.fat : Number(meal.fat) || 0;
           const sodium = typeof meal.sodium === 'number' ? meal.sodium : Number(meal.sodium) || 0;
           
+          console.log(`  ${mealType}: ${calories}kcal (칼로리: ${meal.calories}, 탄수화물: ${meal.carbohydrates}, 단백질: ${meal.protein})`);
+          
           totalCalories += calories;
           totalCarbs += carbs;
           totalProtein += protein;
@@ -601,26 +619,65 @@ function generateNutritionStats(
           mealCount++;
         }
       } else {
+        // MealComposition 또는 RecipeDetailForDiet 타입인 경우
         for (const mealType of meals) {
-          const meal = dailyPlan[mealType] as MealComposition | RecipeDetailForDiet | undefined;
+          const meal = dailyPlan[mealType] as MealComposition | RecipeDetailForDiet | DietPlan | undefined;
           if (!meal) continue;
           
-          // nutrition 객체가 있는 경우
+          // DietPlan 타입인 경우 (직접 필드 접근)
+          if ('calories' in meal && 'meal_type' in meal) {
+            const dietPlan = meal as DietPlan;
+            const calories = typeof dietPlan.calories === 'number' ? dietPlan.calories : Number(dietPlan.calories) || 0;
+            const carbs = typeof dietPlan.carbohydrates === 'number' ? dietPlan.carbohydrates : Number(dietPlan.carbohydrates) || 0;
+            const protein = typeof dietPlan.protein === 'number' ? dietPlan.protein : Number(dietPlan.protein) || 0;
+            const fat = typeof dietPlan.fat === 'number' ? dietPlan.fat : Number(dietPlan.fat) || 0;
+            const sodium = typeof dietPlan.sodium === 'number' ? dietPlan.sodium : Number(dietPlan.sodium) || 0;
+            
+            console.log(`  ${mealType} (DietPlan): ${calories}kcal`);
+            
+            totalCalories += calories;
+            totalCarbs += carbs;
+            totalProtein += protein;
+            totalFat += fat;
+            totalSodium += sodium;
+            mealCount++;
+            continue;
+          }
+          
+          // MealComposition 타입인 경우 (totalNutrition 사용)
+          if ('totalNutrition' in meal && meal.totalNutrition) {
+            const nutrition = meal.totalNutrition;
+            const calories = typeof nutrition.calories === 'number' ? nutrition.calories : Number(nutrition.calories) || 0;
+            const carbs = typeof nutrition.carbohydrates === 'number' ? nutrition.carbohydrates : Number(nutrition.carbohydrates) || 0;
+            const protein = typeof nutrition.protein === 'number' ? nutrition.protein : Number(nutrition.protein) || 0;
+            const fat = typeof nutrition.fat === 'number' ? nutrition.fat : Number(nutrition.fat) || 0;
+            const sodium = typeof nutrition.sodium === 'number' ? nutrition.sodium : Number(nutrition.sodium) || 0;
+            
+            totalCalories += calories;
+            totalCarbs += carbs;
+            totalProtein += protein;
+            totalFat += fat;
+            totalSodium += sodium;
+            mealCount++;
+            continue;
+          }
+          
+          // RecipeDetailForDiet 타입인 경우 (nutrition 객체 사용)
           const nutrition = (meal as any)?.nutrition;
-          if (!nutrition) continue;
-          
-          const calories = typeof nutrition.calories === 'number' ? nutrition.calories : Number(nutrition.calories) || 0;
-          const carbs = typeof nutrition.carbohydrates === 'number' ? nutrition.carbohydrates : Number(nutrition.carbohydrates) || 0;
-          const protein = typeof nutrition.protein === 'number' ? nutrition.protein : Number(nutrition.protein) || 0;
-          const fat = typeof nutrition.fat === 'number' ? nutrition.fat : Number(nutrition.fat) || 0;
-          const sodium = typeof nutrition.sodium === 'number' ? nutrition.sodium : Number(nutrition.sodium) || 0;
-          
-          totalCalories += calories;
-          totalCarbs += carbs;
-          totalProtein += protein;
-          totalFat += fat;
-          totalSodium += sodium;
-          mealCount++;
+          if (nutrition) {
+            const calories = typeof nutrition.calories === 'number' ? nutrition.calories : Number(nutrition.calories) || 0;
+            const carbs = typeof nutrition.carbohydrates === 'number' ? nutrition.carbohydrates : Number(nutrition.carbohydrates) || 0;
+            const protein = typeof nutrition.protein === 'number' ? nutrition.protein : Number(nutrition.protein) || 0;
+            const fat = typeof nutrition.fat === 'number' ? nutrition.fat : Number(nutrition.fat) || 0;
+            const sodium = typeof nutrition.sodium === 'number' ? nutrition.sodium : Number(nutrition.sodium) || 0;
+            
+            totalCalories += calories;
+            totalCarbs += carbs;
+            totalProtein += protein;
+            totalFat += fat;
+            totalSodium += sodium;
+            mealCount++;
+          }
         }
       }
     }

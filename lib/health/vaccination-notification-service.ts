@@ -70,19 +70,28 @@ export async function sendVaccinationNotification(
       params.daysBefore
     );
 
-    // 알림 로그 기록
+    // 알림 로그 기록 (통합 notifications 테이블 사용)
     const { data: notificationLog, error: logError } = await supabase
-      .from("vaccination_notification_logs")
+      .from("notifications")
       .insert({
         user_id: params.userId,
         family_member_id: schedule.family_member_id,
-        vaccination_schedule_id: params.scheduleId,
-        notification_type: params.notificationType,
-        notification_channel: params.notificationChannel,
-        scheduled_date: schedule.recommended_date,
-        notification_status: "sent",
-        reminder_days_before: params.daysBefore,
+        type: "vaccination",
+        category: params.notificationType, // 'scheduled', 'reminder', 'overdue'
+        channel: params.notificationChannel,
+        title: `예방접종 알림: ${schedule.vaccine_name}`,
         message: params.customMessage || message,
+        status: "sent",
+        priority: params.notificationType === "overdue" ? "high" : "normal",
+        scheduled_at: schedule.recommended_date,
+        sent_at: new Date().toISOString(),
+        related_id: params.scheduleId,
+        related_type: "vaccination_schedule",
+        context_data: {
+          reminder_days_before: params.daysBefore,
+          vaccine_name: schedule.vaccine_name,
+          priority: schedule.priority,
+        },
       })
       .select()
       .single();
@@ -245,10 +254,12 @@ export async function scheduleVaccinationNotifications(): Promise<{
         // 이미 알림을 보냈는지 확인 (중복 방지)
         if (shouldSendNotification) {
           const { data: recentNotifications } = await supabase
-            .from("vaccination_notification_logs")
+            .from("notifications")
             .select("id")
-            .eq("vaccination_schedule_id", schedule.id)
-            .eq("notification_type", notificationType)
+            .eq("type", "vaccination")
+            .eq("category", notificationType)
+            .eq("related_id", schedule.id)
+            .eq("related_type", "vaccination_schedule")
             .gte("created_at", new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString()) // 최근 24시간 내
             .limit(1);
 

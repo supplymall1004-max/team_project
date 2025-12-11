@@ -1,6 +1,6 @@
 /**
  * @file diet-section-client.tsx
- * @description 홈페이지 AI 식단 섹션 클라이언트 컴포넌트
+ * @description 홈페이지 건강 맞춤 식단 섹션 클라이언트 컴포넌트
  */
 
 "use client";
@@ -435,7 +435,7 @@ export function DietSectionClient() {
             <PremiumGate
               isPremium={isPremium}
               variant="card"
-              message="가족 맞춤 AI 식단은 프리미엄 전용 기능입니다. 가족 구성원별 맞춤 식단을 생성하고 통합 식단을 관리하세요!"
+              message="가족 맞춤 건강 식단은 프리미엄 전용 기능입니다. 가족 구성원별 맞춤 식단을 생성하고 통합 식단을 관리하세요!"
             >
               <FamilyDietHeaderTabs
                 members={familySummary.memberTabs}
@@ -458,7 +458,7 @@ export function DietSectionClient() {
         <PremiumGate
           isPremium={isPremium}
           variant="card"
-          message="가족 맞춤 AI 식단은 프리미엄 전용 기능입니다. 가족 구성원별 맞춤 식단을 확인하세요!"
+          message="가족 맞춤 건강 식단은 프리미엄 전용 기능입니다. 가족 구성원별 맞춤 식단을 확인하세요!"
         >
           <YesterdayFamilyTabs
             members={familySummary.memberTabs}

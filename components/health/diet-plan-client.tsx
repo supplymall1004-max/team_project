@@ -243,7 +243,7 @@ export function DietPlanClient() {
     }
   }, [user, today]);
 
-  // 날짜 변경 감지 및 자동 새로고침 (AI 식단 캐시 유지)
+  // 날짜 변경 감지 및 자동 새로고침 (건강 맞춤 식단 캐시 유지)
   useEffect(() => {
     // 매 분마다 현재 날짜를 확인하여 날짜가 바뀌었는지 체크
     const checkDateChange = () => {
@@ -252,13 +252,13 @@ export function DietPlanClient() {
         console.group("[DietPlanClient] 날짜 변경 감지");
         console.log("이전 날짜:", today);
         console.log("새 날짜:", currentDate);
-        console.log("AI 맞춤 식단 캐시 유지 - 수동 생성 식단만 무효화");
+        console.log("건강 맞춤 식단 캐시 유지 - 수동 생성 식단만 무효화");
         console.groupEnd();
 
-        // AI 맞춤 식단은 캐시 유지, 수동 생성 식단만 무효화
+        // 건강 맞춤 식단은 캐시 유지, 수동 생성 식단만 무효화
         if (user) {
           // 수동 생성 식단의 경우에만 이전 날짜 캐시 무효화
-          // AI 식단은 getCachedDietPlan에서 자동으로 처리됨
+          // 건강 맞춤 식단은 getCachedDietPlan에서 자동으로 처리됨
           console.log("[DietPlanClient] 수동 생성 식단 캐시 무효화:", today);
         }
 
@@ -305,7 +305,7 @@ export function DietPlanClient() {
 
     try {
       const currentDate = getToday();
-      console.groupCollapsed("[DietPlanClient] AI 식단 생성");
+      console.groupCollapsed("[DietPlanClient] 건강 맞춤 식단 생성");
       console.log("사용자:", user.id);
       console.log("날짜:", currentDate);
 
@@ -347,17 +347,17 @@ export function DietPlanClient() {
       setDietPlan(data.dietPlan);
       if (user) {
         const currentDate = getToday();
-        // AI 맞춤 식단 생성 시 isAiGenerated 플래그 설정
+        // 건강 맞춤 식단 생성 시 isAiGenerated 플래그 설정
         setCachedDietPlan(user.id, currentDate, data.dietPlan, undefined, true);
         // 날짜가 바뀌었을 수 있으므로 상태 업데이트
         if (currentDate !== today) {
           setToday(currentDate);
         }
       }
-      console.log("✅ AI 식단 생성 성공:", data.dietPlan);
+      console.log("✅ 건강 맞춤 식단 생성 성공:", data.dietPlan);
       console.groupEnd();
     } catch (err) {
-      console.error("❌ AI 식단 생성 실패:", err);
+      console.error("❌ 건강 맞춤 식단 생성 실패:", err);
       setError(err instanceof Error ? err.message : "식단을 생성하는데 실패했습니다");
       console.groupEnd();
     } finally {

@@ -5,7 +5,7 @@ import { TestModeBanner } from '@/components/pricing/test-mode-banner';
 
 export const metadata: Metadata = {
   title: '프리미엄 플랜 | 맛의 아카이브',
-  description: '광고 없는 영상, 가족 맞춤 AI 식단, 독점 레시피를 만나보세요.',
+  description: '광고 없는 영상, 가족 맞춤 건강 식단, 독점 레시피를 만나보세요.',
 };
 
 export default function PricingPage() {
@@ -23,7 +23,7 @@ export default function PricingPage() {
             <span className="text-orange-600">특별한 혜택</span>을 만나보세요
           </h1>
           <p className="text-lg text-gray-600 mb-8">
-            광고 없는 명인 영상, 가족 맞춤 AI 식단, 무제한 북마크까지
+            광고 없는 명인 영상, 가족 맞춤 건강 식단, 무제한 북마크까지
           </p>
           <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
             <span>✓ 14일 무료 체험</span>

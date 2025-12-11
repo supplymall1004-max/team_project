@@ -176,6 +176,15 @@ export function FamilyMemberIdentityVerification({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* 가족 구성원 정보 안내 */}
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm font-medium text-blue-900">
+            확인: {member.name}님의 정보를 입력해주세요
+          </p>
+          <p className="text-xs text-blue-700 mt-1">
+            생년월일: {member.birth_date} (주민등록번호 앞 6자리와 일치해야 합니다)
+          </p>
+        </div>
         <div className="space-y-2">
           <Label>이름</Label>
           <Input
@@ -184,6 +193,9 @@ export function FamilyMemberIdentityVerification({
             placeholder={member.name}
             disabled={isSubmitting}
           />
+          <p className="text-xs text-muted-foreground">
+            가족 구성원 이름과 정확히 일치해야 합니다: "{member.name}"
+          </p>
         </div>
         <div className="space-y-2">
           <Label>주민등록번호</Label>
@@ -193,6 +205,9 @@ export function FamilyMemberIdentityVerification({
             placeholder="YYYYMMDD-XXXXXXX"
             disabled={isSubmitting}
           />
+          <p className="text-xs text-muted-foreground">
+            생년월일 {member.birth_date}와 일치하는 주민등록번호를 입력해주세요
+          </p>
         </div>
         <div className="flex items-start space-x-2">
           <input

@@ -61,7 +61,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. 인증 URL 생성
+    // 4. 환경 변수 확인 (데이터 소스별)
+    if (source_type === "health_highway") {
+      const hasHealthHighwayConfig = 
+        !!process.env.HEALTH_HIGHWAY_CLIENT_ID && 
+        !!process.env.HEALTH_HIGHWAY_CLIENT_SECRET;
+      
+      if (!hasHealthHighwayConfig) {
+        console.log("❌ 건강정보고속도로 API 설정 누락");
+        console.groupEnd();
+        return NextResponse.json(
+          {
+            error: "Configuration error",
+            message: "건강정보고속도로 API 설정이 필요합니다. 환경 변수(HEALTH_HIGHWAY_CLIENT_ID, HEALTH_HIGHWAY_CLIENT_SECRET)를 확인해주세요.",
+          },
+          { status: 400 }
+        );
+      }
+    } else if (source_type === "mydata") {
+      const hasMyDataConfig = 
+        !!process.env.MYDATA_CLIENT_ID && 
+        !!process.env.MYDATA_CLIENT_SECRET;
+      
+      if (!hasMyDataConfig) {
+        console.log("❌ 마이데이터 API 설정 누락");
+        console.groupEnd();
+        return NextResponse.json(
+          {
+            error: "Configuration error",
+            message: "마이데이터 API 설정이 필요합니다. 환경 변수(MYDATA_CLIENT_ID, MYDATA_CLIENT_SECRET)를 확인해주세요.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 5. 인증 URL 생성
     const authUrl = await generateConnectionUrl(
       premiumCheck.userId,
       source_type as DataSourceType,

@@ -141,7 +141,7 @@ function SuccessContent() {
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                가족 맞춤 AI 식단 추천
+                가족 맞춤 건강 식단 추천
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
@@ -160,7 +160,7 @@ function SuccessContent() {
               href="/diet"
               className="block w-full py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors"
             >
-              AI 맞춤 식단 보러가기 <ArrowRight className="inline w-4 h-4 ml-1" />
+              건강 맞춤 식단 보러가기 <ArrowRight className="inline w-4 h-4 ml-1" />
             </Link>
             <Link
               href="/account/subscription"

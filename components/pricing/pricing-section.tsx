@@ -159,7 +159,7 @@ export function PricingSection() {
               </li>
               <li className="flex items-start gap-3 opacity-50">
                 <Check className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-                <span className="text-gray-500">기본 AI 식단 추천</span>
+                <span className="text-gray-500">기본 건강 맞춤 식단 추천</span>
               </li>
               <li className="flex items-start gap-3 opacity-50">
                 <Check className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
@@ -235,7 +235,7 @@ export function PricingSection() {
               </li>
               <li className="flex items-start gap-3">
                 <Check className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span>가족 맞춤 AI 식단 추천</span>
+                <span>가족 맞춤 건강 식단 추천</span>
               </li>
               <li className="flex items-start gap-3">
                 <Check className="w-5 h-5 flex-shrink-0 mt-0.5" />

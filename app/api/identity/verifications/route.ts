@@ -115,6 +115,7 @@ export async function POST(req: NextRequest) {
 
     // 가족 구성원 ID가 제공된 경우, 해당 구성원이 현재 사용자의 가족 구성원인지 확인
     let verifiedFamilyMemberId: string | null = null;
+    let verifiedFamilyMember: { id: string; name: string; birth_date: string | null } | null = null;
     if (familyMemberId) {
       console.log('[IdentityVerifications] 가족 구성원 확인 중:', familyMemberId);
       const serviceRoleSupabase = getServiceRoleClient();
@@ -137,21 +138,55 @@ export async function POST(req: NextRequest) {
       // 가족 구성원이 현재 사용자의 가족인지 확인
       const { data: familyMember, error: familyMemberError } = await serviceRoleSupabase
         .from('family_members')
-        .select('id, name')
+        .select('id, name, birth_date') // birth_date 포함하여 조회
         .eq('id', familyMemberId)
         .eq('user_id', userData.id)
         .single();
 
       if (familyMemberError || !familyMember) {
         console.error('[IdentityVerifications] 가족 구성원 확인 실패:', familyMemberError);
+        // 보안 로깅: 의심스러운 시도
+        console.error('[Security] 의심스러운 신원확인 시도 (가족 구성원 없음):', {
+          userId,
+          familyMemberId,
+          시도시간: new Date().toISOString(),
+        });
         return NextResponse.json(
           { error: 'Forbidden', message: '해당 가족 구성원에 대한 권한이 없습니다.' },
           { status: 403 }
         );
       }
 
+      // 🔒 보안 검증 1: 이름 일치 확인
+      if (familyMember.name.trim() !== name.trim()) {
+        console.error('[IdentityVerifications] 이름 불일치:', {
+          입력한이름: name.trim(),
+          가족구성원이름: familyMember.name.trim(),
+        });
+        // 보안 로깅: 의심스러운 시도
+        console.error('[Security] 의심스러운 신원확인 시도 (이름 불일치):', {
+          userId,
+          familyMemberId,
+          입력한이름: name.trim(),
+          가족구성원이름: familyMember.name.trim(),
+          시도시간: new Date().toISOString(),
+        });
+        return NextResponse.json(
+          { 
+            error: 'Validation Failed', 
+            message: '입력하신 이름이 가족 구성원 정보와 일치하지 않습니다.' 
+          },
+          { status: 400 }
+        );
+      }
+
       verifiedFamilyMemberId = familyMember.id;
-      console.log('[IdentityVerifications] 가족 구성원 확인 완료:', familyMember.name);
+      // 가족 구성원 정보를 나중에 사용하기 위해 저장
+      verifiedFamilyMember = familyMember;
+      console.log('[IdentityVerifications] 가족 구성원 확인 완료:', {
+        이름: familyMember.name,
+        생년월일: familyMember.birth_date,
+      });
     }
 
     // 주민등록번호 형식 검증
@@ -163,8 +198,83 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 🔒 보안 검증 2: 가족 구성원인 경우 생년월일 일치 확인
+    if (familyMemberId && verifiedFamilyMemberId && verifiedFamilyMember) {
+      if (verifiedFamilyMember.birth_date) {
+        // 주민등록번호 앞 6자리 (YYMMDD) 추출
+        const nationalIdDatePart = nationalId.split('-')[0]; // YYMMDD
+        
+        // 가족 구성원의 생년월일을 YYMMDD 형식으로 변환
+        const familyMemberBirthDate = new Date(verifiedFamilyMember.birth_date);
+        const familyMemberYear = familyMemberBirthDate.getFullYear();
+        const familyMemberMonth = String(familyMemberBirthDate.getMonth() + 1).padStart(2, '0');
+        const familyMemberDay = String(familyMemberBirthDate.getDate()).padStart(2, '0');
+        
+        // YY 형식으로 변환 (2000년대는 00-99, 1900년대는 00-99)
+        const familyMemberYearYY = String(familyMemberYear).slice(-2);
+        const familyMemberDateStr = familyMemberYearYY + familyMemberMonth + familyMemberDay;
+
+        if (nationalIdDatePart !== familyMemberDateStr) {
+          console.error('[IdentityVerifications] 생년월일 불일치:', {
+            입력한생년월일: nationalIdDatePart,
+            가족구성원생년월일: familyMemberDateStr,
+            가족구성원전체생년월일: verifiedFamilyMember.birth_date,
+          });
+          // 보안 로깅: 의심스러운 시도
+          console.error('[Security] 의심스러운 신원확인 시도 (생년월일 불일치):', {
+            userId,
+            familyMemberId: verifiedFamilyMemberId,
+            입력한생년월일: nationalIdDatePart,
+            가족구성원생년월일: familyMemberDateStr,
+            시도시간: new Date().toISOString(),
+          });
+          return NextResponse.json(
+            { 
+              error: 'Validation Failed', 
+              message: '입력하신 주민등록번호의 생년월일이 가족 구성원 정보와 일치하지 않습니다.' 
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // 주민번호를 해시로 저장 (원문 저장은 피함)
     const nationalIdHash = crypto.createHash('sha256').update(String(nationalId)).digest('hex');
+
+    // 🔒 보안 검증 3: 주민등록번호 해시 중복 확인
+    const serviceRoleSupabase = getServiceRoleClient();
+    const { data: existingVerification } = await serviceRoleSupabase
+      .from('identity_verifications')
+      .select('id, family_member_id, clerk_user_id')
+      .eq('national_id_hash', nationalIdHash)
+      .maybeSingle();
+
+    if (existingVerification) {
+      // 본인인 경우 (family_member_id가 NULL) 중복 허용 (재신원확인)
+      // 가족 구성원인 경우 다른 가족 구성원과 중복되면 안 됨
+      if (familyMemberId && existingVerification.family_member_id !== verifiedFamilyMemberId) {
+        console.error('[IdentityVerifications] 중복 주민등록번호 시도:', {
+          familyMemberId: verifiedFamilyMemberId,
+          existingVerificationId: existingVerification.id,
+          existingFamilyMemberId: existingVerification.family_member_id,
+        });
+        // 보안 로깅: 의심스러운 시도
+        console.error('[Security] 의심스러운 신원확인 시도 (중복 주민등록번호):', {
+          userId,
+          familyMemberId: verifiedFamilyMemberId,
+          existingVerificationId: existingVerification.id,
+          시도시간: new Date().toISOString(),
+        });
+        return NextResponse.json(
+          { 
+            error: 'Duplicate National ID', 
+            message: '이미 등록된 주민등록번호입니다. 다른 가족 구성원의 정보를 사용할 수 없습니다.' 
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     // 요청 정보 수집 (동의 내역 저장용)
     const ipAddress = getClientIp(req);
@@ -173,7 +283,7 @@ export async function POST(req: NextRequest) {
     const consentTime = new Date().toISOString();
 
     const supabase = getSupabaseClient();
-    const serviceRoleSupabase = getServiceRoleClient();
+    // serviceRoleSupabase는 위에서 이미 선언됨 (247번 줄)
 
     // 1. 신원확인 정보 저장
     const { data: verificationData, error: verificationError } = await supabase

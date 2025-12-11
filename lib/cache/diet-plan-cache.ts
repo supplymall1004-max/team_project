@@ -4,7 +4,7 @@
  *
  * 캐시 전략:
  * - 사용자 ID + 생성 날짜 조합으로 고유 키 생성
- * - AI 맞춤 식단: 전날 오후 6시 생성 후 금일 오후 6시까지 유지
+ * - 건강 맞춤 식단: 전날 오후 6시 생성 후 금일 오후 6시까지 유지
  * - 수동 생성 식단: 24시간 유지
  * - 버전 필드를 포함하여 구조 변경 시 자동 무효화
  */
@@ -31,7 +31,7 @@ const isBrowser = () =>
   typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 
 /**
- * AI 맞춤 식단의 캐시 만료 시간 계산
+ * 건강 맞춤 식단의 캐시 만료 시간 계산
  * 생성 날짜의 다음 날 오후 6시까지 유효
  */
 function calculateAiDietExpiry(creationDate: string): number {
@@ -98,12 +98,12 @@ export function getCachedDietPlan(
 ): DietPlanCacheEntry | null {
   if (!isBrowser()) return null;
 
-  // 먼저 AI 맞춤 식단 캐시를 확인 (요청 날짜와 관계없이 유효한 최신 AI 식단 반환)
+  // 먼저 건강 맞춤 식단 캐시를 확인 (요청 날짜와 관계없이 유효한 최신 건강 맞춤 식단 반환)
   const aiDietKey = getCurrentValidAiDietKey(userId);
   if (aiDietKey) {
     const aiCached = safeParse(window.localStorage.getItem(aiDietKey));
     if (aiCached && aiCached.isAiGenerated) {
-      console.log(`[DietPlanCache] AI 맞춤 식단 캐시 히트: ${aiDietKey}`);
+      console.log(`[DietPlanCache] 건강 맞춤 식단 캐시 히트: ${aiDietKey}`);
       return aiCached;
     }
   }
@@ -149,7 +149,7 @@ export function setCachedDietPlan(
 
   let expiresAt: number;
   if (isAiGenerated) {
-    // AI 맞춤 식단: 생성 다음 날 오후 6시까지 유효
+    // 건강 맞춤 식단: 생성 다음 날 오후 6시까지 유효
     expiresAt = calculateAiDietExpiry(creationDate);
   } else {
     // 수동 생성 식단: 기본 TTL 사용

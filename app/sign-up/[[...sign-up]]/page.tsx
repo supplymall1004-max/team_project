@@ -24,7 +24,7 @@ export default function SignUpPage() {
           </p>
           <h1 className="mt-2 text-3xl font-bold">회원가입</h1>
           <p className="text-sm text-muted-foreground">
-            전통과 현대 레시피를 저장하고 AI 식단을 받아보세요.
+            전통과 현대 레시피를 저장하고 건강 맞춤 식단을 받아보세요.
           </p>
         </div>
         <SignUp
