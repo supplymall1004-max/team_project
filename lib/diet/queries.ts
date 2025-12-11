@@ -463,7 +463,14 @@ export async function generatePersonalDietForAPI(
 export async function generateAndSaveDietPlan(
   userId: string,
   date: string,
-  includeFavorites?: boolean // 찜한 식단 포함 여부
+  includeFavorites?: boolean, // 찜한 식단 포함 여부
+  usedByCategory?: { // 주간 컨텍스트: 카테고리별 제외 목록
+    rice: Set<string>;
+    side: Set<string>;
+    soup: Set<string>;
+    snack: Set<string>;
+  },
+  preferredRiceType?: string // 주간 컨텍스트: 선호 밥 종류
 ): Promise<DailyDietPlan | null> {
   console.groupCollapsed("[DietQueries] 식단 추천 생성");
   console.log("👤 userId:", userId);
@@ -555,8 +562,8 @@ export async function generateAndSaveDietPlan(
         healthProfile,
         date,
         availableRecipes,
-        undefined, // usedByCategory
-        undefined, // preferredRiceType
+        usedByCategory, // 주간 컨텍스트 전달
+        preferredRiceType, // 주간 컨텍스트 전달
         includeFavorites // 찜한 식단 포함 여부
       );
     } catch (error) {
@@ -680,12 +687,13 @@ export async function generateAndSaveDietPlan(
 
         return {
           user_id: userId,
+          family_member_id: null, // 개인 식단이므로 항상 null
           plan_date: date,
           meal_type: mealType,
           recipe_id: isFallbackRecipe ? null : recipeId, // 폴백 레시피는 null로 저장
           recipe_title: recipeTitle, // 필수 필드 (NOT NULL)
           recipe_description: recipeDescription || null,
-          ingredients: ingredientsJsonb, // JSONB 형식으로 저장
+          ingredients: ingredientsJsonb || [], // JSONB 형식으로 저장 (null 대신 빈 배열)
           instructions: instructionsText,
           calories: recipe.calories || 0,
           carbs_g: recipe.carbohydrates || 0,
@@ -695,7 +703,7 @@ export async function generateAndSaveDietPlan(
           potassium_mg: recipe.potassium ?? null,
           phosphorus_mg: recipe.phosphorus ?? null,
           gi_index: recipe.gi ?? null,
-          composition_summary: compositionSummary ? JSON.stringify(compositionSummary) : null,
+          composition_summary: compositionSummary || [], // JSONB 타입이므로 객체/배열을 직접 저장
           is_unified: false,
         };
       })
@@ -709,11 +717,36 @@ export async function generateAndSaveDietPlan(
       console.log("💾 저장할 데이터 샘플:", JSON.stringify(plansToInsert[0], null, 2));
       
       try {
-        const { error: insertError } = await supabase
+        // 기존 식단 삭제 (개인 식단만 - family_member_id가 null인 것만)
+        console.log("🗑️ 기존 개인 식단 삭제 중...");
+        const { error: deleteError } = await supabase
           .from("diet_plans")
-          .upsert(plansToInsert, {
-            onConflict: "user_id,plan_date,meal_type",
-          });
+          .delete()
+          .eq("user_id", userId)
+          .eq("plan_date", date)
+          .is("family_member_id", null)
+          .eq("is_unified", false);
+
+        if (deleteError) {
+          console.warn("⚠️ 기존 식단 삭제 중 오류 (무시하고 계속 진행):", deleteError);
+        } else {
+          console.log("✅ 기존 개인 식단 삭제 완료");
+        }
+
+        // 새 식단 저장
+        console.log("💾 저장할 레코드 상세:", plansToInsert.map(p => ({
+          plan_date: p.plan_date,
+          meal_type: p.meal_type,
+          recipe_title: p.recipe_title,
+          calories: p.calories,
+          is_unified: p.is_unified,
+          family_member_id: p.family_member_id,
+        })));
+        
+        const { error: insertError, data: insertedData } = await supabase
+          .from("diet_plans")
+          .insert(plansToInsert)
+          .select();
 
         console.log("💾 저장 결과:", insertError ? "실패" : "성공");
         if (insertError) {
@@ -729,7 +762,18 @@ export async function generateAndSaveDietPlan(
           console.warn("⚠️ 저장 실패했지만 recommendations가 있으면 dailyPlan을 반환합니다");
         } else {
           saveSuccess = true;
-          console.log("✅ 식단 저장 완료:", plansToInsert.length, "개");
+          console.log("✅ 식단 저장 완료:", insertedData?.length || plansToInsert.length, "개");
+          if (insertedData) {
+            console.log("✅ 저장된 레코드 상세:", insertedData.map(r => ({
+              id: r.id,
+              plan_date: r.plan_date,
+              meal_type: r.meal_type,
+              recipe_title: r.recipe_title,
+              calories: r.calories,
+              is_unified: r.is_unified,
+              family_member_id: r.family_member_id,
+            })));
+          }
         }
       } catch (saveError) {
         console.error("❌ 저장 중 예외 발생:", saveError);
@@ -750,8 +794,15 @@ export async function generateAndSaveDietPlan(
     let dailyPlan: DailyDietPlan;
     
     if (saveSuccess && plansToInsert.length > 0) {
-      // 데이터베이스에 저장된 경우 조회
-      console.log("🔍 저장된 식단 조회 중...");
+      // 데이터베이스에 저장된 경우 조회 (개인 식단만 - family_member_id가 null인 것만)
+      console.log("🔍 저장된 개인 식단 조회 중...");
+      console.log("🔍 조회 조건:", {
+        user_id: userId,
+        plan_date: date,
+        family_member_id: "null",
+        is_unified: false,
+      });
+      
       const { data: savedPlans, error: fetchError } = await supabase
         .from("diet_plans")
         .select(
@@ -762,9 +813,24 @@ export async function generateAndSaveDietPlan(
         )
         .eq("user_id", userId)
         .eq("plan_date", date)
+        .is("family_member_id", null) // 개인 식단만 조회
+        .eq("is_unified", false) // 통합 식단 제외
         .order("meal_type", { ascending: true });
 
       console.log("🔍 조회 결과:", savedPlans?.length || 0, "개 식단");
+      if (savedPlans && savedPlans.length > 0) {
+        console.log("🔍 조회된 식단 상세:", savedPlans.map(p => ({
+          id: p.id,
+          plan_date: p.plan_date,
+          meal_type: p.meal_type,
+          recipe_title: p.recipe_title,
+          calories: p.calories,
+          is_unified: p.is_unified,
+          family_member_id: p.family_member_id,
+        })));
+      } else {
+        console.warn("⚠️ 저장은 성공했지만 조회 결과가 비어있습니다. 저장된 데이터 확인 필요.");
+      }
       if (fetchError) {
         console.error("❌ 조회 오류:", fetchError);
         // 조회 실패해도 recommendations가 있으면 계속 진행
@@ -956,6 +1022,10 @@ export async function getDailyDietPlan(
   userId: string,
   date: string
 ): Promise<DailyDietPlan | null> {
+  console.groupCollapsed("[getDailyDietPlan] 식단 조회");
+  console.log("👤 userId:", userId);
+  console.log("📅 date:", date);
+  
   try {
     const supabase = getServiceRoleClient();
 
@@ -970,13 +1040,22 @@ export async function getDailyDietPlan(
       )
       .eq("user_id", userId)
       .eq("plan_date", date)
+      .is("family_member_id", null) // 개인 식단만 조회
+      .eq("is_unified", false) // 통합 식단 제외
       .order("meal_type", { ascending: true });
 
     if (error) {
+      console.error("❌ 데이터베이스 조회 오류:", error);
+      console.groupEnd();
       throw error;
     }
 
+    console.log("📊 조회된 식단 데이터 개수:", data?.length || 0);
+    console.log("📊 식단 데이터:", data);
+
     if (!data || data.length === 0) {
+      console.warn("⚠️ 식단 데이터가 없습니다");
+      console.groupEnd();
       return null;
     }
 
@@ -1008,16 +1087,24 @@ export async function getDailyDietPlan(
 
     data.forEach((plan) => {
       const mealType = plan.meal_type as MealType;
+      console.log(`🍽️ 처리 중인 식사 타입: ${mealType}`);
+      
       if (mealType === "breakfast" || mealType === "lunch" || mealType === "dinner" || mealType === "snack") {
-        // composition_summary 파싱
+        // composition_summary는 JSONB 타입이므로 이미 파싱되어 있음
         let compositionSummary: string[] | undefined;
         if (plan.composition_summary) {
-          try {
-            compositionSummary = JSON.parse(plan.composition_summary);
-            console.log(`📋 ${mealType} 구성품 조회됨:`, compositionSummary);
-          } catch (e) {
-            console.warn(`❌ Failed to parse composition_summary for ${mealType}:`, e);
+          // JSONB는 이미 객체/배열로 파싱되어 있음
+          if (Array.isArray(plan.composition_summary)) {
+            compositionSummary = plan.composition_summary;
+          } else if (typeof plan.composition_summary === 'string') {
+            // 문자열인 경우에만 JSON.parse 시도 (레거시 데이터 대응)
+            try {
+              compositionSummary = JSON.parse(plan.composition_summary);
+            } catch (e) {
+              console.warn(`❌ Failed to parse composition_summary for ${mealType}:`, e);
+            }
           }
+          console.log(`📋 ${mealType} 구성품 조회됨:`, compositionSummary);
         }
 
         // recipe_id가 없는 경우 (폴백 레시피) recipe 객체 생성
@@ -1027,6 +1114,8 @@ export async function getDailyDietPlan(
           thumbnail_url: null,
           slug: plan.recipe_title.toLowerCase().replace(/\s+/g, '-'),
         } : null);
+
+        console.log(`📝 ${mealType} 레시피 데이터:`, recipeData);
 
         if (!recipeData) {
           console.warn(`⚠️ ${mealType}에 레시피 정보가 없습니다`);
@@ -1038,12 +1127,25 @@ export async function getDailyDietPlan(
           compositionSummary,
           recipe: recipeData as any,
         } as DietPlan;
+        
+        console.log(`✅ ${mealType} 식단 설정 완료`);
       }
     });
 
+    console.log("✅ 최종 식단 객체:", dailyPlan);
+    console.log("✅ 반환할 식단:", {
+      date: dailyPlan.date,
+      hasBreakfast: !!dailyPlan.breakfast,
+      hasLunch: !!dailyPlan.lunch,
+      hasDinner: !!dailyPlan.dinner,
+      hasSnack: !!dailyPlan.snack,
+      totalNutrition: dailyPlan.totalNutrition,
+    });
+    console.groupEnd();
     return dailyPlan;
   } catch (error) {
-    console.error("getDailyDietPlan error", error);
+    console.error("❌ getDailyDietPlan error", error);
+    console.groupEnd();
     return null;
   }
 }

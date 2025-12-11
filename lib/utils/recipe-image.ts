@@ -617,13 +617,12 @@ function findDirectLinkFromTitle(recipeTitle: string): string | null {
 }
 
 /**
- * 개선된 레시피 이미지 URL 생성 (이미지 관련성 검증 포함)
- * 
+ * 개선된 레시피 이미지 URL 생성 (카테고리 기반 이미지 사용)
+ *
  * 우선순위:
- * 1. FOOD_IMAGE_DIRECT_LINKS (foodjpg.md에서 제공된 직접 링크) - 최우선
- * 2. 썸네일 URL (관련성 높을 때)
- * 3. 특정 레시피 이미지
- * 4. 카테고리 기반 이미지
+ * 1. 썸네일 URL (관련성 높을 때)
+ * 2. 특정 레시피 이미지
+ * 3. 카테고리 기반 이미지
  */
 export function getRecipeImageUrlEnhanced(
   recipeTitle: string,
@@ -633,15 +632,7 @@ export function getRecipeImageUrlEnhanced(
   console.log("레시피 제목:", recipeTitle);
   console.log("썸네일 URL:", thumbnailUrl);
 
-  // 1. foodjpg.md에서 제공된 직접 링크 확인 (최우선, 부분 매칭 지원)
-  const directLink = findDirectLinkFromTitle(recipeTitle);
-  if (directLink) {
-    console.log("✅ foodjpg.md 직접 링크 사용:", directLink);
-    console.groupEnd();
-    return directLink;
-  }
-
-  // 2. 썸네일 URL이 있고 관련성이 높으면 사용
+  // 1. 썸네일 URL이 있고 관련성이 높으면 사용
   if (thumbnailUrl && thumbnailUrl.trim()) {
     const relevanceScore = calculateImageRelevance(recipeTitle, thumbnailUrl);
     console.log("썸네일 이미지 관련성 점수:", relevanceScore);
@@ -655,7 +646,7 @@ export function getRecipeImageUrlEnhanced(
     }
   }
 
-  // 3. 특정 레시피 이미지 확인
+  // 2. 특정 레시피 이미지 확인
   const specificImageUrl = getSpecificRecipeImageUrl(recipeTitle);
   if (specificImageUrl) {
     console.log("✅ 특정 레시피 이미지 사용:", specificImageUrl);
@@ -663,7 +654,7 @@ export function getRecipeImageUrlEnhanced(
     return specificImageUrl;
   }
 
-  // 4. 카테고리 기반 이미지 사용
+  // 3. 카테고리 기반 이미지 사용
   const category = getRecipeCategory(recipeTitle);
   const categoryImageUrl = getCategoryImage(category).url;
   console.log("✅ 카테고리 기반 이미지 사용:", category, categoryImageUrl);

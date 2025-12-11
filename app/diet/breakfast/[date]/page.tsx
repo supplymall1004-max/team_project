@@ -25,6 +25,9 @@ import { HealthInsightsCard } from '@/components/health/visualization/HealthInsi
 import { NutritionBalanceChart } from '@/components/health/visualization/NutritionBalanceChart';
 import { DiseaseRiskGauge } from '@/components/health/visualization/DiseaseRiskGauge';
 import { HealthVisualizationErrorBoundary } from '@/components/health/error-boundary';
+import { DiseaseFeedbackCard } from '@/components/diet/disease-feedback-card';
+import { DietGenerationLogicCard } from '@/components/diet/diet-generation-logic-card';
+import { NutritionCharts } from '@/components/charts/nutrition-charts';
 import { useUser } from '@clerk/nextjs';
 
 // 타입 정의
@@ -71,6 +74,7 @@ export default function BreakfastDetailPage({
   // 상태 관리
   const [mealData, setMealData] = useState<MealData | null>(null);
   const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
+  const [apiHealthProfile, setApiHealthProfile] = useState<any>(null);
   const [currentHealth, setCurrentHealth] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +113,7 @@ export default function BreakfastDetailPage({
 
       setMealData(mealResult.meal);
       setHealthProfile(healthResult.profile);
+      setApiHealthProfile(mealResult.healthProfile); // API에서 받은 건강 프로필
       setCurrentHealth(currentHealthResult.metrics);
 
     } catch (err) {
@@ -301,6 +306,47 @@ export default function BreakfastDetailPage({
                 </div>
               </CardContent>
             </Card>
+
+            {/* 식약처 API 데이터 시각화 */}
+            {mealData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>영양소 시각화</CardTitle>
+                  <CardDescription>
+                    식약처 API 데이터 기반 영양 성분 분석
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <NutritionCharts
+                    nutrition={{
+                      calories: mealData.nutrition.calories,
+                      carbohydrate: mealData.nutrition.carbohydrates,
+                      protein: mealData.nutrition.protein,
+                      fat: mealData.nutrition.fat,
+                      sodium: mealData.nutrition.sodium,
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 질병별 피드백 */}
+            {mealData && apiHealthProfile && (
+              <DiseaseFeedbackCard
+                diseases={apiHealthProfile.diseases || []}
+                mealNutrition={mealData.nutrition}
+                mealName={mealData.name}
+              />
+            )}
+
+            {/* 식단 생성 로직 설명 */}
+            {mealData && apiHealthProfile && (
+              <DietGenerationLogicCard
+                healthProfile={apiHealthProfile}
+                mealNutrition={mealData.nutrition}
+                mealType="breakfast"
+              />
+            )}
 
             {/* 건강 인사이트 */}
             <HealthInsightsCard

@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { checkPremiumAccess } from "@/lib/kcdc/premium-guard";
+import { checkIdentityVerification } from "@/lib/identity/check-verification";
 import { generateConnectionUrl } from "@/lib/health/health-data-sync-service";
 import type { DataSourceType } from "@/types/health-data-integration";
 
@@ -32,7 +33,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. 요청 본문 파싱
+    // 2. 신원확인 체크
+    const isVerified = await checkIdentityVerification();
+    if (!isVerified) {
+      console.log("❌ 신원확인 미완료");
+      console.groupEnd();
+      return NextResponse.json(
+        {
+          error: "Identity verification required",
+          message: "데이터 소스를 연결하려면 먼저 신원확인이 완료되어야 합니다.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 3. 요청 본문 파싱
     const body = await request.json();
     const { source_type, redirect_uri } = body;
 
@@ -46,7 +61,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. 인증 URL 생성
+    // 4. 인증 URL 생성
     const authUrl = await generateConnectionUrl(
       premiumCheck.userId,
       source_type as DataSourceType,

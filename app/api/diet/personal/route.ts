@@ -154,9 +154,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 저장 전 데이터 검증
+    for (const record of planRecords) {
+      if (!record.user_id || !record.plan_date || !record.meal_type || !record.recipe_title) {
+        console.error("❌ 필수 필드 누락:", record);
+        console.groupEnd();
+        return NextResponse.json(
+          { 
+            error: "Invalid diet plan record",
+            details: "필수 필드(user_id, plan_date, meal_type, recipe_title)가 누락되었습니다."
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     console.log(`💾 ${planRecords.length}개 식단 레코드 저장 시도...`);
     console.log("💾 저장할 데이터 샘플:", JSON.stringify(planRecords[0], null, 2));
 
+    // 저장 시도 (기존 레코드는 이미 삭제했으므로 insert 사용)
     const { error: insertError, data: insertedData } = await supabase
       .from("diet_plans")
       .insert(planRecords)
@@ -273,6 +289,13 @@ function extractMealRecords(
 
 /**
  * 식단 레코드 생성
+ * 
+ * @param userId - 사용자 ID (UUID)
+ * @param planDate - 식단 날짜 (YYYY-MM-DD)
+ * @param mealType - 식사 타입 (breakfast, lunch, dinner, snack)
+ * @param recipe - 레시피 정보
+ * @param isUnified - 통합 식단 여부
+ * @returns 데이터베이스에 저장할 레코드 객체
  */
 function createDietPlanRecord(
   userId: string,
@@ -286,24 +309,34 @@ function createDietPlanRecord(
     ? recipe.id
     : null;
 
-  // recipe_title 필수 필드 검증
-  const recipeTitle = recipe.title?.trim() || `레시피-${mealType}`;
-  if (!recipeTitle || recipeTitle.trim() === "") {
-    console.error(`❌ ${mealType}의 recipe_title이 비어있습니다. 기본값 사용: 레시피-${mealType}`);
+  // recipe_title 필수 필드 검증 및 기본값 설정
+  let recipeTitle = recipe.title?.trim();
+  if (!recipeTitle || recipeTitle === "") {
+    recipeTitle = `레시피-${mealType}-${Date.now()}`;
+    console.warn(`⚠️ ${mealType}의 recipe_title이 비어있습니다. 기본값 사용: ${recipeTitle}`);
   }
 
-  // ingredients를 JSONB 형식으로 변환
+  // ingredients를 JSONB 형식으로 변환 (null 대신 빈 배열 사용)
   const ingredientsJsonb = Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0
     ? recipe.ingredients
-    : null;
+    : [];
 
   // instructions를 문자열로 변환 (배열인 경우 join)
   const instructionsText = Array.isArray(recipe.instructions)
     ? recipe.instructions.join("\n")
-    : recipe.instructions || null;
+    : (recipe.instructions || null);
+
+  // 영양소 정보 검증 및 기본값 설정
+  const nutrition = recipe.nutrition || {};
+  
+  // 필수 필드 검증
+  if (!userId || !planDate || !mealType || !recipeTitle) {
+    throw new Error(`식단 레코드 생성 실패: 필수 필드 누락 (userId: ${userId}, planDate: ${planDate}, mealType: ${mealType}, recipeTitle: ${recipeTitle})`);
+  }
 
   return {
     user_id: userId,
+    family_member_id: null, // 개인 식단이므로 항상 null
     plan_date: planDate,
     meal_type: mealType,
     recipe_id: recipeId,
@@ -311,15 +344,15 @@ function createDietPlanRecord(
     recipe_description: recipe.description || null,
     ingredients: ingredientsJsonb,
     instructions: instructionsText,
-    calories: recipe.nutrition.calories || 0,
-    protein_g: recipe.nutrition.protein || 0,
-    carbs_g: recipe.nutrition.carbs || 0,
-    fat_g: recipe.nutrition.fat || 0,
-    sodium_mg: recipe.nutrition.sodium || 0,
-    fiber_g: recipe.nutrition.fiber ?? null,
-    potassium_mg: recipe.nutrition.potassium ?? null,
-    phosphorus_mg: recipe.nutrition.phosphorus ?? null,
-    gi_index: recipe.nutrition.gi ?? null,
+    calories: nutrition.calories || 0,
+    protein_g: nutrition.protein || 0,
+    carbs_g: nutrition.carbs || 0,
+    fat_g: nutrition.fat || 0,
+    sodium_mg: nutrition.sodium || 0,
+    fiber_g: nutrition.fiber ?? null,
+    potassium_mg: nutrition.potassium ?? null,
+    phosphorus_mg: nutrition.phosphorus ?? null,
+    gi_index: nutrition.gi ?? null,
     is_unified: isUnified,
   };
 }

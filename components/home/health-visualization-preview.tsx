@@ -202,7 +202,7 @@ export function HealthVisualizationPreview({
               </div>
             </div>
             <Button asChild variant="outline" className="w-full">
-              <Link href="/diet">
+              <Link href="/health/visualization/status">
                 상세보기 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -250,7 +250,7 @@ export function HealthVisualizationPreview({
               </div>
             </div>
             <Button asChild variant="outline" className="w-full">
-              <Link href="/diet">
+              <Link href="/health/visualization/status">
                 상세보기 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -297,7 +297,7 @@ export function HealthVisualizationPreview({
               </div>
             </div>
             <Button asChild variant="outline" className="w-full">
-              <Link href="/diet">
+              <Link href="/health/visualization/nutrition">
                 상세보기 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -329,7 +329,7 @@ export function HealthVisualizationPreview({
               </ul>
             </div>
             <Button asChild variant="outline" className="w-full">
-              <Link href="/diet">
+              <Link href="/health/visualization/impact">
                 상세보기 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

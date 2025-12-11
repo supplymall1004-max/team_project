@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * @file NutritionBalanceChart.tsx
  * @description 영양 균형 도넛 차트 컴포넌트
@@ -11,10 +9,13 @@
  * 4. 상호작용 가능한 도넛 차트
  */
 
-import { useState } from 'react';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { NutritionBalance } from '@/types/health-visualization';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 interface NutritionBalanceChartProps {
   balance: NutritionBalance;
@@ -23,9 +24,9 @@ interface NutritionBalanceChartProps {
 
 // 각 영양소의 칼로리 변환 계수 (g당 kcal)
 const CALORIE_FACTORS = {
-  carbohydrates: 4, // 탄수화물 1g = 4kcal
-  protein: 4,       // 단백질 1g = 4kcal
-  fat: 9           // 지방 1g = 9kcal
+  carbohydrates: 4,       // 탄수화물 1g = 4kcal
+  protein: 4,             // 단백질 1g = 4kcal
+  fat: 9                   // 지방 1g = 9kcal
 };
 
 // 권장 비율 (kcal 기준)
@@ -43,11 +44,25 @@ interface NutritionItem {
   percentage: number; // %
   color: string;
   recommended: { min: number; max: number };
-  status: 'low' | 'normal' | 'high';
+  status: 'good' | 'low' | 'high';
+}
+
+function getNutritionStatus(percentage: number, recommended: { min: number; max: number }): 'good' | 'low' | 'high' {
+  if (percentage >= recommended.min && percentage <= recommended.max) return 'good';
+  if (percentage < recommended.min) return 'low';
+  return 'high';
 }
 
 export function NutritionBalanceChart({ balance, className }: NutritionBalanceChartProps) {
-  const [selectedSegment, setSelectedSegment] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+  const [Recharts, setRecharts] = useState<any>(null);
+
+  useEffect(() => {
+    setIsClient(true);
+    import('recharts').then((mod) => {
+      setRecharts(mod);
+    });
+  }, []);
 
   // 총 칼로리 계산
   const totalCalories = (balance.carbohydrates * CALORIE_FACTORS.carbohydrates) +
@@ -75,7 +90,7 @@ export function NutritionBalanceChart({ balance, className }: NutritionBalanceCh
       value: balance.protein,
       calories: balance.protein * CALORIE_FACTORS.protein,
       percentage: totalCalories > 0 ? (balance.protein * CALORIE_FACTORS.protein / totalCalories) * 100 : 0,
-      color: '#EF4444', // red-500
+      color: '#10B981', // green-500
       recommended: RECOMMENDED_RATIOS.protein,
       status: getNutritionStatus(
         totalCalories > 0 ? (balance.protein * CALORIE_FACTORS.protein / totalCalories) * 100 : 0,
@@ -88,204 +103,114 @@ export function NutritionBalanceChart({ balance, className }: NutritionBalanceCh
       value: balance.fat,
       calories: balance.fat * CALORIE_FACTORS.fat,
       percentage: totalCalories > 0 ? (balance.fat * CALORIE_FACTORS.fat / totalCalories) * 100 : 0,
-      color: '#F59E0B', // amber-500
+      color: '#8B5CF6', // purple-500
       recommended: RECOMMENDED_RATIOS.fat,
       status: getNutritionStatus(
         totalCalories > 0 ? (balance.fat * CALORIE_FACTORS.fat / totalCalories) * 100 : 0,
         RECOMMENDED_RATIOS.fat
       )
-    }
+    },
   ];
 
-  // 영양소 상태 평가 함수
-  function getNutritionStatus(percentage: number, recommended: { min: number; max: number }): 'low' | 'normal' | 'high' {
-    if (percentage < recommended.min) return 'low';
-    if (percentage > recommended.max) return 'high';
-    return 'normal';
+  if (!isClient || !Recharts) {
+    return (
+      <div className={`h-64 flex items-center justify-center bg-gray-50 rounded-lg ${className || ''}`}>
+        <p className="text-gray-500">차트를 준비하는 중...</p>
+      </div>
+    );
   }
 
-  // 도넛 차트 렌더링
-  const renderDonutChart = () => {
-    const size = 200;
-    const strokeWidth = 20;
-    const radius = (size - strokeWidth) / 2;
-    const center = size / 2;
-
-    let cumulativeAngle = -90; // 12시 방향부터 시작
-
-    return (
-      <svg width={size} height={size} className="transform -rotate-90">
-        {nutritionData.map((item, index) => {
-          const angle = (item.percentage / 100) * 360;
-          const startAngle = cumulativeAngle;
-          const endAngle = cumulativeAngle + angle;
-
-          // SVG arc path 계산
-          const x1 = center + radius * Math.cos((startAngle * Math.PI) / 180);
-          const y1 = center + radius * Math.sin((startAngle * Math.PI) / 180);
-          const x2 = center + radius * Math.cos((endAngle * Math.PI) / 180);
-          const y2 = center + radius * Math.sin((endAngle * Math.PI) / 180);
-
-          const largeArcFlag = angle > 180 ? 1 : 0;
-          const pathData = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`;
-
-          cumulativeAngle = endAngle;
-
-          return (
-            <path
-              key={item.name}
-              d={pathData}
-              fill="none"
-              stroke={item.color}
-              strokeWidth={strokeWidth}
-              className={`cursor-pointer transition-all duration-200 ${
-                selectedSegment === item.name ? 'stroke-opacity-100' : 'stroke-opacity-80 hover:stroke-opacity-100'
-              }`}
-              onClick={() => setSelectedSegment(selectedSegment === item.name ? null : item.name)}
-              onMouseEnter={() => setSelectedSegment(item.name)}
-              onMouseLeave={() => setSelectedSegment(null)}
-            />
-          );
-        })}
-        {/* 중앙 텍스트 */}
-        <text
-          x={center}
-          y={center - 10}
-          textAnchor="middle"
-          className="text-2xl font-bold fill-gray-900"
-          transform={`rotate(90 ${center} ${center})`}
-        >
-          {totalCalories.toFixed(0)}
-        </text>
-        <text
-          x={center}
-          y={center + 10}
-          textAnchor="middle"
-          className="text-sm fill-gray-500"
-          transform={`rotate(90 ${center} ${center})`}
-        >
-          kcal
-        </text>
-      </svg>
-    );
-  };
-
-  // 선택된 세그먼트 정보
-  const selectedItem = nutritionData.find(item => item.name === selectedSegment);
+  const { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } = Recharts;
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>영양 균형 분석</CardTitle>
-        <CardDescription>
-          탄수화물, 단백질, 지방의 칼로리 비율 및 균형 상태
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col lg:flex-row items-center gap-8">
-          {/* 도넛 차트 */}
-          <div className="flex-shrink-0">
-            {renderDonutChart()}
-          </div>
-
-          {/* 범례 및 상세 정보 */}
-          <div className="flex-1 space-y-4">
-            {nutritionData.map((item) => (
-              <div
-                key={item.name}
-                className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${
-                  selectedSegment === item.name
-                    ? 'border-gray-300 bg-gray-50 shadow-sm'
-                    : 'border-transparent hover:border-gray-200'
-                }`}
-                onClick={() => setSelectedSegment(selectedSegment === item.name ? null : item.name)}
+    <div className={`space-y-6 ${className || ''}`}>
+      {/* 도넛 차트 */}
+      <div className="flex flex-col lg:flex-row items-center gap-8">
+        <div className="flex-shrink-0">
+          <ResponsiveContainer width={300} height={300}>
+            <PieChart>
+              <Pie
+                data={nutritionData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ koreanName, percentage }: any) => `${koreanName} ${percentage.toFixed(0)}%`}
+                outerRadius={100}
+                innerRadius={60}
+                fill="#8884d8"
+                dataKey="percentage"
               >
+                {nutritionData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip 
+                formatter={(value: number, name: string, props: any) => {
+                  const item = nutritionData.find(d => d.name === name || d.koreanName === name);
+                  return [
+                    `${value.toFixed(1)}% (${item?.calories.toFixed(0)}kcal, ${item?.value.toFixed(1)}g)`,
+                    '비율'
+                  ];
+                }}
+              />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 상세 정보 */}
+        <div className="flex-1 space-y-4">
+          {nutritionData.map((item) => (
+            <div key={item.name} className="space-y-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {/* 색상 표시 */}
                   <div
                     className="w-4 h-4 rounded-full flex-shrink-0"
                     style={{ backgroundColor: item.color }}
                   />
-
-                  {/* 영양소 정보 */}
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {item.koreanName}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {item.value}g ({item.calories.toFixed(0)}kcal)
-                    </div>
-                  </div>
+                  <span className="font-medium text-gray-900">{item.koreanName}</span>
                 </div>
-
-                {/* 비율 및 상태 */}
-                <div className="text-right">
-                  <div className="font-semibold text-gray-900">
-                    {item.percentage.toFixed(1)}%
-                  </div>
-                  <Badge
-                    variant={item.status === 'normal' ? 'default' :
-                           item.status === 'low' ? 'destructive' : 'secondary'}
-                    className="text-xs"
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-gray-900">{item.percentage.toFixed(1)}</span>
+                  <span className="text-sm text-muted-foreground">%</span>
+                  <Badge 
+                    variant="outline"
+                    className={
+                      item.status === 'good' ? 'bg-green-100 text-green-800' :
+                      item.status === 'low' ? 'bg-blue-100 text-blue-800' :
+                      'bg-orange-100 text-orange-800'
+                    }
                   >
-                    {item.status === 'low' ? '부족' :
-                     item.status === 'high' ? '과다' : '적정'}
+                    {item.status === 'good' ? '적정' : item.status === 'low' ? '부족' : '과다'}
                   </Badge>
                 </div>
               </div>
-            ))}
-
-            {/* 권장 비율 안내 */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="font-medium text-blue-900 mb-2">권장 칼로리 비율</h4>
-              <div className="space-y-1 text-sm text-blue-800">
-                <div>탄수화물: {RECOMMENDED_RATIOS.carbohydrates.min}-{RECOMMENDED_RATIOS.carbohydrates.max}%</div>
-                <div>단백질: {RECOMMENDED_RATIOS.protein.min}-{RECOMMENDED_RATIOS.protein.max}%</div>
-                <div>지방: {RECOMMENDED_RATIOS.fat.min}-{RECOMMENDED_RATIOS.fat.max}%</div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full transition-all"
+                  style={{
+                    width: `${item.percentage}%`,
+                    backgroundColor: item.color,
+                  }}
+                />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{item.calories.toFixed(0)}kcal</span>
+                <span>{item.value.toFixed(1)}g</span>
+                <span>권장: {item.recommended.min}% - {item.recommended.max}%</span>
               </div>
             </div>
-
-            {/* 선택된 세그먼트 상세 정보 */}
-            {selectedItem && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
-                <h4 className="font-medium text-gray-900 mb-2">
-                  {selectedItem.koreanName} 상세 정보
-                </h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>섭취량:</span>
-                    <span className="font-medium">{selectedItem.value}g</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>칼로리:</span>
-                    <span className="font-medium">{selectedItem.calories.toFixed(0)}kcal</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>비율:</span>
-                    <span className="font-medium">{selectedItem.percentage.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>권장 범위:</span>
-                    <span className="font-medium">
-                      {selectedItem.recommended.min}-{selectedItem.recommended.max}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>상태:</span>
-                    <Badge
-                      variant={selectedItem.status === 'normal' ? 'default' :
-                             selectedItem.status === 'low' ? 'destructive' : 'secondary'}
-                    >
-                      {selectedItem.status === 'low' ? '권장량 미만' :
-                       selectedItem.status === 'high' ? '권장량 초과' : '적정 범위'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            )}
+          ))}
+          
+          <div className="pt-4 border-t">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-900">총 칼로리</span>
+              <span className="text-xl font-bold text-gray-900">{totalCalories.toFixed(0)}kcal</span>
+            </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
+

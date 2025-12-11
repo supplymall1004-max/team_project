@@ -39,32 +39,93 @@ interface SyncResult {
  */
 export async function POST(request: NextRequest) {
   console.group("[API] 건강 데이터 수동 동기화");
+  console.log("[API] ===== 요청 수신됨 =====");
+  console.log("[API] 요청 시작:", {
+    method: request.method,
+    url: request.url,
+    headers: Object.fromEntries(request.headers.entries()),
+  });
 
   const startTime = Date.now();
   const syncId = `sync_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  console.log("[API] 동기화 ID:", syncId);
+  console.log("[API] ===== 사용자 인증 시작 =====");
 
   try {
     // 사용자 인증
+    console.log("[API] ensureSupabaseUser 호출 중...");
     const user = await ensureSupabaseUser();
+    console.log("[API] ensureSupabaseUser 결과:", {
+      userFound: !!user,
+      userId: user?.id,
+      userName: user?.name,
+    });
+
     if (!user) {
-      return NextResponse.json(
-        { error: "인증되지 않은 사용자입니다." },
-        { status: 401 }
-      );
+      console.error("[API] 사용자 인증 실패 - 사용자 없음");
+      const errorResponse = {
+        success: false,
+        error: "인증되지 않은 사용자입니다.",
+        syncId,
+        dataSources: [],
+        totalRecordsSynced: 0,
+        duration: Date.now() - startTime,
+        nextSyncAvailable: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      };
+      console.log("[API] ===== 에러 응답 준비 =====");
+      console.log("[API] 에러 응답:", JSON.stringify(errorResponse, null, 2));
+      console.groupEnd();
+      return NextResponse.json(errorResponse, { status: 401 });
     }
+
+    console.log("[API] ===== 사용자 인증 성공 =====");
 
     console.log(`사용자 ID: ${user.id}, 동기화 ID: ${syncId}`);
 
     // 프리미엄 체크 (건강 데이터 동기화는 프리미엄 기능)
+    console.log("[API] ===== 프리미엄 체크 시작 =====");
     const premiumCheck = await checkPremiumAccess();
+    console.log("[API] 프리미엄 체크 결과:", premiumCheck);
+
     if (!premiumCheck.isPremium) {
+      console.error("[API] 프리미엄 회원이 아님");
+      const errorResponse = {
+        success: false,
+        error: "프리미엄 회원만 이용할 수 있는 기능입니다.",
+        syncId,
+        dataSources: [],
+        totalRecordsSynced: 0,
+        duration: Date.now() - startTime,
+        nextSyncAvailable: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      };
+      console.log("[API] ===== 프리미엄 에러 응답 준비 =====");
+      console.log("[API] 프리미엄 에러 응답:", JSON.stringify(errorResponse, null, 2));
+      console.groupEnd();
+      return NextResponse.json(errorResponse, { status: 403 });
+    }
+
+    console.log("[API] ===== 프리미엄 체크 통과 =====");
+
+    // 요청 본문 파싱
+    let body: SyncRequest;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error("[API] 요청 본문 파싱 실패:", parseError);
       return NextResponse.json(
-        { error: "프리미엄 회원만 이용할 수 있는 기능입니다." },
-        { status: 403 }
+        {
+          success: false,
+          syncId,
+          dataSources: [],
+          totalRecordsSynced: 0,
+          duration: Date.now() - startTime,
+          nextSyncAvailable: new Date(Date.now() + 60 * 60 * 1000),
+          error: "요청 본문을 파싱할 수 없습니다.",
+        },
+        { status: 400 }
       );
     }
 
-    const body: SyncRequest = await request.json();
     const {
       dataSources = ["mydata", "health_highway"],
       forceSync = false,
@@ -99,10 +160,16 @@ export async function POST(request: NextRequest) {
         const timeDiff = Date.now() - new Date(recentSync.synced_at).getTime();
         const minutesLeft = Math.ceil((60 * 60 * 1000 - timeDiff) / (60 * 1000));
 
+        const nextSyncDate = new Date(Date.now() + (60 * 60 * 1000 - timeDiff));
         return NextResponse.json(
           {
+            success: false,
             error: `최근 동기화 후 ${minutesLeft}분 뒤에 다시 시도할 수 있습니다.`,
-            nextSyncAvailable: new Date(Date.now() + (60 * 60 * 1000 - timeDiff)),
+            nextSyncAvailable: nextSyncDate.toISOString(),
+            syncId,
+            dataSources: [],
+            totalRecordsSynced: 0,
+            duration: Date.now() - startTime,
           },
           { status: 429 }
         );
@@ -114,26 +181,49 @@ export async function POST(request: NextRequest) {
 
     // 각 데이터 소스별 동기화 실행
     for (const source of dataSources) {
-      console.log(`${source} 데이터 소스 동기화 시작`);
+      console.log(`[API] ${source} 데이터 소스 동기화 시작`);
 
       try {
         // 데이터 소스 연결 상태 확인
-        const { data: dataSource } = await supabase
+        const { data: dataSource, error: dataSourceError } = await supabase
           .from("health_data_sources")
           .select("*")
           .eq("user_id", user.id)
           .eq("source_type", source)
           .eq("connection_status", "connected")
-          .single();
+          .maybeSingle();
 
-        if (!dataSource) {
+        console.log(`[API] ${source} 데이터 소스 조회 결과:`, {
+          found: !!dataSource,
+          error: dataSourceError,
+        });
+
+        if (dataSourceError) {
+          console.error(`[API] ${source} 데이터 소스 조회 오류:`, dataSourceError);
           syncResults.push({
             source,
-            status: "skipped",
-            message: `${source} 데이터 소스가 연결되어 있지 않습니다.`,
+            status: "failed",
+            message: `${source} 데이터 소스 조회 중 오류가 발생했습니다.`,
+            error: dataSourceError.message,
           });
           continue;
         }
+
+        if (!dataSource) {
+          console.log(`[API] ${source} 데이터 소스가 연결되어 있지 않음`);
+          syncResults.push({
+            source,
+            status: "skipped",
+            message: `${source} 데이터 소스가 연결되어 있지 않습니다. 데이터 소스 연결 페이지에서 먼저 연결해주세요.`,
+          });
+          continue;
+        }
+
+        console.log(`[API] ${source} 데이터 소스 발견, 동기화 시작:`, {
+          id: dataSource.id,
+          sourceType: dataSource.source_type,
+          connectionStatus: dataSource.connection_status,
+        });
 
         // 동기화 실행
         const syncResult = await syncHealthData({
@@ -188,27 +278,59 @@ export async function POST(request: NextRequest) {
     };
 
     console.log(`동기화 완료: ${totalRecordsSynced}개 레코드 동기화, 소요시간: ${duration}ms`);
+    console.log(`결과 요약:`, {
+      success: result.success,
+      dataSourcesCount: result.dataSources.length,
+      totalRecords: result.totalRecordsSynced,
+      syncResults: result.dataSources.map(ds => ({
+        source: ds.source,
+        status: ds.status,
+        message: ds.message,
+      })),
+    });
     console.groupEnd();
 
-    return NextResponse.json(result);
+    // Date 객체를 ISO 문자열로 변환하여 직렬화 문제 방지
+    const responseData = {
+      ...result,
+      nextSyncAvailable: nextSyncAvailable.toISOString(),
+    };
+
+    console.log(`[API] 최종 응답 데이터:`, JSON.stringify(responseData, null, 2));
+
+    return NextResponse.json(responseData);
 
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error("건강 데이터 동기화 중 오류:", error);
+    console.error("에러 상세:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : typeof error,
+    });
     console.groupEnd();
 
-    return NextResponse.json(
-      {
-        success: false,
-        syncId,
-        dataSources: [],
-        totalRecordsSynced: 0,
-        duration,
-        nextSyncAvailable: new Date(Date.now() + 60 * 60 * 1000),
-        error: "건강 데이터 동기화 중 오류가 발생했습니다.",
-      },
-      { status: 500 }
-    );
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : "건강 데이터 동기화 중 오류가 발생했습니다.";
+
+    const errorResponse = {
+      success: false,
+      syncId,
+      dataSources: [],
+      totalRecordsSynced: 0,
+      duration,
+      nextSyncAvailable: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      error: errorMessage,
+      errorDetails: process.env.NODE_ENV === "development" 
+        ? { error: String(error), stack: error instanceof Error ? error.stack : undefined }
+        : undefined,
+    };
+
+    console.error("[API] 에러 응답:", JSON.stringify(errorResponse, null, 2));
+    console.groupEnd();
+
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
 

@@ -112,15 +112,13 @@ export async function generateWeeklyDiet(
       dailyPlan = familyPlan.unifiedPlan || familyPlan.individualPlans["user"] || null;
       dailyPlansPersisted = false;
     } else {
-      // 개인 식단 생성 (주간 중복 방지 로직 포함)
-      const storedPlan = await generateAndSaveDietPlanWithWeeklyContext(
+      // 개인 식단 생성 (건강 맞춤 식단과 동일한 로직 사용)
+      // 주간 컨텍스트(usedByCategory, preferredRiceType)를 전달하여 중복 방지
+      const storedPlan = await generateAndSaveDietPlan(
         options.userId,
         date,
-        usedRecipeTitles,
-        weeklyRecipeFrequency,
-        maxRepeatsPerWeek,
-        options.avoidRecentRecipes && dayIndex === 0, // 첫 날만 최근 사용 레시피 회피
-        usedByCategory, // 카테고리별 제외 목록
+        false, // includeFavorites (주간 식단에서는 기본적으로 찜한 식단 미포함)
+        usedByCategory, // 카테고리별 제외 목록 (주간 중복 방지)
         riceTypes[riceTypeIndex % riceTypes.length] // 밥 종류 다양화
       );
 
@@ -187,7 +185,7 @@ export async function generateWeeklyDiet(
 /**
  * ISO 8601 주차 정보 계산
  */
-function getWeekInfo(dateString: string): { year: number; weekNumber: number } {
+export function getWeekInfo(dateString: string): { year: number; weekNumber: number } {
   const date = new Date(dateString);
   
   // ISO 8601 주차 계산
@@ -207,7 +205,7 @@ function getWeekInfo(dateString: string): { year: number; weekNumber: number } {
 /**
  * 주간 날짜 배열 생성 (월~일)
  */
-function generateWeekDates(startDate: string): string[] {
+export function generateWeekDates(startDate: string): string[] {
   const dates: string[] = [];
   const start = new Date(startDate);
 
@@ -367,69 +365,8 @@ async function generateFamilyDietWithWeeklyContext(
   }
 }
 
-/**
- * 개인 식단 생성 (주간 컨텍스트 포함)
- */
-async function generateAndSaveDietPlanWithWeeklyContext(
-  userId: string,
-  date: string,
-  usedRecipeTitles: Set<string>,
-  weeklyRecipeFrequency: Map<string, number>,
-  maxRepeatsPerWeek: number,
-  avoidRecentRecipes: boolean,
-  usedByCategory: {
-    rice: Set<string>;
-    side: Set<string>;
-    soup: Set<string>;
-    snack: Set<string>;
-  },
-  preferredRiceType?: string
-): Promise<StoredDailyDietPlan | null> {
-  console.log("📋 개인 식단 생성 (주간 컨텍스트)");
-  console.log("카테고리별 제외 목록:", {
-    rice: Array.from(usedByCategory.rice),
-    side: Array.from(usedByCategory.side),
-    soup: Array.from(usedByCategory.soup),
-    snack: Array.from(usedByCategory.snack),
-  });
-  console.log("선호 밥 종류:", preferredRiceType);
-  
-  try {
-    // 주간 컨텍스트를 고려하여 식단 생성
-    // 카테고리별 제외 목록과 밥 종류를 전달
-    const { generatePersonalDietWithWeeklyContext } = await import("./personal-diet-generator");
-    const result = await generatePersonalDietWithWeeklyContext(
-      userId,
-      date,
-      usedByCategory,
-      preferredRiceType
-    );
-    
-    if (!result) {
-      console.warn("⚠️ 개인 식단 생성 결과가 null입니다");
-      return null;
-    }
-    
-    console.log("✅ 개인 식단 생성 완료:", {
-      date: result.date,
-      breakfast: result.breakfast ? "있음" : "없음",
-      lunch: result.lunch ? "있음" : "없음",
-      dinner: result.dinner ? "있음" : "없음",
-      snack: result.snack ? "있음" : "없음",
-      totalCalories: result.totalNutrition?.calories || 0,
-    });
-    
-    return result;
-  } catch (error) {
-    console.error("❌ 개인 식단 생성 실패:", error);
-    console.error("에러 상세:", {
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : undefined,
-    });
-    throw error;
-  }
-}
+// generateAndSaveDietPlanWithWeeklyContext 함수는 제거됨
+// 이제 generateAndSaveDietPlan을 직접 사용하여 건강 맞춤 식단과 동일한 로직 적용
 
 /**
  * 장보기 리스트 생성 (재료 통합)

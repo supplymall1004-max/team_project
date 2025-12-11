@@ -36,7 +36,8 @@ export async function GET(
     }
 
     const { date } = await params;
-    console.log("조회 날짜:", date);
+    console.log("📅 조회 날짜:", date);
+    console.log("📋 scope 파라미터:", includeSummary ? "previous (요약 포함)" : "없음");
 
     // 사용자 정보 확인 및 자동 동기화
     console.log("🔍 사용자 정보 확인 중...");
@@ -58,6 +59,10 @@ export async function GET(
 
     // 해당 날짜의 모든 식단 조회
     let plans: any[] = [];
+    console.log("🔍 식단 데이터 조회 중...");
+    console.log("   - user_id:", supabaseUserId);
+    console.log("   - plan_date:", date);
+    
     const { data: planRows, error } = await supabase
       .from("diet_plans")
       .select("*")
@@ -70,6 +75,19 @@ export async function GET(
       console.warn("⚠️ diet_plans 조회 오류로 인해 빈 요약으로 대체합니다.");
     } else {
       plans = planRows ?? [];
+      console.log(`📊 조회된 식단 데이터 개수: ${plans.length}개`);
+      if (plans.length > 0) {
+        console.log("📊 식단 데이터 상세:", plans.map(p => ({
+          id: p.id,
+          meal_type: p.meal_type,
+          family_member_id: p.family_member_id,
+          is_unified: p.is_unified,
+          recipe_title: p.recipe_title,
+          calories: p.calories,
+        })));
+      } else {
+        console.warn("⚠️ 해당 날짜에 식단 데이터가 없습니다");
+      }
     }
 
     // 개인별 + 통합 식단으로 그룹핑
@@ -267,7 +285,14 @@ async function buildFamilyDietSummary({
   console.log("memberTabs 상세:", memberTabs);
   console.groupEnd();
 
+  console.group("[buildFamilyDietSummary] 영양소 계산");
+  console.log("plans.unified 존재 여부:", !!plans.unified);
+  console.log("plans.unified 데이터:", plans.unified);
+  
   const nutrientTotals = aggregateNutritionFromPlan(plans.unified);
+  console.log("계산된 영양소 합계:", nutrientTotals);
+  console.groupEnd();
+  
   const includedMemberIds = memberTabs
     .filter((member) => member.includeInUnified !== false)
     .map((member) => member.id);
@@ -276,12 +301,20 @@ async function buildFamilyDietSummary({
     member.notes.map((note) => `${member.name}: ${note}`),
   );
 
+  const planExists = Boolean(plans.unified);
+  console.log("✅ 최종 요약 생성 완료:", {
+    memberTabsCount: memberTabs.length,
+    hasNutrientTotals: !!nutrientTotals,
+    includedMemberIds,
+    planExists,
+  });
+
   return {
     memberTabs,
     nutrientTotals,
     includedMemberIds,
     exclusionNotes,
-      planExists: Boolean(plans.unified),
+    planExists,
   };
 }
 

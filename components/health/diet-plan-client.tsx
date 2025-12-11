@@ -145,8 +145,9 @@ export function DietPlanClient() {
 
       // 병렬로 건강 정보 확인 및 프로필 로드
       console.log("🔍 건강 정보 확인 중...");
+      console.log("사용자 ID:", user.id);
       const [healthCheckRes, profileResponse] = await Promise.all([
-        fetch(`/api/health/check?userId=${user.id}`),
+        fetch("/api/health/check"),
         fetch("/api/health/profile").catch(() => ({ ok: false, json: () => Promise.resolve(null) }))
       ]);
 

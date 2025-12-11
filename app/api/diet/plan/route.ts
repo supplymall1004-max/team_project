@@ -121,7 +121,101 @@ export async function POST(request: NextRequest) {
       // force=true인 경우에만 강제 생성 (사용자가 명시적으로 생성 버튼을 클릭한 경우)
       console.log("🤖 강제 식단 생성 중...");
       console.log("⭐ 찜한 식단 포함:", includeFavorites);
-      dietPlan = await generateAndSaveDietPlan(userData.id, date, includeFavorites);
+      
+      // 주간 컨텍스트 확인: 오늘 날짜가 현재 주간 식단 범위에 포함되는지 확인
+      const { getThisMonday, getNextMonday, generateWeekDates, getWeekInfo } = await import("@/lib/diet/weekly-diet-generator");
+      const thisMonday = getThisMonday();
+      const nextMonday = getNextMonday();
+      const thisWeekDates = generateWeekDates(thisMonday);
+      const nextWeekDates = generateWeekDates(nextMonday);
+      
+      let usedByCategory: { rice: Set<string>; side: Set<string>; soup: Set<string>; snack: Set<string> } | undefined;
+      let preferredRiceType: string | undefined;
+      
+      // 오늘 날짜가 현재 주간 식단 범위에 포함되는지 확인
+      const isInThisWeek = thisWeekDates.includes(date);
+      const isInNextWeek = nextWeekDates.includes(date);
+      
+      if (isInThisWeek || isInNextWeek) {
+        const weekStartDate = isInThisWeek ? thisMonday : nextMonday;
+        console.log("📅 주간 식단 컨텍스트 확인:", { date, weekStartDate, isInThisWeek, isInNextWeek });
+        
+        // 주간 식단에서 사용된 레시피 추적 정보 가져오기
+        const supabase = getServiceRoleClient();
+        
+        // 주간 식단 메타데이터 조회
+        const weekInfo = getWeekInfo(weekStartDate);
+        
+        const { data: weeklyPlan } = await supabase
+          .from("weekly_diet_plans")
+          .select("id")
+          .eq("user_id", userData.id)
+          .eq("week_year", weekInfo.year)
+          .eq("week_number", weekInfo.weekNumber)
+          .maybeSingle();
+        
+        if (weeklyPlan) {
+          // 주간 식단이 있으면 해당 주간의 식단에서 사용된 레시피 추적
+          const weekDates = generateWeekDates(weekStartDate);
+          const { data: existingPlans } = await supabase
+            .from("diet_plans")
+            .select("meal_type, composition_summary, recipe_title")
+            .eq("user_id", userData.id)
+            .in("plan_date", weekDates)
+            .is("family_member_id", null)
+            .eq("is_unified", false);
+          
+          if (existingPlans && existingPlans.length > 0) {
+            usedByCategory = {
+              rice: new Set<string>(),
+              side: new Set<string>(),
+              soup: new Set<string>(),
+              snack: new Set<string>(),
+            };
+            
+            // composition_summary에서 레시피 추출
+            existingPlans.forEach((plan) => {
+              if (!plan.composition_summary) return;
+              
+              try {
+                const composition = typeof plan.composition_summary === 'string'
+                  ? JSON.parse(plan.composition_summary)
+                  : plan.composition_summary;
+                
+                if (composition.rice && Array.isArray(composition.rice)) {
+                  composition.rice.forEach((item: string) => usedByCategory!.rice.add(item));
+                }
+                if (composition.sides && Array.isArray(composition.sides)) {
+                  composition.sides.forEach((item: string) => usedByCategory!.side.add(item));
+                }
+                if (composition.soup && Array.isArray(composition.soup)) {
+                  composition.soup.forEach((item: string) => usedByCategory!.soup.add(item));
+                }
+                if (plan.meal_type === 'snack' && plan.recipe_title) {
+                  usedByCategory!.snack.add(plan.recipe_title);
+                }
+              } catch (e) {
+                console.warn("⚠️ composition_summary 파싱 실패:", e);
+              }
+            });
+            
+            console.log("📋 주간 컨텍스트 적용:", {
+              rice: Array.from(usedByCategory.rice),
+              side: Array.from(usedByCategory.side),
+              soup: Array.from(usedByCategory.soup),
+              snack: Array.from(usedByCategory.snack),
+            });
+          }
+        }
+      }
+      
+      dietPlan = await generateAndSaveDietPlan(
+        userData.id,
+        date,
+        includeFavorites,
+        usedByCategory, // 주간 컨텍스트 전달
+        preferredRiceType // 주간 컨텍스트 전달
+      );
       console.log("🤖 강제 생성 결과:", dietPlan ? "성공" : "실패");
     } else {
       // force=false인 경우: 저장된 식단만 조회 (자동 생성하지 않음)

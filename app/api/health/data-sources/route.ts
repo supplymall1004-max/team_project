@@ -12,6 +12,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 import { checkPremiumAccess } from "@/lib/kcdc/premium-guard";
+import { checkIdentityVerification } from "@/lib/identity/check-verification";
 import {
   generateConnectionUrl,
   syncHealthData,
@@ -111,7 +112,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. 요청 본문 파싱
+    // 2. 신원확인 체크
+    const isVerified = await checkIdentityVerification();
+    if (!isVerified) {
+      console.log("❌ 신원확인 미완료");
+      console.groupEnd();
+      return NextResponse.json(
+        {
+          error: "Identity verification required",
+          message: "데이터 소스를 연결하려면 먼저 신원확인이 완료되어야 합니다.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 3. 요청 본문 파싱
     const body = await request.json();
     const { source_type, source_name, authorization_code, redirect_uri } = body;
 
@@ -127,7 +142,47 @@ export async function POST(request: NextRequest) {
 
     const supabase = getServiceRoleClient();
 
-    // 3. 인증 코드를 액세스 토큰으로 교환
+    // 4. manual 타입은 OAuth 인증이 필요 없음
+    if (source_type === "manual") {
+      // 수동 입력 데이터 소스 연결
+      const { data: dataSource, error: insertError } = await supabase
+        .from("health_data_sources")
+        .insert({
+          user_id: premiumCheck.userId,
+          source_type: source_type,
+          source_name: source_name,
+          connection_status: "connected",
+          connected_at: new Date().toISOString(),
+          connection_metadata: {},
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("❌ 데이터 소스 연결 실패:", insertError);
+        console.groupEnd();
+        return NextResponse.json(
+          {
+            error: "Failed to connect data source",
+            message: insertError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      console.log("✅ 데이터 소스 연결 완료:", dataSource.id);
+      console.groupEnd();
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: dataSource,
+        },
+        { status: 201 }
+      );
+    }
+
+    // 5. 인증 코드를 액세스 토큰으로 교환 (mydata 또는 health_highway)
     let token: MyDataToken | HealthHighwayToken;
     let connectionMetadata: Record<string, any>;
 
@@ -179,7 +234,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. 데이터 소스 연결 정보 저장
+    // 6. 데이터 소스 연결 정보 저장
     const { data: dataSource, error: insertError } = await supabase
       .from("health_data_sources")
       .insert({

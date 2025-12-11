@@ -194,38 +194,69 @@ export function DietSectionClient() {
     const loadDataSequentially = async () => {
       try {
         // 1. 건강 정보 확인 (가장 먼저)
-        console.log("[DietSection] 건강 정보 확인 시작");
-        const healthCheckRes = await fetch(`/api/health/check?userId=${user.id}`);
+        console.group("[DietSection] 건강 정보 확인 시작");
+        console.log("사용자 ID:", user.id);
+        
+        const healthCheckRes = await fetch("/api/health/check");
+        console.log("📡 API 응답 상태:", healthCheckRes.status, healthCheckRes.statusText);
+        
         if (!healthCheckRes.ok) {
+          console.error("❌ 건강 정보 확인 실패:", healthCheckRes.status, healthCheckRes.statusText);
+          const errorText = await healthCheckRes.text().catch(() => "응답 본문을 읽을 수 없습니다");
+          console.error("❌ 에러 상세:", errorText);
           setHasHealthProfile(false);
           setIsLoading(false);
+          console.groupEnd();
           return;
         }
 
         const healthCheck = await healthCheckRes.json();
+        console.log("✅ 건강 정보 확인 결과:", healthCheck);
+        
         if (!healthCheck.hasProfile) {
+          console.warn("⚠️ 건강 정보가 없습니다");
           setHasHealthProfile(false);
           setIsLoading(false);
+          console.groupEnd();
           return;
         }
 
+        console.log("✅ 건강 정보 확인됨");
         setHasHealthProfile(true);
+        console.groupEnd();
 
         // 2. 오늘 식단 조회 (건강 정보 확인 후)
         const today = new Date();
         const todayStr = today.toISOString().split("T")[0];
         setSummaryDate(todayStr);
 
-        console.log("[DietSection] 식단 조회 시작:", todayStr);
+        console.group("[DietSection] 식단 조회 시작");
+        console.log("📅 조회 날짜:", todayStr);
         const dietRes = await fetch(`/api/diet/plan?date=${todayStr}`);
+        console.log("📡 식단 API 응답 상태:", dietRes.status, dietRes.statusText);
 
         if (dietRes.ok) {
           const dietData = await dietRes.json();
+          console.log("✅ 식단 데이터 수신:", dietData);
+          
           if (dietData.dietPlan) {
+            console.log("✅ 식단 설정:", {
+              date: dietData.dietPlan.date,
+              hasBreakfast: !!dietData.dietPlan.breakfast,
+              hasLunch: !!dietData.dietPlan.lunch,
+              hasDinner: !!dietData.dietPlan.dinner,
+              hasSnack: !!dietData.dietPlan.snack,
+            });
             setDietPlan(dietData.dietPlan);
+          } else {
+            console.warn("⚠️ dietPlan이 응답에 없습니다");
           }
+        } else {
+          const errorText = await dietRes.text().catch(() => "응답 본문을 읽을 수 없습니다");
+          console.warn("⚠️ 식단 조회 실패:", dietRes.status, errorText);
+          // 404는 정상 상황 (식단이 아직 생성되지 않음)
         }
-        // 404는 정상 상황이므로 무시
+        console.groupEnd();
 
         // 3. 가족 요약 데이터 (식단 조회 후)
         console.log("[DietSection] 가족 요약 조회 시작");

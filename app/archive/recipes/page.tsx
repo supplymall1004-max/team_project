@@ -1,6 +1,6 @@
 /**
  * @file app/archive/recipes/page.tsx
- * @description 레시피 아카이브 상세 페이지
+ * @description 레시피 아카이브 상세 페이지 (Server Component)
  *
  * 주요 기능:
  * 1. 현대 레시피, 궁중 레시피, 식약처 레시피 통합
@@ -8,17 +8,14 @@
  * 3. 필터 및 정렬 기능
  */
 
-'use client';
-
-import { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Section } from '@/components/section';
-import { RecipeSection } from '@/components/recipes/recipe-section';
+import { RecipeTabsClient } from './recipe-tabs-client';
+import { RecipeSectionServer } from './recipe-section-server';
 import { RoyalRecipesQuickAccess } from '@/components/royal-recipes/royal-recipes-quick-access';
 import { MfdsRecipeSection } from '@/components/home/mfds-recipe-section';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LoadingSpinner } from '@/components/loading-spinner';
+import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { LoadingSpinner } from '@/components/loading-spinner';
 
 function SectionSkeleton() {
   return (
@@ -28,10 +25,60 @@ function SectionSkeleton() {
   );
 }
 
-function RecipeArchiveContent() {
-  const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'all';
+// Server Component로 각 탭 콘텐츠를 직접 렌더링
+function AllTabContent() {
+  return (
+    <div className="space-y-8">
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <RecipeSectionServer />
+        </Suspense>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <RoyalRecipesQuickAccess id="royal-recipes" />
+        </Suspense>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <MfdsRecipeSection />
+        </Suspense>
+      </ErrorBoundary>
+    </div>
+  );
+}
 
+function ModernTabContent() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<SectionSkeleton />}>
+        <RecipeSectionServer />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function RoyalTabContent() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<SectionSkeleton />}>
+        <RoyalRecipesQuickAccess id="royal-recipes" />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function MfdsTabContent() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<SectionSkeleton />}>
+        <MfdsRecipeSection />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+export default function RecipeArchivePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Section className="pt-8">
@@ -42,71 +89,14 @@ function RecipeArchiveContent() {
           </p>
         </div>
 
-        <Tabs defaultValue={initialTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="all">전체</TabsTrigger>
-            <TabsTrigger value="modern">현대 레시피</TabsTrigger>
-            <TabsTrigger value="royal">궁중 레시피</TabsTrigger>
-            <TabsTrigger value="mfds">식약처 레시피</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all" className="space-y-8">
-            {/* 현대 레시피 */}
-            <ErrorBoundary>
-              <Suspense fallback={<SectionSkeleton />}>
-                <RecipeSection />
-              </Suspense>
-            </ErrorBoundary>
-
-            {/* 궁중 레시피 */}
-            <ErrorBoundary>
-              <Suspense fallback={<SectionSkeleton />}>
-                <RoyalRecipesQuickAccess id="royal-recipes" />
-              </Suspense>
-            </ErrorBoundary>
-
-            {/* 식약처 레시피 */}
-            <ErrorBoundary>
-              <Suspense fallback={<SectionSkeleton />}>
-                <MfdsRecipeSection />
-              </Suspense>
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="modern">
-            <ErrorBoundary>
-              <Suspense fallback={<SectionSkeleton />}>
-                <RecipeSection />
-              </Suspense>
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="royal">
-            <ErrorBoundary>
-              <Suspense fallback={<SectionSkeleton />}>
-                <RoyalRecipesQuickAccess id="royal-recipes" />
-              </Suspense>
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="mfds">
-            <ErrorBoundary>
-              <Suspense fallback={<SectionSkeleton />}>
-                <MfdsRecipeSection />
-              </Suspense>
-            </ErrorBoundary>
-          </TabsContent>
-        </Tabs>
+        <RecipeTabsClient
+          allContent={<AllTabContent />}
+          modernContent={<ModernTabContent />}
+          royalContent={<RoyalTabContent />}
+          mfdsContent={<MfdsTabContent />}
+        />
       </Section>
     </div>
-  );
-}
-
-export default function RecipeArchivePage() {
-  return (
-    <Suspense fallback={<SectionSkeleton />}>
-      <RecipeArchiveContent />
-    </Suspense>
   );
 }
 

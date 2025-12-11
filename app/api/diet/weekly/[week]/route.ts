@@ -159,6 +159,12 @@ export async function GET(
     
     // recipe_id가 TEXT 타입이고 recipes.id가 UUID 타입이므로 조인 없이 조회
     // 주간 식단 요약은 사용자 본인의 식단만 조회 (family_member_id가 NULL인 경우만)
+    console.log("🔍 diet_plans 조회 조건:", {
+      user_id: userId,
+      plan_dates: dates,
+      family_member_id: "null",
+    });
+    
     const { data: dietPlans, error: dietError } = await supabase
       .from("diet_plans")
       .select(
@@ -172,6 +178,23 @@ export async function GET(
       .in("plan_date", dates)
       .order("plan_date", { ascending: true })
       .order("meal_type", { ascending: true });
+    
+    // 조회 전에 해당 날짜 범위의 모든 식단 확인 (디버깅용)
+    const { data: allPlansInRange, error: debugError } = await supabase
+      .from("diet_plans")
+      .select("id, user_id, plan_date, meal_type, is_unified, family_member_id")
+      .eq("user_id", userId)
+      .in("plan_date", dates);
+    
+    if (!debugError && allPlansInRange) {
+      console.log(`🔍 날짜 범위 내 전체 식단 레코드: ${allPlansInRange.length}개`);
+      console.log("🔍 전체 식단 상세:", allPlansInRange.map(p => ({
+        plan_date: p.plan_date,
+        meal_type: p.meal_type,
+        is_unified: p.is_unified,
+        family_member_id: p.family_member_id,
+      })));
+    }
 
     if (dietError) {
       console.error("❌ 일별 식단 조회 실패:", dietError);

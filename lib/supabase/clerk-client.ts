@@ -46,7 +46,10 @@ export function useClerkSupabaseClient() {
     }
 
     if (!isAuthLoaded) {
-      console.warn("[useClerkSupabaseClient] Clerk 인증이 아직 로드되지 않았습니다.");
+      // 경고를 로그 레벨로 변경 (에러가 아님)
+      if (process.env.NODE_ENV === "development") {
+        console.log("[useClerkSupabaseClient] Clerk 인증 로딩 중...");
+      }
     }
 
     return createClient(supabaseUrl, supabaseKey, {

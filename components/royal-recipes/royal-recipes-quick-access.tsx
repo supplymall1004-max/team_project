@@ -48,16 +48,15 @@ const eras = [
 
 interface RoyalRecipesQuickAccessProps {
   id?: string;
+  showSection?: boolean;
 }
 
-export function RoyalRecipesQuickAccess({ id = "royal-recipes" }: RoyalRecipesQuickAccessProps) {
-  return (
-    <Section
-      id={id}
-      title="궁중 레시피 아카이브"
-      description="잊혀져 가는 시대별 궁중 음식 레시피를 만나보세요"
-    >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+export function RoyalRecipesQuickAccess({ 
+  id = "royal-recipes",
+  showSection = true 
+}: RoyalRecipesQuickAccessProps) {
+  const content = (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {eras.map((era) => {
           return (
             <Link
@@ -125,7 +124,20 @@ export function RoyalRecipesQuickAccess({ id = "royal-recipes" }: RoyalRecipesQu
           );
         })}
       </div>
-    </Section>
   );
+
+  if (showSection) {
+    return (
+      <Section
+        id={id}
+        title="궁중 레시피 아카이브"
+        description="잊혀져 가는 시대별 궁중 음식 레시피를 만나보세요"
+      >
+        {content}
+      </Section>
+    );
+  }
+
+  return <div id={id}>{content}</div>;
 }
 

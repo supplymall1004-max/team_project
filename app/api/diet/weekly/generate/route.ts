@@ -368,59 +368,112 @@ export async function POST(request: NextRequest) {
     console.log("주간 식단 ID:", weeklyPlanId);
 
     // 8-2. 일별 식단 저장 (diet_plans 테이블에)
-    const shouldPersistDailyPlans = weeklyDiet.dailyPlansPersisted !== true;
-    if (shouldPersistDailyPlans) {
-      const dietPlanRecords: Array<{
-        user_id: string;
-        plan_date: string;
-        meal_type: string;
-        recipe_id: string | null;
-        recipe_title: string;
-        recipe_description: string;
-        calories: number;
-        carbs_g: number;
-        protein_g: number;
-        fat_g: number;
-        sodium_mg: number;
-        composition_summary: Record<string, string[]> | null;
-        is_unified: boolean;
-      }> = [];
-      for (const [date, dailyPlan] of Object.entries(weeklyDiet.dailyPlans)) {
-        const meals = ["breakfast", "lunch", "dinner", "snack"] as const;
+    // generateAndSaveDietPlan이 이미 저장했다고 해도, 
+    // 주간 식단 조회 시 정확한 데이터를 보장하기 위해 항상 저장 확인 및 필요시 재저장
+    console.log("💾 일별 식단 저장 확인 중...");
+    console.log("dailyPlansPersisted:", weeklyDiet.dailyPlansPersisted);
+    
+    const dietPlanRecords: Array<{
+      user_id: string;
+      plan_date: string;
+      meal_type: string;
+      recipe_id: string | null;
+      recipe_title: string;
+      recipe_description: string;
+      calories: number;
+      carbs_g: number;
+      protein_g: number;
+      fat_g: number;
+      sodium_mg: number;
+      composition_summary: Record<string, string[]> | null;
+      is_unified: boolean;
+      family_member_id: string | null;
+    }> = [];
+    
+    for (const [date, dailyPlan] of Object.entries(weeklyDiet.dailyPlans)) {
+      const meals = ["breakfast", "lunch", "dinner", "snack"] as const;
 
-        for (const mealType of meals) {
-          const meal = dailyPlan[mealType];
-          
-          // DietPlan 타입인 경우 (이미 DB에 저장된 레코드)는 건너뛰기
-          if (meal && "plan_date" in meal && "meal_type" in meal) {
-            // 이미 저장된 레코드이므로 건너뜀
-            continue;
-          }
-          
-          // MealComposition | RecipeDetailForDiet 타입인 경우만 저장
-          const mealRecords = buildDietPlanRecords({
-            date,
-            mealType,
-            meal: meal as MealComposition | RecipeDetailForDiet | undefined,
-            userId,
+      for (const mealType of meals) {
+        const meal = dailyPlan[mealType];
+        
+        if (!meal) continue;
+        
+        // DietPlan 타입인 경우 (generateAndSaveDietPlan이 반환한 저장된 레코드)
+        // 이미 DB에 저장되어 있지만, 주간 식단 조회 시 정확한 데이터를 보장하기 위해
+        // 레코드 정보를 추출하여 저장 배열에 추가
+        if (meal && "plan_date" in meal && "meal_type" in meal && "id" in meal) {
+          // 이미 저장된 레코드이지만, upsert를 위해 레코드 정보 추출
+          const dietPlan = meal as any;
+          dietPlanRecords.push({
+            user_id: dietPlan.user_id || userId,
+            plan_date: dietPlan.plan_date || date,
+            meal_type: dietPlan.meal_type || mealType,
+            recipe_id: dietPlan.recipe_id || null,
+            recipe_title: dietPlan.recipe_title || dietPlan.recipe?.title || "",
+            recipe_description: dietPlan.recipe_description || dietPlan.recipe?.description || "",
+            calories: typeof dietPlan.calories === 'number' ? dietPlan.calories : Number(dietPlan.calories) || 0,
+            carbs_g: typeof dietPlan.carbohydrates === 'number' ? dietPlan.carbohydrates : Number(dietPlan.carbs_g) || Number(dietPlan.carbohydrates) || 0,
+            protein_g: typeof dietPlan.protein === 'number' ? dietPlan.protein : Number(dietPlan.protein_g) || Number(dietPlan.protein) || 0,
+            fat_g: typeof dietPlan.fat === 'number' ? dietPlan.fat : Number(dietPlan.fat_g) || Number(dietPlan.fat) || 0,
+            sodium_mg: typeof dietPlan.sodium === 'number' ? dietPlan.sodium : Number(dietPlan.sodium_mg) || Number(dietPlan.sodium) || 0,
+            composition_summary: dietPlan.composition_summary || dietPlan.compositionSummary || null,
+            is_unified: dietPlan.is_unified || false,
+            family_member_id: dietPlan.family_member_id || null,
           });
-          dietPlanRecords.push(...mealRecords);
+          continue;
+        }
+        
+        // MealComposition | RecipeDetailForDiet 타입인 경우 저장
+        const mealRecords = buildDietPlanRecords({
+          date,
+          mealType,
+          meal: meal as MealComposition | RecipeDetailForDiet | undefined,
+          userId,
+        });
+        dietPlanRecords.push(...mealRecords);
+      }
+    }
+
+    if (dietPlanRecords.length > 0) {
+      console.log(`💾 ${dietPlanRecords.length}개 식단 레코드 저장 시도...`);
+      
+      // 기존 식단 삭제 후 재저장 (upsert 대신 delete + insert)
+      const dates = generateWeekDates(weeklyDiet.metadata.week_start_date);
+      const { error: deleteError } = await serviceSupabase
+        .from("diet_plans")
+        .delete()
+        .eq("user_id", userId)
+        .is("family_member_id", null)
+        .in("plan_date", dates);
+      
+      if (deleteError) {
+        console.warn("⚠️ 기존 식단 삭제 실패 (무시):", deleteError);
+      } else {
+        console.log("✅ 기존 식단 삭제 완료");
+      }
+      
+      const { error: dietPlanError, data: insertedData } = await serviceSupabase
+        .from("diet_plans")
+        .insert(dietPlanRecords)
+        .select("id, plan_date, meal_type");
+
+      if (dietPlanError) {
+        console.error("⚠️ 일별 식단 저장 실패:", dietPlanError);
+        console.error("에러 코드:", dietPlanError?.code);
+        console.error("에러 메시지:", dietPlanError?.message);
+        console.error("에러 상세:", dietPlanError?.details);
+      } else {
+        console.log(`✅ 일별 식단 ${insertedData?.length || dietPlanRecords.length}개 저장 완료`);
+        if (insertedData) {
+          console.log("✅ 저장된 레코드 샘플:", insertedData.slice(0, 3).map(r => ({
+            id: r.id,
+            plan_date: r.plan_date,
+            meal_type: r.meal_type,
+          })));
         }
       }
-
-      if (dietPlanRecords.length > 0) {
-        const { error: dietPlanError } = await serviceSupabase
-          .from("diet_plans")
-          .insert(dietPlanRecords);
-
-        if (dietPlanError) {
-          console.error("⚠️ 일별 식단 저장 실패:", dietPlanError);
-          console.error("에러 코드:", dietPlanError?.code);
-          console.error("에러 메시지:", dietPlanError?.message);
-        } else {
-          console.log(`✅ 일별 식단 ${dietPlanRecords.length}개 저장 완료`);
-        }
-      }
+    } else {
+      console.warn("⚠️ 저장할 식단 레코드가 없습니다");
     }
 
     // 8-3. 장보기 리스트 저장 - service-role 클라이언트 사용

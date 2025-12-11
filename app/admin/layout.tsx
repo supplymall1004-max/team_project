@@ -89,6 +89,13 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     href: "/admin/security",
     icon: "security",
   },
+  {
+    id: "consent",
+    label: "동의 내역",
+    description: "개인정보 처리 동의 내역 조회 및 출력",
+    href: "/admin/consent",
+    icon: "logs",
+  },
 ];
 
 const SIGN_IN_REDIRECT = "/sign-in?redirect_url=%2Fadmin";

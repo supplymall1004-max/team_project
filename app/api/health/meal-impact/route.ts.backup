@@ -399,7 +399,6 @@ function getHealthStatus(score: number): HealthMetrics['healthStatus'] {
   if (score >= 35) return 'poor';
   return 'critical';
 }
-
  
  2 0 2 5 D�  1 2 ��  1 0 |�  �|�  $���  3 : 2 6 : 5 0 
  

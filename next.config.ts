@@ -8,6 +8,8 @@ import type { NextConfig } from "next";
 const buildRemotePatterns = () => {
   const remotePatterns = [
     { hostname: "img.clerk.com" },
+    // 로컬 이미지 호스트 (public 폴더 이미지)
+    { hostname: "localhost" },
     // 외부 이미지 서비스 호스트 (foodjpg.md 및 이미지 검색에서 사용)
     { hostname: "images.unsplash.com" },
     { hostname: "lh3.googleusercontent.com" },

@@ -11,8 +11,10 @@ import type { FamilyMember } from "@/types/family";
 import { calculateAge } from "@/lib/utils/age-calculator";
 import { getHealthSummary } from "@/lib/utils/health-labels";
 import { ACTIVITY_LEVEL_LABELS } from "@/types/family";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { FamilyMemberForm } from "./family-member-form";
+import { FamilyMemberIdentityVerification } from "@/components/health/family-member-identity-verification";
+import { FamilyMemberHealthSyncButton } from "@/components/health/family-member-health-sync-button";
 
 interface FamilyMemberCardProps {
   member: FamilyMember;
@@ -23,6 +25,7 @@ export function FamilyMemberCard({ member, onRefresh }: FamilyMemberCardProps) {
   const { getToken } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showHealthSection, setShowHealthSection] = useState(false);
 
   const { years, isChild } = calculateAge(member.birth_date);
   const healthSummary = getHealthSummary(member.diseases, member.allergies);
@@ -211,6 +214,40 @@ export function FamilyMemberCard({ member, onRefresh }: FamilyMemberCardProps) {
               {healthSummary}
             </p>
           </div>
+        </div>
+
+        {/* 건강 정보 관리 섹션 */}
+        <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+          <button
+            onClick={() => setShowHealthSection(!showHealthSection)}
+            className="flex w-full items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
+          >
+            <span>건강 정보 관리</span>
+            {showHealthSection ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </button>
+          
+          {showHealthSection && (
+            <div className="mt-4 space-y-4">
+              <FamilyMemberIdentityVerification
+                member={member}
+                onVerified={() => {
+                  // 신원확인 완료 후 새로고침
+                  onRefresh();
+                }}
+              />
+              <FamilyMemberHealthSyncButton
+                member={member}
+                onSyncComplete={() => {
+                  // 동기화 완료 후 새로고침
+                  onRefresh();
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 

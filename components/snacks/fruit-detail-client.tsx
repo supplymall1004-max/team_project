@@ -239,24 +239,55 @@ export function FruitDetailClient({ fruit }: FruitDetailClientProps) {
           </Card>
         )}
 
-        {/* 판매 안내 알림 */}
-        <Alert className="border-blue-200 bg-blue-50">
-          <AlertCircle className="h-5 w-5 text-blue-600" />
-          <AlertTitle className="text-blue-900 font-semibold">판매 기능 준비 중</AlertTitle>
-          <AlertDescription className="text-blue-800 mt-2">
-            <p className="mb-2">
-              제철과일 판매 기능은 현재 개발 중입니다. 추후 다음 플랫폼을 통해 구매하실 수 있습니다:
-            </p>
-            <ul className="list-disc list-inside space-y-1 ml-2">
-              <li>쿠팡 파트너스 링크</li>
-              <li>네이버 쇼핑 링크</li>
-              <li>직접 판매 (플랫폼 내 구매)</li>
-            </ul>
-            <p className="mt-3 text-sm">
-              구매 기능이 준비되면 알림을 받으실 수 있습니다. 관심 있는 과일을 즐겨찾기에 추가해주세요!
-            </p>
-          </AlertDescription>
-        </Alert>
+        {/* 구매 링크 섹션 */}
+        <Card className="mb-6 border-emerald-200 bg-emerald-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-emerald-900">
+              <ShoppingCart className="h-5 w-5" />
+              제철과일 구매하기
+            </CardTitle>
+            <CardDescription className="text-emerald-800">
+              신선한 제철과일을 다양한 플랫폼에서 구매하실 수 있습니다
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Button
+                asChild
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                <a
+                  href={`https://www.coupang.com/np/search?q=${encodeURIComponent(fruit.name)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  쿠팡에서 구매하기
+                </a>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+              >
+                <a
+                  href={`https://search.shopping.naver.com/search/all?query=${encodeURIComponent(fruit.name)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  네이버 쇼핑에서 구매하기
+                </a>
+              </Button>
+            </div>
+            <Alert className="border-blue-200 bg-blue-50 mt-4">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800 text-xs">
+                외부 쇼핑몰로 이동합니다. 구매 시 가격과 배송 정보를 확인하시기 바랍니다.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
