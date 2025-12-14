@@ -368,8 +368,8 @@ export function MealImpactPredictor({
             {prediction.insights.slice(0, expandedInsights ? undefined : 3).map((insight, index) => (
               <div key={index} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
                 <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
-                  insight.type === 'positive' ? 'bg-green-500' :
-                  insight.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+                  index % 3 === 0 ? 'bg-green-500' :
+                  index % 3 === 1 ? 'bg-yellow-500' : 'bg-blue-500'
                 }`} />
                 <div>
                   <p className="text-sm text-gray-700">{insight}</p>

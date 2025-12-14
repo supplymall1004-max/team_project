@@ -94,7 +94,7 @@ export async function calculateInfectionRiskScore(
     // 5. 위험 지수 계산
     const riskScore = calculateRiskScore({
       age: healthProfile.age || undefined,
-      diseases: healthProfile.diseases || [],
+      diseases: healthProfile.diseases?.map(d => d.code) || [],
       region: params.region || healthProfile.region || undefined,
       outbreaks,
       fluInfo,
@@ -106,7 +106,7 @@ export async function calculateInfectionRiskScore(
       riskScore: riskScore.riskScore,
       riskLevel: riskScore.riskLevel,
       age: healthProfile.age || undefined,
-      diseases: healthProfile.diseases || [],
+      diseases: healthProfile.diseases?.map(d => d.code) || [],
       fluInfo,
       vaccinationStatus,
     });
@@ -116,6 +116,13 @@ export async function calculateInfectionRiskScore(
 
     return {
       ...riskScore,
+      factors: {
+        age: healthProfile.age || undefined,
+        diseases: healthProfile.diseases?.map(d => d.code) || [],
+        vaccination_status: vaccinationStatus,
+        region_risk: params.region ? 1 : 0, // 지역 정보가 있으면 약간의 위험도 추가
+        flu_stage: fluInfo?.stage,
+      },
       recommendations,
     };
   } catch (error) {

@@ -15,7 +15,7 @@ import { DiseaseRiskScores } from '@/types/health-visualization';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Heart, Droplets, Shield, AlertTriangle, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { Heart, Droplets, Shield, AlertTriangle, Info, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 
 interface DiseaseRiskGaugeProps {
@@ -217,7 +217,7 @@ export function DiseaseRiskGauge({ risks, className }: DiseaseRiskGaugeProps) {
               <div key={disease.key} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <Icon className={`h-5 w-5`} style={{ color: disease.color }} />
+                    <Icon className={`h-5 w-5 text-gray-600`} />
                     <div>
                       <h4 className="font-medium text-gray-900">{disease.koreanName}</h4>
                       <p className="text-sm text-gray-600">{disease.description}</p>

@@ -74,38 +74,38 @@ export class DailyNutritionTracker {
     const diseases = profile.diseases || [];
     
     // 당뇨병: 일일 당 섭취량 제한 (50g) - 개선된 g 기반 제한
-    if (diseases.includes('diabetes') || diseases.includes('diabetes_type2')) {
+    if (diseases.some(d => d.code === 'diabetes') || diseases.some(d => d.code === 'diabetes_type2')) {
       limits.sugar = 50; // 당뇨 환자 일일 당(sugar) 섭취량 제한 (g)
       console.log('[당뇨병] 일일 당 섭취량 제한: 50g (식사당 약 15-20g)');
     }
-    
+
     // 고혈압: 일일 나트륨 목표 (2000mg, 이상적으로 1500mg)
-    if (diseases.includes('hypertension')) {
+    if (diseases.some(d => d.code === 'hypertension')) {
       limits.sodium = 2000; // 고혈압 환자 일일 나트륨 목표 (mg)
       console.log('[고혈압] 일일 나트륨 제한: 2000mg (식사당 약 600-700mg)');
     }
     
     // 고지혈증: 일일 지방 제한 (65g, 칼로리의 30%)
-    if (diseases.includes('hyperlipidemia')) {
+    if (diseases.some(d => d.code === 'hyperlipidemia')) {
       limits.fat = 65; // 고지혈증 환자 일일 지방 제한 (g)
       console.log('[고지혈증] 일일 지방 제한: 65g (식사당 약 20g)');
     }
     
     // 신장 질환: 일일 칼륨/인 제한
-    if (diseases.includes('ckd') || diseases.includes('kidney_disease')) {
+    if (diseases.some(d => d.code === 'ckd') || diseases.some(d => d.code === 'kidney_disease')) {
       limits.potassium = 2000; // 신장 질환 환자 일일 칼륨 제한 (mg)
       limits.phosphorus = 800; // 신장 질환 환자 일일 인 제한 (mg)
       console.log('[신장질환] 일일 칼륨 제한: 2000mg, 인 제한: 800mg');
     }
     
     // 심혈관 질환: 일일 나트륨 강화 제한
-    if (diseases.includes('cardiovascular_disease')) {
+    if (diseases.some(d => d.code === 'cardiovascular_disease')) {
       limits.sodium = Math.min(limits.sodium || 2000, 1500); // 더 엄격한 제한
       console.log('[심혈관질환] 일일 나트륨 제한 강화: 1500mg');
     }
     
     // 통풍: 일일 퓨린 제한
-    if (diseases.includes('gout')) {
+    if (diseases.some(d => d.code === 'gout')) {
       limits.purine = 400; // 통풍 환자 일일 퓨린 제한 (mg)
       console.log('[통풍] 일일 퓨린 제한: 400mg (식사당 약 100-150mg)');
     }

@@ -23,29 +23,31 @@ export const seasonThemes: Record<Season, SeasonTheme> = {
     nameKo: "봄",
     icon: "🌸",
     title: "맛카의 음식 동화 이야기",
-    bgGradient: "from-[#fce4ec] via-[#f8bbd9] to-[#f3e5f5]",
-    windowBg: "bg-gradient-to-b from-[#87ceeb] to-[#add8e6]",
-    accentColor: "#ff69b4",
-    titleColor: "#8b008b",
-    particleColor: "#ffb7c5",
-    textColor: "#8b008b", // 어두운 핑크/보라색 (밝은 배경에 대비)
-    textMutedColor: "#c2185b", // 약간 밝은 핑크
+    // 밝은 하늘, 태양, 구름, 나비, 초록 언덕, 꽃들의 느낌
+    bgGradient: "from-[#e8f5e9] via-[#c8e6c9] to-[#a5d6a7]",
+    windowBg: "bg-gradient-to-b from-[#87CEEB] to-[#B0E0E6]",
+    accentColor: "#4CAF50", // 초록색 (봄의 자연)
+    titleColor: "#2E7D32", // 어두운 초록
+    particleColor: "#FFD700", // 노란 꽃들
+    textColor: "#1B5E20", // 어두운 초록 (밝은 배경에 대비)
+    textMutedColor: "#4CAF50", // 밝은 초록
     cardBg: "bg-white/90 backdrop-blur-md", // 밝은 배경
   },
   summer: {
     id: "summer",
     name: "Summer",
     nameKo: "여름",
-    icon: "🌊",
+    icon: "☀️",
     title: "맛카의 음식 동화 이야기",
-    bgGradient: "from-[#1e3a5f] via-[#2d5a87] to-[#1e3a5f]",
-    windowBg: "bg-gradient-to-b from-[#00bfff] to-[#87ceeb]",
-    accentColor: "#00bfff",
-    titleColor: "#ffffff",
-    particleColor: "#ffffff",
-    textColor: "#ffffff", // 흰색 (어두운 배경)
-    textMutedColor: "#b3e5fc", // 밝은 시안
-    cardBg: "bg-white/10 backdrop-blur-md", // 반투명 배경
+    // 밝은 파란 하늘, 태양, 열기구, 자전거, 초록 언덕의 느낌
+    bgGradient: "from-[#87CEEB] via-[#B0E0E6] to-[#E0F6FF]",
+    windowBg: "bg-gradient-to-b from-[#4FC3F7] to-[#81D4FA]",
+    accentColor: "#FFA726", // 오렌지 (열기구, 태양)
+    titleColor: "#1976D2", // 진한 파란색
+    particleColor: "#FFEB3B", // 노란 태양
+    textColor: "#0D47A1", // 진한 파란색 (밝은 배경에 대비)
+    textMutedColor: "#1976D2", // 밝은 파란색
+    cardBg: "bg-white/90 backdrop-blur-md", // 밝은 배경
   },
   autumn: {
     id: "autumn",
@@ -53,14 +55,15 @@ export const seasonThemes: Record<Season, SeasonTheme> = {
     nameKo: "가을",
     icon: "🍂",
     title: "맛카의 음식 동화 이야기",
-    bgGradient: "from-[#4a2810] via-[#6b3a1a] to-[#4a2810]",
-    windowBg: "bg-gradient-to-b from-[#ff8c00] to-[#daa520]",
-    accentColor: "#ff6347",
-    titleColor: "#ffd700",
-    particleColor: "#d2691e",
-    textColor: "#ffd700", // 밝은 노란색 (어두운 배경)
-    textMutedColor: "#ffb347", // 약간 어두운 노란색
-    cardBg: "bg-white/10 backdrop-blur-md", // 반투명 배경
+    // 따뜻한 오렌지/황금색 하늘, 태양, 낙엽의 느낌
+    bgGradient: "from-[#FF8C42] via-[#FFA07A] to-[#FFB347]",
+    windowBg: "bg-gradient-to-b from-[#FFA500] to-[#FFD700]",
+    accentColor: "#FF6B35", // 따뜻한 오렌지
+    titleColor: "#D2691E", // 초콜릿 브라운
+    particleColor: "#FF8C00", // 오렌지 낙엽
+    textColor: "#8B4513", // 갈색 (밝은 배경에 대비)
+    textMutedColor: "#CD853F", // 페루 브라운
+    cardBg: "bg-white/90 backdrop-blur-md", // 밝은 배경
   },
   winter: {
     id: "winter",
@@ -68,13 +71,14 @@ export const seasonThemes: Record<Season, SeasonTheme> = {
     nameKo: "겨울",
     icon: "❄️",
     title: "맛카의 음식 동화 이야기",
-    bgGradient: "from-[#1a0f0a] via-[#2d1810] to-[#1a0f0a]",
-    windowBg: "bg-gradient-to-b from-[#1a2f4a] to-[#0a1628]",
-    accentColor: "#ffd700",
-    titleColor: "#ffd700",
-    particleColor: "#ffffff",
-    textColor: "#ffffff", // 흰색 (어두운 배경)
-    textMutedColor: "#e0e0e0", // 약간 어두운 흰색
+    // 어두운 밤 하늘, 달, 별, 눈의 느낌
+    bgGradient: "from-[#1a1a2e] via-[#16213e] to-[#0f3460]",
+    windowBg: "bg-gradient-to-b from-[#1e3a5f] to-[#2d4a6e]",
+    accentColor: "#FFD700", // 황금색 (별, 달)
+    titleColor: "#E3F2FD", // 밝은 파란색 (달빛)
+    particleColor: "#FFFFFF", // 흰 눈
+    textColor: "#E3F2FD", // 밝은 파란색 (어두운 배경에 대비)
+    textMutedColor: "#BBDEFB", // 약간 어두운 파란색
     cardBg: "bg-white/10 backdrop-blur-md", // 반투명 배경
   },
 }

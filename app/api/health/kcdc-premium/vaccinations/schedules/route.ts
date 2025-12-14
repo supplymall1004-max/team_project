@@ -12,8 +12,8 @@ import {
   getVaccinationSchedules,
   syncKcdcVaccinationSchedules,
   updateVaccinationScheduleStatus,
-  type VaccinationScheduleStatus,
 } from "@/lib/kcdc/vaccination-manager";
+import type { VaccinationScheduleStatus } from "@/types/kcdc";
 
 /**
  * GET /api/health/kcdc-premium/vaccinations/schedules

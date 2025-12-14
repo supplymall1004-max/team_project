@@ -90,6 +90,7 @@ Next.js 15, Clerk, Supabase를 활용한 모던 SaaS 애플리케이션 템플�
 - 완전한 반응형 디자인
 - 다크/라이트 모드 지원 가능
 - 접근성 준수 (WCAG)
+- 날씨 위젯 (OpenWeatherMap API 연동)
 
 ### 🏗️ 아키텍처
 - Server Actions 우선 사용
@@ -237,6 +238,23 @@ cp .env.example .env
    NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL="/"
    NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL="/"
    ```
+
+**6-5. 기상청 날씨 API 키 설정 (선택사항)**
+
+메인 페이지의 날씨 위젯을 사용하려면 기상청 공공데이터포털 API 키가 필요합니다:
+
+1. [공공데이터포털](https://www.data.go.kr/)에 접속하여 회원가입 및 로그인
+2. **"데이터셋"** 메뉴에서 **"기상청_단기예보 ((구)_동네예보) 조회서비스"** 검색
+3. 해당 API의 **"활용신청"** 클릭하여 인증키 발급
+4. `.env` 파일에 다음 변수 추가:
+   ```env
+   NEXT_PUBLIC_WEATHER_API_KEY="<발급받은-기상청-API-키>"
+   ```
+
+> **참고**: 
+> - API 키가 없어도 앱은 정상 작동하지만, 날씨 위젯은 에러 메시지를 표시합니다.
+> - 기상청 API는 무료로 제공되며, 일일 호출 제한이 있습니다.
+> - 기상청 API는 한국 지역의 날씨 정보만 제공합니다.
 
 #### 7. Cursor MCP 설정 (선택사항)
 
@@ -408,6 +426,8 @@ saas-template/
 - [Supabase 문서](https://supabase.com/docs)
 - [shadcn/ui 문서](https://ui.shadcn.com/)
 - [Tailwind CSS v4 문서](https://tailwindcss.com/docs)
-#   t e a m _ p r o j e c t  
- #   t e a m _ h o m e  
+#   t e a m _ p r o j e c t 
+ 
+ #   t e a m _ h o m e 
+ 
  

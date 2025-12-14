@@ -543,7 +543,7 @@ function checkModerateExclusion(
     return { passed: true, reasons: [] };
   }
 
-  const diseases = healthProfile.diseases;
+  const diseases = healthProfile.diseases?.map(d => d.code) || [];
 
   // 당뇨병 처리
   if (diseases.includes('diabetes') || diseases.includes('diabetes_type2')) {
@@ -651,7 +651,7 @@ export async function filterRecipe(
   // 1. 알레르기 필터링
   const allergyResult = checkAllergyCompatibility(
     recipe,
-    healthProfile.allergies || []
+    healthProfile.allergies?.map(a => a.code) || []
   );
   if (!allergyResult) {
     reasons.push("알레르기 유발 재료 포함");
@@ -664,7 +664,7 @@ export async function filterRecipe(
 
   // 2. 질병별 제외 음식 조회
   if (healthProfile.diseases && healthProfile.diseases.length > 0) {
-    const diseases = healthProfile.diseases;
+    const diseases = healthProfile.diseases?.map(d => d.code) || [];
     const excludedFoodsList = excludedFoods || await getExcludedFoods(diseases);
 
     // Step 1: 절대 금지 필터링
@@ -731,7 +731,7 @@ export async function filterRecipe(
   // 3. 질병별 영양소 제한 필터링 (기존 로직 유지)
   const nutritionResult = checkNutritionLimits(
     recipe,
-    healthProfile.diseases || []
+    healthProfile.diseases?.map(d => d.code) || []
   );
   if (!nutritionResult.passed) {
     reasons.push(nutritionResult.reason || "영양소 제한 초과");
@@ -744,7 +744,7 @@ export async function filterRecipe(
 
   // 4. 나트륨 제한 필터링
   const { checkSodiumLimit } = await import("./food-filtering");
-  const sodiumResult = checkSodiumLimit(recipe, healthProfile.diseases || []);
+  const sodiumResult = checkSodiumLimit(recipe, healthProfile.diseases?.map(d => d.code) || []);
   if (!sodiumResult) {
     reasons.push("나트륨 함량이 높음");
     console.log("❌ 나트륨 제한 필터링 실패");
@@ -826,7 +826,7 @@ export async function filterRecipes(
   // 제외 음식 목록을 한 번만 조회 (성능 최적화)
   const excludedFoodsList = excludedFoods || 
     (healthProfile.diseases && healthProfile.diseases.length > 0
-      ? await getExcludedFoods(healthProfile.diseases)
+      ? await getExcludedFoods(healthProfile.diseases.map(d => d.code))
       : []);
 
   for (const recipe of recipes) {
@@ -884,7 +884,7 @@ export async function filterRecipeWithDetails(
   // 1. 알레르기 필터링
   const allergyResult = checkAllergyCompatibility(
     recipe,
-    healthProfile.allergies || []
+    healthProfile.allergies?.map(a => a.code) || []
   );
   details.push({
     stage: "allergy",
@@ -897,7 +897,7 @@ export async function filterRecipeWithDetails(
 
   // 2. 질병별 제외 음식 필터링
   if (healthProfile.diseases && healthProfile.diseases.length > 0) {
-    const excludedFoodsList = excludedFoods || await getExcludedFoods(healthProfile.diseases);
+    const excludedFoodsList = excludedFoods || await getExcludedFoods(healthProfile.diseases.map(d => d.code));
     if (excludedFoodsList.length > 0) {
       const exclusionResult = isRecipeExcludedForDisease(recipe, excludedFoodsList);
       details.push({
@@ -914,7 +914,7 @@ export async function filterRecipeWithDetails(
   // 3. 질병별 영양소 제한 필터링
   const nutritionResult = checkNutritionLimits(
     recipe,
-    healthProfile.diseases || []
+    healthProfile.diseases?.map(d => d.code) || []
   );
   details.push({
     stage: "nutrition-limits",
@@ -927,7 +927,7 @@ export async function filterRecipeWithDetails(
 
   // 4. 나트륨 제한 필터링
   const { checkSodiumLimit } = await import("./food-filtering");
-  const sodiumResult = checkSodiumLimit(recipe, healthProfile.diseases || []);
+  const sodiumResult = checkSodiumLimit(recipe, healthProfile.diseases?.map(d => d.code) || []);
   details.push({
     stage: "sodium-limit",
     passed: sodiumResult,

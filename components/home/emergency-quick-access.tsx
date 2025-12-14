@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { Siren, ChevronRight } from 'lucide-react';
+import { Siren, ChevronRight, MapPin } from 'lucide-react';
 
 export function EmergencyQuickAccess() {
     return (
-        <div className="px-4 py-2 pt-16">
+        <div className="py-2 space-y-2">
+            {/* 응급조치 안내 */}
             <Link
                 href="/health/emergency"
                 className="flex items-center justify-between py-2.5 px-4 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all group"
@@ -20,6 +21,23 @@ export function EmergencyQuickAccess() {
                     </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors" />
+            </Link>
+
+            {/* 주변 의료기관 찾기 */}
+            <Link
+                href="/health/emergency/medical-facilities"
+                className="flex items-center justify-between py-2.5 px-4 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 hover:border-blue-300 transition-all group"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
+                        <MapPin className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-blue-900 text-sm">주변 의료기관 찾기</h3>
+                        <p className="text-xs text-blue-700">병원, 약국, 동물병원 위치 확인</p>
+                    </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-blue-400 group-hover:text-blue-600 transition-colors" />
             </Link>
         </div>
     );

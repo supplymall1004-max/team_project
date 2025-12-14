@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Clock, Calendar, ChefHat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,13 +63,11 @@ interface HealthProfile {
   dietary_preferences: string[];
 }
 
-export default function BreakfastDetailPage({
-  params
-}: {
-  params: { date: string }
-}) {
+export default function BreakfastDetailPage() {
   const router = useRouter();
+  const params = useParams();
   const { user, isLoaded } = useUser();
+  const date = params.date as string;
 
   // 상태 관리
   const [mealData, setMealData] = useState<MealData | null>(null);
@@ -84,7 +82,7 @@ export default function BreakfastDetailPage({
     if (!isLoaded || !user) return;
 
     loadPageData();
-  }, [isLoaded, user, params.date]);
+  }, [isLoaded, user, date]);
 
   const loadPageData = async () => {
     try {
@@ -93,7 +91,7 @@ export default function BreakfastDetailPage({
 
       // 병렬로 데이터 로드
       const [mealResult, healthResult, currentHealthResult] = await Promise.all([
-        fetch(`/api/diet/meal/breakfast/${params.date}`).then(res => res.json()),
+        fetch(`/api/diet/meal/breakfast/${date}`).then(res => res.json()),
         fetch('/api/health/profile').then(res => res.json()),
         fetch('/api/health/metrics').then(res => res.json())
       ]);
@@ -199,7 +197,7 @@ export default function BreakfastDetailPage({
         <div className="max-w-2xl mx-auto pt-20">
           <Alert>
             <AlertDescription>
-              {params.date}의 아침 식단 정보가 없습니다.
+              {date}의 아침 식단 정보가 없습니다.
             </AlertDescription>
           </Alert>
           <div className="mt-4">
@@ -236,7 +234,7 @@ export default function BreakfastDetailPage({
               <div className="flex items-center gap-4 mt-1">
                 <div className="flex items-center gap-1 text-gray-600">
                   <Calendar className="h-4 w-4" />
-                  {params.date}
+                  {date}
                 </div>
                 <div className="flex items-center gap-1 text-gray-600">
                   <Clock className="h-4 w-4" />
@@ -366,7 +364,6 @@ export default function BreakfastDetailPage({
                   priority: 'low'
                 }
               ]}
-              title="아침 식단 건강 인사이트"
             />
           </div>
 

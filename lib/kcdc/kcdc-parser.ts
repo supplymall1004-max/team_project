@@ -88,6 +88,7 @@ async function getCachedKcdcData(): Promise<KcdcApiResponse | null> {
       } else if (alert.alert_type === "disease_outbreak") {
         response.diseaseOutbreaks.push({
           name: alert.title.replace(" 발생 알림", ""),
+          severity: "warning" as const,
           description: alert.content,
           publishedAt: alert.published_at,
         });

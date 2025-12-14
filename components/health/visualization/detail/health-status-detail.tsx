@@ -532,13 +532,15 @@ function calculateBodyFatScore(bodyFat: number, metrics: any): number {
 
 function calculateNutritionScore(nutrition: any): number {
   // 영양 균형 점수 계산 (간단한 예시)
-  let score = 25;
+  const score = 25;
   // 실제로는 영양소 비율, 미네랄, 비타민 등을 종합 평가
   return score;
 }
 
 function calculateDiseaseRiskScore(risks: any): number {
-  const avgRisk = Object.values(risks).reduce((sum: number, risk: any) => sum + risk, 0) / Object.keys(risks).length;
+  const riskValues = Object.values(risks);
+  const numericRisks = riskValues.filter((risk: any) => typeof risk === 'number') as number[];
+  const avgRisk = numericRisks.length > 0 ? numericRisks.reduce((sum, risk) => sum + risk, 0) / numericRisks.length : 0;
   return Math.max(0, 20 - (avgRisk * 0.2));
 }
 

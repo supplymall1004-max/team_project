@@ -66,7 +66,7 @@ async function isRecipeCompatible(
       sulfites: ["아황산염", "건포도", "포도주"],
     };
 
-    const keywords = allergyKeywords[allergy] || [];
+    const keywords = allergyKeywords[allergy.code] || [];
     if (keywords.some((keyword) => recipeIngredients.includes(keyword))) {
       console.log("❌ rejected: allergy", allergy);
       console.groupEnd();
@@ -77,7 +77,7 @@ async function isRecipeCompatible(
   // 2. 질병별 제외 음식 데이터베이스 조회 및 필터링
   if (healthProfile.diseases && healthProfile.diseases.length > 0) {
     console.log("🔍 질병별 제외 음식 필터링 중...");
-    const excludedFoods = await getExcludedFoods(healthProfile.diseases);
+    const excludedFoods = await getExcludedFoods(healthProfile.diseases.map(d => d.code));
 
     if (excludedFoods.length > 0) {
       // RecipeDetailForDiet 형식으로 변환 (호환성을 위해)
@@ -110,7 +110,7 @@ async function isRecipeCompatible(
   // 3. 기존 질병별 영양소 제한사항 체크 (보조 필터링)
   for (const disease of healthProfile.diseases) {
     // 당뇨: 고탄수화물 제한
-    if (disease === "diabetes") {
+    if (disease.code === "diabetes") {
       if (
         recipe.carbohydrates !== null &&
         recipe.carbohydrates > 50 // 임계값 (g)
@@ -122,7 +122,7 @@ async function isRecipeCompatible(
     }
 
     // 고혈압: 고나트륨 제한
-    if (disease === "hypertension") {
+    if (disease.code === "hypertension") {
       if (recipe.sodium !== null && recipe.sodium > 500) {
         // 임계값 (mg)
         console.log("❌ rejected: hypertension (high sodium)", recipe.sodium);
@@ -132,7 +132,7 @@ async function isRecipeCompatible(
     }
 
     // 신장질환: 고단백질 제한
-    if (disease === "kidney_disease") {
+    if (disease.code === "kidney_disease") {
       if (recipe.protein !== null && recipe.protein > 30) {
         // 임계값 (g)
         console.log("❌ rejected: kidney_disease (high protein)", recipe.protein);
@@ -214,7 +214,7 @@ function calculateRecipeScore(
   }
 
   // 5. 질병별 권장 식품 가산점
-  const diseases = healthProfile.diseases || [];
+  const diseases = healthProfile.diseases?.map(d => d.code) || [];
   
   // 당뇨: 저GI 식품, 고섬유 식품
   if (diseases.includes("diabetes")) {

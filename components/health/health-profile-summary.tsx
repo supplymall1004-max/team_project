@@ -15,7 +15,7 @@ import { Edit, User, Heart, AlertTriangle, ThumbsUp, ThumbsDown } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UserHealthProfile, DISEASE_LABELS, ALLERGY_LABELS, ACTIVITY_LEVEL_LABELS } from "@/types/health";
+import { UserHealthProfile, DISEASE_LABELS, ALLERGY_LABELS, ACTIVITY_LEVEL_LABELS, Disease, Allergy } from "@/types/health";
 import Link from "next/link";
 
 export function HealthProfileSummary() {

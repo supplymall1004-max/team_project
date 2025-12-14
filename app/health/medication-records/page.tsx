@@ -41,7 +41,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Plus, Pill, Clock, Calendar, Bell, BellOff, Edit, Trash2, CheckCircle, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { MedicationRecord, FamilyMember } from "@/types/health-data-integration";
+import type { MedicationRecord } from "@/types/health-data-integration";
+import type { FamilyMember } from "@/types/family";
 
 export default function MedicationRecordsPage() {
   console.log("[MedicationRecordsPage] 페이지 렌더링 시작");
@@ -456,11 +457,14 @@ export default function MedicationRecordsPage() {
                         </div>
                       )}
 
-                      {record.family_members && (
+                      {record.family_member_id && (
                         <div>
                           <Label className="text-muted-foreground">복용자</Label>
                           <p className="font-medium">
-                            {(record.family_members as any).name} ({(record.family_members as any).relationship})
+                            {familyMembers?.find(m => m.id === record.family_member_id)?.name || "가족 구성원"}
+                            {familyMembers?.find(m => m.id === record.family_member_id)?.relationship 
+                              ? ` (${familyMembers.find(m => m.id === record.family_member_id)?.relationship})` 
+                              : ""}
                           </p>
                         </div>
                       )}
@@ -574,8 +578,8 @@ export default function MedicationRecordsPage() {
                         <div>
                           <Label className="text-muted-foreground">복용자</Label>
                           <p className="font-medium">
-                            {record.family_members
-                              ? `${(record.family_members as any).name}`
+                            {record.family_member_id
+                              ? `${familyMembers?.find(m => m.id === record.family_member_id)?.name || "가족 구성원"}`
                               : "본인"}
                           </p>
                         </div>

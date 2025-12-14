@@ -48,6 +48,7 @@ export async function sendVaccinationNotification(
         recommended_date,
         priority,
         family_member_id,
+        reminder_count,
         family_members(name)
       `)
       .eq("id", params.scheduleId)

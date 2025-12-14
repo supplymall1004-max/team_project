@@ -37,6 +37,14 @@ export default function HealthVisualizationTestPage() {
   const [testData, setTestData] = useState<TestData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Array<{ status: 'success' | 'warning' | 'error'; message: string; component?: string }>>([]);
+  const [activeTest, setActiveTest] = useState<string | null>(null);
+  
+  // 테스트 함수들
+  const runComponentTest = (componentName: string) => {
+    // 테스트 로직은 나중에 구현
+    console.log('Testing component:', componentName);
+  };
 
   // 실제 API에서 데이터를 불러오는 함수들
   const loadTestData = async () => {
@@ -255,14 +263,97 @@ const mockMealData = {
     cholesterol: 80
   },
   ingredients: [
-    { name: '현미밥', quantity: 150 },
-    { name: '계란후라이', quantity: 2 },
-    { name: '시금치나물', quantity: 100 },
-    { name: '김치', quantity: 50 }
+    { name: '현미밥', amount: '150', unit: 'g' },
+    { name: '계란후라이', amount: '2', unit: '개' },
+    { name: '시금치나물', amount: '100', unit: 'g' },
+    { name: '김치', amount: '50', unit: 'g' }
   ]
 };
 
 const mockMealPrediction: MealImpactPrediction = {
+  mealType: 'breakfast',
+  mealData: mockMealData,
+  beforeMetrics: mockHealthMetrics,
+  afterMetrics: {
+    ...mockHealthMetrics,
+    nutritionBalance: {
+      ...mockHealthMetrics.nutritionBalance,
+      carbohydrates: mockHealthMetrics.nutritionBalance.carbohydrates + 60,
+      protein: mockHealthMetrics.nutritionBalance.protein + 25,
+      fat: mockHealthMetrics.nutritionBalance.fat + 15,
+      fiber: mockHealthMetrics.nutritionBalance.fiber + 8,
+      sugar: mockHealthMetrics.nutritionBalance.sugar + 10,
+      sodium: mockHealthMetrics.nutritionBalance.sodium + 650,
+      cholesterol: mockHealthMetrics.nutritionBalance.cholesterol + 80
+    },
+    overallHealthScore: 80,
+    healthStatus: 'good' as const
+  },
+  improvements: [
+    {
+      metric: '단백질 섭취',
+      beforeValue: 80,
+      afterValue: 105,
+      improvement: 31.25,
+      status: 'improved',
+      description: '단백질 섭취량이 목표치를 달성했습니다.',
+      priority: 'high'
+    },
+    {
+      metric: '칼로리 균형',
+      beforeValue: 1650,
+      afterValue: 2150,
+      improvement: 30.3,
+      status: 'improved',
+      description: '하루 칼로리 목표의 43% 달성',
+      priority: 'medium'
+    }
+  ],
+  goalProgress: {
+    dailyCalories: {
+      current: 2150,
+      target: 2000,
+      percentage: 107.5,
+      status: 'exceeded'
+    },
+    macroBalance: {
+      carbohydrates: {
+        current: 310,
+        target: 300,
+        percentage: 103.3,
+        status: 'exceeded'
+      },
+      protein: {
+        current: 105,
+        target: 100,
+        percentage: 105,
+        status: 'exceeded'
+      },
+      fat: {
+        current: 85,
+        target: 80,
+        percentage: 106.25,
+        status: 'exceeded'
+      }
+    },
+    micronutrients: {
+      fiber: {
+        current: 33,
+        target: 30,
+        percentage: 110,
+        status: 'exceeded'
+      }
+    }
+  },
+  insights: [
+    '이 식단은 단백질과 섬유질이 풍부하여 건강에 도움이 됩니다.',
+    '나트륨 섭취량이 다소 높으니 다음 식사에서는 줄이는 것을 권장합니다.'
+  ],
+  recommendations: [
+    '물을 충분히 마셔 나트륨 배출을 도와주세요.',
+    '다음 식사에서는 가공식품을 줄이고 신선한 채소를 더 추가하세요.'
+  ]
+};
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">

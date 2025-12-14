@@ -555,7 +555,7 @@ function calculateNutritionScore(
   nutrition: any,
   recommended: any
 ): number {
-  let score = 100;
+  const score = 100;
   
   // 3대 영양소 비율 점수 (간단한 예시)
   // 실제로는 더 정교한 계산 필요
@@ -587,9 +587,9 @@ function calculateMacroScore(
 
 function calculateMicroScore(vitamins: any, minerals: any): number {
   // 비타민과 미네랄 레벨을 종합하여 점수 계산
-  const vitaminAvg = Object.values(vitamins).reduce((sum: number, v: any) => sum + v, 0) / Object.keys(vitamins).length;
-  const mineralAvg = Object.values(minerals).reduce((sum: number, m: any) => sum + m, 0) / Object.keys(minerals).length;
-  
+  const vitaminAvg = (Object.values(vitamins) as number[]).reduce((sum: number, v: number) => sum + v, 0) / Object.keys(vitamins).length;
+  const mineralAvg = (Object.values(minerals) as number[]).reduce((sum: number, m: number) => sum + m, 0) / Object.keys(minerals).length;
+
   return (vitaminAvg + mineralAvg) / 2;
 }
 

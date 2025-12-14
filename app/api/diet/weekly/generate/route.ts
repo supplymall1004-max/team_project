@@ -607,6 +607,7 @@ function buildDietPlanRecords({
   gi_index: number | null;
   composition_summary: Record<string, string[]> | null;
   is_unified: boolean;
+  family_member_id: string | null;
 }> {
   if (!meal) {
     return [];
@@ -673,6 +674,7 @@ function buildCompositionMealRecord({
     gi_index: getNutritionValue(nutrition, "gi") || null,
     composition_summary: summaryPayload,
     is_unified: false,
+    family_member_id: null,
   };
 }
 
@@ -718,6 +720,7 @@ function buildSingleRecipeRecord({
     gi_index: getNutritionValue(nutrition, "gi") || null,
     composition_summary: summaryPayload,
     is_unified: false,
+    family_member_id: null,
   };
 }
 

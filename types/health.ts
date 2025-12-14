@@ -81,6 +81,7 @@ export interface UserHealthProfile {
   height_cm: number | null;
   weight_kg: number | null;
   activity_level: ActivityLevel | null;
+  region?: string | null;
   daily_calorie_goal: number;
   // JSONB 컬럼 (TEXT[] 컬럼 제거됨)
   diseases: DiseaseItem[]; // JSONB 형식: [{ code: string, custom_name: string | null }]

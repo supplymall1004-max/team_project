@@ -11,7 +11,7 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowLeft, ShoppingCart, AlertCircle, Heart, Calendar, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ShoppingCart, AlertCircle, Heart, Calendar, CheckCircle2, Info } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

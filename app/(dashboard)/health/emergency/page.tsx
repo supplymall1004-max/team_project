@@ -4,7 +4,7 @@
  * 알레르기 응급조치 정보 및 에피네프린 사용법
  */
 
-import { Phone, AlertTriangle, Siren } from 'lucide-react';
+import { Phone, AlertTriangle, Siren, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { createClerkSupabaseClient } from '@/lib/supabase/server';
 
@@ -211,6 +211,25 @@ export default async function EmergencyPage() {
                         </div>
                     </div>
                 )}
+
+                {/* 주변 의료기관 찾기 */}
+                <div className="bg-white rounded-xl border-2 border-blue-200 p-6">
+                    <div className="flex items-start gap-4">
+                        <MapPin className="w-8 h-8 flex-shrink-0 mt-1 text-blue-600" />
+                        <div className="flex-1">
+                            <h2 className="text-2xl font-bold text-blue-900 mb-2">주변 의료기관 찾기</h2>
+                            <p className="text-blue-700 mb-4">
+                                새벽에 아플 때 주변 병원, 약국, 동물병원의 위치를 빠르게 찾아보세요.
+                            </p>
+                            <Link
+                                href="/health/emergency/medical-facilities"
+                                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                            >
+                                의료기관 찾기 →
+                            </Link>
+                        </div>
+                    </div>
+                </div>
 
                 {/* 하단 안내 */}
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">

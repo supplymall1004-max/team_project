@@ -158,18 +158,25 @@ export async function GET(request: NextRequest) {
     }
 
     // 데이터 포맷팅
-    const formattedLogs: SyncLog[] = (logs || []).map(log => ({
-      id: log.id,
-      data_source_id: log.data_source_id,
-      sync_status: log.sync_status,
-      synced_at: log.synced_at,
-      records_synced: log.records_synced || 0,
-      error_message: log.error_message,
-      data_source: {
-        source_type: log.health_data_sources.source_type,
-        source_name: getDataSourceName(log.health_data_sources.source_type),
-      },
-    }));
+    const formattedLogs: SyncLog[] = (logs || []).map(log => {
+      // health_data_sources는 inner join으로 단일 객체이지만, 타입 추론상 배열로 인식될 수 있음
+      const dataSource = Array.isArray(log.health_data_sources) 
+        ? log.health_data_sources[0] 
+        : log.health_data_sources;
+      
+      return {
+        id: log.id,
+        data_source_id: log.data_source_id,
+        sync_status: log.sync_status,
+        synced_at: log.synced_at,
+        records_synced: log.records_synced || 0,
+        error_message: log.error_message,
+        data_source: {
+          source_type: dataSource?.source_type,
+          source_name: getDataSourceName(dataSource?.source_type),
+        },
+      };
+    });
 
     // 통계 정보 계산
     const stats = {

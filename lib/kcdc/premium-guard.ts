@@ -92,7 +92,7 @@ export async function checkPremiumAccess(): Promise<PremiumCheckResult> {
 
     // 구독 만료 확인 (모든 활성 구독의 current_period_end 체크)
     let hasActiveSubscription = false;
-    let expiredSubscriptionIds: string[] = [];
+    const expiredSubscriptionIds: string[] = [];
 
     if (activeSubscriptions && activeSubscriptions.length > 0) {
       for (const sub of activeSubscriptions) {

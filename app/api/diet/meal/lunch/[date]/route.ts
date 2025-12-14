@@ -72,32 +72,27 @@ export async function GET(
     
     const mealData = {
       id: lunchData.id || `lunch-${date}`,
-      name: lunchData.recipe?.title || lunchData.recipe_title || '점심 식단',
+      name: lunchData.recipe?.title || '점심 식단',
       calories: lunchData.calories || 0,
       nutrition: {
         calories: lunchData.calories || 0,
-        protein: lunchData.protein_g || lunchData.protein || 0,
-        carbohydrates: lunchData.carbs_g || lunchData.carbohydrates || 0,
-        fat: lunchData.fat_g || lunchData.fat || 0,
-        fiber: lunchData.fiber_g || 0,
+        protein: lunchData.protein || 0,
+        carbohydrates: lunchData.carbohydrates || 0,
+        fat: lunchData.fat || 0,
+        fiber: 0, // DietPlan 타입에 fiber 속성이 없음
         sugar: 0,
-        sodium: lunchData.sodium_mg || lunchData.sodium || 0,
+        sodium: lunchData.sodium || 0,
         cholesterol: 0,
-        potassium: lunchData.potassium_mg || null,
-        phosphorus: lunchData.phosphorus_mg || null,
-        gi_index: lunchData.gi_index || null,
+        potassium: null, // DietPlan 타입에 없음
+        phosphorus: null, // DietPlan 타입에 없음
+        gi_index: null, // DietPlan 타입에 없음
       },
-      ingredients: Array.isArray(lunchData.ingredients) 
-        ? lunchData.ingredients.map((ing: any) => ({
-            name: typeof ing === 'string' ? ing : (ing.name || ing),
-            quantity: typeof ing === 'object' && ing.quantity ? ing.quantity : null,
-          }))
-        : [],
+      ingredients: [], // DietPlan 타입에 ingredients 속성이 없음
       recipe: lunchData.recipe,
       recipe_id: lunchData.recipe_id,
-      recipe_title: lunchData.recipe_title,
-      recipe_description: lunchData.recipe_description,
-      instructions: lunchData.instructions,
+      recipe_title: lunchData.recipe?.title,
+      recipe_description: null, // DietPlan 타입의 recipe에 description 없음
+      instructions: null, // DietPlan 타입에 없음
       composition_summary: lunchData.compositionSummary || [],
       foodsafety_data: lunchData.recipe ? {
         rcp_seq: lunchData.recipe.id?.startsWith('foodsafety-') 

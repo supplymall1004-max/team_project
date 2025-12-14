@@ -31,6 +31,7 @@ import { DietManagementPreview } from "@/components/home/diet-management-preview
 import { HealthManagementPreview } from "@/components/home/health-management-preview";
 import { StoriesLearningPreview } from "@/components/home/stories-learning-preview";
 import { UtilitiesPreview } from "@/components/home/utilities-preview";
+import { WeatherWidget } from "@/components/home/weather-widget";
 
 // 섹션별 로딩 스켈레톤
 function SectionSkeleton() {
@@ -56,8 +57,21 @@ export default async function Home() {
       {/* 고정 헤더 (검색바 + 프리미엄 배너) */}
       <FixedHeader />
 
-      {/* 응급조치 바로가기 */}
-      <EmergencyQuickAccess />
+
+      {/* 응급조치 안내 + 날씨 위젯 (같은 줄에 배치) */}
+      <div className="px-4 pt-12 flex flex-col sm:flex-row gap-4">
+        {/* 응급조치 안내 (왼쪽, 가로 50%) */}
+        <div className="flex-1">
+          <EmergencyQuickAccess />
+        </div>
+        
+        {/* 날씨 위젯 (오른쪽, 가로 50%) */}
+        <div className="flex-1">
+          <ErrorBoundary>
+            <WeatherWidget />
+          </ErrorBoundary>
+        </div>
+      </div>
 
       {/* 즉시 렌더링되는 클라이언트 섹션 */}
       <HomeLanding />

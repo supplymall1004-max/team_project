@@ -79,8 +79,8 @@ export async function generateFamilyDietWithWeeklyContext(
     const memberProfile: UserHealthProfile = {
       id: member.id,
       user_id: member.user_id,
-      diseases: member.diseases || [],
-      allergies: member.allergies || [],
+      diseases: (member.diseases || []).map(code => ({ code, custom_name: null })),
+      allergies: (member.allergies || []).map(code => ({ code, custom_name: null })),
       height_cm: member.height_cm || null,
       weight_kg: member.weight_kg || null,
       age: age || null,
@@ -158,8 +158,8 @@ export async function generateFamilyDiet(
     const memberProfile: UserHealthProfile = {
       id: member.id,
       user_id: member.user_id,
-      diseases: member.diseases || [],
-      allergies: member.allergies || [],
+      diseases: (member.diseases || []).map(code => ({ code, custom_name: null })),
+      allergies: (member.allergies || []).map(code => ({ code, custom_name: null })),
       height_cm: member.height_cm || null,
       weight_kg: member.weight_kg || null,
       age: age || null,
@@ -231,8 +231,8 @@ async function generateUnifiedDiet(
   let childCount = (userProfile.age || 30) < 18 ? 1 : 0;
 
   for (const member of includedMembers) {
-    if (member.diseases) member.diseases.forEach(d => allDiseases.add(d));
-    if (member.allergies) member.allergies.forEach(a => allAllergies.add(a));
+    if (member.diseases) member.diseases.forEach(d => allDiseases.add({ code: d, custom_name: null }));
+    if (member.allergies) member.allergies.forEach(a => allAllergies.add({ code: a, custom_name: null }));
 
     const { years: age } = calculateAge(member.birth_date);
     const memberCalories = await calculateMemberGoalCalories(member, age);
@@ -243,7 +243,7 @@ async function generateUnifiedDiet(
 
   const averageCalories = totalCalories / (familyMembers.length + 1);
   const diseases = Array.from(allDiseases);
-  const allergies = Array.from(allAllergies);
+  const allergies = Array.from(allAllergies).map(a => a.code);
 
   console.log(`통합 질병: ${diseases.join(", ") || "없음"}`);
   console.log(`통합 알레르기: ${allergies.join(", ") || "없음"}`);
@@ -251,7 +251,7 @@ async function generateUnifiedDiet(
   console.log(`어린이: ${childCount}명`);
 
   // 2. 제외 음식 조회
-  const excludedFoods = await getExcludedFoods(diseases);
+  const excludedFoods = await getExcludedFoods(diseases.map(d => d.code));
   
   // 3. 최근 사용 레시피 조회
   const recentlyUsed = await getRecentlyUsedRecipes(userId);
@@ -313,7 +313,7 @@ async function generateUnifiedDiet(
     snackCalories,
     currentMonth,
     hasChild,
-    diseases
+    diseases.map(d => d.code)
   );
 
   const snack: RecipeDetailForDiet = {
@@ -415,10 +415,10 @@ async function generateUnifiedDietWithWeeklyContext(
   let memberCount = 0;
 
   // 사용자 본인
-  const userExcluded = await getExcludedFoods(userProfile.diseases || []);
+  const userExcluded = await getExcludedFoods(userProfile.diseases?.map(d => d.code) || []);
   allExcludedFoods.push(...userExcluded);
-  allAllergies.push(...(userProfile.allergies || []));
-  allDiseases.push(...(userProfile.diseases || []));
+  allAllergies.push(...(userProfile.allergies?.map(a => a.code) || []));
+  allDiseases.push(...(userProfile.diseases?.map(d => d.code) || []));
   totalCalories += await calculateUserGoalCalories(userProfile);
   memberCount++;
 
@@ -447,8 +447,8 @@ async function generateUnifiedDietWithWeeklyContext(
     weight_kg: null,
     activity_level: null,
     daily_calorie_goal: Math.round(totalCalories / memberCount),
-    diseases: uniqueDiseases,
-    allergies: uniqueAllergies,
+    diseases: uniqueDiseases.map(code => ({ code, custom_name: null })),
+    allergies: uniqueAllergies.map(code => ({ code, custom_name: null })),
     preferred_ingredients: [],
     disliked_ingredients: [],
     dietary_preferences: [],

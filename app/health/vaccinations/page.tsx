@@ -36,7 +36,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Loader2, Syringe, Calendar, Bell, BellOff, CheckCircle, Clock, AlertTriangle, Plus, Settings } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import type { VaccinationSchedule, VaccinationRecord, FamilyMember } from "@/types/health";
+import type { VaccinationSchedule, VaccinationRecord } from "@/types/kcdc";
+import type { FamilyMember } from "@/types/family";
 
 export default function VaccinationsPage() {
   console.log("[VaccinationsPage] 페이지 렌더링 시작");
@@ -74,13 +75,14 @@ export default function VaccinationsPage() {
     isLoading: schedulesLoading,
   } = useQuery({
     queryKey: ["vaccination-schedules", selectedFamilyMemberId],
-    queryFn: async (): Promise<VaccinationSchedule[]> => {
+    queryFn: async (): Promise<(VaccinationSchedule & { reminder_enabled?: boolean; family_members?: { id: string; name: string; relationship: string } | null })[]> => {
       console.log("[VaccinationsPage] 예방주사 일정 조회, 가족 구성원:", selectedFamilyMemberId);
 
       let query = supabase
         .from("user_vaccination_schedules")
         .select(`
           *,
+          reminder_enabled,
           family_members (
             id,
             name,
@@ -111,7 +113,7 @@ export default function VaccinationsPage() {
     isLoading: recordsLoading,
   } = useQuery({
     queryKey: ["vaccination-records", selectedFamilyMemberId],
-    queryFn: async (): Promise<VaccinationRecord[]> => {
+    queryFn: async (): Promise<(VaccinationRecord & { family_members?: { id: string; name: string; relationship: string } | null })[]> => {
       console.log("[VaccinationsPage] 예방주사 기록 조회, 가족 구성원:", selectedFamilyMemberId);
 
       let query = supabase
@@ -341,7 +343,7 @@ export default function VaccinationsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {vaccinationSchedules?.filter(s => s.reminder_enabled).length || 0}
+              {vaccinationSchedules?.filter(s => (s as any).reminder_enabled).length || 0}
             </div>
             <p className="text-xs text-muted-foreground">알림 설정된 일정 수</p>
           </CardContent>
@@ -435,16 +437,16 @@ export default function VaccinationsPage() {
                               size="sm"
                               onClick={() => toggleNotificationMutation.mutate({
                                 scheduleId: schedule.id,
-                                enabled: !schedule.reminder_enabled
+                                enabled: !(schedule as any).reminder_enabled
                               })}
                               disabled={toggleNotificationMutation.isPending}
                             >
-                              {schedule.reminder_enabled ? (
+                              {(schedule as any).reminder_enabled ? (
                                 <Bell className="h-4 w-4 mr-1" />
                               ) : (
                                 <BellOff className="h-4 w-4 mr-1" />
                               )}
-                              {schedule.reminder_enabled ? "켜짐" : "꺼짐"}
+                              {(schedule as any).reminder_enabled ? "켜짐" : "꺼짐"}
                             </Button>
                           </div>
                         </div>

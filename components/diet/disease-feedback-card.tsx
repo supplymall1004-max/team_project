@@ -224,11 +224,13 @@ function analyzeDiabetes(
     improvements.push('탄수화물 함량이 적절하여 혈당 관리에 도움이 됩니다.');
   }
 
+  const finalStatus: 'positive' | 'warning' | 'neutral' = status === 'neutral' ? 'positive' : status;
+  
   return {
     disease: 'diabetes',
-    status: status === 'neutral' ? 'positive' : status,
+    status: finalStatus,
     title: '당뇨병 관리 관점에서의 식단 분석',
-    description: `이 식단은 당뇨병 관리에 ${status === 'positive' ? '도움이 됩니다' : status === 'warning' ? '주의가 필요합니다' : '일반적입니다'}.`,
+    description: `이 식단은 당뇨병 관리에 ${finalStatus === 'positive' ? '도움이 됩니다' : finalStatus === 'warning' ? '주의가 필요합니다' : '일반적입니다'}.`,
     improvements,
     concerns,
   };
@@ -275,11 +277,13 @@ function analyzeKidneyDisease(
     }
   }
 
+  const finalStatus: 'positive' | 'warning' | 'neutral' = status === 'neutral' ? 'positive' : status;
+  
   return {
     disease: 'kidney_disease',
-    status: status === 'neutral' ? 'positive' : status,
+    status: finalStatus,
     title: '신장질환 관리 관점에서의 식단 분석',
-    description: `이 식단은 신장질환 관리에 ${status === 'positive' ? '도움이 됩니다' : status === 'warning' ? '주의가 필요합니다' : '일반적입니다'}.`,
+    description: `이 식단은 신장질환 관리에 ${finalStatus === 'positive' ? '도움이 됩니다' : finalStatus === 'warning' ? '주의가 필요합니다' : '일반적입니다'}.`,
     improvements,
     concerns,
   };
@@ -312,11 +316,13 @@ function analyzeCardiovascular(
     improvements.push(`지방 함량이 적절합니다 (${nutrition.fat.toFixed(1)}g).`);
   }
 
+  const finalStatus: 'positive' | 'warning' | 'neutral' = status === 'neutral' ? 'positive' : status;
+  
   return {
     disease: 'cardiovascular_disease',
-    status: status === 'neutral' ? 'positive' : status,
+    status: finalStatus,
     title: '심혈관질환 관리 관점에서의 식단 분석',
-    description: `이 식단은 심혈관 건강에 ${status === 'positive' ? '도움이 됩니다' : status === 'warning' ? '주의가 필요합니다' : '일반적입니다'}.`,
+    description: `이 식단은 심혈관 건강에 ${finalStatus === 'positive' ? '도움이 됩니다' : finalStatus === 'warning' ? '주의가 필요합니다' : '일반적입니다'}.`,
     improvements,
     concerns,
   };
@@ -336,11 +342,13 @@ function analyzeGout(
     status = 'warning';
   }
 
+  const finalStatus: 'positive' | 'warning' | 'neutral' = status === 'neutral' ? 'positive' : status;
+  
   return {
     disease: 'gout',
-    status: status === 'neutral' ? 'positive' : status,
+    status: finalStatus,
     title: '통풍 관리 관점에서의 식단 분석',
-    description: `이 식단은 통풍 관리에 ${status === 'positive' ? '도움이 됩니다' : status === 'warning' ? '주의가 필요합니다' : '일반적입니다'}.`,
+    description: `이 식단은 통풍 관리에 ${finalStatus === 'positive' ? '도움이 됩니다' : finalStatus === 'warning' ? '주의가 필요합니다' : '일반적입니다'}.`,
     improvements,
     concerns,
   };
@@ -360,11 +368,13 @@ function analyzeGastritis(
     status = 'warning';
   }
 
+  const finalStatus: 'positive' | 'warning' | 'neutral' = status === 'neutral' ? 'positive' : status;
+  
   return {
     disease: 'gastritis',
-    status: status === 'neutral' ? 'positive' : status,
+    status: finalStatus,
     title: '위염 관리 관점에서의 식단 분석',
-    description: `이 식단은 위염 관리에 ${status === 'positive' ? '도움이 됩니다' : status === 'warning' ? '주의가 필요합니다' : '일반적입니다'}.`,
+    description: `이 식단은 위염 관리에 ${finalStatus === 'positive' ? '도움이 됩니다' : finalStatus === 'warning' ? '주의가 필요합니다' : '일반적입니다'}.`,
     improvements,
     concerns,
   };

@@ -9,7 +9,8 @@
  * 4. 활동 수준별 칼로리 계수
  */
 
-import type { FamilyMember, UserHealthProfile } from "@/types/family";
+import type { FamilyMember } from "@/types/family";
+import type { UserHealthProfile } from "@/types/health";
 
 // 질병별 칼로리 조정 계수 (문서 기준 업데이트)
 const DISEASE_CALORIE_MULTIPLIERS: Record<string, number> = {
@@ -382,7 +383,7 @@ export async function calculateUserGoalCalories(
     height_cm: profile.height_cm,
     age: profile.age || 30,
     activity_level: profile.activity_level || "sedentary",
-    diseases: profile.diseases,
+    diseases: profile.diseases?.map(d => d.code),
     premium_features: profile.premium_features,
     pregnancy_trimester: (profile as any).pregnancy_trimester, // 임신 삼분기 (있는 경우)
   });
@@ -406,7 +407,7 @@ export function calculateUserGoalCaloriesSync(
     height_cm: profile.height_cm,
     age: profile.age || 30,
     activity_level: profile.activity_level || "sedentary",
-    diseases: profile.diseases,
+    diseases: profile.diseases?.map(d => d.code),
     premium_features: profile.premium_features,
   });
 }

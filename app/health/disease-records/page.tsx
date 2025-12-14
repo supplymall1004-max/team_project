@@ -39,7 +39,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Plus, Stethoscope, Calendar, AlertTriangle, CheckCircle, Clock, User, Edit, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { DiseaseRecord, FamilyMember, DiseaseStatus, DiseaseSeverity } from "@/types/health-data-integration";
+import type { DiseaseRecord, DiseaseStatus, DiseaseSeverity } from "@/types/health-data-integration";
+import type { FamilyMember } from "@/types/family";
 
 export default function DiseaseRecordsPage() {
   console.log("[DiseaseRecordsPage] 페이지 렌더링 시작");
@@ -414,11 +415,6 @@ export default function DiseaseRecordsPage() {
                 <div>
                   <Label>질병명</Label>
                   <p className="font-medium">{selectedRecord.disease_name}</p>
-                  {selectedRecord.diseases && (
-                    <p className="text-sm text-muted-foreground">
-                      {(selectedRecord.diseases as any).name_kr}
-                    </p>
-                  )}
                 </div>
                 <div>
                   <Label>진단일</Label>
@@ -431,8 +427,11 @@ export default function DiseaseRecordsPage() {
                 <div>
                   <Label>가족 구성원</Label>
                   <p className="font-medium">
-                    {selectedRecord.family_members
-                      ? `${(selectedRecord.family_members as any).name} (${(selectedRecord.family_members as any).relationship})`
+                    {selectedRecord.family_member_id
+                      ? (familyMembers?.find(m => m.id === selectedRecord.family_member_id)?.name || "가족 구성원") + 
+                        (familyMembers?.find(m => m.id === selectedRecord.family_member_id)?.relationship 
+                          ? ` (${familyMembers.find(m => m.id === selectedRecord.family_member_id)?.relationship})` 
+                          : "")
                       : "본인"}
                   </p>
                 </div>
@@ -528,10 +527,13 @@ export default function DiseaseRecordsPage() {
                             {record.hospital_name}
                           </>
                         )}
-                        {record.family_members && (
+                        {record.family_member_id && (
                           <>
                             <User className="h-4 w-4 ml-2" />
-                            {(record.family_members as any).name} ({(record.family_members as any).relationship})
+                            {familyMembers?.find(m => m.id === record.family_member_id)?.name || "가족 구성원"}
+                            {familyMembers?.find(m => m.id === record.family_member_id)?.relationship 
+                              ? ` (${familyMembers.find(m => m.id === record.family_member_id)?.relationship})` 
+                              : ""}
                           </>
                         )}
                       </CardDescription>

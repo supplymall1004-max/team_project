@@ -453,7 +453,7 @@ export async function calculateHealthScore(
     }
 
     // 5. 건강 프로필 조회
-    let profileQuery = supabase
+    const profileQuery = supabase
       .from("user_health_profiles")
       .select("*")
       .eq("user_id", userId)

@@ -91,7 +91,7 @@ export function CheckupRecordDialog({
         next_recommended_date: record.next_recommended_date
           ? new Date(record.next_recommended_date).toISOString().split("T")[0]
           : "",
-        notes: record.notes || "",
+        notes: (record as any).notes || "",
       });
     } else {
       form.reset({

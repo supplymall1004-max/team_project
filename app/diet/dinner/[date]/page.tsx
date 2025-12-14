@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Clock, Calendar, ChefHat, Sunrise, Sun, Moon, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,13 +66,11 @@ interface HealthProfile {
   dietary_preferences: string[];
 }
 
-export default function DinnerDetailPage({
-  params
-}: {
-  params: { date: string }
-}) {
+export default function DinnerDetailPage() {
   const router = useRouter();
+  const params = useParams();
   const { user, isLoaded } = useUser();
+  const date = params.date as string;
 
   // 상태 관리
   const [mealData, setMealData] = useState<MealData | null>(null);
@@ -92,7 +90,7 @@ export default function DinnerDetailPage({
     if (!isLoaded || !user) return;
 
     loadPageData();
-  }, [isLoaded, user, params.date]);
+  }, [isLoaded, user, date]);
 
   const loadPageData = async () => {
     try {
@@ -101,9 +99,9 @@ export default function DinnerDetailPage({
 
       // 병렬로 데이터 로드
       const [dinnerResult, breakfastResult, lunchResult, healthResult, currentHealthResult] = await Promise.all([
-        fetch(`/api/diet/meal/dinner/${params.date}`).then(res => res.json()),
-        fetch(`/api/diet/meal/breakfast/${params.date}`).then(res => res.json()).catch(() => ({ success: false })),
-        fetch(`/api/diet/meal/lunch/${params.date}`).then(res => res.json()).catch(() => ({ success: false })),
+        fetch(`/api/diet/meal/dinner/${date}`).then(res => res.json()),
+        fetch(`/api/diet/meal/breakfast/${date}`).then(res => res.json()).catch(() => ({ success: false })),
+        fetch(`/api/diet/meal/lunch/${date}`).then(res => res.json()).catch(() => ({ success: false })),
         fetch('/api/health/profile').then(res => res.json()),
         fetch('/api/health/metrics').then(res => res.json())
       ]);
@@ -163,7 +161,7 @@ export default function DinnerDetailPage({
           baseHealth,
           meals,
           profile,
-          date: params.date
+          date: date
         })
       });
 
@@ -278,7 +276,7 @@ export default function DinnerDetailPage({
         <div className="max-w-2xl mx-auto pt-20">
           <Alert>
             <AlertDescription>
-              {params.date}의 저녁 식단 정보가 없습니다.
+              {date}의 저녁 식단 정보가 없습니다.
             </AlertDescription>
           </Alert>
           <div className="mt-4">
@@ -315,7 +313,7 @@ export default function DinnerDetailPage({
               <div className="flex items-center gap-4 mt-1">
                 <div className="flex items-center gap-1 text-gray-600">
                   <Calendar className="h-4 w-4" />
-                  {params.date}
+                  {date}
                 </div>
                 <div className="flex items-center gap-1 text-gray-600">
                   <Clock className="h-4 w-4" />
@@ -472,7 +470,6 @@ export default function DinnerDetailPage({
                   priority: 'low'
                 }
               ]}
-              title="저녁 식단 건강 인사이트"
             />
           </div>
 

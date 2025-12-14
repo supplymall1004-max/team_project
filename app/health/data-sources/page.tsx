@@ -24,7 +24,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
 import { useClerkSupabaseClient } from "@/lib/supabase/clerk-client";
@@ -119,10 +119,14 @@ export default function HealthDataSourcesPage() {
       return res.json();
     },
     enabled: isLoaded && !!user?.id,
-    onError: (err) => {
-      console.error("[IdentityVerifications] fetch error:", err);
-    }
   });
+
+  // 에러 처리
+  useEffect(() => {
+    if (verificationsError) {
+      console.error("[IdentityVerifications] fetch error:", verificationsError);
+    }
+  }, [verificationsError]);
 
   const hasVerifiedIdentity = Array.isArray(verifications) && verifications.some(v => v.status === "verified");
 
@@ -142,9 +146,6 @@ export default function HealthDataSourcesPage() {
     error,
   } = useQuery({
     enabled: isLoaded && !!user?.id && !!hasVerifiedIdentity,
-    onError: (error) => {
-      console.error("[HealthDataSourcesPage] 데이터 소스 조회 실패(onError):", error);
-    },
     queryKey: ["health-data-sources", user?.id ?? "guest"],
     queryFn: async (): Promise<HealthDataSource[]> => {
       console.log("[HealthDataSourcesPage] 데이터 소스 목록 조회 시작");
@@ -155,7 +156,7 @@ export default function HealthDataSourcesPage() {
       }
 
       try {
-        // 쿼리 실패 시 onError에서도 콘솔 로그를 남길 수 있도록 기본 로깅 추가
+        // 쿼리 실패 시 useEffect에서 에러 로깅 처리
         console.log("[HealthDataSourcesPage] Supabase 클라이언트 확인:", {
           hasSupabase: !!supabase,
           userClerkId: user.id,
@@ -249,18 +250,16 @@ export default function HealthDataSourcesPage() {
         }
       }
     },
-    enabled: isLoaded && !!user?.id,
     retry: 1,
     retryDelay: 1000,
-    onError: (error) => {
-      console.error("[HealthDataSourcesPage] React Query onError:", {
-        error,
-        errorType: typeof error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined,
-      });
-    },
   });
+
+  // 에러 처리
+  useEffect(() => {
+    if (error) {
+      console.error("[HealthDataSourcesPage] 데이터 소스 조회 실패:", error);
+    }
+  }, [error]);
 
   // 데이터 소스 연결 뮤테이션 (OAuth 인증 URL 생성 및 리다이렉트)
   const connectMutation = useMutation({
@@ -347,7 +346,12 @@ export default function HealthDataSourcesPage() {
       // 리다이렉트 후에는 실행되지 않지만, 타입을 맞추기 위해 반환
       return { data: null, isManual: false };
     },
-    onSuccess: (result) => {
+  });
+
+  // 연결 성공/실패 처리
+  useEffect(() => {
+    if (connectMutation.isSuccess && connectMutation.data) {
+      const result = connectMutation.data;
       console.log("[HealthDataSourcesPage] 데이터 소스 연결 성공 처리:", result);
 
       // manual 타입만 즉시 처리 (OAuth는 리다이렉트됨)
@@ -363,8 +367,9 @@ export default function HealthDataSourcesPage() {
         queryClient.invalidateQueries({ queryKey: ["health-data-sources"] });
       }
       // OAuth 타입은 리다이렉트되므로 여기서는 아무것도 하지 않음
-    },
-    onError: (error) => {
+    }
+    if (connectMutation.isError) {
+      const error = connectMutation.error;
       console.error("[HealthDataSourcesPage] 데이터 소스 연결 실패:", error);
 
       toast({
@@ -372,8 +377,8 @@ export default function HealthDataSourcesPage() {
         description: error instanceof Error ? error.message : "데이터 소스 연결에 실패했습니다. 다시 시도해주세요.",
         variant: "destructive",
       });
-    },
-  });
+    }
+  }, [connectMutation.isSuccess, connectMutation.isError, connectMutation.data, connectMutation.error, toast, queryClient]);
 
   // 수동 동기화 뮤테이션
   const syncMutation = useMutation({
@@ -389,8 +394,12 @@ export default function HealthDataSourcesPage() {
       console.log("[HealthDataSourcesPage] 수동 동기화 완료:", dataSourceId);
       return { dataSourceId };
     },
-    onSuccess: (result) => {
-      console.log("[HealthDataSourcesPage] 수동 동기화 성공 처리:", result);
+  });
+
+  // 수동 동기화 성공/실패 처리
+  useEffect(() => {
+    if (syncMutation.isSuccess) {
+      console.log("[HealthDataSourcesPage] 수동 동기화 성공 처리:", syncMutation.data);
 
       toast({
         title: "동기화 완료",
@@ -398,17 +407,17 @@ export default function HealthDataSourcesPage() {
       });
 
       queryClient.invalidateQueries({ queryKey: ["health-data-sources"] });
-    },
-    onError: (error) => {
-      console.error("[HealthDataSourcesPage] 수동 동기화 실패:", error);
+    }
+    if (syncMutation.isError) {
+      console.error("[HealthDataSourcesPage] 수동 동기화 실패:", syncMutation.error);
 
       toast({
         title: "동기화 실패",
         description: "데이터 동기화에 실패했습니다. 다시 시도해주세요.",
         variant: "destructive",
       });
-    },
-  });
+    }
+  }, [syncMutation.isSuccess, syncMutation.isError, syncMutation.data, syncMutation.error, toast, queryClient]);
 
   // 연결 해제 뮤테이션
   const disconnectMutation = useMutation({
@@ -430,7 +439,11 @@ export default function HealthDataSourcesPage() {
 
       console.log("[HealthDataSourcesPage] 연결 해제 성공:", dataSourceId);
     },
-    onSuccess: () => {
+  });
+
+  // 연결 해제 성공/실패 처리
+  useEffect(() => {
+    if (disconnectMutation.isSuccess) {
       console.log("[HealthDataSourcesPage] 연결 해제 성공 처리");
 
       toast({
@@ -439,17 +452,17 @@ export default function HealthDataSourcesPage() {
       });
 
       queryClient.invalidateQueries({ queryKey: ["health-data-sources"] });
-    },
-    onError: (error) => {
-      console.error("[HealthDataSourcesPage] 연결 해제 실패:", error);
+    }
+    if (disconnectMutation.isError) {
+      console.error("[HealthDataSourcesPage] 연결 해제 실패:", disconnectMutation.error);
 
       toast({
         title: "연결 해제 실패",
         description: "데이터 소스 연결 해제에 실패했습니다. 다시 시도해주세요.",
         variant: "destructive",
       });
-    },
-  });
+    }
+  }, [disconnectMutation.isSuccess, disconnectMutation.isError, disconnectMutation.error, toast, queryClient]);
 
   // 연결 핸들러
   const handleConnect = () => {
@@ -506,7 +519,7 @@ export default function HealthDataSourcesPage() {
   if (Array.isArray(verifications) && verifications.length >= 0 && !hasVerifiedIdentity) {
     return (
       <div className="container mx-auto py-8">
-        <Alert variant="warning">
+        <Alert variant="destructive">
           <AlertDescription>신원확인이 필요합니다. 아래 정보를 입력해 주세요.</AlertDescription>
         </Alert>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
@@ -659,10 +672,11 @@ export default function HealthDataSourcesPage() {
       errorMessage = error.message;
     } else if (error && typeof error === 'object') {
       // React Query나 Supabase 에러 객체 처리
-      if ('message' in error && typeof error.message === 'string') {
-        errorMessage = error.message;
-      } else if ('error' in error && error.error instanceof Error) {
-        errorMessage = error.error.message;
+      const errorObj = error as Record<string, unknown>;
+      if ('message' in errorObj && typeof errorObj.message === 'string') {
+        errorMessage = errorObj.message;
+      } else if ('error' in errorObj && errorObj.error instanceof Error) {
+        errorMessage = (errorObj.error as Error).message;
       } else {
         // 객체의 모든 속성을 문자열로 변환
         try {
@@ -734,7 +748,7 @@ export default function HealthDataSourcesPage() {
             <div className="space-y-4">
               <div>
                 <Label htmlFor="source-type">데이터 소스 유형</Label>
-                <Select value={selectedSourceType} onValueChange={setSelectedSourceType}>
+                <Select value={selectedSourceType} onValueChange={(value) => setSelectedSourceType(value as DataSourceType | "")}>
                   <SelectTrigger>
                     <SelectValue placeholder="유형을 선택하세요" />
                   </SelectTrigger>
@@ -765,7 +779,7 @@ export default function HealthDataSourcesPage() {
               </div>
 
               {!hasVerifiedIdentity && (
-                <Alert variant="warning" className="mt-4">
+                <Alert variant="destructive" className="mt-4">
                   <AlertDescription>
                     데이터 소스를 연결하려면 먼저 신원확인이 완료되어야 합니다. 페이지 상단에서 이름, 주민등록번호를 입력하고 개인정보 동의를 해주세요.
                   </AlertDescription>

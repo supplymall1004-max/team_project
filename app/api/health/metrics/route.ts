@@ -283,12 +283,12 @@ function calculateDiseaseRiskScores(
   }
 
   // 질병 이력 기반 조정
-  if (profile.diseases?.includes('diabetes')) {
+  if (profile.diseases?.some(d => d.code === 'diabetes')) {
     scores.diabetes += 40;
     scores.kidney += 15;
   }
 
-  if (profile.diseases?.includes('hypertension')) {
+  if (profile.diseases?.some(d => d.code === 'hypertension')) {
     scores.cardiovascular += 25;
     scores.kidney += 20;
   }

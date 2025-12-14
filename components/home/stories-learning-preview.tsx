@@ -13,7 +13,6 @@ import { Section } from '@/components/section';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { StorybookSection } from '@/components/storybook/storybook-section';
-import { FoodStoriesSection } from '@/components/food-stories/food-stories-section';
 
 export async function StoriesLearningPreview() {
   console.log("[StoriesLearningPreview] 메인 페이지 스토리 & 학습 미리보기 시작");
@@ -36,9 +35,6 @@ export async function StoriesLearningPreview() {
 
       {/* 마카의 음식 동화 */}
       <StorybookSection />
-
-      {/* 음식 스토리 */}
-      <FoodStoriesSection showAllLink={true} />
     </div>
   );
 }

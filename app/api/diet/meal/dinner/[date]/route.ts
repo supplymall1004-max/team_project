@@ -72,32 +72,27 @@ export async function GET(
     
     const mealData = {
       id: dinnerData.id || `dinner-${date}`,
-      name: dinnerData.recipe?.title || dinnerData.recipe_title || '저녁 식단',
+      name: dinnerData.recipe?.title || '저녁 식단',
       calories: dinnerData.calories || 0,
       nutrition: {
         calories: dinnerData.calories || 0,
-        protein: dinnerData.protein_g || dinnerData.protein || 0,
-        carbohydrates: dinnerData.carbs_g || dinnerData.carbohydrates || 0,
-        fat: dinnerData.fat_g || dinnerData.fat || 0,
-        fiber: dinnerData.fiber_g || 0,
+        protein: dinnerData.protein || 0,
+        carbohydrates: dinnerData.carbohydrates || 0,
+        fat: dinnerData.fat || 0,
+        fiber: 0, // DietPlan 타입에 fiber 속성이 없음
         sugar: 0,
-        sodium: dinnerData.sodium_mg || dinnerData.sodium || 0,
+        sodium: dinnerData.sodium || 0,
         cholesterol: 0,
-        potassium: dinnerData.potassium_mg || null,
-        phosphorus: dinnerData.phosphorus_mg || null,
-        gi_index: dinnerData.gi_index || null,
+        potassium: null, // DietPlan 타입에 없음
+        phosphorus: null, // DietPlan 타입에 없음
+        gi_index: null, // DietPlan 타입에 없음
       },
-      ingredients: Array.isArray(dinnerData.ingredients) 
-        ? dinnerData.ingredients.map((ing: any) => ({
-            name: typeof ing === 'string' ? ing : (ing.name || ing),
-            quantity: typeof ing === 'object' && ing.quantity ? ing.quantity : null,
-          }))
-        : [],
+      ingredients: [], // DietPlan 타입에 ingredients 속성이 없음
       recipe: dinnerData.recipe,
       recipe_id: dinnerData.recipe_id,
-      recipe_title: dinnerData.recipe_title,
-      recipe_description: dinnerData.recipe_description,
-      instructions: dinnerData.instructions,
+      recipe_title: dinnerData.recipe?.title,
+      recipe_description: null, // DietPlan 타입의 recipe에 description 없음
+      instructions: null, // DietPlan 타입에 없음
       composition_summary: dinnerData.compositionSummary || [],
       foodsafety_data: dinnerData.recipe ? {
         rcp_seq: dinnerData.recipe.id?.startsWith('foodsafety-') 

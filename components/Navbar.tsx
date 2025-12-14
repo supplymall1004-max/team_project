@@ -18,7 +18,7 @@ import {
 } from "@clerk/nextjs";
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -60,21 +60,6 @@ const Navbar = () => {
 
     router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
   };
-
-  const renderedLinks = useMemo(
-    () =>
-      navLinks.map((link) => (
-        <Link
-          key={link.label}
-          href={link.href}
-          onClick={() => handleNavClick(link.label)}
-          className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
-        >
-          {link.label}
-        </Link>
-      )),
-    [],
-  );
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[100] border-b border-border/60 bg-white shadow-sm">
@@ -131,8 +116,22 @@ const Navbar = () => {
             </span>
           </div>
         </form>
-        <nav className="hidden items-center gap-6 md:flex">{renderedLinks}</nav>
-        <div className="flex items-center gap-3">
+        {/* 데스크톱 네비게이션 */}
+        <nav className="hidden items-center gap-1 md:flex">
+          {navLinks.map((link) => (
+            <Link
+              key={link.label}
+              href={link.href}
+              onClick={() => handleNavClick(link.label)}
+              className="px-4 py-2 text-sm font-medium text-muted-foreground rounded-md transition-colors hover:text-foreground hover:bg-muted/50"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* 사용자 액션 영역 */}
+        <div className="flex items-center gap-2 ml-auto">
           <SignedOut>
             <div className="hidden md:block">
               <LoginModal />
@@ -150,20 +149,21 @@ const Navbar = () => {
                 }
                 setMenuOpen((prev) => !prev);
               }}
+              aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
             >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </SignedOut>
           <SignedIn>
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-2">
               <Link href="/settings">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="text-sm">
                   설정
                 </Button>
               </Link>
               <UserButton />
               <SignOutButton>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="text-sm">
                   로그아웃
                 </Button>
               </SignOutButton>
@@ -181,34 +181,69 @@ const Navbar = () => {
                 }
                 setMenuOpen((prev) => !prev);
               }}
+              aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
             >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </SignedIn>
         </div>
       </div>
+      {/* 모바일 메뉴 */}
       <div
         className={cn(
-          "md:hidden",
-          menuOpen ? "block border-t border-border/60 bg-white/95" : "hidden",
+          "md:hidden overflow-hidden transition-all duration-300 ease-in-out",
+          menuOpen
+            ? "max-h-[600px] border-t border-border/60 bg-white/95 backdrop-blur-sm"
+            : "max-h-0"
         )}
       >
-        <div className="flex flex-col gap-4 px-6 py-4">
-          {renderedLinks}
+        <div className="px-6 py-5 space-y-6">
+          {/* 네비게이션 링크 섹션 */}
+          <nav className="flex flex-col gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                onClick={() => handleNavClick(link.label)}
+                className="px-3 py-2.5 text-base font-medium text-foreground rounded-lg transition-colors hover:bg-muted/50 active:bg-muted"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* 구분선 */}
+          <div className="border-t border-border/40" />
+
+          {/* 사용자 액션 섹션 */}
           <SignedOut>
-            <LoginModal />
+            <div className="pt-2">
+              <LoginModal />
+            </div>
           </SignedOut>
           <SignedIn>
-            <div className="flex flex-col gap-3">
-              <Link href="/settings" onClick={() => setMenuOpen(false)}>
-                <Button variant="outline" className="w-full justify-center">
+            <div className="space-y-3">
+              <Link
+                href="/settings"
+                onClick={() => setMenuOpen(false)}
+                className="block"
+              >
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start px-3 py-2.5 h-auto text-base font-medium"
+                >
                   설정
                 </Button>
               </Link>
-              <div className="flex items-center gap-3">
-                <UserButton />
+              <div className="flex items-center gap-3 px-3">
+                <div className="flex-1">
+                  <UserButton />
+                </div>
                 <SignOutButton>
-                  <Button variant="outline" className="w-full justify-center">
+                  <Button
+                    variant="outline"
+                    className="flex-1 justify-center py-2.5 h-auto text-base font-medium"
+                  >
                     로그아웃
                   </Button>
                 </SignOutButton>

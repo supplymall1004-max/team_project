@@ -194,7 +194,7 @@ function calculateTravelRiskLevel(params: {
       "obesity",
     ];
     const hasHighRiskDisease = (params.healthProfile.diseases || []).some(
-      (d) => highRiskDiseases.includes(d)
+      (d) => highRiskDiseases.includes(d.code)
     );
 
     if (hasHighRiskDisease) {

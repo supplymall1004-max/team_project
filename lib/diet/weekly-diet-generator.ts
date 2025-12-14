@@ -648,7 +648,7 @@ function generateNutritionStats(
           if ('totalNutrition' in meal && meal.totalNutrition) {
             const nutrition = meal.totalNutrition;
             const calories = typeof nutrition.calories === 'number' ? nutrition.calories : Number(nutrition.calories) || 0;
-            const carbs = typeof nutrition.carbohydrates === 'number' ? nutrition.carbohydrates : Number(nutrition.carbohydrates) || 0;
+            const carbs = typeof nutrition.carbs === 'number' ? nutrition.carbs : Number(nutrition.carbs) || 0;
             const protein = typeof nutrition.protein === 'number' ? nutrition.protein : Number(nutrition.protein) || 0;
             const fat = typeof nutrition.fat === 'number' ? nutrition.fat : Number(nutrition.fat) || 0;
             const sodium = typeof nutrition.sodium === 'number' ? nutrition.sodium : Number(nutrition.sodium) || 0;
@@ -666,7 +666,7 @@ function generateNutritionStats(
           const nutrition = (meal as any)?.nutrition;
           if (nutrition) {
             const calories = typeof nutrition.calories === 'number' ? nutrition.calories : Number(nutrition.calories) || 0;
-            const carbs = typeof nutrition.carbohydrates === 'number' ? nutrition.carbohydrates : Number(nutrition.carbohydrates) || 0;
+            const carbs = typeof nutrition.carbs === 'number' ? nutrition.carbs : Number(nutrition.carbs) || 0;
             const protein = typeof nutrition.protein === 'number' ? nutrition.protein : Number(nutrition.protein) || 0;
             const fat = typeof nutrition.fat === 'number' ? nutrition.fat : Number(nutrition.fat) || 0;
             const sodium = typeof nutrition.sodium === 'number' ? nutrition.sodium : Number(nutrition.sodium) || 0;

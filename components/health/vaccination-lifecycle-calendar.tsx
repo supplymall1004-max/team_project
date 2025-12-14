@@ -8,7 +8,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, CalendarProps } from "@/components/ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -196,9 +196,13 @@ export function VaccinationLifecycleCalendar({
                 modifiers={{
                   hasVaccinations: (date) => getSchedulesForDate(date).length > 0,
                 }}
-                modifiersClassNames={{
-                  hasVaccinations: getDateClassName,
-                }}
+                classNames={{
+                  day: (date: Date) => {
+                    const schedulesForDate = getSchedulesForDate(date);
+                    if (schedulesForDate.length === 0) return "";
+                    return getDateClassName(date);
+                  },
+                } as any}
               />
 
               {/* 범례 */}

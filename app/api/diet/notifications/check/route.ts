@@ -18,22 +18,43 @@ export async function GET(request: NextRequest) {
   try {
     console.group("🔔 알림 표시 여부 확인");
 
-    const { userId } = await auth();
+    const authResult = await auth();
+    console.log("🔍 Auth result:", {
+      userId: authResult.userId,
+      hasUserId: !!authResult.userId,
+      userIdType: typeof authResult.userId,
+      userIdLength: authResult.userId?.length
+    });
+
+    const { userId } = authResult;
 
     if (!userId) {
-      console.error("❌ 인증 실패");
+      console.error("❌ 인증 실패 - userId가 없음");
       console.groupEnd();
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const supabase = await createClerkSupabaseClient();
 
+    console.log("🔍 Supabase client 생성됨, users 테이블 조회 시도...");
+    console.log("🔍 조회할 clerk_id:", userId);
+
     // 사용자의 Supabase user_id 조회
     const { data: userData, error: userError } = await supabase
       .from("users")
-      .select("id")
+      .select("id, clerk_id, name")
       .eq("clerk_id", userId)
       .maybeSingle();
+
+    console.log("🔍 조회 결과:", {
+      data: userData,
+      error: userError,
+      hasData: !!userData,
+      errorCode: userError?.code,
+      errorMessage: userError?.message,
+      errorDetails: userError?.details,
+      errorHint: userError?.hint
+    });
 
     // 사용자가 없거나 조회 실패 시 팝업 표시하지 않음
     if (userError || !userData) {

@@ -52,7 +52,7 @@ export function calculateMacroGoals(
   dailyCalories: number,
   profile: UserHealthProfile
 ): MacroGoals {
-  const diseases = profile.diseases || [];
+  const diseases = profile.diseases?.map(d => d.code) || [];
   const hasCKD = diseases.includes("kidney_disease");
   const hasDiabetes = diseases.includes("diabetes");
   const hasCardiovascularDisease = diseases.includes("cardiovascular_disease");

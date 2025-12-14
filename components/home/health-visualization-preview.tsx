@@ -213,6 +213,16 @@ export function HealthVisualizationPreview({
   }
 
   // 전체 모드 (챕터 페이지용)
+  // 영양소 칼로리 기반 퍼센트 계산
+  const carbCalories = healthMetrics.nutritionBalance.carbohydrates * 4;
+  const proteinCalories = healthMetrics.nutritionBalance.protein * 4;
+  const fatCalories = healthMetrics.nutritionBalance.fat * 9;
+  const totalCalories = carbCalories + proteinCalories + fatCalories;
+  
+  const carbPercentage = totalCalories > 0 ? (carbCalories / totalCalories) * 100 : 0;
+  const proteinPercentage = totalCalories > 0 ? (proteinCalories / totalCalories) * 100 : 0;
+  const fatPercentage = totalCalories > 0 ? (fatCalories / totalCalories) * 100 : 0;
+
   return (
     <div className={cn('space-y-6', className)}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -272,28 +282,28 @@ export function HealthVisualizationPreview({
                 <div className="flex justify-between text-sm mb-1">
                   <span>탄수화물</span>
                   <span className="font-semibold">
-                    {healthMetrics.nutritionBalance.carbohydrates.toFixed(0)}%
+                    {carbPercentage.toFixed(1)}%
                   </span>
                 </div>
-                <Progress value={healthMetrics.nutritionBalance.carbohydrates} className="h-2" />
+                <Progress value={carbPercentage} className="h-2" />
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>단백질</span>
                   <span className="font-semibold">
-                    {healthMetrics.nutritionBalance.protein.toFixed(0)}%
+                    {proteinPercentage.toFixed(1)}%
                   </span>
                 </div>
-                <Progress value={healthMetrics.nutritionBalance.protein} className="h-2" />
+                <Progress value={proteinPercentage} className="h-2" />
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>지방</span>
                   <span className="font-semibold">
-                    {healthMetrics.nutritionBalance.fat.toFixed(0)}%
+                    {fatPercentage.toFixed(1)}%
                   </span>
                 </div>
-                <Progress value={healthMetrics.nutritionBalance.fat} className="h-2" />
+                <Progress value={fatPercentage} className="h-2" />
               </div>
             </div>
             <Button asChild variant="outline" className="w-full">

@@ -175,7 +175,7 @@ export function UnifiedNotificationSettings() {
   };
 
   // 채널 토글
-  const toggleChannel = (category: keyof NotificationSettings, channelId: string) => {
+  const toggleChannel = (category: "vaccination" | "medication" | "checkup" | "appointment", channelId: string) => {
     const categoryKey = `${category}Channels` as keyof NotificationSettings;
     const currentChannels = settings[categoryKey] as string[];
 
@@ -188,7 +188,7 @@ export function UnifiedNotificationSettings() {
   };
 
   // 일자 토글
-  const toggleDay = (category: keyof NotificationSettings, dayValue: number) => {
+  const toggleDay = (category: "vaccination" | "medication" | "checkup" | "appointment", dayValue: number) => {
     const categoryKey = `${category}DaysBefore` as keyof NotificationSettings;
     const currentDays = settings[categoryKey] as number[];
 

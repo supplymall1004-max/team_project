@@ -102,12 +102,12 @@ export function DietManagementPreview() {
                       <span className="text-gray-400 text-xs">식단 이미지</span>
                     </div>
                     <CardDescription className="text-xs">
-                      {meal?.recipes?.[0]?.name || '식단 없음'}
+                      {meal?.recipe?.title || '식단 없음'}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm font-semibold">
-                      {meal?.totalNutrition?.calories?.toFixed(0) || 0}kcal
+                      {meal?.calories?.toFixed(0) || 0}kcal
                     </p>
                     <Button asChild variant="outline" size="sm" className="w-full mt-2 group-hover:bg-purple-50">
                       <Link href={`/diet/${type}/${new Date().toISOString().split('T')[0]}`}>

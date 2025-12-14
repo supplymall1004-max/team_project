@@ -327,7 +327,17 @@ function createDietPlanRecord(
     : (recipe.instructions || null);
 
   // 영양소 정보 검증 및 기본값 설정
-  const nutrition = recipe.nutrition || {};
+  const nutrition = (recipe.nutrition || {}) as {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    sodium?: number;
+    fiber?: number;
+    potassium?: number;
+    phosphorus?: number;
+    gi?: number;
+  };
   
   // 필수 필드 검증
   if (!userId || !planDate || !mealType || !recipeTitle) {

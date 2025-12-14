@@ -104,7 +104,7 @@ export async function generatePersonalDiet(
   });
 
   // 2. 질병별 제외 음식 조회
-  const excludedFoods = await getExcludedFoods(profile.diseases || []);
+  const excludedFoods = await getExcludedFoods(profile.diseases?.map(d => d.code) || []);
   console.log(`제외 음식: ${excludedFoods.length}개`);
 
   // 2-1. 일일 영양소 추적기 생성 (질병이 있는 경우)
@@ -205,7 +205,7 @@ export async function generatePersonalDiet(
     "breakfast",
     breakfastCalories,
     excludedFoods,
-    profile.allergies || [],
+    profile.allergies?.map(a => a.code) || [],
     recentlyUsed,
     finalAvailableRecipes || [],
     isChild,
@@ -238,7 +238,7 @@ export async function generatePersonalDiet(
     "lunch",
     lunchCalories,
     excludedFoods,
-    profile.allergies || [],
+    profile.allergies?.map(a => a.code) || [],
     recentlyUsed,
     finalAvailableRecipes || [],
     isChild,
@@ -271,7 +271,7 @@ export async function generatePersonalDiet(
     "dinner",
     dinnerCalories,
     excludedFoods,
-    profile.allergies || [],
+    profile.allergies?.map(a => a.code) || [],
     recentlyUsed,
     finalAvailableRecipes || [],
     isChild,
@@ -313,7 +313,7 @@ export async function generatePersonalDiet(
     snackCalories,
     currentMonth,
     isChild,
-    profile.diseases || []
+    profile.diseases?.map(d => d.code) || []
   );
 
   // 주간 컨텍스트: 이미 사용된 간식 제외
@@ -326,7 +326,7 @@ export async function generatePersonalDiet(
         snackCalories,
         currentMonth,
         isChild,
-        profile.diseases || []
+        profile.diseases?.map(d => d.code) || []
       );
       retryCount++;
     }
@@ -1001,7 +1001,7 @@ async function selectDishForMeal(
     // 4. 질병별 권장 식품 가산점 (임산부 및 어린이 포함)
     if (healthProfile) {
       const recipeText = a.title.toLowerCase();
-      const diseases = healthProfile.diseases || [];
+      const diseases = healthProfile.diseases?.map(d => d.code) || [];
       const isPregnant = (healthProfile as any).pregnancy_trimester !== undefined;
 
       // 어린이: 성장기 필수 영양소 (단백질, 칼슘, 비타민)
@@ -1050,7 +1050,7 @@ async function selectDishForMeal(
     // b 레시피에도 동일한 가산점 적용
     if (healthProfile) {
       const recipeTextB = b.title.toLowerCase();
-      const diseases = healthProfile.diseases || [];
+      const diseases = healthProfile.diseases?.map(d => d.code) || [];
       const isPregnant = (healthProfile as any).pregnancy_trimester !== undefined;
 
       if (isChildDiet) {

@@ -80,33 +80,28 @@ export async function GET(
     const breakfastData = dailyPlan.breakfast;
     const mealData = {
       id: breakfastData.id || `breakfast-${date}`,
-      name: breakfastData.recipe?.title || breakfastData.recipe_title || '아침 식단',
+      name: breakfastData.recipe?.title || '아침 식단',
       calories: breakfastData.calories || 0,
       nutrition: {
         calories: breakfastData.calories || 0,
-        protein: breakfastData.protein_g || breakfastData.protein || 0,
-        carbohydrates: breakfastData.carbs_g || breakfastData.carbohydrates || 0,
-        fat: breakfastData.fat_g || breakfastData.fat || 0,
-        fiber: breakfastData.fiber_g || 0,
+        protein: breakfastData.protein || 0,
+        carbohydrates: breakfastData.carbohydrates || 0,
+        fat: breakfastData.fat || 0,
+        fiber: 0, // DietPlan 타입에 fiber 속성이 없음
         sugar: 0, // 데이터베이스에 없으면 0
-        sodium: breakfastData.sodium_mg || breakfastData.sodium || 0,
+        sodium: breakfastData.sodium || 0,
         cholesterol: 0, // 데이터베이스에 없으면 0
-        potassium: breakfastData.potassium_mg || null,
-        phosphorus: breakfastData.phosphorus_mg || null,
-        gi_index: breakfastData.gi_index || null,
+        potassium: null, // DietPlan 타입에 없음
+        phosphorus: null, // DietPlan 타입에 없음
+        gi_index: null, // DietPlan 타입에 없음
       },
-      ingredients: Array.isArray(breakfastData.ingredients) 
-        ? breakfastData.ingredients.map((ing: any) => ({
-            name: typeof ing === 'string' ? ing : (ing.name || ing),
-            quantity: typeof ing === 'object' && ing.quantity ? ing.quantity : null,
-          }))
-        : [],
+      ingredients: [], // DietPlan 타입에 ingredients 속성이 없음
       recipe: breakfastData.recipe,
       recipe_id: breakfastData.recipe_id,
-      recipe_title: breakfastData.recipe_title,
-      recipe_description: breakfastData.recipe_description,
-      instructions: breakfastData.instructions,
-      composition_summary: breakfastData.compositionSummary || [],
+      recipe_title: breakfastData.recipe?.title,
+      recipe_description: null, // DietPlan 타입의 recipe에 description 없음
+      instructions: null, // DietPlan 타입에 없음
+      composition_summary: breakfastData.compositionSummary || [], // DietPlan 타입에 있음
       // 식약처 API 데이터 (레시피에 있는 경우)
       foodsafety_data: breakfastData.recipe ? {
         rcp_seq: breakfastData.recipe.id?.startsWith('foodsafety-') 

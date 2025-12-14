@@ -72,7 +72,7 @@ export function ConsentRecordsExport({
       a.href = url;
       
       const contentType = response.headers.get('content-type') || '';
-      let extension = format;
+      let extension: string = format;
       if (format === 'excel') extension = 'xlsx';
       if (format === 'hwp') extension = 'hwp';
       

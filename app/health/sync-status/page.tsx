@@ -54,7 +54,7 @@ export default function SyncStatusPage() {
     error,
   } = useQuery({
     queryKey: ["health-data-sync-logs", selectedStatus, selectedType],
-    queryFn: async (): Promise<HealthDataSyncLog[]> => {
+    queryFn: async (): Promise<(HealthDataSyncLog & { health_data_sources?: { id: string; source_name: string; source_type: string } | { id: string; source_name: string; source_type: string }[] | null })[]> => {
       console.log("[SyncStatusPage] 동기화 로그 조회, 상태:", selectedStatus, "유형:", selectedType);
 
       let query = supabase
@@ -368,10 +368,14 @@ export default function SyncStatusPage() {
                             {log.health_data_sources ? (
                               <div>
                                 <div className="font-medium text-sm">
-                                  {(log.health_data_sources as any).source_name}
+                                  {Array.isArray(log.health_data_sources) 
+                                    ? log.health_data_sources[0]?.source_name || '정보 없음'
+                                    : log.health_data_sources.source_name}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  {(log.health_data_sources as any).source_type}
+                                  {Array.isArray(log.health_data_sources) 
+                                    ? log.health_data_sources[0]?.source_type || '정보 없음'
+                                    : log.health_data_sources.source_type}
                                 </div>
                               </div>
                             ) : (

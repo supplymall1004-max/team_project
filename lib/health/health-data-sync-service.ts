@@ -112,7 +112,8 @@ function isTokenExpired(token: MyDataToken | HealthHighwayToken): boolean {
  */
 async function syncMyData(
   params: SyncParams,
-  token: MyDataToken
+  token: MyDataToken,
+  dataSource: any
 ): Promise<SyncResult> {
   console.group("[HealthDataSyncService] 마이데이터 동기화 시작");
 
@@ -268,7 +269,8 @@ async function syncMyData(
  */
 async function syncHealthHighway(
   params: SyncParams,
-  token: HealthHighwayToken
+  token: HealthHighwayToken,
+  dataSource: any
 ): Promise<SyncResult> {
   console.group("[HealthDataSyncService] 건강정보고속도로 동기화 시작");
 
@@ -452,10 +454,10 @@ export async function syncHealthData(params: SyncParams): Promise<SyncResult> {
 
     if (dataSource.source_type === "mydata") {
       const token = dataSource.connection_metadata as MyDataToken;
-      syncResult = await syncMyData(params, token);
+      syncResult = await syncMyData(params, token, dataSource);
     } else if (dataSource.source_type === "health_highway") {
       const token = dataSource.connection_metadata as HealthHighwayToken;
-      syncResult = await syncHealthHighway(params, token);
+      syncResult = await syncHealthHighway(params, token, dataSource);
     } else {
       console.error("❌ 지원하지 않는 데이터 소스 유형:", dataSource.source_type);
       console.groupEnd();

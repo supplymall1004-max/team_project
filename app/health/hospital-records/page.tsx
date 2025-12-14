@@ -39,8 +39,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Plus, Calendar, Building, FileText, User, Edit, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { HospitalRecord, FamilyMember } from "@/types/health-data-integration";
-import type { HealthProfile } from "@/types/health";
+import type { HospitalRecord } from "@/types/health-data-integration";
+import type { FamilyMember } from "@/types/family";
+import type { UserHealthProfile } from "@/types/health";
 
 export default function HospitalRecordsPage() {
   console.log("[HospitalRecordsPage] 페이지 렌더링 시작");
@@ -318,10 +319,13 @@ export default function HospitalRecordsPage() {
                       <CardDescription className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
                         {new Date(record.visit_date).toLocaleDateString('ko-KR')}
-                        {record.family_members && (
+                        {record.family_member_id && (
                           <>
                             <User className="h-4 w-4 ml-2" />
-                            {(record.family_members as any).name} ({(record.family_members as any).relationship})
+                            {familyMembers?.find(m => m.id === record.family_member_id)?.name || "가족 구성원"}
+                            {familyMembers?.find(m => m.id === record.family_member_id)?.relationship 
+                              ? ` (${familyMembers.find(m => m.id === record.family_member_id)?.relationship})` 
+                              : ""}
                           </>
                         )}
                       </CardDescription>
@@ -393,8 +397,11 @@ export default function HospitalRecordsPage() {
                 <div>
                   <Label>가족 구성원</Label>
                   <p className="font-medium">
-                    {selectedRecord.family_members
-                      ? `${(selectedRecord.family_members as any).name} (${(selectedRecord.family_members as any).relationship})`
+                    {selectedRecord.family_member_id
+                      ? (familyMembers?.find(m => m.id === selectedRecord.family_member_id)?.name || "가족 구성원") + 
+                        (familyMembers?.find(m => m.id === selectedRecord.family_member_id)?.relationship 
+                          ? ` (${familyMembers.find(m => m.id === selectedRecord.family_member_id)?.relationship})` 
+                          : "")
                       : "본인"}
                   </p>
                 </div>
