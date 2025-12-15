@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Siren, ChevronRight, MapPin } from 'lucide-react';
+import { Siren, ChevronRight, MapPin, Apple } from 'lucide-react';
 
 export function EmergencyQuickAccess() {
     return (
@@ -38,6 +38,23 @@ export function EmergencyQuickAccess() {
                     </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-blue-400 group-hover:text-blue-600 transition-colors" />
+            </Link>
+
+            {/* 건강 맞춤 식단 */}
+            <Link
+                href="/diet"
+                className="flex items-center justify-between py-2.5 px-4 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 hover:border-green-300 transition-all group"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full group-hover:bg-green-200 transition-colors">
+                        <Apple className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-green-900 text-sm">건강 맞춤 식단</h3>
+                        <p className="text-xs text-green-700">개인 맞춤 식단 상세 정보 확인</p>
+                    </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-green-400 group-hover:text-green-600 transition-colors" />
             </Link>
         </div>
     );

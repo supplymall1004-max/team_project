@@ -20,12 +20,23 @@ export interface NaverMarker {
 export interface NaverInfoWindow {
   open: (map: unknown, marker: unknown) => void;
   close: () => void;
+  getMap: () => unknown | null;
+  setContent: (content: string) => void;
 }
 
 export interface NaverMaps {
   Map: new (element: HTMLElement, options: {
     center: unknown;
     zoom: number;
+    zoomControl?: boolean;
+    zoomControlOptions?: {
+      position?: unknown;
+    };
+    mapTypeControl?: boolean;
+    mapTypeControlOptions?: {
+      style?: unknown;
+      position?: unknown;
+    };
   }) => NaverMap;
   LatLng: new (lat: number, lng: number) => unknown;
   Marker: new (options: {
@@ -42,6 +53,10 @@ export interface NaverMaps {
   InfoWindow: new (options: {
     content: string;
     maxWidth?: number;
+    borderWidth?: number;
+    backgroundColor?: string;
+    borderRadius?: string;
+    boxShadow?: string;
   }) => NaverInfoWindow;
   Event: {
     addListener: (target: unknown, event: string, handler: () => void) => void;

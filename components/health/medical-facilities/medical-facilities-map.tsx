@@ -451,11 +451,41 @@ export function MedicalFacilitiesMap({ selectedCategory }: MedicalFacilitiesMapP
 
         const icon = categoryIcons[facility.category] || "🏥";
 
+        // 영업 상태 배지 생성
+        let statusBadge = "";
+        if (facility.operatingHours?.todayStatus) {
+          if (facility.operatingHours.todayStatus === "open") {
+            statusBadge = '<span style="display: inline-block; padding: 2px 8px; background: #10b981; color: white; border-radius: 12px; font-size: 11px; font-weight: 500; margin-left: 8px;">영업중</span>';
+          } else if (facility.operatingHours.todayStatus === "closed") {
+            statusBadge = '<span style="display: inline-block; padding: 2px 8px; background: #ef4444; color: white; border-radius: 12px; font-size: 11px; font-weight: 500; margin-left: 8px;">영업종료</span>';
+          } else if (facility.operatingHours.todayStatus === "closing_soon") {
+            statusBadge = '<span style="display: inline-block; padding: 2px 8px; background: #f97316; color: white; border-radius: 12px; font-size: 11px; font-weight: 500; margin-left: 8px;">곧 마감</span>';
+          }
+        }
+
+        // 영업 시간 정보 생성
+        let hoursInfo = "";
+        if (facility.operatingHours) {
+          if (facility.operatingHours.is24Hours) {
+            hoursInfo = '<p style="margin: 4px 0 0 0; font-size: 11px; color: #059669; font-weight: 500;">⏰ 24시간 영업</p>';
+          } else if (facility.operatingHours.todayHours) {
+            hoursInfo = `<p style="margin: 4px 0 0 0; font-size: 11px; color: #374151;">⏰ 오늘 ${facility.operatingHours.todayHours}</p>`;
+          } else if (facility.operatingHours.hours) {
+            hoursInfo = `<p style="margin: 4px 0 0 0; font-size: 11px; color: #374151;">⏰ ${facility.operatingHours.hours}</p>`;
+          }
+          
+          // 휴무일 정보
+          if (facility.operatingHours.closedDays && facility.operatingHours.closedDays.length > 0) {
+            hoursInfo += `<p style="margin: 2px 0 0 0; font-size: 10px; color: #9ca3af;">🚫 휴무: ${facility.operatingHours.closedDays.join(", ")}</p>`;
+          }
+        }
+
         const content = `
           <div style="padding: 12px; max-width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
             <div style="display: flex; align-items: center; margin-bottom: 8px;">
               <span style="font-size: 18px; margin-right: 8px;">${icon}</span>
               <h4 style="margin: 0; font-weight: 600; color: #1f2937; font-size: 14px; line-height: 1.2;">${facility.name}</h4>
+              ${statusBadge}
             </div>
 
             <div style="margin-bottom: 8px;">
@@ -463,7 +493,8 @@ export function MedicalFacilitiesMap({ selectedCategory }: MedicalFacilitiesMapP
                 📍 ${facility.roadAddress || facility.address}
               </p>
               ${facility.phone ? `<p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280;">📞 ${facility.phone}</p>` : ""}
-              ${facility.distance ? `<p style="margin: 0 0 8px 0; font-size: 12px; color: #059669; font-weight: 500;">📍 현위치에서 ${facility.distance.toFixed(1)}km</p>` : ""}
+              ${hoursInfo}
+              ${facility.distance ? `<p style="margin: 4px 0 0 0; font-size: 12px; color: #059669; font-weight: 500;">📍 현위치에서 ${facility.distance.toFixed(1)}km</p>` : ""}
             </div>
 
             <div style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">

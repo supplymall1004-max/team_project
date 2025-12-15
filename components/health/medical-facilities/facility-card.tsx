@@ -163,15 +163,56 @@ export function FacilityCard({ facility, onMapClick, className }: FacilityCardPr
                 <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <div className="flex items-center gap-2 flex-wrap">
                   {facility.operatingHours ? (
-                    facility.operatingHours.is24Hours ? (
-                      <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs">
-                        24시간 영업
-                      </Badge>
-                    ) : (
-                      <span className="text-xs text-muted-foreground break-words">
-                        {facility.operatingHours.hours || "영업 시간 정보 없음"}
-                      </span>
-                    )
+                    <>
+                      {/* 영업 상태 배지 */}
+                      {facility.operatingHours.todayStatus && (
+                        <>
+                          {facility.operatingHours.todayStatus === "open" && (
+                            <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs">
+                              영업중
+                            </Badge>
+                          )}
+                          {facility.operatingHours.todayStatus === "closed" && (
+                            <Badge variant="outline" className="border-red-500 text-red-500 text-xs">
+                              영업종료
+                            </Badge>
+                          )}
+                          {facility.operatingHours.todayStatus === "closing_soon" && (
+                            <Badge variant="default" className="bg-orange-500 hover:bg-orange-600 text-white text-xs">
+                              곧 마감
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                      
+                      {/* 24시간 영업 또는 영업 시간 */}
+                      {facility.operatingHours.is24Hours ? (
+                        <Badge variant="default" className="bg-blue-500 hover:bg-blue-600 text-white text-xs">
+                          24시간 영업
+                        </Badge>
+                      ) : (
+                        <>
+                          {facility.operatingHours.todayHours ? (
+                            <span className="text-xs font-medium text-foreground">
+                              오늘 {facility.operatingHours.todayHours}
+                            </span>
+                          ) : facility.operatingHours.hours ? (
+                            <span className="text-xs text-muted-foreground break-words">
+                              {facility.operatingHours.hours}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">영업 시간 정보 없음</span>
+                          )}
+                        </>
+                      )}
+                      
+                      {/* 휴무일 정보 */}
+                      {facility.operatingHours.closedDays && facility.operatingHours.closedDays.length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          (휴무: {facility.operatingHours.closedDays.join(", ")})
+                        </span>
+                      )}
+                    </>
                   ) : (
                     <span className="text-xs text-muted-foreground">영업 시간 정보 없음</span>
                   )}

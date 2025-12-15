@@ -18,12 +18,14 @@ interface LocationSearchProps {
   onLocationChange: (lat: number, lon: number, locationName?: string) => void;
   onSearch?: (address: string) => Promise<void>;
   loading?: boolean;
+  placeholder?: string;
 }
 
 export function LocationSearch({
   onLocationChange,
   onSearch,
   loading = false,
+  placeholder = "주소를 입력하세요 (예: 서울시 강남구)",
 }: LocationSearchProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -35,16 +37,19 @@ export function LocationSearch({
       const location = await getUserLocation();
       if (location) {
         console.log(`✅ 현재 위치: ${location.lat}, ${location.lon}`);
-        onLocationChange(location.lat, location.lon);
+        // 현재 위치는 지역명 없이 전달 (좌표 기반 검색)
+        onLocationChange(location.lat, location.lon, undefined);
       } else {
         console.log("⚠️ 위치 정보를 가져올 수 없어 기본 위치를 사용합니다.");
         const defaultLocation = getDefaultLocation();
-        onLocationChange(defaultLocation.lat, defaultLocation.lon);
+        // 기본 위치도 지역명 없이 전달
+        onLocationChange(defaultLocation.lat, defaultLocation.lon, undefined);
       }
     } catch (error) {
       console.error("❌ 위치 정보 오류:", error);
       const defaultLocation = getDefaultLocation();
-      onLocationChange(defaultLocation.lat, defaultLocation.lon);
+      // 기본 위치도 지역명 없이 전달
+      onLocationChange(defaultLocation.lat, defaultLocation.lon, undefined);
     } finally {
       setIsSearching(false);
       console.groupEnd();
@@ -104,7 +109,7 @@ export function LocationSearch({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="주소를 입력하세요 (예: 서울시 강남구)"
+            placeholder={placeholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {

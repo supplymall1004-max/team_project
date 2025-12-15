@@ -51,6 +51,10 @@ export interface OperatingHours {
   is24Hours: boolean; // 24시간 영업 여부
   hours?: string; // 영업 시간 (예: "09:00-21:00", "평일 09:00-18:00")
   description?: string; // 원본 description 텍스트
+  closedDays?: string[]; // 휴무일 (예: ["일요일", "공휴일"])
+  todayStatus?: "open" | "closed" | "closing_soon" | "unknown"; // 오늘 영업 상태
+  todayHours?: string; // 오늘 영업 시간 (예: "09:00-21:00")
+  nextOpenTime?: string; // 다음 영업 시작 시간
 }
 
 /**

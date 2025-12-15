@@ -21,6 +21,7 @@ import { MapView } from "@/components/health/medical-facilities/map-view";
 import { FacilityCardList } from "@/components/health/medical-facilities/facility-card-list";
 import { FacilityFilter } from "@/components/health/medical-facilities/facility-filter";
 import { LocationSearch } from "@/components/health/medical-facilities/location-search";
+import { LocationPermissionGuide } from "@/components/health/medical-facilities/location-permission-guide";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, MapPin } from "lucide-react";
 import type { MedicalFacility, MedicalFacilityCategory } from "@/types/medical-facility";
@@ -37,10 +38,12 @@ export default function MedicalFacilityCategoryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [showPermissionGuide, setShowPermissionGuide] = useState(false); // 위치 권한 안내 표시 여부
   const [currentLocation, setCurrentLocation] = useState<{
     lat: number;
     lon: number;
   } | null>(null);
+  const [highlightedFacilityId, setHighlightedFacilityId] = useState<string | number | undefined>(undefined); // 강조할 의료기관 ID
   const isSearchingRef = useRef(false); // 검색 중인지 추적 (무한 루프 방지)
   const initializedRef = useRef(false); // 초기화 완료 여부 추적
 
@@ -75,20 +78,44 @@ export default function MedicalFacilityCategoryPage() {
 
         if (searchLat === undefined || searchLon === undefined) {
           console.warn("⚠️ 위치 정보가 없습니다. 검색을 건너뜁니다.");
+          console.warn("   제공된 좌표:", { lat, lon });
+          console.warn("   currentLocation:", currentLocation);
           isSearchingRef.current = false;
           setLoading(false);
           return;
         }
 
+        // 좌표 검증 (유효한 범위인지 확인)
+        if (isNaN(searchLat) || isNaN(searchLon) || 
+            searchLat < -90 || searchLat > 90 || 
+            searchLon < -180 || searchLon > 180) {
+          console.error("❌ 유효하지 않은 좌표:", { searchLat, searchLon });
+          throw new Error("유효하지 않은 좌표입니다.");
+        }
+
         const queryParams = new URLSearchParams({
           category,
-          display: "20",
+          display: "50", // 검색 결과 수 증가
         });
 
-        if (searchLat !== undefined && searchLon !== undefined) {
-          queryParams.set("lat", String(searchLat));
-          queryParams.set("lon", String(searchLon));
+        // 현재 위치 기반 검색: 좌표가 제공되고 기본 위치(서울)가 아닌 경우
+        // 지역명을 검색어에 포함하지 않고 카테고리만 사용하여 좌표 기반 검색
+        const defaultLocation = getDefaultLocation();
+        const isUserLocation = 
+          Math.abs(searchLat - defaultLocation.lat) > 0.001 ||
+          Math.abs(searchLon - defaultLocation.lon) > 0.001;
+
+        if (isUserLocation) {
+          // 실제 사용자 위치인 경우: 카테고리만 사용 (좌표 기반 검색)
+          console.log(`📍 현재 위치 기반 검색: 좌표만 사용 (${searchLat}, ${searchLon})`);
+          console.log(`📍 검색어: "${CATEGORY_LABELS[category]}" (지역명 제외)`);
         }
+
+        // 좌표는 항상 전달 (네이버 API가 거리순 정렬)
+        queryParams.set("lat", String(searchLat));
+        queryParams.set("lon", String(searchLon));
+        console.log(`📍 좌표 기반 검색: 위도 ${searchLat}, 경도 ${searchLon}`);
+        console.log(`📍 검색 반경: 네이버 API 기본값 사용 (거리순 정렬)`);
 
         const apiUrl = `/api/health/medical-facilities/search?${queryParams.toString()}`;
         console.log(`🌐 API 호출: ${apiUrl}`);
@@ -141,7 +168,7 @@ export default function MedicalFacilityCategoryPage() {
         isSearchingRef.current = false; // 검색 완료
       }
     },
-    [category] // currentLocation을 의존성에서 제거하여 무한 루프 방지
+    [category] // currentLocation은 useEffect에서 처리
   );
 
   // 초기 위치 설정 및 검색
@@ -179,9 +206,9 @@ export default function MedicalFacilityCategoryPage() {
         console.log(`⚠️ 기본 위치 사용 (서울시청): ${defaultLocation.lat}, ${defaultLocation.lon}`);
         console.warn(`⚠️ 위치 권한이 없어 서울시청 기준으로 검색합니다.`);
         setLocationError(
-          "위치 권한이 거부되어 서울시청 기준으로 검색합니다. " +
-          "정확한 검색을 위해 브라우저 설정에서 위치 권한을 허용해주세요."
+          "위치 권한이 거부되어 서울시청 기준으로 검색합니다."
         );
+        setShowPermissionGuide(true); // 위치 권한 안내 표시
         setCurrentLocation(defaultLocation);
         initializedRef.current = true;
         // 명시적으로 좌표 전달
@@ -193,7 +220,31 @@ export default function MedicalFacilityCategoryPage() {
 
     initializeLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category]); // category 변경 시에만 재실행 (searchFacilities는 category에 의존하므로 자동으로 업데이트됨)
+  }, [category]); // category 변경 시에만 재실행
+
+  // currentLocation이 변경되면 자동으로 검색 실행 (위치 마커 표시 시)
+  useEffect(() => {
+    // 초기화가 완료되고, currentLocation이 설정되었고, 기본 위치(서울)가 아닌 경우에만 실행
+    if (initializedRef.current && currentLocation) {
+      const defaultLocation = getDefaultLocation();
+      const isDefaultLocation = 
+        Math.abs(currentLocation.lat - defaultLocation.lat) < 0.001 &&
+        Math.abs(currentLocation.lon - defaultLocation.lon) < 0.001;
+      
+      // 기본 위치가 아니고, 실제 사용자 위치인 경우에만 자동 검색
+      if (!isDefaultLocation) {
+        console.group("[MedicalFacilityCategoryPage] 위치 변경 감지 - 자동 검색 실행");
+        console.log("📍 현재 위치:", currentLocation);
+        console.log("🔍 주변 의료기관 검색 시작");
+        console.groupEnd();
+        // 명시적으로 좌표 전달하여 검색
+        searchFacilities(currentLocation.lat, currentLocation.lon);
+      } else {
+        console.log("[MedicalFacilityCategoryPage] 기본 위치(서울)이므로 자동 검색 건너뜀");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLocation]); // currentLocation 변경 시 실행
 
   // 위치 변경 핸들러
   const handleLocationChange = useCallback(
@@ -213,13 +264,32 @@ export default function MedicalFacilityCategoryPage() {
     [router]
   );
 
-  // 마커 클릭 핸들러
+  // 마커 클릭 핸들러 (지도에서 마커 클릭 시)
   const handleMarkerClick = useCallback((facility: MedicalFacility) => {
     // 해당 카드로 스크롤
     const element = document.getElementById(`facility-${facility.id}`);
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "center" });
     }
+  }, []);
+
+  // 지도에서 보기 버튼 클릭 핸들러 (카드에서 지도로 이동)
+  const handleMapViewClick = useCallback((facility: MedicalFacility) => {
+    console.log("[MedicalFacilityCategoryPage] 지도에서 보기 클릭:", facility.name);
+    
+    // 강조할 의료기관 ID 설정
+    setHighlightedFacilityId(facility.id);
+    
+    // 지도 섹션으로 스크롤
+    const mapSection = document.querySelector('[data-map-section]');
+    if (mapSection) {
+      mapSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // 일정 시간 후 강조 해제 (선택사항)
+    setTimeout(() => {
+      setHighlightedFacilityId(undefined);
+    }, 5000);
   }, []);
 
   // 카테고리 검증 (Hook 호출 후에 체크)
@@ -292,19 +362,33 @@ export default function MedicalFacilityCategoryPage() {
         </div>
       </div>
 
-      {/* 위치 권한 경고 메시지 */}
-      {locationError && (
+      {/* 위치 권한 안내 */}
+      {showPermissionGuide && (
+        <div className="container mx-auto px-4 pt-4">
+          <LocationPermissionGuide
+            onDismiss={() => setShowPermissionGuide(false)}
+          />
+        </div>
+      )}
+
+      {/* 위치 권한 경고 메시지 (간단 버전) */}
+      {locationError && !showPermissionGuide && (
         <div className="container mx-auto px-4 pt-4">
           <div className="rounded-lg border border-orange-500 bg-orange-50 p-4 dark:bg-orange-950/20">
             <div className="flex items-start gap-3">
               <MapPin className="h-5 w-5 shrink-0 text-orange-500 mt-0.5" />
-              <div className="flex-1 space-y-1">
+              <div className="flex-1 space-y-2">
                 <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
                   {locationError}
                 </p>
-                <p className="text-xs text-orange-600 dark:text-orange-400">
-                  💡 브라우저 주소창 왼쪽의 자물쇠 아이콘을 클릭하여 위치 권한을 허용할 수 있습니다.
-                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPermissionGuide(true)}
+                  className="border-orange-500 text-orange-700 hover:bg-orange-100"
+                >
+                  위치 권한 설정 방법 보기
+                </Button>
               </div>
             </div>
           </div>
@@ -366,7 +450,7 @@ export default function MedicalFacilityCategoryPage() {
       {/* 메인 컨텐츠: 심플한 레이아웃 - 상단 지도, 하단 목록 */}
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* 지도 섹션 */}
-        <div className="space-y-2">
+        <div className="space-y-2" data-map-section>
           <h2 className="text-lg font-semibold">지도</h2>
           <div className="h-[400px] md:h-[500px] rounded-xl border bg-card shadow-sm overflow-hidden">
             {currentLocation ? (
@@ -374,6 +458,7 @@ export default function MedicalFacilityCategoryPage() {
                 facilities={facilities}
                 center={currentLocation}
                 onMarkerClick={handleMarkerClick}
+                highlightedFacilityId={highlightedFacilityId}
                 className="h-full"
               />
             ) : (
@@ -399,7 +484,7 @@ export default function MedicalFacilityCategoryPage() {
           <FacilityCardList
             facilities={facilities}
             loading={loading}
-            onMapClick={handleMarkerClick}
+            onMapClick={handleMapViewClick}
           />
         </div>
       </div>

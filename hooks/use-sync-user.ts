@@ -24,6 +24,8 @@ import { useEffect, useRef } from "react";
 export function useSyncUser() {
   const { isLoaded, userId } = useAuth();
   const syncedRef = useRef(false);
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
 
   useEffect(() => {
     // 이미 동기화했거나, 로딩 중이거나, 로그인하지 않은 경우 무시
@@ -31,22 +33,61 @@ export function useSyncUser() {
       return;
     }
 
+    // 재시도 카운터 리셋
+    retryCountRef.current = 0;
+
     // 동기화 실행 - 비동기로 처리하여 블로킹 방지
-    const syncUser = async () => {
+    const syncUser = async (isRetry = false) => {
       try {
-        console.groupCollapsed("[Auth] 사용자 동기화 시도");
+        console.groupCollapsed(`[Auth] 사용자 동기화 시도${isRetry ? ` (재시도 ${retryCountRef.current}/${maxRetries})` : ""}`);
         console.log("timestamp:", new Date().toISOString());
+
+        // 타임아웃을 위한 AbortController 생성 (30초)
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => {
+          abortController.abort();
+        }, 30000);
 
         const response = await fetch("/api/sync-user", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-        }).catch((fetchError) => {
+          signal: abortController.signal,
+        })
+        .then((res) => {
+          clearTimeout(timeoutId);
+          return res;
+        })
+        .catch((fetchError) => {
+          clearTimeout(timeoutId);
           // 네트워크 에러 처리
           console.error("❌ 네트워크 에러:", fetchError);
-          throw new Error(`네트워크 연결 실패: ${fetchError.message}`);
+          
+          // 재시도 가능한 경우 재시도
+          if (retryCountRef.current < maxRetries) {
+            retryCountRef.current += 1;
+            const delay = Math.min(1000 * Math.pow(2, retryCountRef.current - 1), 5000); // 지수 백오프, 최대 5초
+            console.warn(`⚠️ 네트워크 연결 실패 - ${delay}ms 후 재시도 (${retryCountRef.current}/${maxRetries})`);
+            
+            setTimeout(() => {
+              if (!syncedRef.current) {
+                syncUser(true);
+              }
+            }, delay);
+            return null; // null을 반환하여 아래 로직 스킵
+          } else {
+            // 최대 재시도 횟수 초과
+            console.error("❌ 네트워크 연결 실패: 최대 재시도 횟수 초과");
+            throw new Error(`네트워크 연결 실패: ${fetchError.message}`);
+          }
         });
+
+        // 네트워크 에러로 인한 재시도인 경우 여기서 종료
+        if (response === null) {
+          console.groupEnd();
+          return;
+        }
 
         if (!response.ok) {
           // 에러 응답 처리
@@ -55,28 +96,46 @@ export function useSyncUser() {
 
           // 404 에러의 경우 (새로운 계정에서 Clerk 정보가 아직 준비되지 않음)
           if (response.status === 404) {
-            console.warn("⚠️ Clerk 사용자 정보가 아직 준비되지 않음 - 잠시 후 재시도");
-            // 2초 후 재시도
-            setTimeout(() => {
-              if (!syncedRef.current) {
-                console.log("🔄 사용자 동기화 재시도");
-                syncUser();
-              }
-            }, 2000);
-            return;
+            if (retryCountRef.current < maxRetries) {
+              retryCountRef.current += 1;
+              const delay = 2000;
+              console.warn(`⚠️ Clerk 사용자 정보가 아직 준비되지 않음 - ${delay}ms 후 재시도 (${retryCountRef.current}/${maxRetries})`);
+              setTimeout(() => {
+                if (!syncedRef.current) {
+                  syncUser(true);
+                }
+              }, delay);
+              console.groupEnd();
+              return;
+            } else {
+              console.error("❌ Clerk 사용자 정보 조회 실패: 최대 재시도 횟수 초과");
+              console.groupEnd();
+              return;
+            }
           }
+          
           // 5xx 서버 에러인 경우에도 재시도 시도
           if (response.status >= 500) {
-            console.warn("⚠️ 서버 에러(5xx) 추정 - 재시도 시도");
-            setTimeout(() => {
-              if (!syncedRef.current) {
-                console.log("🔄 사용자 동기화 재시도(서버에러)");
-                syncUser();
-              }
-            }, 2000);
-            return;
+            if (retryCountRef.current < maxRetries) {
+              retryCountRef.current += 1;
+              const delay = Math.min(1000 * Math.pow(2, retryCountRef.current - 1), 5000);
+              console.warn(`⚠️ 서버 에러(5xx) - ${delay}ms 후 재시도 (${retryCountRef.current}/${maxRetries})`);
+              setTimeout(() => {
+                if (!syncedRef.current) {
+                  syncUser(true);
+                }
+              }, delay);
+              console.groupEnd();
+              return;
+            } else {
+              console.error("❌ 서버 에러: 최대 재시도 횟수 초과");
+              console.groupEnd();
+              return;
+            }
           }
-          this; // noop to keep patch context valid
+          
+          // 기타 에러 (401, 403 등)는 재시도하지 않음
+          console.error("❌ 사용자 동기화 실패 (재시도 불가):", response.status);
           console.groupEnd();
           return;
         }
@@ -90,6 +149,7 @@ export function useSyncUser() {
           });
           if (data.success) {
             syncedRef.current = true;
+            retryCountRef.current = 0; // 성공 시 재시도 카운터 리셋
             console.log("✅ 사용자 동기화 성공");
           } else {
             console.error("❌ 사용자 동기화 응답 실패:", data);
@@ -97,12 +157,30 @@ export function useSyncUser() {
         } else {
           // JSON이 아닌 경우에도 성공으로 처리 (200 OK)
           syncedRef.current = true;
+          retryCountRef.current = 0; // 성공 시 재시도 카운터 리셋
           console.log("✅ 사용자 동기화 성공 (비JSON 응답)");
         }
         console.groupEnd();
       } catch (error) {
         // 네트워크 오류나 기타 예외 처리
         const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류";
+        
+        // AbortError (타임아웃)인 경우 재시도
+        if (error instanceof Error && error.name === "AbortError") {
+          if (retryCountRef.current < maxRetries) {
+            retryCountRef.current += 1;
+            const delay = Math.min(1000 * Math.pow(2, retryCountRef.current - 1), 5000);
+            console.warn(`⚠️ 요청 타임아웃 - ${delay}ms 후 재시도 (${retryCountRef.current}/${maxRetries})`);
+            setTimeout(() => {
+              if (!syncedRef.current) {
+                syncUser(true);
+              }
+            }, delay);
+            console.groupEnd();
+            return;
+          }
+        }
+        
         console.error("❌ 사용자 동기화 중 예외 발생:", errorMessage);
         console.error("❌ 전체 에러 객체:", error);
         console.groupEnd();

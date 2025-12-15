@@ -62,6 +62,7 @@ export function formatDistance(distance: number): string {
 
 /**
  * 사용자 위치를 가져옴 (Geolocation API)
+ * 모바일에서 더 정확한 위치를 얻기 위해 최적화된 옵션 사용
  *
  * @returns 사용자 위치 좌표 또는 null
  */
@@ -78,11 +79,27 @@ export async function getUserLocation(): Promise<{
 
     console.group("📍 위치 정보 요청");
     console.log("위치 권한을 요청하는 중...");
+    console.log("📍 모바일 최적화 옵션: enableHighAccuracy=true, maximumAge=0");
+
+    // 모바일 기기 감지
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    console.log(`📱 모바일 기기: ${isMobile ? "예" : "아니오"}`);
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
-        console.log(`✅ 사용자 위치 획득 성공: ${latitude}, ${longitude}`);
+        const { latitude, longitude, accuracy, altitude, heading, speed } = position.coords;
+        console.log(`✅ 사용자 위치 획득 성공`);
+        console.log(`📍 좌표: 위도 ${latitude}, 경도 ${longitude}`);
+        console.log(`📍 위치 정확도: ±${Math.round(accuracy || 0)}m`);
+        if (altitude !== null) {
+          console.log(`📍 고도: ${Math.round(altitude || 0)}m`);
+        }
+        if (heading !== null) {
+          console.log(`📍 방향: ${Math.round(heading || 0)}°`);
+        }
+        if (speed !== null) {
+          console.log(`📍 속도: ${Math.round(speed || 0)}m/s`);
+        }
         console.groupEnd();
         resolve({ lat: latitude, lon: longitude });
       },
@@ -103,10 +120,16 @@ export async function getUserLocation(): Promise<{
           case error.POSITION_UNAVAILABLE:
             console.error("❌ 위치 정보를 사용할 수 없습니다.");
             console.error("💡 GPS나 네트워크 문제일 수 있습니다.");
+            if (isMobile) {
+              console.error("💡 모바일: GPS 설정을 확인하고 야외에서 시도해보세요.");
+            }
             break;
           case error.TIMEOUT:
-            console.error("❌ 위치 정보 요청 시간 초과 (10초)");
+            console.error("❌ 위치 정보 요청 시간 초과 (20초)");
             console.error("💡 네트워크 연결을 확인하세요.");
+            if (isMobile) {
+              console.error("💡 모바일: GPS 신호가 약한 곳일 수 있습니다. 야외로 이동해보세요.");
+            }
             break;
           default:
             console.error("❌ 알 수 없는 오류가 발생했습니다.");
@@ -116,9 +139,9 @@ export async function getUserLocation(): Promise<{
         resolve(null);
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000, // 5분 캐시
+        enableHighAccuracy: true, // GPS 사용 (모바일에서 더 정확)
+        timeout: 20000, // 타임아웃 증가 (20초) - 모바일 GPS 수신 시간 고려
+        maximumAge: 0, // 캐시된 위치 사용 안 함 (항상 최신 위치)
       }
     );
   });

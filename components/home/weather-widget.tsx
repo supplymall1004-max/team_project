@@ -55,7 +55,24 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
       const data = await response.json();
 
       if (!data.success) {
-        throw new Error(data.error || "날씨 정보를 가져올 수 없습니다.");
+        // NO_DATA는 정상적인 상황일 수 있음 (해당 위치에 데이터가 없을 수 있음)
+        if (data.error?.includes("NO_DATA") || data.error?.includes("데이터가 없습니다")) {
+          console.log("ℹ️ 해당 위치의 날씨 데이터가 없습니다. 기본 위치로 재시도합니다.");
+          // 기본 위치(서울)로 재시도
+          const defaultLat = 37.5665;
+          const defaultLon = 126.9780;
+          if (lat !== defaultLat || lon !== defaultLon) {
+            fetchWeather(defaultLat, defaultLon);
+            return;
+          }
+        }
+        
+        // 다른 오류는 경고만 표시하고 조용히 처리
+        console.warn("⚠️ 날씨 정보 조회 실패:", data.error || "날씨 정보를 가져올 수 없습니다.");
+        setError(null); // 에러를 표시하지 않음
+        setWeather(null);
+        console.groupEnd();
+        return;
       }
 
       console.log("✅ 날씨 정보 수신:", data.data);

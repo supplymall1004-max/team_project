@@ -12,7 +12,23 @@ import {
   convertToMedicalFacilities,
   generateSearchKeyword,
 } from "@/lib/health/medical-facilities/facility-utils";
+import { searchPharmacies, PharmacySearchParams } from "@/lib/health/pharmacy-api";
+import { calculateDistance } from "@/lib/health/medical-facilities/location-utils";
 import type { MedicalFacilityCategory } from "@/types/medical-facility";
+
+/**
+ * 카테고리에 맞는 검색 키워드 생성 (폴백 함수)
+ * generateSearchKeyword가 로드되지 않은 경우를 대비
+ */
+function getSearchKeywordFallback(category: MedicalFacilityCategory): string {
+  const keywords: Record<MedicalFacilityCategory, string> = {
+    hospital: "병원",
+    pharmacy: "약국",
+    animal_hospital: "동물병원",
+    animal_pharmacy: "동물약국",
+  };
+  return keywords[category] || "병원";
+}
 
 /**
  * GET /api/health/medical-facilities/search
@@ -69,54 +85,256 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 검색어 생성
-    // query가 제공되면 사용, 없으면 카테고리만 사용
-    const searchQuery = query || generateSearchKeyword(category);
-    
     // 좌표 파싱
     const lat = latParam ? parseFloat(latParam) : undefined;
     const lon = lonParam ? parseFloat(lonParam) : undefined;
     const display = displayParam ? parseInt(displayParam, 10) : 10;
 
-    // 로그 출력
-    console.log(`🔍 검색어: "${searchQuery}"`);
-    console.log(`📂 카테고리: ${category}`);
-    console.log(`📍 좌표: ${lat !== undefined && lon !== undefined ? `${lat}, ${lon}` : "없음"}`);
-
-    // 네이버 로컬 검색 API 호출
-    let searchResult;
-    try {
-      searchResult = await searchLocal(searchQuery, {
-        display: Math.min(display, 100), // 최대 100개
-        start: 1,
-        lat,
-        lon,
-      });
-      console.log(`📊 네이버 API 응답: ${searchResult.total}개 중 ${searchResult.items.length}개 반환`);
-    } catch (apiError) {
-      console.error("❌ 네이버 로컬 검색 API 호출 실패:", apiError);
-      const apiErrorMessage =
-        apiError instanceof Error ? apiError.message : "네이버 로컬 검색 API 호출 실패";
+    // 검색어 생성
+    // 좌표가 제공되고 query에 지역명이 포함되어 있으면, 좌표 기반 검색을 위해 지역명 제거
+    let searchQuery: string;
+    const hasCoordinates = lat !== undefined && lon !== undefined;
+    
+    if (query) {
+      // query가 제공된 경우
+      // 좌표가 있고 지역명이 포함되어 있으면 카테고리만 사용 (좌표 기반 검색)
+      const hasLocationName = 
+        query.includes("시") || 
+        query.includes("구") || 
+        query.includes("군") || 
+        query.includes("동") ||
+        query.includes("서울") ||
+        query.includes("부산") ||
+        query.includes("대구") ||
+        query.includes("인천") ||
+        query.includes("광주") ||
+        query.includes("대전") ||
+        query.includes("울산");
       
-      // API 키 관련 에러인지 확인
-      if (apiErrorMessage.includes("API 키") || apiErrorMessage.includes("인증")) {
-        console.error("💡 API 키 설정이 필요합니다. .env.local 파일을 확인하세요.");
-        console.error("   - NAVER_SEARCH_CLIENT_ID 또는 NAVER_CLIENT_ID");
-        console.error("   - NAVER_SEARCH_CLIENT_SECRET 또는 NAVER_CLIENT_SECRET");
+      if (hasCoordinates && hasLocationName) {
+        // 좌표 기반 검색: 지역명 제거하고 카테고리만 사용
+        try {
+          if (typeof generateSearchKeyword === "function") {
+            searchQuery = generateSearchKeyword(category);
+          } else {
+            searchQuery = getSearchKeywordFallback(category);
+            console.warn(`⚠️ generateSearchKeyword가 함수가 아닙니다. 폴백 사용: "${searchQuery}"`);
+          }
+          console.log(`📍 좌표 기반 검색: 지역명 제거, 카테고리만 사용`);
+          console.log(`   원래 검색어: "${query}"`);
+          console.log(`   변경된 검색어: "${searchQuery}"`);
+          console.log(`   이유: 좌표(${lat}, ${lon})가 제공되었으므로 지역명을 제거하여 좌표 기반 검색`);
+        } catch (error) {
+          console.error(`❌ generateSearchKeyword 호출 실패:`, error);
+          searchQuery = getSearchKeywordFallback(category);
+          console.log(`⚠️ 폴백 검색어 사용: "${searchQuery}"`);
+        }
+      } else {
+        // 주소 검색: query 그대로 사용
+        searchQuery = query;
       }
+    } else {
+      // query가 없으면 카테고리만 사용
+      try {
+        if (typeof generateSearchKeyword === "function") {
+          searchQuery = generateSearchKeyword(category);
+        } else {
+          searchQuery = getSearchKeywordFallback(category);
+          console.warn(`⚠️ generateSearchKeyword가 함수가 아닙니다. 폴백 사용: "${searchQuery}"`);
+        }
+      } catch (error) {
+        console.error(`❌ generateSearchKeyword 호출 실패:`, error);
+        searchQuery = getSearchKeywordFallback(category);
+        console.log(`⚠️ 폴백 검색어 사용: "${searchQuery}"`);
+      }
+    }
+    
+    // 좌표가 있는데 검색어에 지역명이 여전히 포함되어 있는지 확인
+    const expectedKeyword = typeof generateSearchKeyword === "function" 
+      ? generateSearchKeyword(category) 
+      : getSearchKeywordFallback(category);
+    if (hasCoordinates && searchQuery !== expectedKeyword) {
+      const stillHasLocationName = 
+        searchQuery.includes("시") || 
+        searchQuery.includes("구") || 
+        searchQuery.includes("군") || 
+        searchQuery.includes("동");
       
-      console.groupEnd();
-      return NextResponse.json(
-        {
-          success: false,
-          error: apiErrorMessage,
-        },
-        { status: 500 }
-      );
+      if (stillHasLocationName) {
+        console.warn(`⚠️ 경고: 좌표 기반 검색인데 검색어에 지역명이 포함되어 있습니다.`);
+        console.warn(`   검색어: "${searchQuery}"`);
+        console.warn(`   좌표: ${lat}, ${lon}`);
+        console.warn(`   지역명이 포함되면 해당 지역만 검색될 수 있습니다.`);
+      }
     }
 
-    // 검색 결과 확인
-    if (!searchResult || !searchResult.items || searchResult.items.length === 0) {
+    // 로그 출력
+    console.log(`🔍 최종 검색어: "${searchQuery}"`);
+    console.log(`📂 카테고리: ${category}`);
+    console.log(`📍 좌표: ${lat !== undefined && lon !== undefined ? `위도 ${lat}, 경도 ${lon}` : "없음"}`);
+    if (lat !== undefined && lon !== undefined) {
+      console.log(`📍 좌표 기반 검색 모드: 거리순 정렬 활성화`);
+    }
+
+    let facilities: any[] = [];
+    let searchResult: { total: number; display: number } | null = null;
+
+    // 카테고리에 따라 다른 API 호출
+    if (category === 'pharmacy') {
+      // 약국 카테고리의 경우 국립중앙의료원 약국 API 사용
+      console.log(`💊 약국 카테고리: 국립중앙의료원 약국 API 사용`);
+
+      try {
+        const pharmacyParams: PharmacySearchParams = {
+          numOfRows: display,
+        };
+
+        // query에서 시도/시군구 추출 시도
+        if (query) {
+          const cityMatch = query.match(/([가-힣]+(?:시|도|광역시|특별시))/);
+          const districtMatch = query.match(/([가-힣]+(?:구|시|군|읍|면|동))/);
+
+          if (cityMatch) pharmacyParams.Q0 = cityMatch[1];
+          if (districtMatch) pharmacyParams.Q1 = districtMatch[1];
+        }
+
+        const pharmacyResult = await searchPharmacies(pharmacyParams);
+        console.log(`📊 약국 API 응답: ${pharmacyResult.totalCount}개 중 ${pharmacyResult.pharmacies.length}개 반환`);
+
+        // searchResult 설정 (pharmacy 카테고리용)
+        searchResult = {
+          total: pharmacyResult.totalCount,
+          display: pharmacyResult.pharmacies.length,
+        };
+
+        // PharmacyInfo를 MedicalFacility로 변환
+        facilities = pharmacyResult.pharmacies
+          .map((pharmacy, index) => {
+            const lat_val = parseFloat(pharmacy.wgs84Lat || '0');
+            const lng_val = parseFloat(pharmacy.wgs84Lon || '0');
+
+            if (!lat_val || !lng_val || isNaN(lat_val) || isNaN(lng_val)) {
+              return null;
+            }
+
+            // 거리 계산
+            const distance = lat !== undefined && lon !== undefined
+              ? calculateDistance(lat, lon, lat_val, lng_val)
+              : undefined;
+
+            // 운영시간 파싱
+            const operatingHours: any = {};
+            const days = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일', '공휴일'];
+
+            for (let i = 0; i < 8; i++) {
+              const startTime = pharmacy[`dutyTime${i + 1}s` as keyof typeof pharmacy] as string;
+              const endTime = pharmacy[`dutyTime${i + 1}c` as keyof typeof pharmacy] as string;
+
+              if (startTime && endTime) {
+                operatingHours[days[i]] = {
+                  open: startTime,
+                  close: endTime,
+                  isClosed: false,
+                };
+              } else {
+                operatingHours[days[i]] = {
+                  isClosed: true,
+                };
+              }
+            }
+
+            return {
+              id: `pharmacy-${pharmacy.rnum}-${index}`,
+              name: pharmacy.dutyName,
+              category: 'pharmacy' as MedicalFacilityCategory,
+              address: pharmacy.dutyAddr,
+              roadAddress: pharmacy.dutyAddr,
+              phone: pharmacy.dutyTel1,
+              latitude: lat_val,
+              longitude: lng_val,
+              distance,
+              operatingHours,
+              link: '',
+            };
+          })
+          .filter(facility => facility !== null);
+
+        console.log(`✅ 약국 데이터 변환 완료: ${facilities.length}개`);
+      } catch (pharmacyError) {
+        console.error("❌ 약국 API 호출 실패:", pharmacyError);
+        const pharmacyErrorMessage =
+          pharmacyError instanceof Error ? pharmacyError.message : "약국 API 호출 실패";
+
+        console.groupEnd();
+        return NextResponse.json(
+          {
+            success: false,
+            error: pharmacyErrorMessage,
+          },
+          { status: 500 }
+        );
+      }
+    } else {
+      // 다른 카테고리의 경우 네이버 로컬 검색 API 사용
+      console.log(`🏥 ${category} 카테고리: 네이버 로컬 검색 API 사용`);
+
+      let searchResult;
+      try {
+        searchResult = await searchLocal(searchQuery, {
+          display: Math.min(display, 100), // 최대 100개
+          start: 1,
+          lat,
+          lon,
+        });
+        console.log(`📊 네이버 API 응답: ${searchResult.total}개 중 ${searchResult.items.length}개 반환`);
+
+        // 검색 결과 확인
+        if (!searchResult || !searchResult.items || searchResult.items.length === 0) {
+          console.warn("⚠️ 검색 결과가 없습니다.");
+          console.groupEnd();
+          return NextResponse.json({
+            success: true,
+            data: {
+              facilities: [],
+              total: 0,
+              display: 0,
+            },
+          });
+        }
+
+        // 의료기관 데이터로 변환
+        facilities = convertToMedicalFacilities(
+          searchResult.items,
+          category,
+          lat,
+          lon
+        );
+        console.log(`✅ 변환 완료: ${facilities.length}개 의료기관`);
+      } catch (apiError) {
+        console.error("❌ 네이버 로컬 검색 API 호출 실패:", apiError);
+        const apiErrorMessage =
+          apiError instanceof Error ? apiError.message : "네이버 로컬 검색 API 호출 실패";
+
+        // API 키 관련 에러인지 확인
+        if (apiErrorMessage.includes("API 키") || apiErrorMessage.includes("인증")) {
+          console.error("💡 API 키 설정이 필요합니다. .env.local 파일을 확인하세요.");
+          console.error("   - NAVER_SEARCH_CLIENT_ID 또는 NAVER_CLIENT_ID");
+          console.error("   - NAVER_SEARCH_CLIENT_SECRET 또는 NAVER_CLIENT_SECRET");
+        }
+
+        console.groupEnd();
+        return NextResponse.json(
+          {
+            success: false,
+            error: apiErrorMessage,
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // 검색 결과 확인 (네이버 API 결과만)
+    if (facilities.length === 0) {
       console.warn("⚠️ 검색 결과가 없습니다.");
       console.groupEnd();
       return NextResponse.json({
@@ -128,38 +346,65 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-
-    // 의료기관 데이터로 변환
-    let facilities;
-    try {
-      facilities = convertToMedicalFacilities(
-        searchResult.items,
-        category,
-        lat,
-        lon
-      );
-      console.log(`✅ 변환 완료: ${facilities.length}개 의료기관`);
-    } catch (convertError) {
-      console.error("❌ 데이터 변환 실패:", convertError);
-      console.groupEnd();
-      return NextResponse.json(
-        {
-          success: false,
-          error: "의료기관 데이터 변환 중 오류가 발생했습니다.",
-        },
-        { status: 500 }
-      );
-    }
+      
+      // 좌표가 제공된 경우 거리순 정렬 (24시간 영업 우선)
+      if (lat !== undefined && lon !== undefined && facilities.length > 0) {
+        // 24시간 영업 의료기관을 먼저 정렬하고, 그 다음 거리순 정렬
+        facilities.sort((a, b) => {
+          // 1순위: 24시간 영업 여부 (24시간 영업이 먼저)
+          const aIs24Hours = a.operatingHours?.is24Hours ? 1 : 0;
+          const bIs24Hours = b.operatingHours?.is24Hours ? 1 : 0;
+          
+          if (aIs24Hours !== bIs24Hours) {
+            return bIs24Hours - aIs24Hours; // 24시간 영업이 먼저
+          }
+          
+          // 2순위: 영업 중 여부 (영업 중이 먼저)
+          const aIsOpen = a.operatingHours?.todayStatus === "open" ? 1 : 0;
+          const bIsOpen = b.operatingHours?.todayStatus === "open" ? 1 : 0;
+          
+          if (aIsOpen !== bIsOpen) {
+            return bIsOpen - aIsOpen; // 영업 중이 먼저
+          }
+          
+          // 3순위: 거리순 정렬
+          const distA = a.distance ?? Infinity;
+          const distB = b.distance ?? Infinity;
+          return distA - distB;
+        });
+        
+        const open24HoursCount = facilities.filter(f => f.operatingHours?.is24Hours).length;
+        const openNowCount = facilities.filter(f => f.operatingHours?.todayStatus === "open").length;
+        
+        console.log(`📍 정렬 완료:`);
+        console.log(`   - 24시간 영업: ${open24HoursCount}개`);
+        console.log(`   - 현재 영업 중: ${openNowCount}개`);
+        console.log(`   - 거리순 정렬 적용`);
+        if (facilities.length > 0) {
+          console.log(`📍 가장 가까운 의료기관: ${facilities[0]?.name} (${facilities[0]?.distance?.toFixed(2)}km)`);
+          if (facilities[0]?.operatingHours?.is24Hours) {
+            console.log(`   ⏰ 24시간 영업`);
+          }
+        }
+      }
 
     console.log(`✅ 검색 완료: ${facilities.length}개 의료기관 발견`);
+    if (lat !== undefined && lon !== undefined && facilities.length > 0) {
+      console.log(`📍 검색 중심 좌표: 위도 ${lat}, 경도 ${lon}`);
+      const firstDistance = facilities[0]?.distance;
+      const lastDistance = facilities[facilities.length - 1]?.distance;
+      if (firstDistance !== undefined && lastDistance !== undefined) {
+        console.log(`📍 검색된 의료기관 거리 범위: ${firstDistance.toFixed(2)}km ~ ${lastDistance.toFixed(2)}km`);
+      }
+    }
     console.groupEnd();
 
     return NextResponse.json({
       success: true,
       data: {
         facilities,
-        total: searchResult.total,
-        display: searchResult.display,
+        total: searchResult?.total ?? facilities.length,
+        display: searchResult?.display ?? facilities.length,
       },
     });
   } catch (error) {
