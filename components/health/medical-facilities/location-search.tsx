@@ -17,15 +17,19 @@ import { geocodeAddress } from "@/lib/naver/geocoding-api";
 interface LocationSearchProps {
   onLocationChange: (lat: number, lon: number, locationName?: string) => void;
   onSearch?: (address: string) => Promise<void>;
+  onLocationSearch?: () => Promise<void>; // 현재 위치 기반 검색 실행 콜백
   loading?: boolean;
   placeholder?: string;
+  autoSearchOnLocation?: boolean; // 현재 위치 설정 시 자동 검색 여부 (deprecated: onLocationSearch 사용 권장)
 }
 
 export function LocationSearch({
   onLocationChange,
   onSearch,
+  onLocationSearch,
   loading = false,
   placeholder = "주소를 입력하세요 (예: 서울시 강남구)",
+  autoSearchOnLocation = false,
 }: LocationSearchProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -39,17 +43,37 @@ export function LocationSearch({
         console.log(`✅ 현재 위치: ${location.lat}, ${location.lon}`);
         // 현재 위치는 지역명 없이 전달 (좌표 기반 검색)
         onLocationChange(location.lat, location.lon, undefined);
+
+        // 위치 설정 후 자동 검색 실행 (새로운 콜백 방식 우선)
+        if (onLocationSearch) {
+          console.log("🔍 위치 설정 후 자동 검색 실행");
+          await onLocationSearch();
+        } else if (autoSearchOnLocation) {
+          console.warn("⚠️ autoSearchOnLocation은 deprecated되었습니다. onLocationSearch를 사용해주세요.");
+        }
       } else {
         console.log("⚠️ 위치 정보를 가져올 수 없어 기본 위치를 사용합니다.");
         const defaultLocation = getDefaultLocation();
         // 기본 위치도 지역명 없이 전달
         onLocationChange(defaultLocation.lat, defaultLocation.lon, undefined);
+
+        // 기본 위치 설정 후에도 자동 검색 실행
+        if (onLocationSearch) {
+          console.log("🔍 기본 위치 설정 후 자동 검색 실행");
+          await onLocationSearch();
+        }
       }
     } catch (error) {
       console.error("❌ 위치 정보 오류:", error);
       const defaultLocation = getDefaultLocation();
       // 기본 위치도 지역명 없이 전달
       onLocationChange(defaultLocation.lat, defaultLocation.lon, undefined);
+
+      // 에러 시에도 기본 위치로 검색 실행
+      if (onLocationSearch) {
+        console.log("🔍 에러 시 기본 위치로 자동 검색 실행");
+        await onLocationSearch();
+      }
     } finally {
       setIsSearching(false);
       console.groupEnd();

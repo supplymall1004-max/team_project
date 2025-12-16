@@ -11,6 +11,7 @@ import type {
   NaverLocalSearchItem,
   OperatingHours,
 } from "@/types/medical-facility";
+import type { PharmacyInfo } from "@/lib/health/pharmacy-api";
 import { convertNaverToWGS84 } from "@/lib/naver/map-client";
 import { calculateDistance } from "./location-utils";
 
@@ -376,5 +377,195 @@ export function generateSearchKeyword(
   }
 
   return location ? `${location} ${baseKeyword}` : baseKeyword;
+}
+
+/**
+ * 약국 데이터를 MedicalFacility 형식으로 변환
+ *
+ * @param pharmacies 약국 정보 배열
+ * @param userLat 사용자 위도 (선택사항, 거리 계산용)
+ * @param userLon 사용자 경도 (선택사항, 거리 계산용)
+ * @returns 의료기관 데이터 배열
+ */
+export function convertPharmacyToMedicalFacilities(
+  pharmacies: PharmacyInfo[],
+  userLat?: number,
+  userLon?: number
+): MedicalFacility[] {
+  console.group("[Facility Utils] 약국 API 응답 변환");
+  console.log(`📋 변환할 약국 수: ${pharmacies.length}`);
+
+  const facilities: MedicalFacility[] = pharmacies
+    .filter((pharmacy) => {
+      // 필수 필드 검증
+      if (!pharmacy || !pharmacy.dutyName || !pharmacy.wgs84Lat || !pharmacy.wgs84Lon) {
+        console.warn("[Facility Utils] 필수 필드가 없는 약국을 건너뜁니다:", pharmacy);
+        return false;
+      }
+      return true;
+    })
+    .map((pharmacy, index) => {
+      try {
+        const lat = parseFloat(pharmacy.wgs84Lat);
+        const lon = parseFloat(pharmacy.wgs84Lon);
+
+        // 좌표 검증
+        if (isNaN(lat) || isNaN(lon)) {
+          console.warn(`[Facility Utils] 잘못된 좌표: ${pharmacy.wgs84Lat}, ${pharmacy.wgs84Lon}`);
+          return null;
+        }
+
+        // 거리 계산 (사용자 위치가 제공된 경우)
+        let distance: number | undefined;
+        if (userLat !== undefined && userLon !== undefined) {
+          distance = calculateDistance(userLat, userLon, lat, lon);
+        }
+
+        // 영업 시간 정보 파싱
+        const operatingHours = parsePharmacyOperatingHours(pharmacy);
+
+        // 고유 ID 생성
+        const id = `pharmacy-${pharmacy.rnum || index}`;
+
+        const facility: MedicalFacility = {
+          id,
+          name: pharmacy.dutyName,
+          category: "pharmacy",
+          address: pharmacy.dutyAddr,
+          roadAddress: "", // 약국 API에는 도로명 주소가 없음
+          phone: pharmacy.dutyTel1 || null,
+          latitude: lat,
+          longitude: lon,
+          distance,
+          link: "", // 약국 API에는 링크 정보가 없음
+          operatingHours,
+        };
+
+        return facility;
+      } catch (error) {
+        console.error(`[Facility Utils] 약국 ${index + 1} 변환 실패:`, error, pharmacy);
+        return null;
+      }
+    })
+    .filter((facility): facility is MedicalFacility => facility !== null);
+
+  // 거리순 정렬 (거리가 있는 경우)
+  if (userLat !== undefined && userLon !== undefined) {
+    facilities.sort((a, b) => {
+      const distA = a.distance ?? Infinity;
+      const distB = b.distance ?? Infinity;
+      return distA - distB;
+    });
+  }
+
+  console.log(`✅ 약국 변환 완료: ${facilities.length}개 약국`);
+  console.groupEnd();
+  return facilities;
+}
+
+/**
+ * 약국 영업 시간 정보 파싱
+ *
+ * @param pharmacy 약국 정보
+ * @returns 영업 시간 정보
+ */
+function parsePharmacyOperatingHours(pharmacy: PharmacyInfo): OperatingHours | undefined {
+  const now = new Date();
+  const currentDay = now.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
+  const dayNames = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+
+  // 요일별 영업시간 필드 매핑 (1: 월, 2: 화, ..., 7: 일, 8: 공휴일)
+  const dayFields = [
+    { day: 0, start: 'dutyTime7s', end: 'dutyTime7c' }, // 일요일
+    { day: 1, start: 'dutyTime1s', end: 'dutyTime1c' }, // 월요일
+    { day: 2, start: 'dutyTime2s', end: 'dutyTime2c' }, // 화요일
+    { day: 3, start: 'dutyTime3s', end: 'dutyTime3c' }, // 수요일
+    { day: 4, start: 'dutyTime4s', end: 'dutyTime4c' }, // 목요일
+    { day: 5, start: 'dutyTime5s', end: 'dutyTime5c' }, // 금요일
+    { day: 6, start: 'dutyTime6s', end: 'dutyTime6c' }, // 토요일
+    { day: 8, start: 'dutyTime8s', end: 'dutyTime8c' }, // 공휴일
+  ];
+
+  const todayField = dayFields.find(field => field.day === currentDay) ||
+                    dayFields.find(field => field.day === 8); // 공휴일 정보가 없으면 평일 정보 사용
+
+  if (!todayField) {
+    return {
+      is24Hours: false,
+      description: "영업시간 정보 없음",
+      todayStatus: "unknown",
+    };
+  }
+
+  const startTimeStr = pharmacy[todayField.start as keyof PharmacyInfo] as string;
+  const endTimeStr = pharmacy[todayField.end as keyof PharmacyInfo] as string;
+
+  // 영업시간이 없는 경우
+  if (!startTimeStr || !endTimeStr || startTimeStr === "" || endTimeStr === "") {
+    return {
+      is24Hours: false,
+      description: `${dayNames[currentDay]} 영업시간 정보 없음`,
+      todayStatus: "unknown",
+    };
+  }
+
+  // HHMM 형식을 HH:MM으로 변환
+  const formatTime = (timeStr: string): string => {
+    if (timeStr.length === 4) {
+      return `${timeStr.substring(0, 2)}:${timeStr.substring(2, 4)}`;
+    }
+    return timeStr;
+  };
+
+  const startTime = formatTime(startTimeStr);
+  const endTime = formatTime(endTimeStr);
+
+  // 24시간 영업 확인 (00:00 ~ 24:00 또는 00:00 ~ 23:59)
+  const is24Hours = (startTime === "00:00" && (endTime === "24:00" || endTime === "23:59"));
+
+  // 현재 시간과 비교하여 영업 상태 계산
+  const todayStatus = calculateTodayStatus(is24Hours, startTime, endTime);
+
+  return {
+    is24Hours,
+    hours: `${startTime}-${endTime}`,
+    description: `${dayNames[currentDay]} ${startTime}-${endTime}`,
+    todayStatus,
+    todayHours: `${startTime}-${endTime}`,
+  };
+}
+
+/**
+ * 현재 영업중인 약국만 필터링
+ *
+ * @param facilities 약국 의료기관 배열
+ * @returns 현재 영업중인 약국만 포함된 배열
+ */
+export function filterOperatingPharmacies(facilities: MedicalFacility[]): MedicalFacility[] {
+  console.group("[Facility Utils] 약국 영업 상태 필터링");
+  console.log(`📋 필터링 전 약국 수: ${facilities.length}`);
+
+  const operatingFacilities = facilities.filter(facility => {
+    if (!facility.operatingHours) {
+      console.log(`⚠️ ${facility.name}: 영업시간 정보 없음 - 제외`);
+      return false;
+    }
+
+    const status = facility.operatingHours.todayStatus;
+    const isOperating = status === "open" || status === "closing_soon";
+
+    if (isOperating) {
+      console.log(`✅ ${facility.name}: 영업중 (${status})`);
+    } else {
+      console.log(`❌ ${facility.name}: 영업종료 또는 휴무 (${status})`);
+    }
+
+    return isOperating;
+  });
+
+  console.log(`✅ 필터링 완료: ${operatingFacilities.length}개 영업중인 약국`);
+  console.groupEnd();
+
+  return operatingFacilities;
 }
 

@@ -158,8 +158,8 @@ async function parseXMLToJSON(xmlText: string): Promise<any> {
 
   // 서버 환경에서는 간단한 정규식 파싱
   const json: any = {};
-  const bodyMatch = xmlText.match(/<body>(.*?)<\/body>/s);
-  const headerMatch = xmlText.match(/<header>(.*?)<\/header>/s);
+  const bodyMatch = xmlText.match(/<body>([\s\S]*?)<\/body>/);
+  const headerMatch = xmlText.match(/<header>([\s\S]*?)<\/header>/);
 
   if (headerMatch) {
     json.response = { header: {} };
@@ -175,9 +175,9 @@ async function parseXMLToJSON(xmlText: string): Promise<any> {
     const totalCount = bodyMatch[1].match(/<totalCount>(.*?)<\/totalCount>/)?.[1];
     if (totalCount) json.response.body.totalCount = totalCount;
 
-    const itemsMatch = bodyMatch[1].match(/<items>(.*?)<\/items>/s);
+    const itemsMatch = bodyMatch[1].match(/<items>([\s\S]*?)<\/items>/);
     if (itemsMatch) {
-      const itemMatches = itemsMatch[1].matchAll(/<item>(.*?)<\/item>/gs);
+      const itemMatches = itemsMatch[1].matchAll(/<item>([\s\S]*?)<\/item>/g);
       const items: any[] = [];
 
       for (const itemMatch of itemMatches) {
@@ -219,10 +219,11 @@ function xmlToJson(xml: Document): any {
 
   if (xml.nodeType === 1) {
     // Element node
-    if (xml.attributes.length > 0) {
+    const element = xml as unknown as Element;
+    if (element.attributes && element.attributes.length > 0) {
       result['@attributes'] = {};
-      for (let i = 0; i < xml.attributes.length; i++) {
-        const attr = xml.attributes[i];
+      for (let i = 0; i < element.attributes.length; i++) {
+        const attr = element.attributes[i];
         result['@attributes'][attr.nodeName] = attr.nodeValue;
       }
     }

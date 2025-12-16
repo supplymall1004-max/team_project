@@ -211,10 +211,10 @@ export function useSyncUser() {
 
     // requestIdleCallback을 사용하여 브라우저가 유휴 상태일 때 실행
     if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      requestIdleCallback(syncUser, { timeout: 2000 });
+      requestIdleCallback(() => syncUser(), { timeout: 2000 });
     } else {
       // 폴백: 약간의 지연 후 실행
-      setTimeout(syncUser, 100);
+      setTimeout(() => syncUser(), 100);
     }
   }, [isLoaded, userId]);
 }

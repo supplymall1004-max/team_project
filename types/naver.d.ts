@@ -24,6 +24,16 @@ export interface NaverInfoWindow {
   setContent: (content: string) => void;
 }
 
+export interface NaverCircle {
+  setMap: (map: unknown) => void;
+  setCenter: (center: unknown) => void;
+  setRadius: (radius: number) => void;
+  setOptions: (options: unknown) => void;
+  getCenter: () => unknown;
+  getRadius: () => number;
+  getMap: () => unknown;
+}
+
 export interface NaverMaps {
   Map: new (element: HTMLElement, options: {
     center: unknown;
@@ -58,11 +68,22 @@ export interface NaverMaps {
     borderRadius?: string;
     boxShadow?: string;
   }) => NaverInfoWindow;
+  Circle: new (options: {
+    map: unknown;
+    center: unknown;
+    radius: number;
+    fillColor?: string;
+    fillOpacity?: number;
+    strokeColor?: string;
+    strokeOpacity?: number;
+    strokeWeight?: number;
+  }) => NaverCircle;
   Event: {
     addListener: (target: unknown, event: string, handler: () => void) => void;
   };
   LatLngBounds: new () => {
     extend: (latlng: unknown) => void;
+    getSize: () => number;
   };
   Point: new (x: number, y: number) => unknown;
   Size: new (width: number, height: number) => unknown;

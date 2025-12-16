@@ -15,7 +15,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { MapView } from "@/components/health/medical-facilities/map-view";
 import { FacilityCardList } from "@/components/health/medical-facilities/facility-card-list";
 import { FacilityFilter } from "@/components/health/medical-facilities/facility-filter";
@@ -24,15 +23,10 @@ import { LocationPermissionGuide } from "@/components/health/medical-facilities/
 import { Button } from "@/components/ui/button";
 import { MapPin, List, Map } from "lucide-react";
 import type { MedicalFacility, MedicalFacilityCategory } from "@/types/medical-facility";
-import { CATEGORY_LABELS } from "@/types/medical-facility";
 import { getUserLocation, getDefaultLocation, calculateDistance } from "@/lib/health/medical-facilities/location-utils";
 import { LoadingSpinner } from "@/components/loading-spinner";
-import { CurrentLocationMarker } from "@/components/health/medical-facilities/current-location-marker";
-import { RadiusCircle } from "@/components/health/medical-facilities/radius-circle";
-import { MapMarker } from "@/components/health/medical-facilities/map-marker";
 
 export default function MedicalFacilitiesPage() {
-  const router = useRouter();
 
   // 지도 인스턴스 관리를 위한 ref
   const mapInstanceRef = useRef<any>(null);
@@ -48,7 +42,6 @@ export default function MedicalFacilitiesPage() {
   const [selectedRadius, setSelectedRadius] = useState<number>(5000);
   const [sortBy, setSortBy] = useState<'distance' | 'name'>('distance');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [pharmacySearchMode, setPharmacySearchMode] = useState<'naver' | 'government'>('naver');
 
   const [facilities, setFacilities] = useState<MedicalFacility[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,14 +61,8 @@ export default function MedicalFacilitiesPage() {
   // coordinates 객체를 메모이제이션하여 무한 루프 방지
   const coordinates = useMemo(
     () => currentLocation ? { lat: currentLocation.lat, lng: currentLocation.lon } : null,
-    [currentLocation?.lat, currentLocation?.lon]
+    [currentLocation?.lat, currentLocation?.lon, currentLocation]
   );
-
-  // 약국 검색은 이제 네이버 로컬 검색 API를 사용하므로 정부 API는 사용하지 않음
-  // 네이버 지도에서 약국 검색 결과를 가져오기 위해 네이버 로컬 검색 API 사용
-  const governmentPharmacies: MedicalFacility[] = [];
-  const pharmacyLoading = false;
-  const pharmacyError = null;
 
   // 의료기관 검색 (다중 카테고리 지원)
   const searchFacilities = useCallback(
@@ -99,7 +86,9 @@ export default function MedicalFacilitiesPage() {
         // 각 카테고리별로 검색
         // 반경 내의 결과를 충분히 가져오기 위해 display 값을 늘림 (최대 100개)
         // 네이버 지도처럼 반경 내의 결과만 보여주기 위해 더 많은 결과를 가져온 후 클라이언트에서 필터링
-        const displayCount = Math.min(100, Math.max(50, Math.ceil(selectedRadius / 100))); // 반경에 따라 조정
+        // 반경이 클수록 더 많은 결과를 가져와서 필터링 정확도를 높임
+        const baseDisplay = Math.max(80, Math.ceil(selectedRadius / 50)); // 기본 80개, 반경에 따라 증가
+        const displayCount = Math.min(100, Math.max(50, baseDisplay)); // 최소 50개, 최대 100개
 
         for (const category of selectedCategories) {
           console.log(`🔍 ${category} 카테고리 검색 시작 (반경: ${selectedRadius}m, display: ${displayCount})`);
@@ -113,6 +102,9 @@ export default function MedicalFacilitiesPage() {
             queryParams.set("lat", String(lat));
             queryParams.set("lon", String(lon));
           }
+
+          // 반경 파라미터 추가
+          queryParams.set("radius", String(selectedRadius));
 
           const apiUrl = `/api/health/medical-facilities/search?${queryParams.toString()}`;
           console.log(`🌐 API 호출: ${apiUrl}`);
@@ -138,29 +130,31 @@ export default function MedicalFacilitiesPage() {
               }
 
               if (lat === undefined || lon === undefined) return true;
-              
+
               try {
                 // 거리 계산 (km 단위)
                 const distanceKm = facility.distance !== undefined && !isNaN(facility.distance)
-                  ? facility.distance 
+                  ? facility.distance
                   : calculateDistance(lat, lon, facility.latitude, facility.longitude);
-                
+
                 // 유효한 거리인지 확인
                 if (isNaN(distanceKm) || !isFinite(distanceKm)) {
                   console.warn(`[필터링] 유효하지 않은 거리 계산 결과:`, { facility: facility.name, distanceKm });
                   return false;
                 }
-                
+
                 // 미터로 변환하여 비교 (selectedRadius는 미터 단위)
                 const distanceM = distanceKm * 1000;
-                
-                // 반경 내의 결과만 포함 (약간의 여유를 두어 경계선 근처도 포함)
-                const isInRadius = distanceM <= selectedRadius * 1.1;
-                
-                if (!isInRadius && facility.name) {
+
+                // 반경 내의 결과만 포함 (정확한 반경 제한 + 약간의 여유)
+                const radiusWithMargin = selectedRadius * 1.05; // 5% 여유 (네이버 API의 부정확성 고려)
+                const isInRadius = distanceM <= radiusWithMargin;
+
+                // 디버깅: 일정 거리 이상 떨어진 경우에만 로그 (너무 많은 로그 방지)
+                if (!isInRadius && facility.name && distanceM > selectedRadius * 2) {
                   console.log(`[필터링] ${facility.name}: ${distanceM.toFixed(0)}m > ${selectedRadius}m (제외)`);
                 }
-                
+
                 return isInRadius;
               } catch (error) {
                 console.error(`[필터링] 거리 계산 오류:`, error, facility);
@@ -260,10 +254,7 @@ export default function MedicalFacilitiesPage() {
         searchFacilities(currentLocation.lat, currentLocation.lon);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentLocation?.lat, currentLocation?.lon]);
-  // 주의: searchFacilities를 의존성에서 제거하여 무한 루프 방지
-  // currentLocation의 lat, lon만 추적하여 위치 변경 시에만 검색 실행
+  }, [currentLocation?.lat, currentLocation?.lon, currentLocation, searchFacilities]);
 
   // 약국 검색은 이제 네이버 로컬 검색 API에서 직접 가져오므로 별도 병합 로직 불필요
   // API에서 이미 운영 중인 약국만 필터링되어 반환됨
@@ -273,19 +264,17 @@ export default function MedicalFacilitiesPage() {
     let result = [...facilities];
 
     // 반경 필터링 (현재 위치가 있고 거리가 계산된 경우)
-    // 주의: searchFacilities에서 이미 반경 필터링을 수행하지만, 
-    // 추가로 필터링하여 정확성을 높임
+    // 주의: searchFacilities에서 이미 반경 필터링을 수행하므로 여기서는 최소한의 검증만 수행
     if (currentLocation) {
       const beforeCount = result.length;
       result = result.filter((facility) => {
         // 필수 속성 확인
         if (!facility || typeof facility.latitude !== 'number' || typeof facility.longitude !== 'number') {
-          console.warn(`[필터링] 유효하지 않은 의료기관 데이터 건너뜀:`, facility);
           return false;
         }
 
         try {
-          // 거리 계산 (km 단위)
+          // 거리 계산 (km 단위) - 이미 계산된 값 우선 사용
           const distanceKm = facility.distance !== undefined && !isNaN(facility.distance)
             ? facility.distance
             : calculateDistance(
@@ -294,31 +283,23 @@ export default function MedicalFacilitiesPage() {
                 facility.latitude,
                 facility.longitude
               );
-          
-          // 유효한 거리인지 확인
-          if (isNaN(distanceKm) || !isFinite(distanceKm)) {
-            console.warn(`[필터링] 유효하지 않은 거리 계산 결과:`, { facility: facility.name, distanceKm });
-            return false;
-          }
-          
-          // 미터로 변환하여 비교 (selectedRadius는 미터 단위)
+
+          // 미터로 변환하여 비교
           const distanceM = distanceKm * 1000;
-          
-          // 반경 내의 결과만 포함 (약간의 여유를 두어 경계선 근처도 포함)
-          const isInRadius = distanceM <= selectedRadius * 1.1;
-          
-          if (!isInRadius && facility.name) {
-            console.log(`[필터링] ${facility.name}: ${distanceM.toFixed(0)}m > ${selectedRadius}m (제외)`);
-          }
-          
+
+          // 이미 API에서 필터링했으므로 여기서는 엄격한 제한 적용
+          const isInRadius = distanceM <= selectedRadius;
+
           return isInRadius;
         } catch (error) {
           console.error(`[필터링] 거리 계산 오류:`, error, facility);
           return false;
         }
       });
-      
-      console.log(`[MedicalFacilitiesPage] 반경 필터링: ${beforeCount}개 → ${result.length}개 (반경: ${selectedRadius}m)`);
+
+      if (beforeCount !== result.length) {
+        console.log(`[MedicalFacilitiesPage] 추가 반경 필터링: ${beforeCount}개 → ${result.length}개 (반경: ${selectedRadius}m)`);
+      }
     }
 
     // 검색 필터링
@@ -369,31 +350,6 @@ export default function MedicalFacilitiesPage() {
     return result;
   }, [facilities, searchQuery, sortBy, currentLocation, selectedRadius]);
 
-  // 검색 핸들러
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query);
-
-    // 검색어에서 시도/시군구/약국명 추출 시도
-    if (query.trim()) {
-      // 예: "서울특별시 강남구" 또는 "인천광역시 미추홀구 주안동 약국"
-      const cityMatch = query.match(/([가-힣]+(?:시|도|광역시|특별시))/);
-      const districtMatch = query.match(/([가-힣]+(?:구|시|군|읍|면|동))/);
-
-      if (cityMatch) {
-        setPharmacySearchMode('government');
-      }
-      if (districtMatch) {
-        setPharmacySearchMode('government');
-      }
-
-      // 약국명이 포함되어 있으면
-      if (query.includes('약국') || query.length > 0) {
-        setPharmacySearchMode('government');
-      }
-    }
-
-    console.log('검색어:', query);
-  }, []);
 
   // 위치 변경 핸들러
   const handleLocationChange = useCallback(
@@ -408,10 +364,20 @@ export default function MedicalFacilitiesPage() {
         setSearchLocationName(null);
       }
 
-      searchFacilities(lat, lon);
+      // 위치 변경 시 자동으로 검색 실행 (아직 실행하지 않음 - 콜백에서 처리)
     },
-    [searchFacilities]
+    []
   );
+
+  // 현재 위치 기반 검색 핸들러 (LocationSearch 컴포넌트에서 호출)
+  const handleLocationSearch = useCallback(async () => {
+    if (currentLocation) {
+      console.log(`🔍 현재 위치 기반 검색 실행: ${currentLocation.lat}, ${currentLocation.lon}`);
+      await searchFacilities(currentLocation.lat, currentLocation.lon);
+    } else {
+      console.warn("⚠️ 현재 위치가 설정되지 않아 검색을 실행할 수 없습니다.");
+    }
+  }, [currentLocation, searchFacilities]);
 
   // 카테고리 변경 핸들러 (단일 카테고리 선택)
   const handleCategoryChange = useCallback(
@@ -466,13 +432,47 @@ export default function MedicalFacilitiesPage() {
         <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">
           병원, 약국, 동물병원, 동물약국을 쉽게 찾아보세요
         </p>
-        {/* HERO 검색창 */}
-        <div className="max-w-2xl mx-auto">
-          <LocationSearch
-            onLocationChange={handleLocationChange}
-            loading={loading}
-            placeholder="시도, 시군구, 약국명으로 검색 (예: 서울특별시 강남구, 주안동 약국)"
-          />
+        {/* 간단한 현재 위치 버튼 */}
+        <div className="max-w-md mx-auto">
+          <Button
+            onClick={async () => {
+              console.log("[MedicalFacilitiesPage] HERO 현재 위치 버튼 클릭");
+              setLocationLoading(true);
+              setLocationError(null);
+              try {
+                const location = await getUserLocation();
+                if (location) {
+                  console.log(`✅ 현재 위치 사용: ${location.lat}, ${location.lon}`);
+                  setCurrentLocation(location);
+                  await searchFacilities(location.lat, location.lon);
+                } else {
+                  const defaultLocation = getDefaultLocation();
+                  console.log(`⚠️ 기본 위치 사용 (서울시청): ${defaultLocation.lat}, ${defaultLocation.lon}`);
+                  setLocationError("위치 권한이 거부되어 서울시청 기준으로 검색합니다.");
+                  setShowPermissionGuide(true);
+                  setCurrentLocation(defaultLocation);
+                  await searchFacilities(defaultLocation.lat, defaultLocation.lon);
+                }
+              } catch (err) {
+                console.error("❌ 위치 초기화 중 오류:", err);
+                const defaultLocation = getDefaultLocation();
+                setLocationError("위치를 가져오는 중 오류가 발생했습니다. 서울시청 기준으로 검색합니다.");
+                setCurrentLocation(defaultLocation);
+                await searchFacilities(defaultLocation.lat, defaultLocation.lon);
+              } finally {
+                setLocationLoading(false);
+              }
+            }}
+            disabled={locationLoading || loading}
+            className="inline-flex items-center gap-2 px-6 py-3 text-base font-medium"
+          >
+            {locationLoading ? (
+              <LoadingSpinner size="sm" />
+            ) : (
+              <MapPin className="h-5 w-5" />
+            )}
+            {locationLoading ? "위치 가져오는 중..." : "내 위치에서 찾기"}
+          </Button>
         </div>
       </div>
 
@@ -553,15 +553,17 @@ export default function MedicalFacilitiesPage() {
       <div className="sticky top-[73px] z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 space-y-4">
               {/* 위치 검색 */}
-              <LocationSearch
-                onLocationChange={handleLocationChange}
-                loading={loading}
-              />
+          <LocationSearch
+            onLocationChange={handleLocationChange}
+            onLocationSearch={handleLocationSearch}
+            loading={loading}
+          />
 
           {/* 카테고리 필터 */}
           <FacilityFilter
             selectedCategory={selectedCategories[0] || 'hospital'}
             onCategoryChange={handleCategoryChange}
+            currentLocation={currentLocation}
           />
         </div>
       </div>
@@ -702,8 +704,10 @@ export default function MedicalFacilitiesPage() {
           >
             <FacilityCardList
               facilities={filteredFacilities}
-              loading={loading || pharmacyLoading}
+              loading={loading}
               onMapClick={handleMapViewClick}
+              currentCategory={selectedCategories[0]}
+              currentLocation={currentLocation}
             />
           </div>
 

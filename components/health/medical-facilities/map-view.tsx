@@ -268,7 +268,6 @@ export function MapView({
             strokeColor: '#4285f4',
             strokeOpacity: 0.5,
             strokeWeight: 3,
-            strokeStyle: 'solid',
           });
           radiusCircleRef.current = circle;
           console.log("✅ 반경 서클 생성 완료:", circle);
@@ -411,7 +410,6 @@ export function MapView({
               strokeColor: '#4285f4',
               strokeOpacity: 0.5,
               strokeWeight: 3,
-              strokeStyle: 'solid',
             });
             radiusCircleRef.current = circle;
           } catch (error) {

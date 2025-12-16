@@ -33,7 +33,6 @@ export const RadiusCircle: React.FC<RadiusCircleProps> = ({
       strokeColor: '#4285f4',
       strokeOpacity: 0.3,
       strokeWeight: 2,
-      strokeStyle: 'solid',
     });
 
     circleRef.current = circle;
