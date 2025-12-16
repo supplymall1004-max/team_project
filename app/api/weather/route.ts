@@ -189,6 +189,8 @@ export async function GET(request: NextRequest) {
 
     if (!weatherResponse.ok) {
       console.error("❌ 기상청 API HTTP 오류:", weatherResponse.status);
+      const errorText = await weatherResponse.text().catch(() => "응답을 읽을 수 없습니다");
+      console.error("❌ 오류 응답 내용:", errorText.substring(0, 500));
       console.groupEnd();
       return NextResponse.json<WeatherResponse>(
         {
@@ -199,7 +201,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const weatherData = await weatherResponse.json();
+    // 응답이 JSON인지 확인
+    const contentType = weatherResponse.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const errorText = await weatherResponse.text().catch(() => "응답을 읽을 수 없습니다");
+      console.error("❌ JSON이 아닌 응답 수신:", errorText.substring(0, 500));
+      console.groupEnd();
+      return NextResponse.json<WeatherResponse>(
+        {
+          success: false,
+          error: "기상청 API가 JSON이 아닌 응답을 반환했습니다.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const weatherData = await weatherResponse.json().catch((err) => {
+      console.error("❌ JSON 파싱 오류:", err);
+      throw new Error("기상청 API 응답을 파싱할 수 없습니다.");
+    });
     console.log("✅ 기상청 API 응답 수신");
 
     // 6. 응답 데이터 파싱

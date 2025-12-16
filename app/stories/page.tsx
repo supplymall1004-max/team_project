@@ -14,7 +14,6 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Section } from '@/components/section';
 import { StorybookSection } from '@/components/storybook/storybook-section';
-import { FoodStoriesSection } from '@/components/food-stories/food-stories-section';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -42,10 +41,9 @@ function StoriesLearningContent() {
         </div>
 
         <Tabs defaultValue={initialTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="all">전체</TabsTrigger>
             <TabsTrigger value="storybook">마카의 음식 동화</TabsTrigger>
-            <TabsTrigger value="food-stories">음식 스토리</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-8">
@@ -55,27 +53,12 @@ function StoriesLearningContent() {
                 <StorybookSection />
               </Suspense>
             </ErrorBoundary>
-
-            {/* 음식 스토리 */}
-            <ErrorBoundary>
-              <Suspense fallback={<SectionSkeleton />}>
-                <FoodStoriesSection />
-              </Suspense>
-            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="storybook">
             <ErrorBoundary>
               <Suspense fallback={<SectionSkeleton />}>
                 <StorybookSection />
-              </Suspense>
-            </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="food-stories">
-            <ErrorBoundary>
-              <Suspense fallback={<SectionSkeleton />}>
-                <FoodStoriesSection />
               </Suspense>
             </ErrorBoundary>
           </TabsContent>

@@ -3,7 +3,7 @@
  * @description 좌표를 주소로 변환하는 훅 (역지오코딩)
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface ReverseGeocodeResult {
   sido: string; // 시도
@@ -26,12 +26,27 @@ export function useReverseGeocode(
   const [address, setAddress] = useState<ReverseGeocodeResult | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // 이전 좌표를 저장하여 불필요한 호출 방지
+  const prevCoordinatesRef = useRef<{ lat: number; lng: number } | null>(null);
 
   const fetchAddress = useCallback(async () => {
     if (!coordinates || !enabled) {
       setAddress(null);
+      prevCoordinatesRef.current = null;
       return;
     }
+
+    // 이전 좌표와 비교하여 실제로 변경되었는지 확인
+    const prevCoordinates = prevCoordinatesRef.current;
+    if (prevCoordinates &&
+        Math.abs(prevCoordinates.lat - coordinates.lat) < 0.0001 &&
+        Math.abs(prevCoordinates.lng - coordinates.lng) < 0.0001) {
+      console.log("⚠️ 역지오코딩 좌표가 변경되지 않아 호출을 건너뜁니다.");
+      return;
+    }
+
+    prevCoordinatesRef.current = { lat: coordinates.lat, lng: coordinates.lng };
 
     setLoading(true);
     setError(null);
@@ -84,8 +99,12 @@ export function useReverseGeocode(
   }, [coordinates, enabled]);
 
   useEffect(() => {
+    // enabled가 false이면 초기화
+    if (!enabled) {
+      prevCoordinatesRef.current = null;
+    }
     fetchAddress();
-  }, [fetchAddress]);
+  }, [fetchAddress, enabled]);
 
   return {
     address,

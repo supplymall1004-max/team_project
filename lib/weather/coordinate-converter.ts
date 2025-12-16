@@ -61,37 +61,42 @@ export function convertToGridCoordinates(lat: number, lon: number): {
 /**
  * 현재 시간 기준으로 기상청 API에 필요한 base_date와 base_time 계산
  * 
- * 기상청 API는 특정 시간대의 데이터만 제공하므로,
- * 가장 최근의 유효한 base_time을 계산합니다.
+ * 기상청 초단기실황 API는 매 시간 정각에 발표되며,
+ * 해당 자료는 발표 시각으로부터 약 40분 후에 제공됩니다.
+ * 
+ * 예: 현재 시각이 07:58이면 가장 최근 자료는 07:00 발표 자료
+ *     현재 시각이 07:30이면 아직 07:00 자료가 제공되지 않으므로 06:00 자료 사용
  * 
  * @returns { base_date: string, base_time: string }
  */
 export function getBaseDateTime(): { baseDate: string; baseTime: string } {
   const now = new Date();
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000); // UTC+9 (한국 시간)
-
-  // 기상청 API는 매 시간 정각에 데이터를 업데이트합니다
-  // 초단기실황은 매 시간 30분에 업데이트됩니다
+  
+  // 한국 시간 (UTC+9)
+  const kst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  
   let hour = kst.getHours();
+  let date = new Date(kst);
   const minute = kst.getMinutes();
 
-  // 30분 이전이면 이전 시간 데이터 사용
-  if (minute < 30) {
+  // 초단기실황은 발표 시각으로부터 약 40분 후에 제공됨
+  // 현재 시간이 정각 + 40분 이전이면 이전 시간 데이터 사용
+  if (minute < 40) {
     hour = hour - 1;
     if (hour < 0) {
       hour = 23;
       // 전날로 이동
-      kst.setDate(kst.getDate() - 1);
+      date.setDate(date.getDate() - 1);
     }
   }
 
-  // base_time은 항상 30분 (HH30 형식)
-  const baseTime = `${String(hour).padStart(2, "0")}30`;
+  // base_time은 HH00 형식 (정각)
+  const baseTime = `${String(hour).padStart(2, "0")}00`;
 
   // base_date는 YYYYMMDD 형식
-  const year = kst.getFullYear();
-  const month = String(kst.getMonth() + 1).padStart(2, "0");
-  const day = String(kst.getDate()).padStart(2, "0");
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   const baseDate = `${year}${month}${day}`;
 
   return { baseDate, baseTime };

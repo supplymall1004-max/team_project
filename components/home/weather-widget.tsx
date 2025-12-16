@@ -52,9 +52,62 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
       setError(null);
 
       const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
-      const data = await response.json();
+      
+      // 응답이 JSON인지 먼저 확인
+      const contentType = response.headers.get("content-type");
+      let data: any = null;
+      
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        // JSON이 아닌 경우 에러 텍스트 읽기
+        const errorText = await response.text().catch(() => "응답 본문을 읽을 수 없습니다");
+        console.error("❌ JSON이 아닌 응답 수신:", errorText.substring(0, 500));
+        setError(null);
+        setWeather(null);
+        console.groupEnd();
+        return;
+      }
+
+      // HTTP 에러 상태 확인 (JSON 응답인 경우)
+      if (!response.ok) {
+        console.error(`❌ 날씨 API HTTP 오류: ${response.status} ${response.statusText}`);
+        console.error("❌ 에러 응답:", data);
+        
+        // NO_DATA는 정상적인 상황일 수 있음 (해당 시간대에 데이터가 없을 수 있음)
+        if (data?.error?.includes("NO_DATA") || data?.error?.includes("데이터가 없습니다")) {
+          console.log("ℹ️ 해당 시간대의 날씨 데이터가 없습니다. 기본 위치로 재시도합니다.");
+          // 기본 위치(서울)로 재시도
+          const defaultLat = 37.5665;
+          const defaultLon = 126.9780;
+          if (lat !== defaultLat || lon !== defaultLon) {
+            fetchWeather(defaultLat, defaultLon);
+            return;
+          }
+        }
+        
+        // 500 에러인 경우 API 키 문제일 수 있음
+        if (response.status === 500) {
+          console.error("⚠️ 서버 오류 - 기상청 API 키가 설정되지 않았거나 잘못되었을 수 있습니다.");
+          console.error("⚠️ .env 파일에 NEXT_PUBLIC_KMA_WEATHER_API_KEY를 확인해주세요.");
+        }
+        
+        setError(null);
+        setWeather(null);
+        console.groupEnd();
+        return;
+      }
 
       if (!data.success) {
+        console.error("❌ 날씨 API 응답 실패:", data);
+        
+        // API 키 관련 에러인 경우
+        if (data.error?.includes("API 키") || data.error?.includes("설정되지 않았습니다")) {
+          console.error("⚠️ 기상청 API 키가 설정되지 않았습니다.");
+          console.error("⚠️ .env 파일에 NEXT_PUBLIC_KMA_WEATHER_API_KEY를 추가해주세요.");
+          console.error("⚠️ 공공데이터포털(data.go.kr)에서 기상청 API 키를 발급받아야 합니다.");
+        }
+        
         // NO_DATA는 정상적인 상황일 수 있음 (해당 위치에 데이터가 없을 수 있음)
         if (data.error?.includes("NO_DATA") || data.error?.includes("데이터가 없습니다")) {
           console.log("ℹ️ 해당 위치의 날씨 데이터가 없습니다. 기본 위치로 재시도합니다.");
@@ -69,7 +122,7 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
         
         // 다른 오류는 경고만 표시하고 조용히 처리
         console.warn("⚠️ 날씨 정보 조회 실패:", data.error || "날씨 정보를 가져올 수 없습니다.");
-        setError(null); // 에러를 표시하지 않음
+        setError(null);
         setWeather(null);
         console.groupEnd();
         return;
@@ -79,9 +132,10 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
       setWeather(data.data);
       console.groupEnd();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "날씨 정보를 가져오는 중 오류가 발생했습니다.";
-      console.error("❌ 날씨 정보 조회 실패:", err);
-      setError(errorMessage);
+      // 네트워크 오류나 기타 예외는 조용히 처리
+      console.warn("⚠️ 날씨 정보 조회 중 오류 발생:", err instanceof Error ? err.message : "알 수 없는 오류");
+      setError(null); // 에러를 표시하지 않음
+      setWeather(null);
       console.groupEnd();
     } finally {
       setLoading(false);
@@ -159,18 +213,105 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
     return `https://openweathermap.org/img/wn/${icon}@2x.png`;
   };
 
+  // 날씨에 맞는 멘트 생성
+  const getWeatherMessage = (weather: WeatherData): string => {
+    try {
+      const temp = weather.temperature ?? 0;
+      const description = (weather.description || '').toLowerCase();
+      const precipitation = weather.precipitation || 0;
+      
+      // 비오는 날 (우선순위 1)
+      if (description.includes('rain') || description.includes('비') || precipitation > 0) {
+        const messages = [
+          "비 오는 날엔 파전에 막걸리 어떠세요?",
+          "빗소리 들으며 따뜻한 전골 어떠세요?",
+          "비 오는 날엔 따뜻한 수제비 어떠세요?",
+        ];
+        return messages[Math.floor(Math.random() * messages.length)];
+      }
+      
+      // 눈 오는 날 (우선순위 2)
+      if (description.includes('snow') || description.includes('눈')) {
+        const messages = [
+          "눈 오는 날엔 따뜻한 떡국 어떠세요?",
+          "눈 내리는 날엔 따뜻한 부대찌개 어떠세요?",
+          "눈 오는 날엔 따뜻한 김치찌개 어떠세요?",
+        ];
+        return messages[Math.floor(Math.random() * messages.length)];
+      }
+      
+      // 매우 추운 날씨 (영하 5도 이하) - 우선순위 3
+      if (temp <= -5) {
+        const messages = [
+          `${temp}도의 날씨에 따뜻한 갈비탕 어떠세요?`,
+          `${temp}도의 날씨에 따뜻한 설렁탕 어떠세요?`,
+          `${temp}도의 날씨에 따뜻한 곰탕 어떠세요?`,
+        ];
+        return messages[Math.floor(Math.random() * messages.length)];
+      }
+      
+      // 추운 날씨 (영하 0도 이상 5도 미만) - 우선순위 4
+      if (temp < 0) {
+        return `${temp}도의 날씨에 따뜻한 갈비탕 어떠세요?`;
+      }
+      
+      // 쌀쌀한 날씨 (0도 이상 5도 미만) - 우선순위 5
+      if (temp < 5) {
+        const messages = [
+          "쌀쌀한 날씨에 따뜻한 국물 요리 어떠세요?",
+          "추운 날씨에 따뜻한 찌개 어떠세요?",
+          "쌀쌀한 날씨에 따뜻한 전골 어떠세요?",
+        ];
+        return messages[Math.floor(Math.random() * messages.length)];
+      }
+      
+      // 더운 날씨 (25도 이상) - 우선순위 6
+      if (temp >= 25) {
+        const messages = [
+          "더운 날씨에 시원한 냉면 어떠세요?",
+          "더운 날씨에 시원한 수육 어떠세요?",
+          "더운 날씨에 시원한 물냉면 어떠세요?",
+        ];
+        return messages[Math.floor(Math.random() * messages.length)];
+      }
+      
+      // 맑은 날씨 - 우선순위 7
+      if (description.includes('clear') || description.includes('맑음')) {
+        return "맑은 날씨에 산뜻한 요리 어떠세요?";
+      }
+      
+      // 흐린 날씨 - 우선순위 8
+      if (description.includes('cloud') || description.includes('흐림')) {
+        return "흐린 날씨에 따뜻한 요리 어떠세요?";
+      }
+      
+      // 기본 멘트
+      return "오늘 날씨에 맞는 맛있는 요리 어떠세요?";
+    } catch (error) {
+      console.error("[WeatherWidget] 날씨 멘트 생성 오류:", error);
+      return "오늘 날씨에 맞는 맛있는 요리 어떠세요?";
+    }
+  };
+
   // 로딩 상태
   if (loading) {
     return (
       <div
         className={cn(
-          "rounded-lg border bg-card p-4 shadow-sm",
+          "py-2.5 px-4 bg-purple-50 border-2 border-purple-200 rounded-xl",
           className
         )}
       >
-        <div className="flex items-center justify-center space-x-2 py-8">
-          <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">날씨 정보를 불러오는 중...</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
+              <RefreshCw className="h-5 w-5 text-purple-600 animate-spin" />
+            </div>
+            <div>
+              <h3 className="font-bold text-purple-900 text-sm">날씨 정보</h3>
+              <p className="text-xs text-purple-700">날씨 정보를 불러오는 중...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -181,136 +322,125 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
     return (
       <div
         className={cn(
-          "rounded-lg border bg-card p-4 shadow-sm",
+          "py-2.5 px-4 bg-purple-50 border-2 border-purple-200 rounded-xl",
           className
         )}
       >
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Cloud className="h-5 w-5 text-muted-foreground" />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
+              <Cloud className="h-5 w-5 text-purple-600" />
+            </div>
             <div>
-              <h3 className="text-sm font-semibold">날씨 정보</h3>
-              <p className="text-xs text-muted-foreground">
-                {error || locationError}
+              <h3 className="font-bold text-purple-900 text-sm">날씨 정보</h3>
+              <p className="text-xs text-purple-700">
+                {error || locationError || "날씨 정보를 불러올 수 없습니다"}
               </p>
             </div>
           </div>
           <button
             onClick={handleRefresh}
-            className="rounded-md p-1.5 hover:bg-muted transition-colors"
+            className="rounded-md p-1 hover:bg-purple-200 transition-colors"
             aria-label="새로고침"
           >
-            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+            <RefreshCw className="h-4 w-4 text-purple-600" />
           </button>
         </div>
       </div>
     );
   }
 
-  // 날씨 정보 표시
+  // 날씨 정보가 없을 때 기본 UI 표시
   if (!weather) {
-    return null;
+    return (
+      <div
+        className={cn(
+          "py-2.5 px-4 bg-purple-50 border-2 border-purple-200 rounded-xl",
+          className
+        )}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
+              <Cloud className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-purple-900 text-sm">날씨 정보</h3>
+              <p className="text-xs text-purple-700">날씨 정보를 불러오는 중...</p>
+            </div>
+          </div>
+          <button
+            onClick={handleRefresh}
+            className="rounded-md p-1 hover:bg-purple-200 transition-colors"
+            aria-label="새로고침"
+          >
+            <RefreshCw className="h-4 w-4 text-purple-600" />
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div
       className={cn(
-        "rounded-lg border bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/20 dark:to-blue-900/20 p-4 shadow-sm",
+        "py-2.5 px-4 bg-purple-50 border-2 border-purple-200 rounded-xl hover:bg-purple-100 hover:border-purple-300 transition-all",
         className
       )}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center space-x-2">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span className="text-xs font-medium text-muted-foreground">
-            {weather.location}
-          </span>
+      {/* 날씨 정보 헤더 */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
+            {weather.icon && (
+              <img
+                src={getWeatherIconUrl(weather.icon)}
+                alt={weather.description}
+                className="h-6 w-6"
+              />
+            )}
+          </div>
+          <div>
+            <h3 className="font-bold text-purple-900 text-sm">날씨 정보</h3>
+            <p className="text-xs text-purple-700">{weather.location}</p>
+          </div>
         </div>
         <button
           onClick={handleRefresh}
-          className="rounded-md p-1 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
+          className="rounded-md p-1 hover:bg-purple-200 transition-colors"
           aria-label="새로고침"
         >
-          <RefreshCw className="h-4 w-4 text-muted-foreground" />
+          <RefreshCw className="h-4 w-4 text-purple-600" />
         </button>
       </div>
 
       {/* 주요 날씨 정보 */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          {weather.icon && (
-            <img
-              src={getWeatherIconUrl(weather.icon)}
-              alt={weather.description}
-              className="h-16 w-16"
-            />
-          )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
           <div>
-            <div className="flex items-baseline space-x-2">
-              <span className="text-3xl font-bold">{weather.temperature}°</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-purple-900">{weather.temperature}°</span>
               {weather.feelsLike && (
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs text-purple-700">
                   체감 {weather.feelsLike}°
                 </span>
               )}
             </div>
-            <p className="text-sm text-muted-foreground capitalize">
+            <p className="text-xs text-purple-700 capitalize mt-0.5">
               {weather.description}
             </p>
           </div>
         </div>
-      </div>
-
-      {/* 상세 정보 */}
-      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-blue-200/50 dark:border-blue-800/50">
-        <div className="flex items-center space-x-2">
-          <Droplets className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <div>
-            <p className="text-xs text-muted-foreground">습도</p>
-            <p className="text-sm font-semibold">{weather.humidity}%</p>
+        <div className="flex items-center gap-3 text-xs text-purple-700">
+          <div className="flex items-center gap-1">
+            <Droplets className="h-3.5 w-3.5" />
+            <span>{weather.humidity}%</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Wind className="h-3.5 w-3.5" />
+            <span>{weather.windSpeed}km/h</span>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Wind className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <div>
-            <p className="text-xs text-muted-foreground">풍속</p>
-            <p className="text-sm font-semibold">
-              {weather.windSpeed} km/h
-              {weather.windDirection && (
-                <span className="text-xs text-muted-foreground ml-1">
-                  ({weather.windDirection})
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-        {weather.visibility !== undefined && (
-          <div className="flex items-center space-x-2">
-            <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <div>
-              <p className="text-xs text-muted-foreground">가시거리</p>
-              <p className="text-sm font-semibold">{weather.visibility} km</p>
-            </div>
-          </div>
-        )}
-        {weather.pressure !== undefined && (
-          <div className="flex items-center space-x-2">
-            <Cloud className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <div>
-              <p className="text-xs text-muted-foreground">기압</p>
-              <p className="text-sm font-semibold">{weather.pressure} hPa</p>
-            </div>
-          </div>
-        )}
-        {weather.precipitation !== undefined && weather.precipitation > 0 && (
-          <div className="flex items-center space-x-2">
-            <Droplets className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <div>
-              <p className="text-xs text-muted-foreground">강수량</p>
-              <p className="text-sm font-semibold">{weather.precipitation} mm</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

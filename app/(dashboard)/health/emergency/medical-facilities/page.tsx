@@ -27,8 +27,6 @@ import type { MedicalFacility, MedicalFacilityCategory } from "@/types/medical-f
 import { CATEGORY_LABELS } from "@/types/medical-facility";
 import { getUserLocation, getDefaultLocation, calculateDistance } from "@/lib/health/medical-facilities/location-utils";
 import { LoadingSpinner } from "@/components/loading-spinner";
-import { useReverseGeocode } from "@/hooks/useReverseGeocode";
-import { usePharmacySearch } from "@/hooks/usePharmacySearch";
 import { CurrentLocationMarker } from "@/components/health/medical-facilities/current-location-marker";
 import { RadiusCircle } from "@/components/health/medical-facilities/radius-circle";
 import { MapMarker } from "@/components/health/medical-facilities/map-marker";
@@ -67,24 +65,17 @@ export default function MedicalFacilitiesPage() {
   const isSearchingRef = useRef(false); // 검색 중인지 추적 (무한 루프 방지)
   const initializedRef = useRef(false); // 초기화 완료 여부 추적
 
-  // 역지오코딩으로 시도/시군구 얻기 (약국 API용)
-  const { address: reverseGeocodeAddress } = useReverseGeocode(
-    currentLocation ? { lat: currentLocation.lat, lng: currentLocation.lon } : null,
-    !!currentLocation && selectedCategories.includes('pharmacy')
+  // coordinates 객체를 메모이제이션하여 무한 루프 방지
+  const coordinates = useMemo(
+    () => currentLocation ? { lat: currentLocation.lat, lng: currentLocation.lon } : null,
+    [currentLocation?.lat, currentLocation?.lon]
   );
 
-  // 국립중앙의료원 약국 정보 조회
-  const {
-    pharmacies: governmentPharmacies,
-    loading: pharmacyLoading,
-    error: pharmacyError,
-    refetch: refetchPharmacies,
-  } = usePharmacySearch({
-    coordinates: currentLocation ? { lat: currentLocation.lat, lng: currentLocation.lon } : null,
-    city: reverseGeocodeAddress?.sido || undefined,
-    district: reverseGeocodeAddress?.sigungu || undefined,
-    enabled: selectedCategories.includes('pharmacy') && !!currentLocation,
-  });
+  // 약국 검색은 이제 네이버 로컬 검색 API를 사용하므로 정부 API는 사용하지 않음
+  // 네이버 지도에서 약국 검색 결과를 가져오기 위해 네이버 로컬 검색 API 사용
+  const governmentPharmacies: MedicalFacility[] = [];
+  const pharmacyLoading = false;
+  const pharmacyError = null;
 
   // 의료기관 검색 (다중 카테고리 지원)
   const searchFacilities = useCallback(
@@ -182,7 +173,7 @@ export default function MedicalFacilitiesPage() {
           }
         }
 
-        // 약국 데이터는 별도의 useEffect에서 병합됨 (무한 루프 방지)
+        // 약국 데이터는 네이버 로컬 검색 API에서 직접 가져옴 (운영 중인 약국만 필터링됨)
 
         console.log(`✅ 전체 검색 완료: ${allFacilities.length}개 의료기관 (반경 ${selectedRadius}m 내)`);
 
@@ -274,92 +265,8 @@ export default function MedicalFacilitiesPage() {
   // 주의: searchFacilities를 의존성에서 제거하여 무한 루프 방지
   // currentLocation의 lat, lon만 추적하여 위치 변경 시에만 검색 실행
 
-  // governmentPharmacies가 변경되면 기존 facilities에 병합
-  useEffect(() => {
-    if (selectedCategories.includes('pharmacy') && governmentPharmacies.length > 0) {
-      console.log("[MedicalFacilitiesPage] 정부 약국 데이터 병합 시작");
-      
-      setFacilities(prev => {
-        // 반경 필터링 적용
-        let filteredPharmacies = governmentPharmacies;
-        
-        if (currentLocation) {
-          filteredPharmacies = governmentPharmacies.filter(pharmacy => {
-            // 필수 속성 확인
-            if (!pharmacy || typeof pharmacy.latitude !== 'number' || typeof pharmacy.longitude !== 'number') {
-              console.warn(`[약국 필터링] 유효하지 않은 약국 데이터 건너뜀:`, pharmacy);
-              return false;
-            }
-
-            try {
-              // 거리 계산 (km 단위)
-              const distanceKm = pharmacy.distance !== undefined && !isNaN(pharmacy.distance)
-                ? pharmacy.distance
-                : calculateDistance(
-                    currentLocation.lat,
-                    currentLocation.lon,
-                    pharmacy.latitude,
-                    pharmacy.longitude
-                  );
-              
-              // 유효한 거리인지 확인
-              if (isNaN(distanceKm) || !isFinite(distanceKm)) {
-                console.warn(`[약국 필터링] 유효하지 않은 거리 계산 결과:`, { pharmacy: pharmacy.name, distanceKm });
-                return false;
-              }
-              
-              // 미터로 변환하여 비교 (selectedRadius는 미터 단위)
-              const distanceM = distanceKm * 1000;
-              
-              // 반경 내의 약국만 포함
-              const isInRadius = distanceM <= selectedRadius * 1.1;
-              
-              if (!isInRadius && pharmacy.name) {
-                console.log(`[약국 필터링] ${pharmacy.name}: ${distanceM.toFixed(0)}m > ${selectedRadius}m (제외)`);
-              }
-              
-              return isInRadius;
-            } catch (error) {
-              console.error(`[약국 필터링] 거리 계산 오류:`, error, pharmacy);
-              return false;
-            }
-          });
-          
-          console.log(`[MedicalFacilitiesPage] 약국 반경 필터링: ${governmentPharmacies.length}개 → ${filteredPharmacies.length}개 (반경: ${selectedRadius}m)`);
-        }
-
-        // 이미 facilities가 비어있으면 약국만 추가
-        if (prev.length === 0) {
-          console.log(`✅ 정부 약국 API 추가 (초기): ${filteredPharmacies.length}개`);
-          return [...filteredPharmacies];
-        }
-
-        // 중복 제거를 위한 Set 생성
-        const existingIds = new Set(
-          prev
-            .filter(f => f && typeof f.latitude === 'number' && typeof f.longitude === 'number')
-            .map(f => `${f.name || 'unknown'}-${f.latitude.toFixed(6)}-${f.longitude.toFixed(6)}`)
-        );
-
-        // 새로운 약국만 추가
-        const newPharmacies = filteredPharmacies.filter(pharmacy => {
-          if (!pharmacy || typeof pharmacy.latitude !== 'number' || typeof pharmacy.longitude !== 'number') {
-            return false;
-          }
-          const key = `${pharmacy.name || 'unknown'}-${pharmacy.latitude.toFixed(6)}-${pharmacy.longitude.toFixed(6)}`;
-          return !existingIds.has(key);
-        });
-
-        if (newPharmacies.length > 0) {
-          console.log(`✅ 정부 약국 API 추가: ${newPharmacies.length}개`);
-          return [...prev, ...newPharmacies];
-        } else {
-          console.log("ℹ️ 추가할 새로운 약국이 없습니다 (이미 모두 포함됨)");
-          return prev; // 변경 없음
-        }
-      });
-    }
-  }, [governmentPharmacies, selectedCategories, currentLocation, selectedRadius]);
+  // 약국 검색은 이제 네이버 로컬 검색 API에서 직접 가져오므로 별도 병합 로직 불필요
+  // API에서 이미 운영 중인 약국만 필터링되어 반환됨
 
   // 검색 및 우선순위 정렬된 장소 목록 메모이제이션
   const filteredFacilities = useMemo(() => {

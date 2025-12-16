@@ -77,36 +77,36 @@ export default async function Home() {
       <HomeLanding />
 
       {/* 카테고리별 미리보기 섹션들 */}
-      {/* 레시피 아카이브 미리보기 */}
-      <ErrorBoundary>
+      {/* 레시피 아카이브 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}
+      {/* <ErrorBoundary>
         <Suspense fallback={<SectionSkeleton />}>
           <RecipeArchivePreview />
         </Suspense>
-      </ErrorBoundary>
+      </ErrorBoundary> */}
 
-      {/* 식단 관리 미리보기 */}
-      <ErrorBoundary>
+      {/* 식단 관리 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}
+      {/* <ErrorBoundary>
         <DietManagementPreview />
-      </ErrorBoundary>
+      </ErrorBoundary> */}
 
-      {/* 건강 관리 미리보기 */}
-      <ErrorBoundary>
+      {/* 건강 관리 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}
+      {/* <ErrorBoundary>
         <HealthManagementPreview />
-      </ErrorBoundary>
+      </ErrorBoundary> */}
 
-      {/* 스토리 & 학습 미리보기 */}
-      <ErrorBoundary>
+      {/* 스토리 & 학습 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}
+      {/* <ErrorBoundary>
         <Suspense fallback={<SectionSkeleton />}>
           <StoriesLearningPreview />
         </Suspense>
-      </ErrorBoundary>
+      </ErrorBoundary> */}
 
-      {/* 유틸리티 미리보기 */}
-      <ErrorBoundary>
+      {/* 유틸리티 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}
+      {/* <ErrorBoundary>
         <Suspense fallback={<SectionSkeleton />}>
           <UtilitiesPreview />
         </Suspense>
-      </ErrorBoundary>
+      </ErrorBoundary> */}
 
       {/* 하단 네비게이션 높이만큼 패딩 추가 (모바일) */}
       <div className="h-16 md:hidden" aria-hidden="true" />

@@ -22,6 +22,7 @@ import {
   Star,
   Crown,
   BookText,
+  Baby,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -83,6 +84,13 @@ const quickAccessItems: QuickAccessItem[] = [
     href: "/storybook",
     bgColor: "bg-indigo-100",
     textColor: "text-indigo-700",
+  },
+  {
+    icon: Baby,
+    label: "이유식 레시피",
+    href: "/archive/recipes?tab=baby",
+    bgColor: "bg-pink-100",
+    textColor: "text-pink-700",
   },
 ];
 

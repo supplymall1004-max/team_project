@@ -8,7 +8,7 @@
  * 2. HeroSection에 props로 전달
  */
 
-import { HeroSection } from "./hero-section";
+import { HeroSection, QuickStartCard } from "./hero-section";
 import { getMultipleCopyContent } from "@/lib/admin/copy-reader";
 
 export async function HomeLanding() {
@@ -27,32 +27,79 @@ export async function HomeLanding() {
     "hero-background-image",
   ]);
 
-  // 빠른 시작 카드 데이터 구성 (새로운 카테고리 구조)
-  const quickStartCards = [
+  // 빠른 시작 카드 데이터 구성 (앱 아이콘 스타일 - 세련된 그라데이션 적용)
+  const quickStartCards: QuickStartCard[] = [
     {
-      title: allContent["quick-start-recipe"]?.content.title || "📚 레시피 아카이브",
-      description: allContent["quick-start-recipe"]?.content.description || "현대부터 전통까지, 모든 요리 지식을 한 곳에서",
-      href: allContent["quick-start-recipe"]?.content.href || "/archive/recipes",
+      title: "레시피",
+      description: "최신 레시피 모음",
+      href: "/recipes",
+      iconName: "BookOpen",
+      color: "bg-blue-500",
+      gradient: "bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700",
     },
     {
-      title: allContent["quick-start-diet"]?.content.title || "🍽️ 식단 관리",
-      description: allContent["quick-start-diet"]?.content.description || "AI 기반 개인 맞춤 식단으로 건강한 식생활을 시작하세요",
-      href: allContent["quick-start-diet"]?.content.href || "/diet",
+      title: "궁중요리",
+      description: "전통 궁중 레시피",
+      href: "/royal-recipes",
+      iconName: "Crown",
+      color: "bg-amber-500",
+      gradient: "bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500",
     },
     {
-      title: "💚 건강 관리",
-      description: "가족 건강을 한눈에 확인하고 관리하세요",
+      title: "식약처레시피",
+      description: "공식 식약처 레시피",
+      href: "/recipes/mfds",
+      iconName: "Shield",
+      color: "bg-green-600",
+      gradient: "bg-gradient-to-br from-emerald-500 via-green-600 to-teal-600",
+    },
+    {
+      title: "식단관리",
+      description: "맞춤 식단 추천",
+      href: "/diet",
+      iconName: "Brain",
+      color: "bg-green-500",
+      gradient: "bg-gradient-to-br from-green-400 via-emerald-500 to-green-600",
+    },
+    {
+      title: "주간식단",
+      description: "7일 식단 계획",
+      href: "/diet/weekly",
+      iconName: "Calendar",
+      color: "bg-purple-500",
+      gradient: "bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600",
+    },
+    {
+      title: "건강관리",
+      description: "가족 건강 관리",
       href: "/health",
+      iconName: "Heart",
+      color: "bg-red-500",
+      gradient: "bg-gradient-to-br from-pink-500 via-rose-500 to-red-500",
     },
     {
-      title: allContent["quick-start-storybook"]?.content.title || "📖 스토리 & 학습",
-      description: allContent["quick-start-storybook"]?.content.description || "전통 음식의 탄생과 역사를 동화처럼 들려드립니다",
-      href: allContent["quick-start-storybook"]?.content.href || "/stories",
+      title: "요리이야기",
+      description: "맛있는 이야기들",
+      href: "/stories",
+      iconName: "Newspaper",
+      color: "bg-indigo-500",
+      gradient: "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700",
     },
     {
-      title: "🛠️ 유틸리티",
-      description: "편리한 기능들로 요리와 건강 관리를 더 쉽게",
+      title: "유틸리티",
+      description: "편리한 도구들",
       href: "/search",
+      iconName: "Wrench",
+      color: "bg-gray-500",
+      gradient: "bg-gradient-to-br from-slate-500 via-gray-600 to-slate-700",
+    },
+    {
+      title: "이유식 레시피",
+      description: "아기 이유식 레시피",
+      href: "/archive/recipes?tab=baby",
+      iconName: "Baby",
+      color: "bg-pink-500",
+      gradient: "bg-gradient-to-br from-pink-400 via-rose-500 to-pink-600",
     },
   ];
 

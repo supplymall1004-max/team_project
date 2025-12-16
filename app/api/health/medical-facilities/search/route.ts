@@ -177,163 +177,104 @@ export async function GET(request: NextRequest) {
     }
 
     let facilities: any[] = [];
-    let searchResult: { total: number; display: number } | null = null;
 
-    // 카테고리에 따라 다른 API 호출
-    if (category === 'pharmacy') {
-      // 약국 카테고리의 경우 국립중앙의료원 약국 API 사용
-      console.log(`💊 약국 카테고리: 국립중앙의료원 약국 API 사용`);
+    // 모든 카테고리(약국 포함)에서 네이버 로컬 검색 API 사용
+    // 네이버 지도에서 약국 검색 결과를 가져오기 위해 네이버 로컬 검색 API 사용
+    console.log(`🔍 ${category} 카테고리: 네이버 로컬 검색 API 사용 (네이버 지도 검색 결과)`);
 
-      try {
-        const pharmacyParams: PharmacySearchParams = {
-          numOfRows: display,
-        };
+    let searchResult;
+    try {
+      searchResult = await searchLocal(searchQuery, {
+        display: Math.min(display, 100), // 최대 100개
+        start: 1,
+        lat,
+        lon,
+      });
+      console.log(`📊 네이버 API 응답: ${searchResult.total}개 중 ${searchResult.items.length}개 반환`);
 
-        // query에서 시도/시군구 추출 시도
-        if (query) {
-          const cityMatch = query.match(/([가-힣]+(?:시|도|광역시|특별시))/);
-          const districtMatch = query.match(/([가-힣]+(?:구|시|군|읍|면|동))/);
-
-          if (cityMatch) pharmacyParams.Q0 = cityMatch[1];
-          if (districtMatch) pharmacyParams.Q1 = districtMatch[1];
-        }
-
-        const pharmacyResult = await searchPharmacies(pharmacyParams);
-        console.log(`📊 약국 API 응답: ${pharmacyResult.totalCount}개 중 ${pharmacyResult.pharmacies.length}개 반환`);
-
-        // searchResult 설정 (pharmacy 카테고리용)
-        searchResult = {
-          total: pharmacyResult.totalCount,
-          display: pharmacyResult.pharmacies.length,
-        };
-
-        // PharmacyInfo를 MedicalFacility로 변환
-        facilities = pharmacyResult.pharmacies
-          .map((pharmacy, index) => {
-            const lat_val = parseFloat(pharmacy.wgs84Lat || '0');
-            const lng_val = parseFloat(pharmacy.wgs84Lon || '0');
-
-            if (!lat_val || !lng_val || isNaN(lat_val) || isNaN(lng_val)) {
-              return null;
-            }
-
-            // 거리 계산
-            const distance = lat !== undefined && lon !== undefined
-              ? calculateDistance(lat, lon, lat_val, lng_val)
-              : undefined;
-
-            // 운영시간 파싱
-            const operatingHours: any = {};
-            const days = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일', '공휴일'];
-
-            for (let i = 0; i < 8; i++) {
-              const startTime = pharmacy[`dutyTime${i + 1}s` as keyof typeof pharmacy] as string;
-              const endTime = pharmacy[`dutyTime${i + 1}c` as keyof typeof pharmacy] as string;
-
-              if (startTime && endTime) {
-                operatingHours[days[i]] = {
-                  open: startTime,
-                  close: endTime,
-                  isClosed: false,
-                };
-              } else {
-                operatingHours[days[i]] = {
-                  isClosed: true,
-                };
-              }
-            }
-
-            return {
-              id: `pharmacy-${pharmacy.rnum}-${index}`,
-              name: pharmacy.dutyName,
-              category: 'pharmacy' as MedicalFacilityCategory,
-              address: pharmacy.dutyAddr,
-              roadAddress: pharmacy.dutyAddr,
-              phone: pharmacy.dutyTel1,
-              latitude: lat_val,
-              longitude: lng_val,
-              distance,
-              operatingHours,
-              link: '',
-            };
-          })
-          .filter(facility => facility !== null);
-
-        console.log(`✅ 약국 데이터 변환 완료: ${facilities.length}개`);
-      } catch (pharmacyError) {
-        console.error("❌ 약국 API 호출 실패:", pharmacyError);
-        const pharmacyErrorMessage =
-          pharmacyError instanceof Error ? pharmacyError.message : "약국 API 호출 실패";
-
+      // 검색 결과 확인
+      if (!searchResult || !searchResult.items || searchResult.items.length === 0) {
+        console.warn("⚠️ 검색 결과가 없습니다.");
         console.groupEnd();
-        return NextResponse.json(
-          {
-            success: false,
-            error: pharmacyErrorMessage,
+        return NextResponse.json({
+          success: true,
+          data: {
+            facilities: [],
+            total: 0,
+            display: 0,
           },
-          { status: 500 }
-        );
-      }
-    } else {
-      // 다른 카테고리의 경우 네이버 로컬 검색 API 사용
-      console.log(`🏥 ${category} 카테고리: 네이버 로컬 검색 API 사용`);
-
-      let searchResult;
-      try {
-        searchResult = await searchLocal(searchQuery, {
-          display: Math.min(display, 100), // 최대 100개
-          start: 1,
-          lat,
-          lon,
         });
-        console.log(`📊 네이버 API 응답: ${searchResult.total}개 중 ${searchResult.items.length}개 반환`);
-
-        // 검색 결과 확인
-        if (!searchResult || !searchResult.items || searchResult.items.length === 0) {
-          console.warn("⚠️ 검색 결과가 없습니다.");
-          console.groupEnd();
-          return NextResponse.json({
-            success: true,
-            data: {
-              facilities: [],
-              total: 0,
-              display: 0,
-            },
-          });
-        }
-
-        // 의료기관 데이터로 변환
-        facilities = convertToMedicalFacilities(
-          searchResult.items,
-          category,
-          lat,
-          lon
-        );
-        console.log(`✅ 변환 완료: ${facilities.length}개 의료기관`);
-      } catch (apiError) {
-        console.error("❌ 네이버 로컬 검색 API 호출 실패:", apiError);
-        const apiErrorMessage =
-          apiError instanceof Error ? apiError.message : "네이버 로컬 검색 API 호출 실패";
-
-        // API 키 관련 에러인지 확인
-        if (apiErrorMessage.includes("API 키") || apiErrorMessage.includes("인증")) {
-          console.error("💡 API 키 설정이 필요합니다. .env.local 파일을 확인하세요.");
-          console.error("   - NAVER_SEARCH_CLIENT_ID 또는 NAVER_CLIENT_ID");
-          console.error("   - NAVER_SEARCH_CLIENT_SECRET 또는 NAVER_CLIENT_SECRET");
-        }
-
-        console.groupEnd();
-        return NextResponse.json(
-          {
-            success: false,
-            error: apiErrorMessage,
-          },
-          { status: 500 }
-        );
       }
+
+      // 의료기관 데이터로 변환
+      console.log(`🔄 네이버 API 응답 변환 시작: ${searchResult.items.length}개 아이템`);
+      facilities = convertToMedicalFacilities(
+        searchResult.items,
+        category,
+        lat,
+        lon
+      );
+      console.log(`✅ 변환 완료: ${facilities.length}개 의료기관`);
+      
+      // 변환 실패한 항목이 있는지 확인
+      if (searchResult.items.length > facilities.length) {
+        console.warn(`⚠️ 일부 항목 변환 실패: ${searchResult.items.length}개 → ${facilities.length}개`);
+      }
+      
+      // 변환된 의료기관 샘플 로그 (처음 3개)
+      if (facilities.length > 0) {
+        console.log(`📋 변환된 의료기관 샘플 (처음 3개):`);
+        facilities.slice(0, 3).forEach((facility, idx) => {
+          console.log(`   ${idx + 1}. ${facility.name} (${facility.category})`);
+          console.log(`      - 주소: ${facility.address}`);
+          console.log(`      - 거리: ${facility.distance?.toFixed(2) ?? 'N/A'}km`);
+          console.log(`      - 영업 상태: ${facility.operatingHours?.todayStatus ?? 'unknown'}`);
+        });
+      }
+      
+      // 약국 카테고리인 경우 운영 중인 약국 우선 표시 (필터링은 하지 않음)
+      // 모든 약국을 표시하되, 운영 중인 약국을 우선 정렬
+      if (category === 'pharmacy') {
+        const totalCount = facilities.length;
+        const open24HoursCount = facilities.filter(f => f.operatingHours?.is24Hours).length;
+        const openNowCount = facilities.filter(f => f.operatingHours?.todayStatus === 'open').length;
+        const unknownStatusCount = facilities.filter(f => 
+          !f.operatingHours || 
+          !f.operatingHours.todayStatus || 
+          f.operatingHours.todayStatus === 'unknown'
+        ).length;
+        const closedCount = facilities.filter(f => f.operatingHours?.todayStatus === 'closed').length;
+        
+        console.log(`💊 약국 검색 결과: 총 ${totalCount}개`);
+        console.log(`   - 24시간 영업: ${open24HoursCount}개`);
+        console.log(`   - 현재 영업 중: ${openNowCount}개`);
+        console.log(`   - 영업 상태 불명: ${unknownStatusCount}개`);
+        console.log(`   - 영업 종료/휴무: ${closedCount}개`);
+        console.log(`   ℹ️ 모든 약국을 표시하며, 운영 중인 약국을 우선 정렬합니다.`);
+      }
+    } catch (apiError) {
+      console.error("❌ 네이버 로컬 검색 API 호출 실패:", apiError);
+      const apiErrorMessage =
+        apiError instanceof Error ? apiError.message : "네이버 로컬 검색 API 호출 실패";
+
+      // API 키 관련 에러인지 확인
+      if (apiErrorMessage.includes("API 키") || apiErrorMessage.includes("인증")) {
+        console.error("💡 API 키 설정이 필요합니다. .env.local 파일을 확인하세요.");
+        console.error("   - NAVER_SEARCH_CLIENT_ID 또는 NAVER_CLIENT_ID");
+        console.error("   - NAVER_SEARCH_CLIENT_SECRET 또는 NAVER_CLIENT_SECRET");
+      }
+
+      console.groupEnd();
+      return NextResponse.json(
+        {
+          success: false,
+          error: apiErrorMessage,
+        },
+        { status: 500 }
+      );
     }
 
-    // 검색 결과 확인 (네이버 API 결과만)
+    // 검색 결과 확인
     if (facilities.length === 0) {
       console.warn("⚠️ 검색 결과가 없습니다.");
       console.groupEnd();

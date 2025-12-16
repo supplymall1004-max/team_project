@@ -3,7 +3,7 @@
  * @description 국립중앙의료원 약국 정보 조회 훅
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { PharmacyInfo, PharmacySearchParams } from "@/lib/health/pharmacy-api";
 import { MedicalFacility, MedicalFacilityCategory } from "@/types/medical-facility";
 import { calculateDistance } from "@/lib/health/medical-facilities/location-utils";
@@ -35,12 +35,58 @@ export function usePharmacySearch({
   const [pharmacies, setPharmacies] = useState<MedicalFacility[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // 이전 파라미터를 저장하여 불필요한 호출 방지
+  const prevParamsRef = useRef<{
+    coordinates: { lat: number; lng: number } | null;
+    city?: string;
+    district?: string;
+    pharmacyName?: string;
+    dayOfWeek?: number;
+    enabled: boolean;
+  } | null>(null);
 
   const fetchPharmacies = useCallback(async () => {
     if (!enabled) {
       setPharmacies([]);
+      prevParamsRef.current = null;
       return;
     }
+
+    // 이전 파라미터와 비교하여 실제로 변경되었는지 확인
+    const currentParams = {
+      coordinates,
+      city,
+      district,
+      pharmacyName,
+      dayOfWeek,
+      enabled,
+    };
+
+    const prevParams = prevParamsRef.current;
+    if (prevParams) {
+      const coordinatesChanged = 
+        !coordinates && !prevParams.coordinates ||
+        !coordinates && prevParams.coordinates ||
+        coordinates && !prevParams.coordinates ||
+        (coordinates && prevParams.coordinates &&
+          (coordinates.lat !== prevParams.coordinates.lat || 
+           coordinates.lng !== prevParams.coordinates.lng));
+      
+      const paramsChanged = 
+        coordinatesChanged ||
+        city !== prevParams.city ||
+        district !== prevParams.district ||
+        pharmacyName !== prevParams.pharmacyName ||
+        dayOfWeek !== prevParams.dayOfWeek;
+
+      if (!paramsChanged) {
+        console.log("⚠️ 약국 검색 파라미터가 변경되지 않아 호출을 건너뜁니다.");
+        return;
+      }
+    }
+
+    prevParamsRef.current = currentParams;
 
     setLoading(true);
     setError(null);
@@ -221,8 +267,12 @@ export function usePharmacySearch({
   }, [coordinates, city, district, pharmacyName, dayOfWeek, enabled]);
 
   useEffect(() => {
+    // enabled가 false이면 초기화
+    if (!enabled) {
+      prevParamsRef.current = null;
+    }
     fetchPharmacies();
-  }, [fetchPharmacies]);
+  }, [fetchPharmacies, enabled]);
 
   return {
     pharmacies,

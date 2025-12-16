@@ -46,12 +46,37 @@ function HealthManagementContent() {
         </div>
 
         <Tabs defaultValue={initialTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
-            <TabsTrigger value="dashboard">대시보드</TabsTrigger>
-            <TabsTrigger value="profile">건강 프로필</TabsTrigger>
-            <TabsTrigger value="family">가족 건강</TabsTrigger>
-            <TabsTrigger value="records">건강 기록</TabsTrigger>
-            <TabsTrigger value="insights">건강 인사이트</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 mb-6 text-foreground gap-1 h-auto min-h-9 p-1">
+            <TabsTrigger 
+              value="dashboard" 
+              className="text-foreground data-[state=active]:text-foreground text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap"
+            >
+              대시보드
+            </TabsTrigger>
+            <TabsTrigger 
+              value="profile" 
+              className="text-foreground data-[state=active]:text-foreground text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap"
+            >
+              건강 프로필
+            </TabsTrigger>
+            <TabsTrigger 
+              value="family" 
+              className="text-foreground data-[state=active]:text-foreground text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap"
+            >
+              가족 건강
+            </TabsTrigger>
+            <TabsTrigger 
+              value="records" 
+              className="text-foreground data-[state=active]:text-foreground text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap"
+            >
+              건강 기록
+            </TabsTrigger>
+            <TabsTrigger 
+              value="insights" 
+              className="text-foreground data-[state=active]:text-foreground text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap"
+            >
+              건강 인사이트
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">

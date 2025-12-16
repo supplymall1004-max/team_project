@@ -15,24 +15,27 @@ interface RecipeTabsClientProps {
   modernContent: ReactNode;
   royalContent: ReactNode;
   mfdsContent: ReactNode;
+  babyContent?: ReactNode;
 }
 
 function RecipeTabsContent({ 
   allContent, 
   modernContent, 
   royalContent, 
-  mfdsContent 
+  mfdsContent,
+  babyContent
 }: RecipeTabsClientProps) {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'all';
 
   return (
     <Tabs defaultValue={initialTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-4 mb-6">
+      <TabsList className="flex w-full justify-center gap-1 mb-6">
         <TabsTrigger value="all">전체</TabsTrigger>
         <TabsTrigger value="modern">현대 레시피</TabsTrigger>
         <TabsTrigger value="royal">궁중 레시피</TabsTrigger>
         <TabsTrigger value="mfds">식약처 레시피</TabsTrigger>
+        <TabsTrigger value="baby">이유식 레시피</TabsTrigger>
       </TabsList>
 
       <TabsContent value="all">
@@ -50,6 +53,12 @@ function RecipeTabsContent({
       <TabsContent value="mfds">
         {mfdsContent}
       </TabsContent>
+
+      {babyContent && (
+        <TabsContent value="baby">
+          {babyContent}
+        </TabsContent>
+      )}
     </Tabs>
   );
 }

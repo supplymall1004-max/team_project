@@ -44,23 +44,54 @@ export function useSyncUser() {
 
         // 타임아웃을 위한 AbortController 생성 (30초)
         const abortController = new AbortController();
-        const timeoutId = setTimeout(() => {
-          abortController.abort();
-        }, 30000);
+        let timeoutId: NodeJS.Timeout | null = null;
+        let response: Response | null = null;
+        
+        try {
+          timeoutId = setTimeout(() => {
+            abortController.abort();
+          }, 30000);
 
-        const response = await fetch("/api/sync-user", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          signal: abortController.signal,
-        })
-        .then((res) => {
-          clearTimeout(timeoutId);
-          return res;
-        })
-        .catch((fetchError) => {
-          clearTimeout(timeoutId);
+          response = await fetch("/api/sync-user", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            signal: abortController.signal,
+          });
+
+          // 성공적으로 응답을 받았으면 타임아웃 정리
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+          }
+        } catch (fetchError) {
+          // 타임아웃 정리
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+          }
+
+          // AbortError (타임아웃)인 경우 재시도
+          if (fetchError instanceof Error && fetchError.name === "AbortError") {
+            if (retryCountRef.current < maxRetries) {
+              retryCountRef.current += 1;
+              const delay = Math.min(1000 * Math.pow(2, retryCountRef.current - 1), 5000);
+              console.warn(`⚠️ 요청 타임아웃 - ${delay}ms 후 재시도 (${retryCountRef.current}/${maxRetries})`);
+              setTimeout(() => {
+                if (!syncedRef.current) {
+                  syncUser(true);
+                }
+              }, delay);
+              console.groupEnd();
+              return;
+            } else {
+              console.error("❌ 요청 타임아웃: 최대 재시도 횟수 초과");
+              console.groupEnd();
+              return;
+            }
+          }
+
           // 네트워크 에러 처리
           console.error("❌ 네트워크 에러:", fetchError);
           
@@ -75,16 +106,18 @@ export function useSyncUser() {
                 syncUser(true);
               }
             }, delay);
-            return null; // null을 반환하여 아래 로직 스킵
+            console.groupEnd();
+            return;
           } else {
             // 최대 재시도 횟수 초과
             console.error("❌ 네트워크 연결 실패: 최대 재시도 횟수 초과");
-            throw new Error(`네트워크 연결 실패: ${fetchError.message}`);
+            console.groupEnd();
+            return;
           }
-        });
+        }
 
-        // 네트워크 에러로 인한 재시도인 경우 여기서 종료
-        if (response === null) {
+        // response가 없으면 종료
+        if (!response) {
           console.groupEnd();
           return;
         }
@@ -165,24 +198,12 @@ export function useSyncUser() {
         // 네트워크 오류나 기타 예외 처리
         const errorMessage = error instanceof Error ? error.message : "알 수 없는 오류";
         
-        // AbortError (타임아웃)인 경우 재시도
-        if (error instanceof Error && error.name === "AbortError") {
-          if (retryCountRef.current < maxRetries) {
-            retryCountRef.current += 1;
-            const delay = Math.min(1000 * Math.pow(2, retryCountRef.current - 1), 5000);
-            console.warn(`⚠️ 요청 타임아웃 - ${delay}ms 후 재시도 (${retryCountRef.current}/${maxRetries})`);
-            setTimeout(() => {
-              if (!syncedRef.current) {
-                syncUser(true);
-              }
-            }, delay);
-            console.groupEnd();
-            return;
-          }
+        // AbortError는 이미 위에서 처리했으므로 여기서는 다른 에러만 처리
+        if (error instanceof Error && error.name !== "AbortError") {
+          console.error("❌ 사용자 동기화 중 예외 발생:", errorMessage);
+          console.error("❌ 전체 에러 객체:", error);
         }
         
-        console.error("❌ 사용자 동기화 중 예외 발생:", errorMessage);
-        console.error("❌ 전체 에러 객체:", error);
         console.groupEnd();
         // 에러가 발생해도 페이지 로딩을 방해하지 않음
       }

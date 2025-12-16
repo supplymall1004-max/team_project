@@ -64,6 +64,60 @@
   }
 }
 
+/* 네온사인 효과 애니메이션 - 주황색 계열 */
+@keyframes neon-flicker {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 
+      0 0 5px #ff6b35,
+      0 0 10px #ff6b35,
+      0 0 15px #ff6b35,
+      0 0 20px #ff6b35,
+      0 0 25px #ff6b35,
+      2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  41% {
+    opacity: 0.9;
+    text-shadow: 
+      0 0 3px #ff6b35,
+      0 0 6px #ff6b35,
+      0 0 9px #ff6b35,
+      0 0 12px #ff6b35,
+      0 0 18px #ff6b35,
+      2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  42% {
+    opacity: 1;
+    text-shadow: 
+      0 0 5px #ff6b35,
+      0 0 10px #ff6b35,
+      0 0 15px #ff6b35,
+      0 0 20px #ff6b35,
+      0 0 25px #ff6b35,
+      2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  45% {
+    opacity: 0.95;
+    text-shadow: 
+      0 0 4px #ff6b35,
+      0 0 8px #ff6b35,
+      0 0 12px #ff6b35,
+      0 0 16px #ff6b35,
+      0 0 22px #ff6b35,
+      2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  46% {
+    opacity: 1;
+    text-shadow: 
+      0 0 5px #ff6b35,
+      0 0 10px #ff6b35,
+      0 0 15px #ff6b35,
+      0 0 20px #ff6b35,
+      0 0 25px #ff6b35,
+      2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.6s ease-out;
 }
