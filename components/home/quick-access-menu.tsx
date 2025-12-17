@@ -14,83 +14,55 @@
 "use client";
 
 import Link from "next/link";
-import {
-  BookOpen,
-  Brain,
-  Calendar,
-  ShoppingCart,
-  Star,
-  Crown,
-  BookText,
-  Baby,
-  type LucideIcon,
-} from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface QuickAccessItem {
-  icon: LucideIcon;
+  iconSrc: string;
   label: string;
   href: string;
-  bgColor: string; // Tailwind 배경색 클래스
-  textColor: string; // Tailwind 텍스트 색상 클래스
 }
 
 const quickAccessItems: QuickAccessItem[] = [
   {
-    icon: Crown,
+    iconSrc: "/icons/21.png",
     label: "궁중 레시피",
     href: "/#royal-recipes",
-    bgColor: "bg-amber-100",
-    textColor: "text-amber-700",
   },
   {
-    icon: BookOpen,
+    iconSrc: "/icons/26.png",
     label: "레시피",
     href: "/recipes",
-    bgColor: "bg-green-100",
-    textColor: "text-green-700",
   },
   {
-    icon: Brain,
+    iconSrc: "/icons/22.png",
     label: "건강 맞춤 식단",
     href: "/diet",
-    bgColor: "bg-blue-100",
-    textColor: "text-blue-700",
   },
   {
-    icon: Calendar,
+    iconSrc: "/icons/3.png",
     label: "주간 식단",
     href: "/diet/weekly",
-    bgColor: "bg-purple-100",
-    textColor: "text-purple-700",
   },
   {
-    icon: ShoppingCart,
+    iconSrc: "/icons/12.png",
     label: "장보기",
     href: "/shopping",
-    bgColor: "bg-yellow-100",
-    textColor: "text-yellow-700",
   },
   {
-    icon: Star,
+    iconSrc: "/icons/24.png",
     label: "즐겨찾기",
     href: "/diet/favorites",
-    bgColor: "bg-pink-100",
-    textColor: "text-pink-700",
   },
   {
-    icon: BookText,
+    iconSrc: "/icons/14.png",
     label: "음식 동화",
     href: "/storybook",
-    bgColor: "bg-indigo-100",
-    textColor: "text-indigo-700",
   },
   {
-    icon: Baby,
+    iconSrc: "/icons/18.png",
     label: "이유식 레시피",
     href: "/archive/recipes?tab=baby",
-    bgColor: "bg-pink-100",
-    textColor: "text-pink-700",
   },
 ];
 
@@ -105,14 +77,13 @@ export function QuickAccessMenu() {
       {/* 아이콘 그리드 */}
       <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4">
         {quickAccessItems.map((item) => {
-          const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
                 "group flex flex-col items-center justify-center gap-2 p-3 rounded-xl",
-                "transition-all duration-300 ease-in-out",
+                "transition-all duration-200 ease-in-out",
                 "hover:scale-105 hover:shadow-lg hover:-translate-y-1",
                 "active:scale-95 active:translate-y-0",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2",
@@ -140,22 +111,15 @@ export function QuickAccessMenu() {
               aria-label={`${item.label} 페이지로 이동`}
               role="button"
             >
-              {/* 아이콘 원형 배경 */}
-              <div
-                className={cn(
-                  "w-14 h-14 rounded-full flex items-center justify-center",
-                  "group-hover:scale-110 transition-transform duration-200",
-                  item.bgColor,
-                  "transition-all duration-200"
-                )}
-              >
-                <Icon
-                  className={cn(
-                    "w-7 h-7 transition-transform duration-200",
-                    "group-hover:scale-110",
-                    item.textColor
-                  )}
-                  aria-hidden="true"
+              {/* 아이콘 (public/icons 이미지) */}
+              <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-sm group-hover:scale-110 transition-transform duration-200 relative">
+                <Image
+                  src={item.iconSrc}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  sizes="56px"
+                  priority={false}
                 />
               </div>
 

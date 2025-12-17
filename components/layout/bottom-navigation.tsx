@@ -31,7 +31,7 @@ export function BottomNavigation() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 md:hidden"
+      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 md:hidden h-16"
       aria-label="하단 네비게이션"
       style={{ 
         willChange: 'transform',

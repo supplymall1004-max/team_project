@@ -194,7 +194,7 @@ export function FamilyMemberIdentityVerification({
             disabled={isSubmitting}
           />
           <p className="text-xs text-muted-foreground">
-            가족 구성원 이름과 정확히 일치해야 합니다: "{member.name}"
+            가족 구성원 이름과 정확히 일치해야 합니다: &quot;{member.name}&quot;
           </p>
         </div>
         <div className="space-y-2">

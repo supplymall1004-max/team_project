@@ -25,6 +25,8 @@ import { getNaverMapScriptUrl, isNaverMapLoaded } from '@/lib/naver/map-client';
 import { Button } from '@/components/ui/button';
 import { MapPin, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { LocationPermissionToggle } from '@/components/location/LocationPermissionToggle';
+import { useLocationPreference } from '@/hooks/use-location-preference';
 
 interface LocationState {
   latitude: number;
@@ -42,6 +44,8 @@ export function NaverMap() {
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
   const infoWindowRef = useRef<any>(null);
+
+  const { isLocationEnabled } = useLocationPreference();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
@@ -402,6 +406,16 @@ export function NaverMap() {
     setIsGettingLocation(true);
     setError(null);
 
+    if (!isLocationEnabled) {
+      console.warn('⚠️ 위치 사용 토글이 OFF 상태입니다. 위치 요청을 중단합니다.');
+      setError({
+        message: '현재 위치를 사용하려면 먼저 "위치 사용"을 켜주세요.',
+        code: 10
+      });
+      setIsGettingLocation(false);
+      return;
+    }
+
     if (!navigator.geolocation) {
       console.error('❌ 브라우저가 위치 정보를 지원하지 않습니다');
       setError({
@@ -451,15 +465,7 @@ export function NaverMap() {
         maximumAge: 300000 // 5분간 캐시된 위치 정보 사용
       }
     );
-  }, []);
-
-  // 컴포넌트 마운트 시 자동으로 현재 위치 가져오기
-  useEffect(() => {
-    if (isMapLoaded && !currentLocation && !isGettingLocation) {
-      console.log('🚀 컴포넌트 마운트 시 자동 위치 요청');
-      getCurrentLocation();
-    }
-  }, [isMapLoaded, currentLocation, isGettingLocation, getCurrentLocation]);
+  }, [isLocationEnabled]);
 
   return (
     <div className="w-full space-y-4">
@@ -485,6 +491,16 @@ export function NaverMap() {
           {isGettingLocation ? '위치 찾는 중...' : '위치 새로고침'}
         </Button>
       </div>
+
+      {/* 위치 사용 토글 (홈) */}
+      <LocationPermissionToggle
+        onEnableRequest={async () => {
+          console.group('📍 [home] 위치 사용 ON → 권한 요청 트리거');
+          console.log('time:', new Date().toISOString());
+          console.groupEnd();
+          getCurrentLocation();
+        }}
+      />
 
       {/* 지도 컨테이너 */}
       <div className="relative">

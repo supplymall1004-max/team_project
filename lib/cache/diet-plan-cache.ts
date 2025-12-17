@@ -80,9 +80,6 @@ function getCurrentValidAiDietKey(userId: string): string | null {
 const buildCacheKey = (userId: string, creationDate: string) =>
   `${DIET_PLAN_CACHE_PREFIX}:${userId}:${creationDate}`;
 
-const buildUserCacheKey = (userId: string, date: string) =>
-  `${DIET_PLAN_CACHE_PREFIX}:user:${userId}:${date}`;
-
 const safeParse = (value: string | null): DietPlanCacheEntry | null => {
   if (!value) return null;
   try {
@@ -167,7 +164,10 @@ export function setCachedDietPlan(
     isAiGenerated,
   };
 
-  const key = buildCacheKey(userId, creationDate); // 생성 날짜 기반 키 사용
+  // 키 전략:
+  // - AI 건강 맞춤 식단: 생성 날짜(creationDate) 기반으로 저장 (오늘/어제 식단 자동 선택 로직에서 사용)
+  // - 수동 생성 식단: 요청 날짜(date) 기반으로 저장 (요청 날짜와 1:1 매칭)
+  const key = buildCacheKey(userId, isAiGenerated ? creationDate : date);
   window.localStorage.setItem(key, JSON.stringify(payload));
 
   console.log(`[DietPlanCache] 캐시 저장: ${key}, AI생성=${isAiGenerated}, 만료=${new Date(expiresAt).toLocaleString()}`);

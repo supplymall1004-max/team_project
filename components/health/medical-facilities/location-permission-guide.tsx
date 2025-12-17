@@ -17,6 +17,14 @@ import { cn } from "@/lib/utils";
 interface LocationPermissionGuideProps {
   onDismiss?: () => void;
   className?: string;
+  /**
+   * 안내 배너에 추가로 표시할 짧은 문구(예: "서울시청 기준으로 검색 중")
+   */
+  secondaryMessage?: string;
+  /**
+   * compact: 화면 공간을 적게 쓰는 압축형 배너
+   */
+  variant?: "default" | "compact";
 }
 
 /**
@@ -69,11 +77,11 @@ function openLocationSettings(): void {
     // 실제로는 브라우저에서 직접 설정 앱을 열 수 없으므로 안내만 제공
     alert(
       "설정 앱을 열어주세요:\n\n" +
-      "1. 홈 화면에서 '설정' 앱 열기\n" +
-      "2. 'Safari' 선택\n" +
-      "3. '위치 서비스' 선택\n" +
-      "4. '이 웹사이트' 또는 'Safari 웹사이트' 선택\n" +
-      "5. '사용 중일 때' 또는 '항상' 선택"
+        "1. 홈 화면에서 '설정' 앱 열기\n" +
+        "2. 'Safari' 선택\n" +
+        "3. '위치 서비스' 선택\n" +
+        "4. '이 웹사이트' 또는 'Safari 웹사이트' 선택\n" +
+        "5. '사용 중일 때' 또는 '항상' 선택",
     );
   } else if (device.isAndroid) {
     // Android: 앱 설정으로 이동 시도
@@ -85,9 +93,9 @@ function openLocationSettings(): void {
     // 데스크톱: 브라우저 설정 안내
     alert(
       "브라우저 설정에서 위치 권한을 허용해주세요:\n\n" +
-      "1. 브라우저 주소창 왼쪽의 자물쇠 아이콘 클릭\n" +
-      "2. '위치' 권한을 '허용'으로 변경\n" +
-      "3. 페이지 새로고침"
+        "1. 브라우저 주소창 왼쪽의 자물쇠 아이콘 클릭\n" +
+        "2. '위치' 권한을 '허용'으로 변경\n" +
+        "3. 페이지 새로고침",
     );
   }
 }
@@ -96,7 +104,7 @@ function openLocationSettings(): void {
  * Android 브라우저별 안내 메시지
  */
 function getAndroidInstructions(
-  browser: "safari" | "chrome" | "samsung" | "firefox" | "other"
+  browser: "safari" | "chrome" | "samsung" | "firefox" | "other",
 ): string {
   const baseInstructions = "설정 앱을 열어주세요:\n\n";
 
@@ -175,10 +183,10 @@ function getStepByStepGuide(): {
       device.browser === "chrome"
         ? "Chrome"
         : device.browser === "samsung"
-        ? "Samsung Internet"
-        : device.browser === "firefox"
-        ? "Firefox"
-        : "브라우저";
+          ? "Samsung Internet"
+          : device.browser === "firefox"
+            ? "Firefox"
+            : "브라우저";
 
     return {
       title: `Android ${browserName} 위치 권한 설정`,
@@ -207,30 +215,80 @@ function getStepByStepGuide(): {
 export function LocationPermissionGuide({
   onDismiss,
   className,
+  secondaryMessage,
+  variant = "default",
 }: LocationPermissionGuideProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const device = detectDevice();
   const guide = getStepByStepGuide();
 
+  const isCompact = variant === "compact";
+
   return (
-    <Alert className={cn("border-orange-500 bg-orange-50 dark:bg-orange-950/20", className)}>
-      <div className="flex items-start gap-3">
-        <MapPin className="h-5 w-5 shrink-0 text-orange-500 mt-0.5" />
-        <div className="flex-1 space-y-3">
+    <Alert
+      className={cn(
+        "border-orange-500 bg-orange-50 dark:bg-orange-950/20",
+        /**
+         * shadcn `Alert` 기본 스타일이 `w-full` + `grid`라서
+         * 안내 배너가 화면을 과하게 차지하는 경우가 있습니다.
+         * (이 컴포넌트는 내부에서 자체 레이아웃을 이미 구성하므로)
+         * 여기서만 `flex` + `w-fit`로 “내용만큼만” 보이도록 최소화합니다.
+         */
+        "flex w-fit max-w-full",
+        isCompact ? "px-3 py-2" : "px-4 py-3",
+        "max-w-[min(32rem,100%)]",
+        className,
+      )}
+    >
+      <div
+        className={cn("flex gap-3", isCompact ? "items-center" : "items-start")}
+      >
+        <MapPin
+          className={cn(
+            "shrink-0 text-orange-500",
+            isCompact ? "h-4 w-4" : "h-5 w-5 mt-0.5",
+          )}
+        />
+        <div
+          className={cn(
+            "min-w-0 flex-1",
+            isCompact ? "space-y-1" : "space-y-3",
+          )}
+        >
           <div className="flex items-start justify-between gap-2">
-            <div className="flex-1">
-              <AlertTitle className="text-orange-700 dark:text-orange-300 font-semibold">
+            <div className="min-w-0 flex-1">
+              <AlertTitle
+                className={cn(
+                  "font-semibold",
+                  isCompact
+                    ? "text-orange-700 dark:text-orange-300 text-sm"
+                    : "text-orange-700 dark:text-orange-300",
+                )}
+              >
                 위치 권한이 필요합니다
               </AlertTitle>
-              <AlertDescription className="text-orange-600 dark:text-orange-400 mt-1">
+              <AlertDescription
+                className={cn(
+                  "text-orange-600 dark:text-orange-400",
+                  isCompact ? "text-xs mt-0.5" : "mt-1",
+                )}
+              >
                 정확한 검색을 위해 위치 권한을 허용해주세요.
+                {secondaryMessage ? (
+                  <span className="ml-2 font-medium text-orange-700/90 dark:text-orange-300/90">
+                    ({secondaryMessage})
+                  </span>
+                ) : null}
               </AlertDescription>
             </div>
             {onDismiss && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 shrink-0 text-orange-600 hover:text-orange-700 hover:bg-orange-100"
+                className={cn(
+                  "shrink-0 text-orange-600 hover:text-orange-700 hover:bg-orange-100",
+                  isCompact ? "h-7 w-7" : "h-6 w-6",
+                )}
                 onClick={onDismiss}
               >
                 <X className="h-4 w-4" />
@@ -239,29 +297,54 @@ export function LocationPermissionGuide({
           </div>
 
           {!isExpanded ? (
-            <div className="flex flex-wrap gap-2">
+            <div
+              className={cn(
+                "flex flex-wrap gap-2",
+                isCompact ? "gap-1.5" : undefined,
+              )}
+            >
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsExpanded(true)}
-                className="border-orange-500 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
+                className={cn(
+                  "border-orange-500 text-orange-700 hover:bg-orange-100 hover:text-orange-800",
+                  isCompact ? "h-8 px-2.5 text-xs" : undefined,
+                )}
               >
-                <Settings className="h-4 w-4 mr-2" />
-                설정 방법 보기
-                <ChevronRight className="h-4 w-4 ml-2" />
+                <Settings
+                  className={cn("mr-2", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")}
+                />
+                설정 방법
+                <ChevronRight
+                  className={cn(
+                    "ml-1.5",
+                    isCompact ? "h-3.5 w-3.5" : "h-4 w-4",
+                  )}
+                />
               </Button>
               <Button
                 variant="default"
                 size="sm"
                 onClick={openLocationSettings}
-                className="bg-orange-600 hover:bg-orange-700 text-white"
+                className={cn(
+                  "bg-orange-600 hover:bg-orange-700 text-white",
+                  isCompact ? "h-8 px-2.5 text-xs" : undefined,
+                )}
               >
-                <MapPin className="h-4 w-4 mr-2" />
-                설정 앱 열기
+                <MapPin
+                  className={cn("mr-2", isCompact ? "h-3.5 w-3.5" : "h-4 w-4")}
+                />
+                설정 열기
               </Button>
             </div>
           ) : (
-            <div className="space-y-3 pt-2 border-t border-orange-200 dark:border-orange-800">
+            <div
+              className={cn(
+                "pt-2 border-t border-orange-200 dark:border-orange-800",
+                isCompact ? "space-y-2" : "space-y-3",
+              )}
+            >
               <div>
                 <h4 className="text-sm font-semibold text-orange-800 dark:text-orange-200 mb-2">
                   {guide.title}
@@ -291,7 +374,7 @@ export function LocationPermissionGuide({
                   className="bg-orange-600 hover:bg-orange-700 text-white"
                 >
                   <Settings className="h-4 w-4 mr-2" />
-                  설정 앱 열기
+                  설정 열기
                 </Button>
                 <Button
                   variant="outline"
@@ -299,15 +382,16 @@ export function LocationPermissionGuide({
                   onClick={() => window.location.reload()}
                   className="border-orange-500 text-orange-700 hover:bg-orange-100"
                 >
-                  페이지 새로고침
+                  새로고침
                 </Button>
               </div>
             </div>
           )}
 
-          {device.isMobile && (
+          {!isCompact && device.isMobile && (
             <div className="text-xs text-orange-600 dark:text-orange-400 pt-2 border-t border-orange-200 dark:border-orange-800">
-              💡 팁: 설정을 변경한 후 브라우저로 돌아와서 페이지를 새로고침해주세요.
+              💡 팁: 설정을 변경한 후 브라우저로 돌아와서 페이지를
+              새로고침해주세요.
             </div>
           )}
         </div>

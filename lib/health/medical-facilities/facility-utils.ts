@@ -133,25 +133,32 @@ function calculateTodayStatus(
   endTime?: string,
   closedDays?: string[]
 ): "open" | "closed" | "closing_soon" | "unknown" {
+  return getOperatingStatusAt(new Date(), is24Hours, startTime, endTime, closedDays);
+}
+
+/**
+ * 특정 시각(now) 기준으로 영업 상태 계산
+ *
+ * - 22:00~02:00 처럼 "자정을 넘어가는" 영업시간도 올바르게 처리합니다.
+ * - 테스트에서 now를 주입할 수 있도록 분리했습니다.
+ */
+export function getOperatingStatusAt(
+  now: Date,
+  is24Hours: boolean,
+  startTime?: string,
+  endTime?: string,
+  closedDays?: string[]
+): "open" | "closed" | "closing_soon" | "unknown" {
   if (is24Hours) {
     return "open";
   }
 
-  const now = new Date();
   const currentDay = now.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
   const dayNames = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
   const todayName = dayNames[currentDay];
 
   // 오늘 휴무일인지 확인
   if (closedDays && closedDays.length > 0) {
-    // 공휴일 확인 (간단한 체크 - 실제로는 공휴일 API 필요)
-    const isHoliday = closedDays.some(day => day.includes("공휴") || day.includes("법정"));
-    if (isHoliday) {
-      // 공휴일 체크는 복잡하므로 일단 closed로 처리
-      // 실제로는 한국 공휴일 API를 사용해야 함
-    }
-    
-    // 오늘 요일이 휴무일인지 확인
     if (closedDays.includes(todayName)) {
       return "closed";
     }
@@ -161,23 +168,40 @@ function calculateTodayStatus(
     return "unknown";
   }
 
-  // 현재 시간을 HH:MM 형식으로 변환
-  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  
-  // 시간 비교
-  if (currentTime >= startTime && currentTime < endTime) {
-    // 영업 종료 30분 전이면 closing_soon
-    const endTimeMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
-    const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
-    const timeUntilClose = endTimeMinutes - currentTimeMinutes;
-    
-    if (timeUntilClose <= 30 && timeUntilClose > 0) {
-      return "closing_soon";
-    }
-    return "open";
+  const toMinutes = (hhmm: string): number => {
+    const [hh, mm] = hhmm.split(":");
+    const h = Number(hh);
+    const m = Number(mm);
+    if (Number.isNaN(h) || Number.isNaN(m)) return NaN;
+    return h * 60 + m;
+  };
+
+  const startMinutes = toMinutes(startTime);
+  const endMinutes = toMinutes(endTime);
+  if (Number.isNaN(startMinutes) || Number.isNaN(endMinutes)) {
+    return "unknown";
   }
 
-  return "closed";
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const isOvernight = endMinutes < startMinutes; // 예: 22:00(1320) ~ 02:00(120)
+
+  const isOpen = isOvernight
+    ? currentMinutes >= startMinutes || currentMinutes < endMinutes
+    : currentMinutes >= startMinutes && currentMinutes < endMinutes;
+
+  if (!isOpen) return "closed";
+
+  // closing_soon 계산
+  // - 일반: endMinutes - currentMinutes
+  // - 자정넘김:
+  //   - 현재가 22:00~24:00 사이라면 (current>=start) 종료는 다음날 endMinutes
+  //   - 현재가 00:00~02:00 사이라면 (current<end) 종료는 오늘 endMinutes
+  const closeAtMinutes = isOvernight && currentMinutes >= startMinutes ? endMinutes + 24 * 60 : endMinutes;
+  const currentAdjusted = isOvernight && currentMinutes < endMinutes ? currentMinutes + 24 * 60 : currentMinutes;
+  const timeUntilClose = closeAtMinutes - currentAdjusted;
+
+  if (timeUntilClose <= 30 && timeUntilClose > 0) return "closing_soon";
+  return "open";
 }
 
 /**
@@ -524,7 +548,40 @@ function parsePharmacyOperatingHours(pharmacy: PharmacyInfo): OperatingHours | u
   const is24Hours = (startTime === "00:00" && (endTime === "24:00" || endTime === "23:59"));
 
   // 현재 시간과 비교하여 영업 상태 계산
-  const todayStatus = calculateTodayStatus(is24Hours, startTime, endTime);
+  // 주의: 새벽(자정 이후)에는 "어제 영업시간이 자정을 넘기는 경우"가 많아,
+  // 오늘 영업시간만 보면 실제로 영업 중인데 closed로 나올 수 있습니다.
+  // 그래서 새벽 시간대에는 어제 영업시간(자정 넘김)도 함께 고려합니다.
+  let todayStatus = getOperatingStatusAt(now, is24Hours, startTime, endTime);
+
+  const earlyMorningThresholdMinutes = 6 * 60; // 06:00 이전이면 "전날 심야영업" 가능성 큼
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  if (todayStatus !== "open" && todayStatus !== "closing_soon" && nowMinutes < earlyMorningThresholdMinutes) {
+    const yesterdayDay = (currentDay + 6) % 7;
+    const yesterdayField = dayFields.find(field => field.day === yesterdayDay);
+    if (yesterdayField) {
+      const yStartRaw = pharmacy[yesterdayField.start as keyof PharmacyInfo] as string;
+      const yEndRaw = pharmacy[yesterdayField.end as keyof PharmacyInfo] as string;
+
+      if (yStartRaw && yEndRaw) {
+        const yStart = formatTime(yStartRaw);
+        const yEnd = formatTime(yEndRaw);
+        const yIs24 = yStart === "00:00" && (yEnd === "24:00" || yEnd === "23:59");
+        const yStatus = getOperatingStatusAt(now, yIs24, yStart, yEnd);
+
+        if (yStatus === "open" || yStatus === "closing_soon") {
+          console.log("[parsePharmacyOperatingHours] 새벽 시간대 - 전날 영업시간(자정넘김)으로 영업중 판정:", {
+            pharmacy: pharmacy.dutyName,
+            currentDay: dayNames[currentDay],
+            yesterdayDay: dayNames[yesterdayDay],
+            yesterdayHours: `${yStart}-${yEnd}`,
+            status: yStatus,
+          });
+          todayStatus = yStatus;
+        }
+      }
+    }
+  }
 
   return {
     is24Hours,

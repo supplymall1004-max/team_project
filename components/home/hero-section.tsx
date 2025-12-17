@@ -14,31 +14,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChefHat, Film, Brain, Calendar, BookOpen, Crown, Search, Heart, Leaf, Shield, Newspaper, Wrench, Baby } from "lucide-react";
-
-// 아이콘 컴포넌트 타입
-type IconType = typeof Film;
-
-// 아이콘 이름 매핑
-const iconMap: Record<string, IconType> = {
-  "BookOpen": BookOpen,
-  "Crown": Crown,
-  "Shield": Shield,
-  "Brain": Brain,
-  "Calendar": Calendar,
-  "Search": Search,
-  "Heart": Heart,
-  "Leaf": Leaf,
-  "Newspaper": Newspaper,
-  "Wrench": Wrench,
-  "Baby": Baby,
-};
 
 export interface QuickStartCard {
   title: string;
   description: string;
   href: string;
-  iconName: string;
+  /**
+   * public 경로 기반 아이콘 이미지
+   * 예: "/icons/26.png"
+   */
+  iconSrc: string;
   color: string;
   gradient?: string; // 그라데이션 클래스 (선택적)
 }
@@ -67,7 +52,7 @@ export function HeroSection({
       title: "레시피",
       description: "최신 레시피 모음",
       href: "/recipes",
-      iconName: "BookOpen",
+      iconSrc: "/icons/26.png",
       color: "bg-blue-500",
       gradient: "bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700",
     },
@@ -75,7 +60,7 @@ export function HeroSection({
       title: "궁중요리",
       description: "전통 궁중 레시피",
       href: "/royal-recipes",
-      iconName: "Crown",
+      iconSrc: "/icons/21.png",
       color: "bg-amber-500",
       gradient: "bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500",
     },
@@ -83,7 +68,7 @@ export function HeroSection({
       title: "식단관리",
       description: "맞춤 식단 추천",
       href: "/diet",
-      iconName: "Brain",
+      iconSrc: "/icons/22.png",
       color: "bg-green-500",
       gradient: "bg-gradient-to-br from-green-400 via-emerald-500 to-green-600",
     },
@@ -91,7 +76,7 @@ export function HeroSection({
       title: "주간식단",
       description: "7일 식단 계획",
       href: "/diet/weekly",
-      iconName: "Calendar",
+      iconSrc: "/icons/3.png",
       color: "bg-purple-500",
       gradient: "bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600",
     },
@@ -99,7 +84,7 @@ export function HeroSection({
       title: "검색",
       description: "레시피 검색",
       href: "/search",
-      iconName: "Search",
+      iconSrc: "/icons/14.png",
       color: "bg-gray-500",
       gradient: "bg-gradient-to-br from-slate-500 via-gray-600 to-slate-700",
     },
@@ -107,7 +92,7 @@ export function HeroSection({
       title: "건강관리",
       description: "건강 정보 확인",
       href: "/health",
-      iconName: "Heart",
+      iconSrc: "/icons/11.png",
       color: "bg-red-500",
       gradient: "bg-gradient-to-br from-pink-500 via-rose-500 to-red-500",
     },
@@ -115,7 +100,7 @@ export function HeroSection({
       title: "식재료",
       description: "신선한 채소 정보",
       href: "/food",
-      iconName: "Leaf",
+      iconSrc: "/icons/25.png",
       color: "bg-emerald-500",
       gradient: "bg-gradient-to-br from-emerald-400 via-green-500 to-emerald-600",
     },
@@ -123,7 +108,7 @@ export function HeroSection({
       title: "음식안전",
       description: "안전한 식생활",
       href: "/foodsafety",
-      iconName: "Shield",
+      iconSrc: "/icons/12.png",
       color: "bg-orange-500",
       gradient: "bg-gradient-to-br from-orange-400 via-orange-500 to-red-500",
     },
@@ -131,7 +116,7 @@ export function HeroSection({
       title: "요리이야기",
       description: "맛있는 이야기들",
       href: "/stories",
-      iconName: "Newspaper",
+      iconSrc: "/icons/14.png",
       color: "bg-indigo-500",
       gradient: "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700",
     },
@@ -190,9 +175,6 @@ export function HeroSection({
         {/* 앱 아이콘 그리드 */}
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 sm:gap-6 max-w-2xl mx-auto">
           {quickStartCards.map((card) => {
-            const Icon = iconMap[card.iconName] || BookOpen;
-            // 그라데이션이 있으면 사용, 없으면 기본 색상 사용
-            const iconBgClass = card.gradient || card.color;
             return (
               <Link
                 key={card.title}
@@ -200,13 +182,16 @@ export function HeroSection({
                 onClick={() => handleQuickStartClick(card.href)}
                 className="group flex flex-col items-center space-y-2 p-3 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-sm border border-gray-200/80 shadow-md transition-all hover:scale-105 hover:shadow-xl hover:bg-white active:scale-95"
               >
-                {/* 아이콘 - 그라데이션 배경 적용 */}
-                <div className={`w-14 h-14 sm:w-16 sm:h-16 ${iconBgClass} rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all relative overflow-hidden`}>
-                  {/* 그라데이션 오버레이 효과 */}
-                  {card.gradient && (
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl" />
-                  )}
-                  <Icon className="h-7 w-7 sm:h-8 sm:w-8 text-white relative z-10 drop-shadow-sm" />
+                {/* 아이콘 - public/icons 이미지 사용 */}
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition-all relative">
+                  <Image
+                    src={card.iconSrc}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="64px"
+                    priority={false}
+                  />
                 </div>
 
                 {/* 텍스트 */}

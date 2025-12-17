@@ -11,11 +11,20 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import React from "react";
+import { render, screen, waitFor } from "@testing-library/react";
 
 import { PremiumBanner } from "@/components/home/premium-banner";
 import { QuickAccessMenu } from "@/components/home/quick-access-menu";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
+
+vi.mock("@/actions/payments/get-subscription", () => {
+  return {
+    getCurrentSubscription: vi.fn(async () => {
+      return { isPremium: false };
+    }),
+  };
+});
 
 // next/link, next/navigation 등은 테스트 환경에서 간단히 mock 처리
 vi.mock("next/link", () => {
@@ -42,12 +51,13 @@ describe("홈페이지 UI/UX Phase 4 - 세부 개선", () => {
     vi.clearAllMocks();
   });
 
-  it("프리미엄 배너는 주황색 배경과 페이드인/슬라이드 애니메이션, 전환 효과 클래스를 가진다", () => {
+  it("프리미엄 배너는 주황색 배경과 페이드인/슬라이드 애니메이션, 전환 효과 클래스를 가진다", async () => {
     render(<PremiumBanner />);
 
-    const link = screen.getByRole("link", {
-      name: "프리미엄 결제 혜택을 받아보세요",
-    });
+    // 서버 액션 mock이 resolve된 뒤 렌더링되므로, 텍스트가 나타날 때까지 대기
+    const textNode = await screen.findByText("프리미엄 결제 혜택을 받아보세요");
+    const link = textNode.closest("a");
+    expect(link).not.toBeNull();
 
     const className = (link as HTMLAnchorElement).className;
 
@@ -60,12 +70,18 @@ describe("홈페이지 UI/UX Phase 4 - 세부 개선", () => {
     expect(className).toContain("slide-in-from-top-2");
   });
 
-  it("바로가기 메뉴 아이템은 충분한 터치 영역과 호버/터치 애니메이션 클래스를 가진다", () => {
+  it("바로가기 메뉴 아이템은 충분한 터치 영역과 호버/터치 애니메이션 클래스를 가진다", async () => {
     render(<QuickAccessMenu />);
 
     // 레이블이 있는 첫 번째 바로가기 아이템을 기준으로 검사
-    const legacyLink = screen.getByRole("link", {
-      name: "레거시 페이지로 이동",
+    // aria-label이 렌더링되는지까지 기다림(렌더링 타이밍 이슈 방지)
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "이유식 레시피 페이지로 이동" })
+      ).toBeTruthy();
+    });
+    const legacyLink = screen.getByRole("button", {
+      name: "이유식 레시피 페이지로 이동",
     });
 
     const className = (legacyLink as HTMLAnchorElement).className;
@@ -81,7 +97,7 @@ describe("홈페이지 UI/UX Phase 4 - 세부 개선", () => {
   it("하단 네비게이션은 홈 경로에서 홈 메뉴를 활성 상태로 표시하고 청록색 포커스/전환 애니메이션을 가진다", () => {
     render(<BottomNavigation />);
 
-    const homeLink = screen.getByRole("link", { name: "홈" });
+    const homeLink = screen.getByRole("button", { name: "홈 (현재 페이지)" });
 
     expect(homeLink).toHaveAttribute("aria-current", "page");
 

@@ -95,13 +95,19 @@ export function MedicalFacilitiesMap({ selectedCategory }: MedicalFacilitiesMapP
       script.defer = false;
 
       // 타임아웃 설정 (15초)
-      let timeoutId: NodeJS.Timeout;
-      let checkInterval: NodeJS.Timeout;
+      let checkInterval: NodeJS.Timeout | null = null;
       let checkCount = 0;
       const maxChecks = 150; // 15초 (100ms * 150)
 
+      const timeoutId = setTimeout(() => {
+        console.error("[MedicalFacilitiesMap] 네이버 지도 스크립트 로드 타임아웃 (15초)");
+        cleanup();
+        script.remove();
+        reject(new Error("네이버 지도 스크립트 로드가 시간 초과되었습니다. 네트워크 연결을 확인해주세요."));
+      }, 15000);
+
       const cleanup = () => {
-        if (timeoutId) clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
         if (checkInterval) clearInterval(checkInterval);
       };
 
@@ -119,13 +125,6 @@ export function MedicalFacilitiesMap({ selectedCategory }: MedicalFacilitiesMapP
           reject(new Error("네이버 지도 API 초기화가 시간 초과되었습니다. 네트워크 연결을 확인해주세요."));
         }
       };
-
-      timeoutId = setTimeout(() => {
-        console.error("[MedicalFacilitiesMap] 네이버 지도 스크립트 로드 타임아웃 (15초)");
-        cleanup();
-        script.remove();
-        reject(new Error("네이버 지도 스크립트 로드가 시간 초과되었습니다. 네트워크 연결을 확인해주세요."));
-      }, 15000);
 
       script.onload = () => {
         console.log("[MedicalFacilitiesMap] 네이버 지도 스크립트 파일 로드 완료, API 초기화 대기 중...");
@@ -733,7 +732,7 @@ export function MedicalFacilitiesMap({ selectedCategory }: MedicalFacilitiesMapP
                   <p className="font-medium">해결 방법:</p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
                     <li>브라우저 주소 표시줄 왼쪽의 🔒 자물쇠 아이콘을 클릭하세요</li>
-                    <li>'위치' 권한을 '허용'으로 변경하세요</li>
+                    <li>&apos;위치&apos; 권한을 &apos;허용&apos;으로 변경하세요</li>
                     <li>또는 주소 표시줄에 <code className="bg-gray-100 px-1 rounded">chrome://settings/content/location</code>을 입력하세요</li>
                     <li>페이지를 새로고침한 후 다시 시도하세요</li>
                   </ul>

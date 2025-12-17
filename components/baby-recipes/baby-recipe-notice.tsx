@@ -227,7 +227,7 @@ export function BabyRecipeNotice() {
                 <div>
                   <strong className="text-red-900">꿀</strong>
                   <p className="text-red-800 text-sm mt-1">
-                    만 1세 미만 아기에게는 '보툴리눔균' 감염 위험이 있어 <strong>절대 먹이면 안 됩니다.</strong>
+                    만 1세 미만 아기에게는 &apos;보툴리눔균&apos; 감염 위험이 있어 <strong>절대 먹이면 안 됩니다.</strong>
                   </p>
                 </div>
               </div>

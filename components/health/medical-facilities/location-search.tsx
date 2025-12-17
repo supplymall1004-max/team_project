@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin, Loader2 } from "lucide-react";
 import { getUserLocation, getDefaultLocation } from "@/lib/health/medical-facilities/location-utils";
-import { geocodeAddress } from "@/lib/naver/geocoding-api";
 
 interface LocationSearchProps {
   onLocationChange: (lat: number, lon: number, locationName?: string) => void;
@@ -33,6 +32,7 @@ export function LocationSearch({
 }: LocationSearchProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const handleCurrentLocation = async () => {
     console.group("[LocationSearch] 현재 위치 가져오기");
@@ -87,6 +87,7 @@ export function LocationSearch({
 
     console.group("[LocationSearch] 주소 검색");
     setIsSearching(true);
+    setSearchError(null);
     try {
       if (onSearch) {
         await onSearch(searchQuery);
@@ -95,7 +96,22 @@ export function LocationSearch({
         const response = await fetch(
           `/api/health/medical-facilities/geocode?address=${encodeURIComponent(searchQuery)}`
         );
-        const data = await response.json();
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data?.success) {
+          const message =
+            data?.error ||
+            "주소를 찾을 수 없습니다. 예: '인천광역시 미추홀구청'처럼 더 구체적으로 입력해보세요.";
+          console.warn("[LocationSearch] 지오코딩 실패:", {
+            status: response.status,
+            message,
+            query: searchQuery,
+          });
+          setSearchError(message);
+          console.groupEnd();
+          return;
+        }
+
         if (data.success && data.data) {
           // 지역명 추출 (구/시/군 단위)
           let locationName: string | undefined = undefined;
@@ -120,6 +136,7 @@ export function LocationSearch({
       }
     } catch (error) {
       console.error("❌ 주소 검색 오류:", error);
+      setSearchError("주소 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
     } finally {
       setIsSearching(false);
       console.groupEnd();
@@ -171,6 +188,12 @@ export function LocationSearch({
           <span className="hidden sm:inline ml-2">현재 위치</span>
         </Button>
       </div>
+
+      {searchError && (
+        <p className="text-xs text-destructive" role="status">
+          {searchError}
+        </p>
+      )}
     </div>
   );
 }

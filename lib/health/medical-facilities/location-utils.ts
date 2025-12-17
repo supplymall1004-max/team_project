@@ -18,7 +18,7 @@ export function calculateDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
   const R = 6371; // 지구 반경 (km)
   const dLat = toRadians(lat2 - lat1);
@@ -71,79 +71,116 @@ export async function getUserLocation(): Promise<{
   lon: number;
 } | null> {
   return new Promise((resolve) => {
-    if (typeof window === "undefined" || !navigator.geolocation) {
-      console.warn("⚠️ 브라우저가 위치 정보를 지원하지 않습니다.");
+    const isBrowser = typeof window !== "undefined";
+    const hasGeolocation = isBrowser && !!navigator.geolocation;
+
+    if (!hasGeolocation) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("⚠️ 브라우저가 위치 정보를 지원하지 않습니다.");
+      }
       resolve(null);
       return;
     }
 
-    console.group("📍 위치 정보 요청");
-    console.log("위치 권한을 요청하는 중...");
-    console.log("📍 모바일 최적화 옵션: enableHighAccuracy=true, maximumAge=0");
-
     // 모바일 기기 감지
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    console.log(`📱 모바일 기기: ${isMobile ? "예" : "아니오"}`);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude, accuracy, altitude, heading, speed } = position.coords;
-        console.log(`✅ 사용자 위치 획득 성공`);
-        console.log(`📍 좌표: 위도 ${latitude}, 경도 ${longitude}`);
-        console.log(`📍 위치 정확도: ±${Math.round(accuracy || 0)}m`);
-        if (altitude !== null) {
-          console.log(`📍 고도: ${Math.round(altitude || 0)}m`);
+    const openGroup = process.env.NODE_ENV !== "production";
+    if (openGroup) {
+      console.group("📍 위치 정보 요청");
+      console.log("위치 권한을 확인/요청하는 중...");
+      console.log(
+        "📍 모바일 최적화 옵션: enableHighAccuracy=true, maximumAge=0",
+      );
+      console.log(`📱 모바일 기기: ${isMobile ? "예" : "아니오"}`);
+    }
+
+    const safeGroupEnd = (): void => {
+      if (openGroup) console.groupEnd();
+    };
+
+    // Permissions API로 "이미 거부됨"이면 요청 자체를 하지 않음 (콘솔/팝업 스팸 방지)
+    const maybeCheckPermission = async (): Promise<
+      "granted" | "denied" | "prompt" | "unknown"
+    > => {
+      try {
+        if (
+          !("permissions" in navigator) ||
+          typeof navigator.permissions.query !== "function"
+        ) {
+          return "unknown";
         }
-        if (heading !== null) {
-          console.log(`📍 방향: ${Math.round(heading || 0)}°`);
-        }
-        if (speed !== null) {
-          console.log(`📍 속도: ${Math.round(speed || 0)}m/s`);
-        }
-        console.groupEnd();
-        resolve({ lat: latitude, lon: longitude });
-      },
-      (error) => {
-        console.error("⚠️ 위치 정보 접근 실패");
-        console.error("에러 코드:", error.code);
-        console.error("에러 메시지:", error.message);
-        
-        // 에러 코드에 따른 상세 설명
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            console.error("❌ 사용자가 위치 권한을 거부했습니다.");
-            console.error("💡 해결 방법:");
-            console.error("   1. 브라우저 주소창 왼쪽의 자물쇠 아이콘 클릭");
-            console.error("   2. '위치' 권한을 '허용'으로 변경");
-            console.error("   3. 페이지 새로고침");
-            break;
-          case error.POSITION_UNAVAILABLE:
-            console.error("❌ 위치 정보를 사용할 수 없습니다.");
-            console.error("💡 GPS나 네트워크 문제일 수 있습니다.");
-            if (isMobile) {
-              console.error("💡 모바일: GPS 설정을 확인하고 야외에서 시도해보세요.");
-            }
-            break;
-          case error.TIMEOUT:
-            console.error("❌ 위치 정보 요청 시간 초과 (20초)");
-            console.error("💡 네트워크 연결을 확인하세요.");
-            if (isMobile) {
-              console.error("💡 모바일: GPS 신호가 약한 곳일 수 있습니다. 야외로 이동해보세요.");
-            }
-            break;
-          default:
-            console.error("❌ 알 수 없는 오류가 발생했습니다.");
-        }
-        
-        console.groupEnd();
-        resolve(null);
-      },
-      {
-        enableHighAccuracy: true, // GPS 사용 (모바일에서 더 정확)
-        timeout: 20000, // 타임아웃 증가 (20초) - 모바일 GPS 수신 시간 고려
-        maximumAge: 0, // 캐시된 위치 사용 안 함 (항상 최신 위치)
+        // TS lib.dom 타입에 따라 name이 좁혀질 수 있어 캐스팅 처리
+        const status = await navigator.permissions.query({
+          name: "geolocation" as PermissionName,
+        });
+        return status.state ?? "unknown";
+      } catch {
+        return "unknown";
       }
-    );
+    };
+
+    void (async () => {
+      const permissionState = await maybeCheckPermission();
+
+      if (permissionState === "denied") {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn(
+            "⚠️ 위치 권한이 이미 거부된 상태입니다. (브라우저 설정에서 허용으로 변경 필요)",
+          );
+        }
+        safeGroupEnd();
+        resolve(null);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude, accuracy, altitude, heading, speed } =
+            position.coords;
+          if (openGroup) {
+            console.log("✅ 사용자 위치 획득 성공");
+            console.log(`📍 좌표: 위도 ${latitude}, 경도 ${longitude}`);
+            console.log(`📍 위치 정확도: ±${Math.round(accuracy || 0)}m`);
+            if (altitude !== null)
+              console.log(`📍 고도: ${Math.round(altitude || 0)}m`);
+            if (heading !== null)
+              console.log(`📍 방향: ${Math.round(heading || 0)}°`);
+            if (speed !== null)
+              console.log(`📍 속도: ${Math.round(speed || 0)}m/s`);
+          }
+          safeGroupEnd();
+          resolve({ lat: latitude, lon: longitude });
+        },
+        (error) => {
+          // 권한 거부는 "사용자 선택"이므로 error로 찍지 않고, 개발 환경에서만 1줄로 안내
+          if (error.code === error.PERMISSION_DENIED) {
+            if (process.env.NODE_ENV !== "production") {
+              console.warn(
+                "ℹ️ 사용자가 위치 권한을 거부했습니다. (브라우저 설정에서 '위치: 허용'으로 변경 가능)",
+              );
+              console.warn(`사유: ${error.message}`);
+            }
+            safeGroupEnd();
+            resolve(null);
+            return;
+          }
+
+          // 그 외는 실제 장애 가능성이 있어 error 로그 유지 (단, 과도한 다중 라인 출력은 줄임)
+          console.error("⚠️ 위치 정보 접근 실패", {
+            code: error.code,
+            message: error.message,
+          });
+          safeGroupEnd();
+          resolve(null);
+        },
+        {
+          enableHighAccuracy: true, // GPS 사용 (모바일에서 더 정확)
+          timeout: 20000, // 타임아웃 증가 (20초) - 모바일 GPS 수신 시간 고려
+          maximumAge: 0, // 캐시된 위치 사용 안 함 (항상 최신 위치)
+        },
+      );
+    })();
   });
 }
 
@@ -158,4 +195,3 @@ export function getDefaultLocation(): { lat: number; lon: number } {
     lon: 126.978,
   };
 }
-

@@ -64,7 +64,24 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
   },
   // Webpack 설정: 서버 전용 모듈 클라이언트 번들에서 제외
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
+    // Windows에서 Watchpack이 드라이브 보호 폴더(System Volume Information 등)를 스캔하며
+    // EINVAL/UNKNOWN 오류를 내고, 그 여파로 dev 서버가 간헐적으로 500/manifest read 오류를 만들 수 있음.
+    // polling + ignored를 설정해 파일 감시를 안정화한다.
+    if (dev) {
+      config.watchOptions = {
+        ...(config.watchOptions ?? {}),
+        poll: 1000,
+        ignored: [
+          "**/.git/**",
+          "**/.next/**",
+          "**/node_modules/**",
+          "**/System Volume Information/**",
+          "**/$RECYCLE.BIN/**",
+        ],
+      };
+    }
+
     if (!isServer) {
       // 클라이언트 번들에서 Node.js 전용 모듈 제외
       config.resolve.fallback = {

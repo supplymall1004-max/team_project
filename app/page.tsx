@@ -20,34 +20,19 @@
  * - 바로가기 메뉴, 하단 네비게이션 등 주요 UI 요소 적용
  */
 
-import { Suspense } from "react";
 import { HomeLanding } from "@/components/home/home-landing";
 import { FixedHeader } from "@/components/home/fixed-header";
-import { LoadingSpinner } from "@/components/loading-spinner";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { EmergencyQuickAccess } from "@/components/home/emergency-quick-access";
-import { RecipeArchivePreview } from "@/components/home/recipe-archive-preview";
-import { DietManagementPreview } from "@/components/home/diet-management-preview";
-import { HealthManagementPreview } from "@/components/home/health-management-preview";
-import { StoriesLearningPreview } from "@/components/home/stories-learning-preview";
-import { UtilitiesPreview } from "@/components/home/utilities-preview";
 import { WeatherWidget } from "@/components/home/weather-widget";
-
-// 섹션별 로딩 스켈레톤
-function SectionSkeleton() {
-  return (
-    <div className="py-12 text-center">
-      <LoadingSpinner />
-    </div>
-  );
-}
+import { FairytaleNavigation } from "@/components/home/fairytale-navigation";
 
 // 동적 렌더링 강제 (MFDS API 등 외부 API 사용으로 인해)
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   return (
-    <div
+    <main
       className="space-y-4"
       style={{
         // 스크롤 성능 최적화
@@ -57,6 +42,13 @@ export default async function Home() {
       {/* 고정 헤더 (검색바 + 프리미엄 배너) */}
       <FixedHeader />
 
+
+      {/* 동화 스타일 네비게이션 (데스크톱만 표시, 모바일에서는 자동으로 숨김) */}
+      <ErrorBoundary>
+        <div className="px-4 pt-4">
+          <FairytaleNavigation />
+        </div>
+      </ErrorBoundary>
 
       {/* 응급조치 안내 + 날씨 위젯 (같은 줄에 배치) */}
       <div className="px-4 pt-12 flex flex-col sm:flex-row gap-4">
@@ -110,6 +102,6 @@ export default async function Home() {
 
       {/* 하단 네비게이션 높이만큼 패딩 추가 (모바일) */}
       <div className="h-16 md:hidden" aria-hidden="true" />
-    </div>
+    </main>
   );
 }

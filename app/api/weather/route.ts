@@ -11,6 +11,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { convertToGridCoordinates, getBaseDateTime } from "@/lib/weather/coordinate-converter";
 
+// 동적 렌더링 강제 (API 라우트는 항상 동적)
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 interface WeatherResponse {
   success: boolean;
   data?: {
@@ -114,8 +118,10 @@ function getWeatherIcon(category: string, value: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  // 항상 JSON 응답을 보장하기 위한 래퍼
   try {
     console.group("[API] GET /api/weather (기상청 API)");
+    console.log("📥 요청 URL:", request.url);
 
     // 1. API 키 확인
     const apiKey = process.env.NEXT_PUBLIC_KMA_WEATHER_API_KEY;
@@ -311,13 +317,38 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("❌ 날씨 API 오류:", error);
+    console.error("❌ 에러 스택:", error instanceof Error ? error.stack : "스택 정보 없음");
     console.groupEnd();
-    return NextResponse.json<WeatherResponse>(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "날씨 정보를 가져오는 중 오류가 발생했습니다.",
-      },
-      { status: 500 }
-    );
+    
+    // 항상 JSON 응답 반환 보장
+    try {
+      return NextResponse.json<WeatherResponse>(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : "날씨 정보를 가져오는 중 오류가 발생했습니다.",
+        },
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+    } catch (jsonError) {
+      // JSON 응답 생성 실패 시에도 텍스트로 반환
+      console.error("❌ JSON 응답 생성 실패:", jsonError);
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          error: "서버 오류가 발생했습니다.",
+        }),
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+    }
   }
 }

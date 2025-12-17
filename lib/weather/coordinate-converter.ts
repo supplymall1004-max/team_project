@@ -76,7 +76,7 @@ export function getBaseDateTime(): { baseDate: string; baseTime: string } {
   const kst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
   
   let hour = kst.getHours();
-  let date = new Date(kst);
+  const date = new Date(kst);
   const minute = kst.getMinutes();
 
   // 초단기실황은 발표 시각으로부터 약 40분 후에 제공됨

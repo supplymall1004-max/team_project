@@ -28,12 +28,15 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("[ErrorBoundary] 에러 발생:", error);
-    console.error("[ErrorBoundary] 에러 정보:", errorInfo);
+    console.error("🚨 [ErrorBoundary] 에러 발생:", error);
+    console.error("🚨 [ErrorBoundary] 에러 메시지:", error.message);
+    console.error("🚨 [ErrorBoundary] 에러 스택:", error.stack);
+    console.error("🚨 [ErrorBoundary] 에러 정보:", errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
+      console.warn("⚠️ [ErrorBoundary] 에러 상태로 인해 fallback UI 렌더링");
       if (this.props.fallback) {
         return this.props.fallback;
       }

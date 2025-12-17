@@ -51,7 +51,11 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+      const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
       
       // 응답이 JSON인지 먼저 확인
       const contentType = response.headers.get("content-type");
@@ -62,7 +66,16 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
       } else {
         // JSON이 아닌 경우 에러 텍스트 읽기
         const errorText = await response.text().catch(() => "응답 본문을 읽을 수 없습니다");
-        console.error("❌ JSON이 아닌 응답 수신:", errorText.substring(0, 500));
+        console.error("❌ JSON이 아닌 응답 수신 (HTTP 상태:", response.status, ")");
+        console.error("❌ Content-Type:", contentType);
+        console.error("❌ 응답 내용 (처음 500자):", errorText.substring(0, 500));
+        
+        // HTML 응답인 경우 API 라우트가 제대로 작동하지 않는 것으로 판단
+        if (errorText.includes("<!DOCTYPE html>") || errorText.includes("<html")) {
+          console.error("⚠️ API 라우트가 HTML을 반환했습니다. API 라우트가 제대로 작동하지 않을 수 있습니다.");
+          console.error("⚠️ 개발 서버를 재시작하거나 API 라우트 파일을 확인해주세요.");
+        }
+        
         setError(null);
         setWeather(null);
         console.groupEnd();

@@ -4,6 +4,8 @@
  * @see https://www.data.go.kr/data/15000500/openapi.do
  */
 
+import iconv from "iconv-lite";
+
 export interface PharmacyInfo {
   rnum: string; // 순번
   dutyAddr: string; // 주소
@@ -47,89 +49,126 @@ export interface PharmacySearchResponse {
   hasMore: boolean;
 }
 
-const API_BASE_URL = 'http://apis.data.go.kr/B552657/ErmctInsttInfoInqireService/getParmacyListInfoInqire';
+const API_BASE_URL =
+  "https://apis.data.go.kr/B552657/ErmctInsttInfoInqireService/getParmacyListInfoInqire";
 
 /**
  * 국립중앙의료원 약국 정보 조회
  */
 export async function searchPharmacies(
-  params: PharmacySearchParams
+  params: PharmacySearchParams,
 ): Promise<PharmacySearchResponse> {
   // 서버 사이드에서만 API 키 사용 (보안)
   const apiKey = process.env.PHARMACY_API_KEY;
 
   if (!apiKey) {
-    console.error('❌ PHARMACY_API_KEY 환경 변수가 설정되지 않았습니다.');
-    console.error('💡 해결 방법: .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.');
-    throw new Error('약국 정보 API 키가 설정되지 않았습니다. .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.');
+    console.error("❌ PHARMACY_API_KEY 환경 변수가 설정되지 않았습니다.");
+    console.error(
+      "💡 해결 방법: .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.",
+    );
+    throw new Error(
+      "약국 정보 API 키가 설정되지 않았습니다. .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.",
+    );
   }
-  
-  console.log('🔑 API 키 확인 완료 (길이:', apiKey.length, '자)');
+
+  console.log("🔑 API 키 확인 완료 (길이:", apiKey.length, "자)");
 
   const searchParams = new URLSearchParams();
-  searchParams.append('serviceKey', apiKey);
-  searchParams.append('pageNo', String(params.pageNo || 1));
+  searchParams.append("serviceKey", apiKey);
+  searchParams.append("pageNo", String(params.pageNo || 1));
   // 더 많은 결과를 가져오기 위해 numOfRows 증가
-  searchParams.append('numOfRows', String(params.numOfRows || 500));
+  searchParams.append("numOfRows", String(params.numOfRows || 500));
 
-  if (params.Q0) searchParams.append('Q0', params.Q0);
-  if (params.Q1) searchParams.append('Q1', params.Q1);
-  if (params.QT) searchParams.append('QT', params.QT);
-  if (params.QN) searchParams.append('QN', params.QN);
-  if (params.ORD) searchParams.append('ORD', params.ORD);
+  if (params.Q0) searchParams.append("Q0", params.Q0);
+  if (params.Q1) searchParams.append("Q1", params.Q1);
+  if (params.QT) searchParams.append("QT", params.QT);
+  if (params.QN) searchParams.append("QN", params.QN);
+  if (params.ORD) searchParams.append("ORD", params.ORD);
 
   const url = `${API_BASE_URL}?${searchParams.toString()}`;
 
-  console.log('약국 정보 API 호출:', {
-    url: url.substring(0, 100) + '...',
+  console.log("약국 정보 API 호출:", {
+    url: url.substring(0, 100) + "...",
     params,
   });
 
   try {
     const response = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
     if (!response.ok) {
-      const responseText = await response.text().catch(() => '응답을 읽을 수 없습니다.');
-      console.error('❌ 약국 정보 API 호출 실패:', {
+      const responseText = await response
+        .text()
+        .catch(() => "응답을 읽을 수 없습니다.");
+      console.error("❌ 약국 정보 API 호출 실패:", {
         status: response.status,
         statusText: response.statusText,
         responsePreview: responseText.substring(0, 500),
-        url: url.substring(0, 200) + '...',
+        url: url.substring(0, 200) + "...",
       });
-      throw new Error(`약국 정보 API 호출 실패: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `약국 정보 API 호출 실패: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const xmlText = await response.text();
-    console.log('✅ 약국 정보 API 응답 (XML):', xmlText.substring(0, 500));
+    // 공공데이터포털 일부 API는 EUC-KR(또는 비정형 charset)로 내려오는 경우가 있어,
+    // 응답을 Buffer로 읽은 뒤 charset을 감지해 디코딩합니다.
+    const contentType = response.headers.get("content-type") || "";
+    const buf = Buffer.from(await response.arrayBuffer());
+
+    const contentTypeLower = contentType.toLowerCase();
+    const declaredCharset = contentTypeLower.includes("charset=")
+      ? contentTypeLower.split("charset=")[1]
+      : "";
+
+    const decodeWith = (charset: "utf-8" | "euc-kr"): string =>
+      iconv.decode(buf, charset);
+
+    let xmlText = decodeWith("utf-8");
+    const looksBroken = xmlText.includes("�"); // UTF-8로 잘못 디코딩되면 흔히 생김
+
+    if (
+      declaredCharset.includes("euc-kr") ||
+      declaredCharset.includes("ksc5601") ||
+      looksBroken
+    ) {
+      xmlText = decodeWith("euc-kr");
+    }
+
+    console.log("✅ 약국 정보 API 응답 (XML):", xmlText.substring(0, 500));
 
     // XML을 JSON으로 변환
     const jsonData = await parseXMLToJSON(xmlText);
 
-    if (jsonData.response?.header?.resultCode !== '00') {
-      const errorMsg = jsonData.response?.header?.resultMsg || '알 수 없는 오류';
-      const resultCode = jsonData.response?.header?.resultCode || 'UNKNOWN';
-      
-      console.error('❌ 약국 정보 API 오류 응답:', {
+    if (jsonData.response?.header?.resultCode !== "00") {
+      const errorMsg =
+        jsonData.response?.header?.resultMsg || "알 수 없는 오류";
+      const resultCode = jsonData.response?.header?.resultCode || "UNKNOWN";
+
+      console.error("❌ 약국 정보 API 오류 응답:", {
         resultCode,
         resultMsg: errorMsg,
         responseHeader: jsonData.response?.header,
       });
-      
+
       throw new Error(`약국 정보 API 오류 (코드: ${resultCode}): ${errorMsg}`);
     }
 
     const items = jsonData.response?.body?.items?.item || [];
-    const totalCount = parseInt(jsonData.response?.body?.totalCount || '0', 10);
+    const totalCount = parseInt(jsonData.response?.body?.totalCount || "0", 10);
 
     // 배열이 아닌 경우 배열로 변환
-    const pharmacies: PharmacyInfo[] = Array.isArray(items) ? items : (items ? [items] : []);
+    const pharmacies: PharmacyInfo[] = Array.isArray(items)
+      ? items
+      : items
+        ? [items]
+        : [];
 
-    console.log('약국 정보 조회 성공:', {
+    console.log("약국 정보 조회 성공:", {
       totalCount,
       pharmaciesCount: pharmacies.length,
     });
@@ -140,7 +179,7 @@ export async function searchPharmacies(
       hasMore: pharmacies.length >= (params.numOfRows || 100),
     };
   } catch (error) {
-    console.error('약국 정보 API 오류:', error);
+    console.error("약국 정보 API 오류:", error);
     throw error;
   }
 }
@@ -150,9 +189,9 @@ export async function searchPharmacies(
  */
 async function parseXMLToJSON(xmlText: string): Promise<any> {
   // 브라우저 환경에서는 DOMParser 사용
-  if (typeof window !== 'undefined' && window.DOMParser) {
+  if (typeof window !== "undefined" && window.DOMParser) {
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
     return xmlToJson(xmlDoc);
   }
 
@@ -163,8 +202,12 @@ async function parseXMLToJSON(xmlText: string): Promise<any> {
 
   if (headerMatch) {
     json.response = { header: {} };
-    const resultCode = headerMatch[1].match(/<resultCode>(.*?)<\/resultCode>/)?.[1];
-    const resultMsg = headerMatch[1].match(/<resultMsg>(.*?)<\/resultMsg>/)?.[1];
+    const resultCode = headerMatch[1].match(
+      /<resultCode>(.*?)<\/resultCode>/,
+    )?.[1];
+    const resultMsg = headerMatch[1].match(
+      /<resultMsg>(.*?)<\/resultMsg>/,
+    )?.[1];
     json.response.header = { resultCode, resultMsg };
   }
 
@@ -172,7 +215,9 @@ async function parseXMLToJSON(xmlText: string): Promise<any> {
     if (!json.response) json.response = {};
     json.response.body = {};
 
-    const totalCount = bodyMatch[1].match(/<totalCount>(.*?)<\/totalCount>/)?.[1];
+    const totalCount = bodyMatch[1].match(
+      /<totalCount>(.*?)<\/totalCount>/,
+    )?.[1];
     if (totalCount) json.response.body.totalCount = totalCount;
 
     const itemsMatch = bodyMatch[1].match(/<items>([\s\S]*?)<\/items>/);
@@ -183,16 +228,34 @@ async function parseXMLToJSON(xmlText: string): Promise<any> {
       for (const itemMatch of itemMatches) {
         const item: any = {};
         const fields = [
-          'rnum', 'dutyAddr', 'dutyName', 'dutyTel1',
-          'dutyTime1s', 'dutyTime1c', 'dutyTime2s', 'dutyTime2c',
-          'dutyTime3s', 'dutyTime3c', 'dutyTime4s', 'dutyTime4c',
-          'dutyTime5s', 'dutyTime5c', 'dutyTime6s', 'dutyTime6c',
-          'dutyTime7s', 'dutyTime7c', 'dutyTime8s', 'dutyTime8c',
-          'postCdn1', 'postCdn2', 'wgs84Lat', 'wgs84Lon',
+          "rnum",
+          "dutyAddr",
+          "dutyName",
+          "dutyTel1",
+          "dutyTime1s",
+          "dutyTime1c",
+          "dutyTime2s",
+          "dutyTime2c",
+          "dutyTime3s",
+          "dutyTime3c",
+          "dutyTime4s",
+          "dutyTime4c",
+          "dutyTime5s",
+          "dutyTime5c",
+          "dutyTime6s",
+          "dutyTime6c",
+          "dutyTime7s",
+          "dutyTime7c",
+          "dutyTime8s",
+          "dutyTime8c",
+          "postCdn1",
+          "postCdn2",
+          "wgs84Lat",
+          "wgs84Lon",
         ];
 
         for (const field of fields) {
-          const regex = new RegExp(`<${field}>(.*?)<\/${field}>`, 's');
+          const regex = new RegExp(`<${field}>(.*?)<\/${field}>`, "s");
           const match = itemMatch[1].match(regex);
           if (match) {
             item[field] = match[1].trim();
@@ -204,7 +267,9 @@ async function parseXMLToJSON(xmlText: string): Promise<any> {
         }
       }
 
-      json.response.body.items = { item: items.length === 1 ? items[0] : items };
+      json.response.body.items = {
+        item: items.length === 1 ? items[0] : items,
+      };
     }
   }
 
@@ -221,10 +286,10 @@ function xmlToJson(xml: Document): any {
     // Element node
     const element = xml as unknown as Element;
     if (element.attributes && element.attributes.length > 0) {
-      result['@attributes'] = {};
+      result["@attributes"] = {};
       for (let i = 0; i < element.attributes.length; i++) {
         const attr = element.attributes[i];
-        result['@attributes'][attr.nodeName] = attr.nodeValue;
+        result["@attributes"][attr.nodeName] = attr.nodeValue;
       }
     }
   } else if (xml.nodeType === 3) {
@@ -237,10 +302,10 @@ function xmlToJson(xml: Document): any {
       const item = xml.childNodes[i];
       const nodeName = item.nodeName;
 
-      if (typeof result[nodeName] === 'undefined') {
+      if (typeof result[nodeName] === "undefined") {
         result[nodeName] = xmlToJson(item as any);
       } else {
-        if (typeof result[nodeName].push === 'undefined') {
+        if (typeof result[nodeName].push === "undefined") {
           result[nodeName] = [result[nodeName]];
         }
         result[nodeName].push(xmlToJson(item as any));
