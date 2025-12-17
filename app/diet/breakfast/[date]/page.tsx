@@ -28,7 +28,10 @@ import { HealthVisualizationErrorBoundary } from '@/components/health/error-boun
 import { DiseaseFeedbackCard } from '@/components/diet/disease-feedback-card';
 import { DietGenerationLogicCard } from '@/components/diet/diet-generation-logic-card';
 import { NutritionCharts } from '@/components/charts/nutrition-charts';
+import { MealRecipeCard } from '@/components/diet/meal-recipe-card';
 import { useUser } from '@clerk/nextjs';
+import type { HealthMetrics } from '@/types/health-visualization';
+import type { RecipeDetailForDiet, RecipeNutrition } from '@/types/recipe';
 
 // 타입 정의
 interface MealData {
@@ -49,6 +52,7 @@ interface MealData {
     name: string;
     quantity: number;
   }>;
+  relatedRecipes?: RecipeDetailForDiet[];
 }
 
 interface HealthProfile {
@@ -63,6 +67,32 @@ interface HealthProfile {
   dietary_preferences: string[];
 }
 
+interface HealthProfileApiResponse {
+  profile: HealthProfile | null;
+  error?: string;
+  message?: string;
+  details?: string;
+}
+
+interface HealthMetricsApiResponse {
+  success?: boolean;
+  metrics?: HealthMetrics;
+  error?: string;
+  message?: string;
+  details?: string;
+}
+
+interface DietMealApiResponse {
+  success: boolean;
+  meal?: MealData;
+  healthProfile?: {
+    diseases?: string[];
+    allergies?: string[];
+    daily_calorie_goal?: number;
+  } | null;
+  error?: string;
+}
+
 export default function BreakfastDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -72,8 +102,8 @@ export default function BreakfastDetailPage() {
   // 상태 관리
   const [mealData, setMealData] = useState<MealData | null>(null);
   const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
-  const [apiHealthProfile, setApiHealthProfile] = useState<any>(null);
-  const [currentHealth, setCurrentHealth] = useState<any>(null);
+  const [apiHealthProfile, setApiHealthProfile] = useState<DietMealApiResponse['healthProfile']>(null);
+  const [currentHealth, setCurrentHealth] = useState<HealthMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,27 +120,33 @@ export default function BreakfastDetailPage() {
       setError(null);
 
       // 병렬로 데이터 로드
-      const [mealResult, healthResult, currentHealthResult] = await Promise.all([
-        fetch(`/api/diet/meal/breakfast/${date}`).then(res => res.json()),
-        fetch('/api/health/profile').then(res => res.json()),
-        fetch('/api/health/metrics').then(res => res.json())
+      const [mealRes, healthRes, metricsRes] = await Promise.all([
+        fetch(`/api/diet/meal/breakfast/${date}`),
+        fetch('/api/health/profile'),
+        fetch('/api/health/metrics'),
       ]);
 
-      // 오류 처리
-      if (!mealResult.success) {
+      const mealResult = (await mealRes.json()) as DietMealApiResponse;
+      const healthResult = (await healthRes.json()) as HealthProfileApiResponse;
+      const currentHealthResult = (await metricsRes.json()) as HealthMetricsApiResponse;
+
+      // 오류 처리 (식단)
+      if (!mealRes.ok || !mealResult.success || !mealResult.meal) {
         throw new Error(mealResult.error || '식단 데이터를 불러올 수 없습니다.');
       }
 
-      if (!healthResult.success) {
-        throw new Error(healthResult.error || '건강 정보를 불러올 수 없습니다.');
+      // 오류 처리 (건강 프로필) - 이 API는 { profile } 형태이며 profile이 null이어도 정상으로 취급
+      if (!healthRes.ok) {
+        throw new Error(healthResult.error || healthResult.message || '건강 정보를 불러올 수 없습니다.');
       }
 
-      if (!currentHealthResult.success) {
-        throw new Error(currentHealthResult.error || '건강 메트릭스를 불러올 수 없습니다.');
+      // 오류 처리 (건강 메트릭스)
+      if (!metricsRes.ok || !currentHealthResult.metrics) {
+        throw new Error(currentHealthResult.error || currentHealthResult.message || '건강 메트릭스를 불러올 수 없습니다.');
       }
 
       setMealData(mealResult.meal);
-      setHealthProfile(healthResult.profile);
+      setHealthProfile(healthResult.profile ?? null);
       setApiHealthProfile(mealResult.healthProfile); // API에서 받은 건강 프로필
       setCurrentHealth(currentHealthResult.metrics);
 
@@ -297,13 +333,41 @@ export default function BreakfastDetailPage() {
                   <div className="flex flex-wrap gap-2">
                     {mealData.ingredients.map((ingredient, index) => (
                       <Badge key={index} variant="outline">
-                        {ingredient.name} {ingredient.quantity}g
+                        {ingredient.name}
+                        {ingredient.quantity > 0 ? ` ${ingredient.quantity}g` : ''}
                       </Badge>
                     ))}
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* 식단 메뉴별 레시피 바로가기 */}
+            {Array.isArray(mealData.relatedRecipes) && mealData.relatedRecipes.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>식단 메뉴 레시피 바로가기</CardTitle>
+                  <CardDescription>
+                    아래 카드를 눌러 각 메뉴의 레시피 상세로 이동할 수 있어요.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {mealData.relatedRecipes.map((recipe, idx) => {
+                      const nutrition = recipe.nutrition as RecipeNutrition;
+                      return (
+                        <MealRecipeCard
+                          key={`${recipe.id ?? recipe.title}-${idx}`}
+                          recipe={recipe}
+                          category="메뉴"
+                          nutrition={nutrition}
+                        />
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* 식약처 API 데이터 시각화 */}
             {mealData && (

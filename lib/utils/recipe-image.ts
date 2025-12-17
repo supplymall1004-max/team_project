@@ -646,7 +646,15 @@ export function getRecipeImageUrlEnhanced(
     }
   }
 
-  // 2. 특정 레시피 이미지 확인
+  // 2. docs/foodjpg.md 기반 직접 링크가 있으면 최우선 사용 (로컬 정적 이미지)
+  const directLink = findDirectLinkFromTitle(recipeTitle);
+  if (directLink) {
+    console.log("✅ 직접 링크 이미지 사용:", directLink);
+    console.groupEnd();
+    return directLink;
+  }
+
+  // 3. 특정 레시피 이미지 확인
   const specificImageUrl = getSpecificRecipeImageUrl(recipeTitle);
   if (specificImageUrl) {
     console.log("✅ 특정 레시피 이미지 사용:", specificImageUrl);
@@ -654,7 +662,7 @@ export function getRecipeImageUrlEnhanced(
     return specificImageUrl;
   }
 
-  // 3. 카테고리 기반 이미지 사용
+  // 4. 카테고리 기반 이미지 사용
   const category = getRecipeCategory(recipeTitle);
   const categoryImageUrl = getCategoryImage(category).url;
   console.log("✅ 카테고리 기반 이미지 사용:", category, categoryImageUrl);

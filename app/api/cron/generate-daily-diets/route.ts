@@ -242,6 +242,57 @@ async function saveFamilyDietToDatabase(
 
   const allRecords: any[] = [];
 
+  const buildCompositionSummary = (plan: any): string[] => {
+    // MealComposition 형태면 rice/sides/soup를 items로 정리
+    if (plan?.totalNutrition) {
+      const items: string[] = [];
+      if (plan.rice?.title) items.push(plan.rice.title);
+      if (Array.isArray(plan.sides) && plan.sides.length > 0) {
+        items.push(...plan.sides.map((s: any) => s?.title).filter(Boolean));
+      }
+      if (plan.soup?.title) items.push(plan.soup.title);
+      return items;
+    }
+
+    // RecipeDetailForDiet 형태면 title 하나
+    if (plan?.recipe?.title) return [plan.recipe.title];
+    if (plan?.title) return [plan.title];
+    return [];
+  };
+
+  const buildMacros = (plan: any): { calories: number; carbs: number; protein: number; fat: number; sodium: number } => {
+    // MealComposition(our generator) uses totalNutrition.{calories, protein, carbs, fat, sodium}
+    if (plan?.totalNutrition) {
+      return {
+        calories: plan.totalNutrition.calories || 0,
+        carbs: plan.totalNutrition.carbs || 0,
+        protein: plan.totalNutrition.protein || 0,
+        fat: plan.totalNutrition.fat || 0,
+        sodium: plan.totalNutrition.sodium || 0,
+      };
+    }
+
+    // Some legacy shapes might be nutrition.{calories, carbs, protein, fat, sodium}
+    if (plan?.nutrition) {
+      return {
+        calories: plan.nutrition.calories || 0,
+        carbs: plan.nutrition.carbs || 0,
+        protein: plan.nutrition.protein || 0,
+        fat: plan.nutrition.fat || 0,
+        sodium: plan.nutrition.sodium || 0,
+      };
+    }
+
+    // Fallback: recipe-like
+    return {
+      calories: plan?.recipe?.calories || 0,
+      carbs: plan?.recipe?.carbs || 0,
+      protein: plan?.recipe?.protein || 0,
+      fat: plan?.recipe?.fat || 0,
+      sodium: plan?.recipe?.sodium || 0,
+    };
+  };
+
   // 개인별 식단 저장
   if (familyDiet.individualPlans) {
     for (const [memberId, dietPlan] of Object.entries<any>(familyDiet.individualPlans)) {
@@ -256,20 +307,27 @@ async function saveFamilyDietToDatabase(
       ];
 
       for (const meal of meals) {
-        if (meal.plan?.recipe) {
+        if (!meal.plan) continue;
+        const compositionSummary = buildCompositionSummary(meal.plan);
+        const macros = buildMacros(meal.plan);
+        const recipeTitle = compositionSummary.length > 0 ? compositionSummary.join(" · ") : `${meal.type} 식사`;
+
+        // MealComposition or Recipe-like: always persist with consistent schema (carbs_g, etc)
+        if (compositionSummary.length > 0) {
           allRecords.push({
             user_id: userId,
             family_member_id: familyMemberId,
             plan_date: targetDate,
             meal_type: meal.type,
-            recipe_id: meal.plan.recipe.id,
-            recipe_title: meal.plan.recipe.title,
-            recipe_description: meal.plan.recipe.description || "",
-            calories: meal.plan.nutrition?.calories || meal.plan.recipe.calories,
-            carbohydrates: meal.plan.nutrition?.carbs || meal.plan.recipe.carbs || 0,
-            protein: meal.plan.nutrition?.protein || meal.plan.recipe.protein,
-            fat: meal.plan.nutrition?.fat || meal.plan.recipe.fat,
-            sodium: meal.plan.nutrition?.sodium || meal.plan.recipe.sodium,
+            recipe_id: null,
+            recipe_title: recipeTitle,
+            recipe_description: `${meal.type} 식사 구성`,
+            calories: macros.calories,
+            carbs_g: macros.carbs,
+            protein_g: macros.protein,
+            fat_g: macros.fat,
+            sodium_mg: macros.sodium,
+            composition_summary: compositionSummary,
             is_unified: false,
           });
         }
@@ -288,20 +346,26 @@ async function saveFamilyDietToDatabase(
     ];
 
     for (const meal of unifiedMeals) {
-      if (meal.plan?.recipe) {
+      if (!meal.plan) continue;
+      const compositionSummary = buildCompositionSummary(meal.plan);
+      const macros = buildMacros(meal.plan);
+      const recipeTitle = compositionSummary.length > 0 ? compositionSummary.join(" · ") : `${meal.type} 식사`;
+
+      if (compositionSummary.length > 0) {
         allRecords.push({
           user_id: userId,
           family_member_id: null, // 통합 식단은 가족 전체
           plan_date: targetDate,
           meal_type: meal.type,
-          recipe_id: meal.plan.recipe.id,
-          recipe_title: meal.plan.recipe.title,
-          recipe_description: meal.plan.recipe.description || "",
-          calories: meal.plan.nutrition?.calories || meal.plan.recipe.calories,
-          carbohydrates: meal.plan.nutrition?.carbs || meal.plan.recipe.carbs || 0,
-          protein: meal.plan.nutrition?.protein || meal.plan.recipe.protein,
-          fat: meal.plan.nutrition?.fat || meal.plan.recipe.fat,
-          sodium: meal.plan.nutrition?.sodium || meal.plan.recipe.sodium,
+          recipe_id: null,
+          recipe_title: recipeTitle,
+          recipe_description: `${meal.type} 식사 구성`,
+          calories: macros.calories,
+          carbs_g: macros.carbs,
+          protein_g: macros.protein,
+          fat_g: macros.fat,
+          sodium_mg: macros.sodium,
+          composition_summary: compositionSummary,
           is_unified: true,
         });
       }
@@ -339,6 +403,42 @@ async function savePersonalDietToDatabase(
 
   const records: any[] = [];
 
+  const buildCompositionSummary = (plan: any): string[] => {
+    if (plan?.totalNutrition) {
+      const items: string[] = [];
+      if (plan.rice?.title) items.push(plan.rice.title);
+      if (Array.isArray(plan.sides) && plan.sides.length > 0) {
+        items.push(...plan.sides.map((s: any) => s?.title).filter(Boolean));
+      }
+      if (plan.soup?.title) items.push(plan.soup.title);
+      return items;
+    }
+    if (plan?.title) return [plan.title];
+    return [];
+  };
+
+  const buildMacros = (plan: any): { calories: number; carbs: number; protein: number; fat: number; sodium: number } => {
+    if (plan?.totalNutrition) {
+      return {
+        calories: plan.totalNutrition.calories || 0,
+        carbs: plan.totalNutrition.carbs || 0,
+        protein: plan.totalNutrition.protein || 0,
+        fat: plan.totalNutrition.fat || 0,
+        sodium: plan.totalNutrition.sodium || 0,
+      };
+    }
+    if (plan?.nutrition) {
+      return {
+        calories: plan.nutrition.calories || 0,
+        carbs: plan.nutrition.carbs || 0,
+        protein: plan.nutrition.protein || 0,
+        fat: plan.nutrition.fat || 0,
+        sodium: plan.nutrition.sodium || 0,
+      };
+    }
+    return { calories: 0, carbs: 0, protein: 0, fat: 0, sodium: 0 };
+  };
+
   // 각 식사별로 저장
   const meals = [
     { type: "breakfast", plan: personalDiet.breakfast },
@@ -348,20 +448,27 @@ async function savePersonalDietToDatabase(
   ];
 
   for (const meal of meals) {
-    if (meal.plan?.recipe) {
+    if (!meal.plan) continue;
+    const compositionSummary = buildCompositionSummary(meal.plan);
+    const macros = buildMacros(meal.plan);
+    const recipeTitle = compositionSummary.length > 0 ? compositionSummary.join(" · ") : `${meal.type} 식사`;
+
+    // MealComposition 기반 저장
+    if (compositionSummary.length > 0) {
       records.push({
         user_id: userId,
         family_member_id: null,
         plan_date: targetDate,
         meal_type: meal.type,
-        recipe_id: meal.plan.recipe.id,
-        recipe_title: meal.plan.recipe.title,
-        recipe_description: meal.plan.recipe.description || "",
-        calories: meal.plan.nutrition?.calories || meal.plan.recipe.calories,
-        carbohydrates: meal.plan.nutrition?.carbs || meal.plan.recipe.carbs || 0,
-        protein: meal.plan.nutrition?.protein || meal.plan.recipe.protein,
-        fat: meal.plan.nutrition?.fat || meal.plan.recipe.fat,
-        sodium: meal.plan.nutrition?.sodium || meal.plan.recipe.sodium,
+        recipe_id: null,
+        recipe_title: recipeTitle,
+        recipe_description: `${meal.type} 식사 구성`,
+        calories: macros.calories,
+        carbs_g: macros.carbs,
+        protein_g: macros.protein,
+        fat_g: macros.fat,
+        sodium_mg: macros.sodium,
+        composition_summary: compositionSummary,
         is_unified: false,
       });
     }

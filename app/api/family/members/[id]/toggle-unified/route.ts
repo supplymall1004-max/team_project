@@ -10,7 +10,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClerkSupabaseClient } from "@/lib/supabase/server";
+import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
+import { getServiceRoleClient } from "@/lib/supabase/service-role";
 
 /**
  * PATCH /api/family/members/[id]/toggle-unified
@@ -34,22 +35,19 @@ export async function PATCH(
     const { id } = await params;
     console.log("구성원 ID:", id);
 
-    const supabase = await createClerkSupabaseClient();
-
-    // 사용자의 Supabase user_id 조회
-    const { data: userData } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    if (!userData) {
-      console.error("❌ 사용자를 찾을 수 없음");
+    // 사용자 동기화 보장: 없으면 자동으로 users 테이블에 생성/업데이트
+    const userRow = await ensureSupabaseUser();
+    if (!userRow) {
+      console.error("❌ 사용자 동기화 실패 (ensureSupabaseUser)");
       console.groupEnd();
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 },
+      );
     }
 
-    const supabaseUserId = userData.id;
+    const supabaseUserId = userRow.id;
+    const supabase = getServiceRoleClient();
 
     // 현재 구성원의 통합 식단 포함 상태 조회
     const { data: currentMember } = await supabase

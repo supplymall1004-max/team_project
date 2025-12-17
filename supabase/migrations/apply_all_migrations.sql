@@ -1,18 +1,145 @@
 -- ============================================
--- 통합 마이그레이션 스크립트
+-- 통합 마이그레이션 스크립트 (개발 환경용)
 -- ============================================
--- 이 파일은 Phase 2, 3, 4의 모든 마이그레이션을 포함합니다.
--- 한 번에 실행하여 모든 테이블과 기능을 생성할 수 있습니다.
+-- 목적:
+-- - 개발 환경에서 "한 번에" 핵심 스키마를 안전하게 구성
+-- - 중복/레거시/검사용 SQL은 제외
+-- - 저장/조회가 막히는 RLS/정책 문제를 방지 (개발 단계: RLS 비활성)
+--
+-- 포함 범위(최소 핵심):
+-- 1) 건강정보 관리 시스템 강화(질병/알레르기/응급조치/칼로리 공식 + health profile 확장)
+-- 2) 주간 식단 테이블(weekly_diet_plans / weekly_shopping_lists / weekly_nutrition_stats)
+-- 3) 식단/주간식단 저장 보정(diet_plans 기본값/중복 인덱스 + RLS 비활성)
+--
+-- ⚠️ 주의:
+-- - 이 파일은 "편의용" 통합 스크립트입니다.
+-- - 실제 Supabase 마이그레이션은 개별 파일 체인을 권장합니다.
 -- ============================================
 
+DO $$
+BEGIN
+  RAISE NOTICE '▶ apply_all_migrations.sql (dev) start';
+END $$;
+
 -- ============================================
--- Phase 2: 주간 식단 추천 시스템
+-- 1) 건강정보 관리 시스템 강화 (2025-11-30)
 -- ============================================
 
--- 주간 식단 메타데이터 테이블
-CREATE TABLE IF NOT EXISTS weekly_diet_plans (
+-- 1-1. 질병 마스터 테이블
+CREATE TABLE IF NOT EXISTS public.diseases (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  code VARCHAR(50) UNIQUE NOT NULL,
+  name_ko VARCHAR(200) NOT NULL,
+  name_en VARCHAR(200),
+  category VARCHAR(100),
+  description TEXT,
+  calorie_adjustment_factor DECIMAL(3,2) DEFAULT 1.00,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 1-2. 질병별 제외 음식(확장)
+CREATE TABLE IF NOT EXISTS public.disease_excluded_foods_extended (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  disease_code VARCHAR(50) REFERENCES public.diseases(code) ON DELETE CASCADE,
+  food_name VARCHAR(200) NOT NULL,
+  food_type VARCHAR(50),
+  severity VARCHAR(20) DEFAULT 'high',
+  reason TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_disease_excluded_foods_disease ON public.disease_excluded_foods_extended(disease_code);
+CREATE INDEX IF NOT EXISTS idx_disease_excluded_foods_type ON public.disease_excluded_foods_extended(food_type);
+
+-- 2-1. 알레르기 마스터 테이블
+CREATE TABLE IF NOT EXISTS public.allergies (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  code VARCHAR(50) UNIQUE NOT NULL,
+  name_ko VARCHAR(200) NOT NULL,
+  name_en VARCHAR(200),
+  category VARCHAR(100),
+  severity_level VARCHAR(20) DEFAULT 'high',
+  description TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 2-2. 알레르기 파생 재료
+CREATE TABLE IF NOT EXISTS public.allergy_derived_ingredients (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  allergy_code VARCHAR(50) REFERENCES public.allergies(code) ON DELETE CASCADE,
+  ingredient_name VARCHAR(200) NOT NULL,
+  ingredient_type VARCHAR(50),
+  description TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_allergy_derived_allergy ON public.allergy_derived_ingredients(allergy_code);
+CREATE INDEX IF NOT EXISTS idx_allergy_derived_name ON public.allergy_derived_ingredients(ingredient_name);
+
+-- 3. 응급조치 정보
+CREATE TABLE IF NOT EXISTS public.emergency_procedures (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  allergy_code VARCHAR(50) REFERENCES public.allergies(code) ON DELETE CASCADE,
+  procedure_type VARCHAR(50),
+  title_ko VARCHAR(200) NOT NULL,
+  title_en VARCHAR(200),
+  steps JSONB NOT NULL,
+  warning_signs JSONB,
+  when_to_call_911 TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_emergency_procedures_allergy ON public.emergency_procedures(allergy_code);
+CREATE INDEX IF NOT EXISTS idx_emergency_procedures_type ON public.emergency_procedures(procedure_type);
+
+-- 4. 칼로리 계산 공식
+CREATE TABLE IF NOT EXISTS public.calorie_calculation_formulas (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  formula_name VARCHAR(100) UNIQUE NOT NULL,
+  formula_type VARCHAR(50),
+  gender VARCHAR(10),
+  age_min INT,
+  age_max INT,
+  formula_expression TEXT NOT NULL,
+  description TEXT,
+  is_default BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_formulas_type ON public.calorie_calculation_formulas(formula_type);
+CREATE INDEX IF NOT EXISTS idx_formulas_gender ON public.calorie_calculation_formulas(gender);
+
+-- 5. user_health_profiles 확장(존재할 때만)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='user_health_profiles') THEN
+    ALTER TABLE public.user_health_profiles
+      ADD COLUMN IF NOT EXISTS diseases JSONB DEFAULT '[]',
+      ADD COLUMN IF NOT EXISTS allergies JSONB DEFAULT '[]',
+      ADD COLUMN IF NOT EXISTS preferred_ingredients JSONB DEFAULT '[]',
+      ADD COLUMN IF NOT EXISTS excluded_ingredients JSONB DEFAULT '[]',
+      ADD COLUMN IF NOT EXISTS dietary_preferences JSONB DEFAULT '[]',
+      ADD COLUMN IF NOT EXISTS calorie_calculation_method VARCHAR(50) DEFAULT 'auto',
+      ADD COLUMN IF NOT EXISTS manual_target_calories INT,
+      ADD COLUMN IF NOT EXISTS show_calculation_formula BOOLEAN DEFAULT false;
+
+    CREATE INDEX IF NOT EXISTS idx_user_health_profiles_diseases ON public.user_health_profiles USING GIN (diseases);
+    CREATE INDEX IF NOT EXISTS idx_user_health_profiles_allergies ON public.user_health_profiles USING GIN (allergies);
+    CREATE INDEX IF NOT EXISTS idx_user_health_profiles_dietary_preferences ON public.user_health_profiles USING GIN (dietary_preferences);
+  END IF;
+END $$;
+
+-- ============================================
+-- 2) 주간 식단 테이블 (day_of_week: 0~6, dev: RLS 비활성)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS public.weekly_diet_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   week_start_date DATE NOT NULL,
   week_year INTEGER NOT NULL,
   week_number INTEGER NOT NULL,
@@ -23,15 +150,14 @@ CREATE TABLE IF NOT EXISTS weekly_diet_plans (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_weekly_diet_plans_user_id ON weekly_diet_plans(user_id);
-CREATE INDEX IF NOT EXISTS idx_weekly_diet_plans_week_start_date ON weekly_diet_plans(week_start_date);
-CREATE INDEX IF NOT EXISTS idx_weekly_diet_plans_user_week ON weekly_diet_plans(user_id, week_year, week_number);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_diet_plans_unique ON weekly_diet_plans(user_id, week_year, week_number);
+CREATE INDEX IF NOT EXISTS idx_weekly_diet_plans_user_id ON public.weekly_diet_plans(user_id);
+CREATE INDEX IF NOT EXISTS idx_weekly_diet_plans_week_start_date ON public.weekly_diet_plans(week_start_date);
+CREATE INDEX IF NOT EXISTS idx_weekly_diet_plans_user_week ON public.weekly_diet_plans(user_id, week_year, week_number);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_weekly_diet_plans_unique ON public.weekly_diet_plans(user_id, week_year, week_number);
 
--- 주간 장보기 리스트 테이블
-CREATE TABLE IF NOT EXISTS weekly_shopping_lists (
+CREATE TABLE IF NOT EXISTS public.weekly_shopping_lists (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  weekly_diet_plan_id UUID NOT NULL REFERENCES weekly_diet_plans(id) ON DELETE CASCADE,
+  weekly_diet_plan_id UUID NOT NULL REFERENCES public.weekly_diet_plans(id) ON DELETE CASCADE,
   ingredient_name TEXT NOT NULL,
   total_quantity DECIMAL(10, 2),
   unit TEXT,
@@ -41,14 +167,13 @@ CREATE TABLE IF NOT EXISTS weekly_shopping_lists (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_weekly_shopping_lists_plan_id ON weekly_shopping_lists(weekly_diet_plan_id);
-CREATE INDEX IF NOT EXISTS idx_weekly_shopping_lists_category ON weekly_shopping_lists(category);
+CREATE INDEX IF NOT EXISTS idx_weekly_shopping_lists_plan_id ON public.weekly_shopping_lists(weekly_diet_plan_id);
+CREATE INDEX IF NOT EXISTS idx_weekly_shopping_lists_category ON public.weekly_shopping_lists(category);
 
--- 주간 영양 통계 테이블
-CREATE TABLE IF NOT EXISTS weekly_nutrition_stats (
+CREATE TABLE IF NOT EXISTS public.weekly_nutrition_stats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  weekly_diet_plan_id UUID NOT NULL REFERENCES weekly_diet_plans(id) ON DELETE CASCADE,
-  day_of_week INTEGER NOT NULL,
+  weekly_diet_plan_id UUID NOT NULL REFERENCES public.weekly_diet_plans(id) ON DELETE CASCADE,
+  day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
   date DATE NOT NULL,
   total_calories DECIMAL(10, 2),
   total_carbohydrates DECIMAL(10, 2),
@@ -59,11 +184,11 @@ CREATE TABLE IF NOT EXISTS weekly_nutrition_stats (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_weekly_nutrition_stats_plan_id ON weekly_nutrition_stats(weekly_diet_plan_id);
-CREATE INDEX IF NOT EXISTS idx_weekly_nutrition_stats_date ON weekly_nutrition_stats(date);
+CREATE INDEX IF NOT EXISTS idx_weekly_nutrition_stats_plan_id ON public.weekly_nutrition_stats(weekly_diet_plan_id);
+CREATE INDEX IF NOT EXISTS idx_weekly_nutrition_stats_date ON public.weekly_nutrition_stats(date);
 
--- updated_at 트리거
-CREATE OR REPLACE FUNCTION update_weekly_diet_plans_updated_at()
+-- updated_at 트리거(재실행 안전)
+CREATE OR REPLACE FUNCTION public.update_weekly_diet_plans_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = now();
@@ -71,236 +196,70 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trigger_update_weekly_diet_plans_updated_at ON weekly_diet_plans;
+DROP TRIGGER IF EXISTS trigger_update_weekly_diet_plans_updated_at ON public.weekly_diet_plans;
 CREATE TRIGGER trigger_update_weekly_diet_plans_updated_at
-  BEFORE UPDATE ON weekly_diet_plans
+  BEFORE UPDATE ON public.weekly_diet_plans
   FOR EACH ROW
-  EXECUTE FUNCTION update_weekly_diet_plans_updated_at();
+  EXECUTE FUNCTION public.update_weekly_diet_plans_updated_at();
 
-ALTER TABLE weekly_diet_plans DISABLE ROW LEVEL SECURITY;
-ALTER TABLE weekly_shopping_lists DISABLE ROW LEVEL SECURITY;
-ALTER TABLE weekly_nutrition_stats DISABLE ROW LEVEL SECURITY;
-
-COMMENT ON TABLE weekly_diet_plans IS '주간 식단 메타데이터 (7일치 식단 정보)';
-COMMENT ON TABLE weekly_shopping_lists IS '주간 장보기 리스트 (식단 기반 재료 통합)';
-COMMENT ON TABLE weekly_nutrition_stats IS '주간 영양 통계 (일별 영양소 합계)';
+ALTER TABLE public.weekly_diet_plans DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.weekly_shopping_lists DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.weekly_nutrition_stats DISABLE ROW LEVEL SECURITY;
 
 -- ============================================
--- Phase 3: KCDC (질병관리청) 알림 시스템
+-- 3) 식단/주간식단 저장 보정 (2025-12-17)
 -- ============================================
 
--- KCDC 알림 테이블
-CREATE TABLE IF NOT EXISTS kcdc_alerts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  alert_type TEXT NOT NULL,
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  severity TEXT DEFAULT 'info',
-  flu_stage TEXT,
-  flu_week TEXT,
-  vaccine_name TEXT,
-  target_age_group TEXT,
-  recommended_date DATE,
-  source_url TEXT,
-  published_at TIMESTAMPTZ,
-  is_active BOOLEAN DEFAULT true,
-  priority INTEGER DEFAULT 0,
-  fetched_at TIMESTAMPTZ DEFAULT now(),
-  expires_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_kcdc_alerts_type ON kcdc_alerts(alert_type);
-CREATE INDEX IF NOT EXISTS idx_kcdc_alerts_active ON kcdc_alerts(is_active);
-CREATE INDEX IF NOT EXISTS idx_kcdc_alerts_published ON kcdc_alerts(published_at DESC);
-CREATE INDEX IF NOT EXISTS idx_kcdc_alerts_priority ON kcdc_alerts(priority DESC, published_at DESC);
-CREATE INDEX IF NOT EXISTS idx_kcdc_alerts_active_priority ON kcdc_alerts(is_active, priority DESC, published_at DESC);
-
--- updated_at 트리거
-CREATE OR REPLACE FUNCTION update_kcdc_alerts_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trigger_update_kcdc_alerts_updated_at ON kcdc_alerts;
-CREATE TRIGGER trigger_update_kcdc_alerts_updated_at
-  BEFORE UPDATE ON kcdc_alerts
-  FOR EACH ROW
-  EXECUTE FUNCTION update_kcdc_alerts_updated_at();
-
--- 만료된 알림 자동 비활성화 함수
-CREATE OR REPLACE FUNCTION deactivate_expired_kcdc_alerts()
-RETURNS INTEGER AS $$
-DECLARE
-  affected_count INTEGER;
-BEGIN
-  UPDATE kcdc_alerts
-  SET is_active = false
-  WHERE is_active = true 
-    AND expires_at IS NOT NULL 
-    AND expires_at < now();
-  
-  GET DIAGNOSTICS affected_count = ROW_COUNT;
-  RETURN affected_count;
-END;
-$$ LANGUAGE plpgsql;
-
-ALTER TABLE kcdc_alerts DISABLE ROW LEVEL SECURITY;
-
-COMMENT ON TABLE kcdc_alerts IS '질병관리청(KCDC) 공지 및 알림 데이터';
-COMMENT ON COLUMN kcdc_alerts.alert_type IS '알림 유형: flu(독감), vaccination(예방접종), disease_outbreak(질병 발생)';
-COMMENT ON COLUMN kcdc_alerts.severity IS '심각도: info(정보), warning(경고), critical(긴급)';
-
--- KCDC 샘플 데이터 (중복 방지)
-INSERT INTO kcdc_alerts (
-  alert_type, title, content, severity, flu_stage, flu_week,
-  source_url, published_at, is_active, priority, expires_at
-)
-SELECT 
-  'flu',
-  '2025년 겨울 독감 주의보 발령',
-  '전국적으로 독감 환자가 증가하고 있습니다. 손씻기 등 개인 위생 수칙을 준수하시고, 고위험군은 예방접종을 권장합니다.',
-  'warning',
-  '주의',
-  '2025-W48',
-  'https://www.kdca.go.kr',
-  '2025-11-27 09:00:00+09',
-  true,
-  10,
-  now() + interval '30 days'
-WHERE NOT EXISTS (
-  SELECT 1 FROM kcdc_alerts WHERE title = '2025년 겨울 독감 주의보 발령'
-);
-
-INSERT INTO kcdc_alerts (
-  alert_type, title, content, severity, flu_stage, flu_week,
-  source_url, published_at, is_active, priority, expires_at
-)
-SELECT 
-  'vaccination',
-  '영유아 필수 예방접종 안내',
-  '생후 12개월 영유아는 MMR(홍역·유행성이하선염·풍진) 백신 1차 접종을 받아야 합니다.',
-  'info',
-  null,
-  null,
-  'https://www.kdca.go.kr',
-  '2025-11-20 10:00:00+09',
-  true,
-  5,
-  now() + interval '90 days'
-WHERE NOT EXISTS (
-  SELECT 1 FROM kcdc_alerts WHERE title = '영유아 필수 예방접종 안내'
-);
-
--- ============================================
--- Phase 4: 레시피 재료 정보 DB 통합
--- ============================================
-
--- 재료 카테고리 컬럼 추가 (기존 recipe_ingredients 테이블에)
-DO $$ 
-BEGIN
-  -- ENUM 타입 생성 (이미 있다면 건너뜀)
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ingredient_category') THEN
-    CREATE TYPE ingredient_category AS ENUM (
-      '곡물', '채소', '과일', '육류', '해산물', '유제품', '조미료', '기타'
-    );
-  END IF;
-
-  -- category 컬럼 추가 (이미 있다면 건너뜀)
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'recipe_ingredients' AND column_name = 'category'
-  ) THEN
-    ALTER TABLE recipe_ingredients ADD COLUMN category ingredient_category DEFAULT '기타';
-  END IF;
-
-  -- is_optional 컬럼 추가 (이미 있다면 건너뜀)
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'recipe_ingredients' AND column_name = 'is_optional'
-  ) THEN
-    ALTER TABLE recipe_ingredients ADD COLUMN is_optional BOOLEAN DEFAULT false;
-  END IF;
-
-  -- preparation_note 컬럼 추가 (이미 있다면 건너뜀)
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'recipe_ingredients' AND column_name = 'preparation_note'
-  ) THEN
-    ALTER TABLE recipe_ingredients ADD COLUMN preparation_note TEXT;
-  END IF;
-END $$;
-
--- 추가 인덱스
-CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_category ON recipe_ingredients(category);
-CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_name ON recipe_ingredients(name);
-
-COMMENT ON COLUMN recipe_ingredients.category IS '재료 카테고리 (장보기 리스트 그룹화용)';
-
--- 샘플 재료 데이터
--- 김치찌개 레시피 재료 추가
 DO $$
-DECLARE
-  v_recipe_id UUID;
 BEGIN
-  -- 김치찌개 레시피 ID 찾기
-  SELECT id INTO v_recipe_id FROM recipes WHERE title = '김치찌개' LIMIT 1;
-  
-  IF v_recipe_id IS NOT NULL THEN
-    -- 기존 데이터가 없을 때만 삽입
-    IF NOT EXISTS (SELECT 1 FROM recipe_ingredients WHERE recipe_id = v_recipe_id) THEN
-      INSERT INTO recipe_ingredients (recipe_id, name, quantity, unit, category, order_index) VALUES
-        (v_recipe_id, '배추김치', 300, 'g', '채소'::ingredient_category, 1),
-        (v_recipe_id, '돼지고기', 200, 'g', '육류'::ingredient_category, 2),
-        (v_recipe_id, '두부', 1, '모', '유제품'::ingredient_category, 3),
-        (v_recipe_id, '대파', 1, '대', '채소'::ingredient_category, 4),
-        (v_recipe_id, '고춧가루', 1, '큰술', '조미료'::ingredient_category, 5),
-        (v_recipe_id, '마늘', 3, '쪽', '조미료'::ingredient_category, 6);
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='diet_plans') THEN
+    ALTER TABLE public.diet_plans
+      ALTER COLUMN ingredients SET DEFAULT '[]'::jsonb;
+
+    ALTER TABLE public.diet_plans
+      ALTER COLUMN composition_summary SET DEFAULT '[]'::jsonb;
+
+    ALTER TABLE public.diet_plans DISABLE ROW LEVEL SECURITY;
+
+    -- 과거 정책이 남아있으면 제거(없어도 무시)
+    IF EXISTS (
+      SELECT 1
+      FROM pg_policies
+      WHERE schemaname = 'public'
+        AND tablename = 'diet_plans'
+    ) THEN
+      EXECUTE 'DROP POLICY IF EXISTS "Users can view their own diet plans" ON public.diet_plans';
+      EXECUTE 'DROP POLICY IF EXISTS "Users can insert their own diet plans" ON public.diet_plans';
+      EXECUTE 'DROP POLICY IF EXISTS "Users can update their own diet plans" ON public.diet_plans';
+      EXECUTE 'DROP POLICY IF EXISTS "Users can delete their own diet plans" ON public.diet_plans';
+      EXECUTE 'DROP POLICY IF EXISTS "Service role can do anything" ON public.diet_plans';
     END IF;
+
+    -- 저장 중복 방지 인덱스
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_diet_plans_user_date_meal_unique
+      ON public.diet_plans(user_id, plan_date, meal_type)
+      WHERE family_member_id IS NULL;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_diet_plans_member_date_meal_unique
+      ON public.diet_plans(user_id, family_member_id, plan_date, meal_type)
+      WHERE family_member_id IS NOT NULL;
+
+    GRANT ALL ON TABLE public.diet_plans TO anon, authenticated, service_role;
+  END IF;
+
+  -- 주간 테이블도 개발 환경 RLS 비활성(존재할 때만)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='weekly_diet_plans') THEN
+    ALTER TABLE public.weekly_diet_plans DISABLE ROW LEVEL SECURITY;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='weekly_shopping_lists') THEN
+    ALTER TABLE public.weekly_shopping_lists DISABLE ROW LEVEL SECURITY;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='weekly_nutrition_stats') THEN
+    ALTER TABLE public.weekly_nutrition_stats DISABLE ROW LEVEL SECURITY;
   END IF;
 END $$;
 
--- 된장찌개 레시피 재료 추가
-DO $$
-DECLARE
-  v_recipe_id UUID;
-BEGIN
-  -- 된장찌개 레시피 ID 찾기
-  SELECT id INTO v_recipe_id FROM recipes WHERE title = '된장찌개' LIMIT 1;
-  
-  IF v_recipe_id IS NOT NULL THEN
-    -- 기존 데이터가 없을 때만 삽입
-    IF NOT EXISTS (SELECT 1 FROM recipe_ingredients WHERE recipe_id = v_recipe_id) THEN
-      INSERT INTO recipe_ingredients (recipe_id, name, quantity, unit, category, order_index) VALUES
-        (v_recipe_id, '된장', 2, '큰술', '조미료'::ingredient_category, 1),
-        (v_recipe_id, '두부', 0.5, '모', '유제품'::ingredient_category, 2),
-        (v_recipe_id, '감자', 1, '개', '채소'::ingredient_category, 3),
-        (v_recipe_id, '애호박', 0.5, '개', '채소'::ingredient_category, 4),
-        (v_recipe_id, '대파', 0.5, '대', '채소'::ingredient_category, 5),
-        (v_recipe_id, '멸치 육수', 3, '컵', '기타'::ingredient_category, 6);
-    END IF;
-  END IF;
-END $$;
-
--- ============================================
--- 마이그레이션 완료
--- ============================================
-
--- 완료 메시지
 DO $$
 BEGIN
-  RAISE NOTICE '✅ 모든 마이그레이션이 성공적으로 적용되었습니다!';
-  RAISE NOTICE '📊 생성된 테이블:';
-  RAISE NOTICE '  - weekly_diet_plans (주간 식단)';
-  RAISE NOTICE '  - weekly_shopping_lists (장보기 리스트)';
-  RAISE NOTICE '  - weekly_nutrition_stats (영양 통계)';
-  RAISE NOTICE '  - kcdc_alerts (KCDC 알림)';
-  RAISE NOTICE '  - recipe_ingredients (레시피 재료)';
-  RAISE NOTICE '';
-  RAISE NOTICE '🎉 이제 애플리케이션을 시작할 수 있습니다!';
+  RAISE NOTICE '✅ apply_all_migrations.sql (dev) done';
 END $$;
-

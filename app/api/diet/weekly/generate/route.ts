@@ -1,7 +1,7 @@
 /**
  * @file app/api/diet/weekly/generate/route.ts
  * @description 주간 식단 생성 API
- * 
+ *
  * POST /api/diet/weekly/generate
  * - 7일치 식단 생성
  * - 장보기 리스트 통합
@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClerkSupabaseClient } from "@/lib/supabase/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
+import { toInt, toIntOrNull } from "@/lib/diet/nutrition-normalizer";
 import {
   generateWeeklyDiet,
   getThisMonday,
@@ -46,16 +47,16 @@ function generateWeekDates(startDate: string): string[] {
  */
 function getWeekInfo(dateString: string): { year: number; weekNumber: number } {
   const date = new Date(dateString);
-  
+
   // ISO 8601 주차 계산
   const dayOfWeek = date.getDay() || 7; // 일요일=7로 변환
   const nearestThursday = new Date(date);
   nearestThursday.setDate(date.getDate() + 4 - dayOfWeek);
-  
+
   const year = nearestThursday.getFullYear();
   const yearStart = new Date(year, 0, 1);
   const weekNumber = Math.ceil(
-    ((nearestThursday.getTime() - yearStart.getTime()) / 86400000 + 1) / 7
+    ((nearestThursday.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
   );
 
   return { year, weekNumber };
@@ -64,6 +65,7 @@ function getWeekInfo(dateString: string): { year: number; weekNumber: number } {
 export async function POST(request: NextRequest) {
   try {
     console.group("[API] POST /api/diet/weekly/generate");
+    console.time("[weekly] total");
 
     // 1. 인증 확인
     const { userId: clerkUserId } = await auth();
@@ -86,9 +88,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "Failed to initialize database connection",
-          details: error?.message
+          details: error?.message,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -104,10 +106,10 @@ export async function POST(request: NextRequest) {
 
     // 3. 사용자 ID 조회 (없으면 생성)
     console.log("🔍 사용자 조회 중...", { clerkUserId });
-    
+
     // PGRST301 에러를 피하기 위해 service-role 클라이언트 사용
     const serviceSupabase = getServiceRoleClient();
-    
+
     const { data: users } = await serviceSupabase
       .from("users")
       .select("id, clerk_id, name")
@@ -119,7 +121,7 @@ export async function POST(request: NextRequest) {
     // 사용자가 없으면 자동 생성 (service-role 클라이언트 사용하여 RLS 우회)
     if (!userData) {
       console.log("ℹ️ 사용자가 DB에 없음. 자동 생성 중...");
-      
+
       const { data: newUsers, error: insertError } = await serviceSupabase
         .from("users")
         .insert({
@@ -134,11 +136,11 @@ export async function POST(request: NextRequest) {
         console.error("에러 메시지:", insertError?.message);
         console.groupEnd();
         return NextResponse.json(
-          { 
+          {
             error: "Failed to create user",
-            details: insertError?.message 
+            details: insertError?.message,
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -158,12 +160,14 @@ export async function POST(request: NextRequest) {
 
     // 4. 건강 프로필 조회 (service-role 클라이언트 사용)
     console.log("🔍 건강 프로필 조회 중...", { userId });
+    console.time("[weekly] fetch profile");
     const { data: profiles, error: profileError } = await serviceSupabase
       .from("user_health_profiles")
       .select("*")
       .eq("user_id", userId)
       .limit(1);
-    
+    console.timeEnd("[weekly] fetch profile");
+
     const profile = profiles && profiles.length > 0 ? profiles[0] : null;
 
     if (profileError) {
@@ -174,12 +178,12 @@ export async function POST(request: NextRequest) {
       console.error("에러 힌트:", profileError?.hint);
       console.groupEnd();
       return NextResponse.json(
-        { 
+        {
           error: "Failed to fetch health profile",
           details: profileError?.message,
-          code: profileError?.code
+          code: profileError?.code,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -188,7 +192,7 @@ export async function POST(request: NextRequest) {
       console.groupEnd();
       return NextResponse.json(
         { error: "Health profile not found. Please create one first." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -204,18 +208,21 @@ export async function POST(request: NextRequest) {
     const calculatedStartDate = weekStartDate
       ? weekStartDate
       : weekType === "next"
-      ? getNextMonday()
-      : getThisMonday();
+        ? getNextMonday()
+        : getThisMonday();
 
     console.log("계산된 시작 날짜:", calculatedStartDate);
 
     // 6-1. 기존 식단 조회하여 반찬/국/찌개 제외 목록 생성
     const dates = generateWeekDates(calculatedStartDate);
-    const { data: existingPlans, error: existingPlansError } = await serviceSupabase
-      .from("diet_plans")
-      .select("plan_date, meal_type, composition_summary, recipe_title")
-      .eq("user_id", userId)
-      .in("plan_date", dates);
+    console.time("[weekly] fetch existing plans for exclusions");
+    const { data: existingPlans, error: existingPlansError } =
+      await serviceSupabase
+        .from("diet_plans")
+        .select("plan_date, meal_type, composition_summary, recipe_title")
+        .eq("user_id", userId)
+        .in("plan_date", dates);
+    console.timeEnd("[weekly] fetch existing plans for exclusions");
 
     const existingUsedByCategory = {
       rice: new Set<string>(),
@@ -225,30 +232,33 @@ export async function POST(request: NextRequest) {
     };
 
     if (!existingPlansError && existingPlans) {
-      console.log(`📋 기존 식단 ${existingPlans.length}개 조회됨 - 반찬/국/찌개 제외 목록 생성 중...`);
-      
+      console.log(
+        `📋 기존 식단 ${existingPlans.length}개 조회됨 - 반찬/국/찌개 제외 목록 생성 중...`,
+      );
+
       for (const plan of existingPlans) {
         // composition_summary에서 반찬/국 추출
         if (plan.composition_summary) {
           try {
-            const summary = typeof plan.composition_summary === 'string' 
-              ? JSON.parse(plan.composition_summary) 
-              : plan.composition_summary;
-            
+            const summary =
+              typeof plan.composition_summary === "string"
+                ? JSON.parse(plan.composition_summary)
+                : plan.composition_summary;
+
             // 반찬 추출
             if (summary.sides && Array.isArray(summary.sides)) {
               summary.sides.forEach((side: string) => {
                 if (side) existingUsedByCategory.side.add(side);
               });
             }
-            
+
             // 국/찌개 추출
             if (summary.soup && Array.isArray(summary.soup)) {
               summary.soup.forEach((soup: string) => {
                 if (soup) existingUsedByCategory.soup.add(soup);
               });
             }
-            
+
             // 밥 추출
             if (summary.rice && Array.isArray(summary.rice)) {
               summary.rice.forEach((rice: string) => {
@@ -259,13 +269,13 @@ export async function POST(request: NextRequest) {
             console.warn("⚠️ composition_summary 파싱 실패:", e);
           }
         }
-        
+
         // 간식 추출
         if (plan.meal_type === "snack" && plan.recipe_title) {
           existingUsedByCategory.snack.add(plan.recipe_title);
         }
       }
-      
+
       console.log("📋 기존 식단 제외 목록:", {
         rice: Array.from(existingUsedByCategory.rice),
         side: Array.from(existingUsedByCategory.side),
@@ -274,39 +284,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 6-2. 주차 정보 계산 (삭제 및 생성 전에 필요)
+    // 6-2. 주차 정보 계산 (생성/저장 전에 필요)
     const weekInfo = getWeekInfo(calculatedStartDate);
-    
-    // 6-3. 기존 주간 식단 및 diet_plans 삭제 (중복 방지)
-    // 주간 식단 메타데이터 삭제
-    const { error: deleteWeeklyPlanError } = await serviceSupabase
-      .from("weekly_diet_plans")
-      .delete()
-      .eq("user_id", userId)
-      .eq("week_year", weekInfo.year)
-      .eq("week_number", weekInfo.weekNumber);
 
-    if (deleteWeeklyPlanError) {
-      console.warn("⚠️ 기존 주간 식단 삭제 실패 (무시):", deleteWeeklyPlanError);
-    } else {
-      console.log("✅ 기존 주간 식단 삭제 완료");
-    }
-    
-    // diet_plans 삭제
-    const { error: deleteDietPlansError } = await serviceSupabase
-      .from("diet_plans")
-      .delete()
-      .eq("user_id", userId)
-      .in("plan_date", dates);
-
-    if (deleteDietPlansError) {
-      console.warn("⚠️ 기존 diet_plans 삭제 실패 (무시):", deleteDietPlansError);
-    } else {
-      console.log("✅ 기존 diet_plans 삭제 완료");
-    }
+    // ✅ 중요(데이터 보호):
+    // - 주간 생성/저장에 실패해도 "오늘의 식단이 사라지는" 문제가 발생하면 안 됩니다.
+    // - 그래서 여기서는 기존 diet_plans를 미리 삭제하지 않습니다.
+    // - 삭제/교체는 "새 데이터 준비 완료 + 저장 직전" 단계에서 안전하게(백업 후) 수행합니다.
 
     // 7. 주간 식단 생성 (기존 식단 제외 목록 포함)
     console.log("🍱 주간 식단 생성 시작...");
+    console.time("[weekly] generateWeeklyDiet");
     const options: WeeklyDietGenerationOptions = {
       userId,
       weekStartDate: calculatedStartDate,
@@ -327,12 +315,32 @@ export async function POST(request: NextRequest) {
       console.error("에러 메시지:", error?.message);
       console.error("에러 스택:", error?.stack);
       throw generateError; // 에러를 다시 throw하여 상위 catch에서 처리
+    } finally {
+      console.timeEnd("[weekly] generateWeeklyDiet");
     }
 
     // 8. 데이터베이스에 저장
     console.log("\n💾 주간 식단 저장 중...");
 
     // 8-1. 주간 식단 메타데이터 저장 - service-role 클라이언트 사용
+    // 기존 주간 식단 메타데이터는 유니크 제약(user_id, week_year, week_number) 때문에 교체 필요합니다.
+    // 단, 식단 레코드(diet_plans) 삭제는 실패 시 데이터 유실이 발생할 수 있으므로 뒤에서 별도 처리합니다.
+    const { error: deleteWeeklyPlanError } = await serviceSupabase
+      .from("weekly_diet_plans")
+      .delete()
+      .eq("user_id", userId)
+      .eq("week_year", weekInfo.year)
+      .eq("week_number", weekInfo.weekNumber);
+
+    if (deleteWeeklyPlanError) {
+      console.warn(
+        "⚠️ 기존 주간 식단 삭제 실패 (무시):",
+        deleteWeeklyPlanError,
+      );
+    } else {
+      console.log("✅ 기존 주간 식단 삭제 완료");
+    }
+
     const { data: savedPlan, error: savePlanError } = await serviceSupabase
       .from("weekly_diet_plans")
       .insert({
@@ -355,12 +363,12 @@ export async function POST(request: NextRequest) {
       console.error("에러 힌트:", savePlanError?.hint);
       console.groupEnd();
       return NextResponse.json(
-        { 
+        {
           error: "Failed to save weekly diet plan",
           details: savePlanError?.message,
-          code: savePlanError?.code
+          code: savePlanError?.code,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -368,116 +376,125 @@ export async function POST(request: NextRequest) {
     console.log("주간 식단 ID:", weeklyPlanId);
 
     // 8-2. 일별 식단 저장 (diet_plans 테이블에)
-    // generateAndSaveDietPlan이 이미 저장했다고 해도, 
-    // 주간 식단 조회 시 정확한 데이터를 보장하기 위해 항상 저장 확인 및 필요시 재저장
-    console.log("💾 일별 식단 저장 확인 중...");
-    console.log("dailyPlansPersisted:", weeklyDiet.dailyPlansPersisted);
-    
-    const dietPlanRecords: Array<{
-      user_id: string;
-      plan_date: string;
-      meal_type: string;
-      recipe_id: string | null;
-      recipe_title: string;
-      recipe_description: string;
-      calories: number;
-      carbs_g: number;
-      protein_g: number;
-      fat_g: number;
-      sodium_mg: number;
-      composition_summary: Record<string, string[]> | null;
-      is_unified: boolean;
-      family_member_id: string | null;
-    }> = [];
-    
-    for (const [date, dailyPlan] of Object.entries(weeklyDiet.dailyPlans)) {
-      const meals = ["breakfast", "lunch", "dinner", "snack"] as const;
+    // ✅ 성능 개선:
+    // - generateWeeklyDiet 내부에서 개인 식단은 generateAndSaveDietPlan으로 이미 저장됩니다.
+    // - 여기서 diet_plans를 다시 삭제→삽입하면 시간이 크게 늘고, 실패 시 복구 로직이 추가로 필요합니다.
+    // - 따라서 dailyPlansPersisted=true이면 재저장을 건너뜁니다.
+    console.log("💾 일별 식단 저장 상태:", {
+      dailyPlansPersisted: weeklyDiet.dailyPlansPersisted,
+    });
+    if (!weeklyDiet.dailyPlansPersisted) {
+      console.time("[weekly] persist diet_plans (fallback path)");
+      const dietPlanRecords: Array<{
+        user_id: string;
+        plan_date: string;
+        meal_type: string;
+        recipe_id: string | null;
+        recipe_title: string;
+        recipe_description: string;
+        calories: number;
+        carbs_g: number;
+        protein_g: number;
+        fat_g: number;
+        sodium_mg: number;
+        composition_summary: Record<string, string[]> | null;
+        is_unified: boolean;
+        family_member_id: string | null;
+      }> = [];
 
-      for (const mealType of meals) {
-        const meal = dailyPlan[mealType];
-        
-        if (!meal) continue;
-        
-        // DietPlan 타입인 경우 (generateAndSaveDietPlan이 반환한 저장된 레코드)
-        // 이미 DB에 저장되어 있지만, 주간 식단 조회 시 정확한 데이터를 보장하기 위해
-        // 레코드 정보를 추출하여 저장 배열에 추가
-        if (meal && "plan_date" in meal && "meal_type" in meal && "id" in meal) {
-          // 이미 저장된 레코드이지만, upsert를 위해 레코드 정보 추출
-          const dietPlan = meal as any;
-          dietPlanRecords.push({
-            user_id: dietPlan.user_id || userId,
-            plan_date: dietPlan.plan_date || date,
-            meal_type: dietPlan.meal_type || mealType,
-            recipe_id: dietPlan.recipe_id || null,
-            recipe_title: dietPlan.recipe_title || dietPlan.recipe?.title || "",
-            recipe_description: dietPlan.recipe_description || dietPlan.recipe?.description || "",
-            calories: typeof dietPlan.calories === 'number' ? dietPlan.calories : Number(dietPlan.calories) || 0,
-            carbs_g: typeof dietPlan.carbohydrates === 'number' ? dietPlan.carbohydrates : Number(dietPlan.carbs_g) || Number(dietPlan.carbohydrates) || 0,
-            protein_g: typeof dietPlan.protein === 'number' ? dietPlan.protein : Number(dietPlan.protein_g) || Number(dietPlan.protein) || 0,
-            fat_g: typeof dietPlan.fat === 'number' ? dietPlan.fat : Number(dietPlan.fat_g) || Number(dietPlan.fat) || 0,
-            sodium_mg: typeof dietPlan.sodium === 'number' ? dietPlan.sodium : Number(dietPlan.sodium_mg) || Number(dietPlan.sodium) || 0,
-            composition_summary: dietPlan.composition_summary || dietPlan.compositionSummary || null,
-            is_unified: dietPlan.is_unified || false,
-            family_member_id: dietPlan.family_member_id || null,
+      for (const [date, dailyPlan] of Object.entries(weeklyDiet.dailyPlans)) {
+        // ✅ 간식은 끼니에 포함하지 않으므로 주간 저장 대상에서 제외합니다.
+        const meals = ["breakfast", "lunch", "dinner"] as const;
+
+        for (const mealType of meals) {
+          const meal = dailyPlan[mealType];
+
+          if (!meal) continue;
+
+          // MealComposition | RecipeDetailForDiet 타입인 경우 저장
+          const mealRecords = buildDietPlanRecords({
+            date,
+            mealType,
+            meal: meal as MealComposition | RecipeDetailForDiet | undefined,
+            userId,
           });
-          continue;
-        }
-        
-        // MealComposition | RecipeDetailForDiet 타입인 경우 저장
-        const mealRecords = buildDietPlanRecords({
-          date,
-          mealType,
-          meal: meal as MealComposition | RecipeDetailForDiet | undefined,
-          userId,
-        });
-        dietPlanRecords.push(...mealRecords);
-      }
-    }
-
-    if (dietPlanRecords.length > 0) {
-      console.log(`💾 ${dietPlanRecords.length}개 식단 레코드 저장 시도...`);
-      
-      // 기존 식단 삭제 후 재저장 (upsert 대신 delete + insert)
-      const dates = generateWeekDates(weeklyDiet.metadata.week_start_date);
-      const { error: deleteError } = await serviceSupabase
-        .from("diet_plans")
-        .delete()
-        .eq("user_id", userId)
-        .is("family_member_id", null)
-        .in("plan_date", dates);
-      
-      if (deleteError) {
-        console.warn("⚠️ 기존 식단 삭제 실패 (무시):", deleteError);
-      } else {
-        console.log("✅ 기존 식단 삭제 완료");
-      }
-      
-      const { error: dietPlanError, data: insertedData } = await serviceSupabase
-        .from("diet_plans")
-        .insert(dietPlanRecords)
-        .select("id, plan_date, meal_type");
-
-      if (dietPlanError) {
-        console.error("⚠️ 일별 식단 저장 실패:", dietPlanError);
-        console.error("에러 코드:", dietPlanError?.code);
-        console.error("에러 메시지:", dietPlanError?.message);
-        console.error("에러 상세:", dietPlanError?.details);
-      } else {
-        console.log(`✅ 일별 식단 ${insertedData?.length || dietPlanRecords.length}개 저장 완료`);
-        if (insertedData) {
-          console.log("✅ 저장된 레코드 샘플:", insertedData.slice(0, 3).map(r => ({
-            id: r.id,
-            plan_date: r.plan_date,
-            meal_type: r.meal_type,
-          })));
+          dietPlanRecords.push(...mealRecords);
         }
       }
+
+      if (dietPlanRecords.length > 0) {
+        console.log(`💾 ${dietPlanRecords.length}개 식단 레코드 저장 시도...`);
+
+        const dates = generateWeekDates(weeklyDiet.metadata.week_start_date);
+        const { data: backupPlans, error: backupError } = await serviceSupabase
+          .from("diet_plans")
+          .select("*")
+          .eq("user_id", userId)
+          .is("family_member_id", null)
+          .in("plan_date", dates);
+
+        if (backupError) {
+          console.warn("⚠️ 기존 식단 백업 조회 실패(복구 불가):", backupError);
+        } else {
+          console.log(`💾 기존 식단 백업 완료: ${backupPlans?.length || 0}개`);
+        }
+
+        const { error: deleteError } = await serviceSupabase
+          .from("diet_plans")
+          .delete()
+          .eq("user_id", userId)
+          .is("family_member_id", null)
+          .in("plan_date", dates);
+
+        if (deleteError) {
+          console.warn("⚠️ 기존 식단 삭제 실패 (무시):", deleteError);
+        } else {
+          console.log("✅ 기존 식단 삭제 완료");
+        }
+
+        const { error: dietPlanError, data: insertedData } =
+          await serviceSupabase
+            .from("diet_plans")
+            .insert(dietPlanRecords)
+            .select("id, plan_date, meal_type");
+
+        if (dietPlanError) {
+          console.error("⚠️ 일별 식단 저장 실패:", dietPlanError);
+          console.error("에러 코드:", dietPlanError?.code);
+          console.error("에러 메시지:", dietPlanError?.message);
+          console.error("에러 상세:", dietPlanError?.details);
+
+          // 🔁 복구 시도
+          if (!backupError && backupPlans && backupPlans.length > 0) {
+            console.warn("🔁 저장 실패로 인해 기존 식단 복구를 시도합니다...");
+            const { error: restoreError } = await serviceSupabase
+              .from("diet_plans")
+              .insert(backupPlans);
+
+            if (restoreError) {
+              console.error("❌ 기존 식단 복구 실패:", restoreError);
+            } else {
+              console.log(`✅ 기존 식단 복구 완료: ${backupPlans.length}개`);
+            }
+          }
+        } else {
+          console.log(
+            `✅ 일별 식단 ${insertedData?.length || dietPlanRecords.length}개 저장 완료`,
+          );
+        }
+      } else {
+        console.warn("⚠️ 저장할 식단 레코드가 없습니다");
+      }
+      console.timeEnd("[weekly] persist diet_plans (fallback path)");
     } else {
-      console.warn("⚠️ 저장할 식단 레코드가 없습니다");
+      console.log(
+        "✅ generateWeeklyDiet에서 diet_plans가 이미 저장되어 재저장을 건너뜁니다.",
+      );
     }
 
     // 8-3. 장보기 리스트 저장 - service-role 클라이언트 사용
     if (weeklyDiet.shoppingList.length > 0) {
+      console.time("[weekly] persist shopping list");
       const shoppingRecords = weeklyDiet.shoppingList.map((item) => ({
         weekly_diet_plan_id: weeklyPlanId,
         ingredient_name: item.ingredient_name,
@@ -499,13 +516,17 @@ export async function POST(request: NextRequest) {
       } else {
         console.log(`✅ 장보기 리스트 ${shoppingRecords.length}개 저장 완료`);
       }
+      console.timeEnd("[weekly] persist shopping list");
     }
 
     // 8-4. 영양 통계 저장 - service-role 클라이언트 사용
     if (weeklyDiet.nutritionStats.length > 0) {
+      console.time("[weekly] persist nutrition stats");
       const statsRecords = weeklyDiet.nutritionStats.map((stat) => ({
         weekly_diet_plan_id: weeklyPlanId,
-        day_of_week: stat.day_of_week,
+        // DB 스키마(complete_schema.sql)는 day_of_week가 0~6(0=일요일) 체크를 가집니다.
+        // 일부 로직은 1~7(7=일요일)로 생성하므로, 저장 전에 0~6으로 정규화합니다.
+        day_of_week: stat.day_of_week === 7 ? 0 : stat.day_of_week,
         date: stat.date,
         total_calories: stat.total_calories,
         total_carbohydrates: stat.total_carbohydrates,
@@ -526,6 +547,7 @@ export async function POST(request: NextRequest) {
       } else {
         console.log(`✅ 영양 통계 ${statsRecords.length}개 저장 완료`);
       }
+      console.timeEnd("[weekly] persist nutrition stats");
     }
 
     console.log("✅ 주간 식단 생성 및 저장 완료");
@@ -562,10 +584,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: error instanceof Error ? err.message : "Internal server error",
-        details: process.env.NODE_ENV === "development" ? (error instanceof Error ? error.stack : undefined) : undefined
+        details:
+          process.env.NODE_ENV === "development"
+            ? error instanceof Error
+              ? error.stack
+              : undefined
+            : undefined,
       },
-      { status: 500 }
+      { status: 500 },
     );
+  } finally {
+    console.timeEnd("[weekly] total");
   }
 }
 
@@ -664,13 +693,13 @@ function buildCompositionMealRecord({
         ? summaryItems.join(" · ")
         : `${MEAL_LABEL_MAP[mealType]} 식사`,
     recipe_description: `${MEAL_LABEL_MAP[mealType]} 식사 구성`,
-    calories: getNutritionValue(nutrition, "calories"),
+    calories: toInt(getNutritionValue(nutrition, "calories"), 0),
     carbs_g: getNutritionValue(nutrition, "carbohydrates", "carbs"),
     protein_g: getNutritionValue(nutrition, "protein"),
     fat_g: getNutritionValue(nutrition, "fat"),
-    sodium_mg: getNutritionValue(nutrition, "sodium"),
-    potassium_mg: getNutritionValue(nutrition, "potassium") || null,
-    phosphorus_mg: getNutritionValue(nutrition, "phosphorus") || null,
+    sodium_mg: toInt(getNutritionValue(nutrition, "sodium"), 0),
+    potassium_mg: toIntOrNull(getNutritionValue(nutrition, "potassium")),
+    phosphorus_mg: toIntOrNull(getNutritionValue(nutrition, "phosphorus")),
     gi_index: getNutritionValue(nutrition, "gi") || null,
     composition_summary: summaryPayload,
     is_unified: false,
@@ -710,13 +739,13 @@ function buildSingleRecipeRecord({
     recipe_title: recipe.title || `${MEAL_LABEL_MAP[mealType]} 식사`,
     recipe_description:
       recipe.description || `${MEAL_LABEL_MAP[mealType]} 식사`,
-    calories: getNutritionValue(nutrition, "calories"),
+    calories: toInt(getNutritionValue(nutrition, "calories"), 0),
     carbs_g: getNutritionValue(nutrition, "carbohydrates", "carbs"),
     protein_g: getNutritionValue(nutrition, "protein"),
     fat_g: getNutritionValue(nutrition, "fat"),
-    sodium_mg: getNutritionValue(nutrition, "sodium"),
-    potassium_mg: getNutritionValue(nutrition, "potassium") || null,
-    phosphorus_mg: getNutritionValue(nutrition, "phosphorus") || null,
+    sodium_mg: toInt(getNutritionValue(nutrition, "sodium"), 0),
+    potassium_mg: toIntOrNull(getNutritionValue(nutrition, "potassium")),
+    phosphorus_mg: toIntOrNull(getNutritionValue(nutrition, "phosphorus")),
     gi_index: getNutritionValue(nutrition, "gi") || null,
     composition_summary: summaryPayload,
     is_unified: false,
@@ -763,13 +792,13 @@ function findFirstRecipeId(meal: MealComposition): string | null {
 }
 
 function isMealCompositionMeal(
-  meal: MealComposition | RecipeDetailForDiet | undefined
+  meal: MealComposition | RecipeDetailForDiet | undefined,
 ): meal is MealComposition {
   return Boolean(
     meal &&
-      typeof meal === "object" &&
-      "totalNutrition" in meal &&
-      "sides" in meal
+    typeof meal === "object" &&
+    "totalNutrition" in meal &&
+    "sides" in meal,
   );
 }
 
@@ -795,4 +824,3 @@ function normalizeNutritionValue(value: number | string | null | undefined) {
     typeof value === "string" ? parseFloat(value) : Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
 }
-

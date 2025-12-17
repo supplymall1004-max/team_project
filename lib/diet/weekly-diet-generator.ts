@@ -1,7 +1,7 @@
 /**
  * @file lib/diet/weekly-diet-generator.ts
  * @description 주간 식단 생성기 (7일치 식단 한 번에 생성)
- * 
+ *
  * 핵심 로직:
  * 1. 월요일~일요일 7일치 식단 생성
  * 2. 주간 내 레시피 중복 최소화
@@ -18,28 +18,40 @@ import type {
   IngredientCategory,
   WeeklyDailyPlan,
 } from "@/types/weekly-diet";
-import type { MealComposition, RecipeDetailForDiet, FamilyDietPlan } from "@/types/recipe";
+import type {
+  MealComposition,
+  RecipeDetailForDiet,
+  FamilyDietPlan,
+} from "@/types/recipe";
 import type {
   DailyDietPlan as StoredDailyDietPlan,
   DietPlan,
 } from "@/types/health";
 import type { FamilyMember } from "@/types/family";
 import type { UserHealthProfile } from "@/types/health";
-import { generateAndSaveDietPlan } from "@/lib/diet/queries";
+import { getRecipesWithNutrition } from "@/lib/diet/queries";
 import { generateFamilyDiet } from "./family-diet-generator";
 import { createPublicSupabaseServerClient } from "@/lib/supabase/public-server";
+import { generatePersonalDiet } from "@/lib/diet/personal-diet-generator";
 
 /**
  * 주간 식단 생성 (메인 함수)
  */
 export async function generateWeeklyDiet(
-  options: WeeklyDietGenerationOptions
+  options: WeeklyDietGenerationOptions,
 ): Promise<WeeklyDiet> {
   console.group("📅 주간 식단 생성");
   console.log("시작 날짜:", options.weekStartDate);
   console.log("사용자 ID:", options.userId);
 
   const startTime = Date.now();
+
+  // ✅ 성능 + 품질:
+  // - 주간 식단은 하루 식단을 7번 생성하므로, 레시피 후보는 주간 1회만 로딩해서 공유합니다.
+  // - 간식은 끼니(아침/점심/저녁)과 별개지만, 사용자 요구사항상 "제철 과일 간식"이 중요하므로
+  //   주간 식단에서도 snack을 함께 생성/저장합니다. (중복은 주간 컨텍스트로 방지)
+  const weeklyAvailableRecipes = await getRecipesWithNutrition(50);
+  console.log("📚 주간 레시피 후보 로드:", weeklyAvailableRecipes.length);
 
   // 1. 주차 정보 계산
   const weekInfo = getWeekInfo(options.weekStartDate);
@@ -55,24 +67,24 @@ export async function generateWeeklyDiet(
   const usedRecipeIds = new Set<string>();
   const usedRecipeTitles = new Set<string>(); // 레시피 제목으로도 추적 (ID가 없는 경우 대비)
   const weeklyRecipeFrequency = new Map<string, number>(); // 주간 내 레시피 사용 빈도
-  
+
   // 카테고리별 사용 추적 (반찬, 국, 간식은 주간 내 2번 이상 겹치지 않게)
   // 기존 식단의 반찬/국/찌개를 제외 목록에 추가 (재생성 시)
   const usedByCategory = {
-    rice: options.existingUsedByCategory?.rice 
-      ? new Set<string>(options.existingUsedByCategory.rice)  // Set 복사
-      : new Set<string>(),      // 밥 종류 추적 (다양화용)
-    side: options.existingUsedByCategory?.side 
-      ? new Set<string>(options.existingUsedByCategory.side)  // Set 복사
-      : new Set<string>(),      // 반찬 추적
-    soup: options.existingUsedByCategory?.soup 
-      ? new Set<string>(options.existingUsedByCategory.soup)  // Set 복사
-      : new Set<string>(),      // 국/찌개 추적
-    snack: options.existingUsedByCategory?.snack 
-      ? new Set<string>(options.existingUsedByCategory.snack)  // Set 복사
-      : new Set<string>(),     // 간식 추적
+    rice: options.existingUsedByCategory?.rice
+      ? new Set<string>(options.existingUsedByCategory.rice) // Set 복사
+      : new Set<string>(), // 밥 종류 추적 (다양화용)
+    side: options.existingUsedByCategory?.side
+      ? new Set<string>(options.existingUsedByCategory.side) // Set 복사
+      : new Set<string>(), // 반찬 추적
+    soup: options.existingUsedByCategory?.soup
+      ? new Set<string>(options.existingUsedByCategory.soup) // Set 복사
+      : new Set<string>(), // 국/찌개 추적
+    snack: options.existingUsedByCategory?.snack
+      ? new Set<string>(options.existingUsedByCategory.snack) // Set 복사
+      : new Set<string>(), // 간식 추적
   };
-  
+
   if (options.existingUsedByCategory) {
     console.log("📋 기존 식단 제외 목록 적용:", {
       rice: Array.from(usedByCategory.rice),
@@ -81,19 +93,119 @@ export async function generateWeeklyDiet(
       snack: Array.from(usedByCategory.snack),
     });
   }
-  
+
   // 밥 종류 다양화를 위한 인덱스 (흰쌀밥, 현미밥, 잡곡밥 순환)
   let riceTypeIndex = 0;
   const riceTypes = ["흰쌀밥", "현미밥", "잡곡밥"];
 
   // 주간 식단 생성 전략: 다양성 수준에 따라 중복 허용 범위 설정
-  const maxRepeatsPerWeek = options.diversityLevel === "high" ? 1 : options.diversityLevel === "medium" ? 2 : 3;
+  const maxRepeatsPerWeek =
+    options.diversityLevel === "high"
+      ? 1
+      : options.diversityLevel === "medium"
+        ? 2
+        : 3;
 
   for (let dayIndex = 0; dayIndex < dates.length; dayIndex++) {
     const date = dates[dayIndex];
     console.log(`\n📆 ${date} 식단 생성 중... (${dayIndex + 1}/7)`);
 
     let dailyPlan: WeeklyDailyPlan | null = null;
+    const preferredRice = riceTypes[riceTypeIndex % riceTypes.length];
+
+    const isValidMeal = (meal: MealComposition | null) => {
+      if (!meal) return false;
+      const riceOk = Boolean(meal.rice?.title);
+      const soupOk = Boolean(meal.soup?.title);
+      const sidesOk = Array.isArray(meal.sides) && meal.sides.length === 3;
+      return riceOk && soupOk && sidesOk;
+    };
+
+    /**
+     * 주간 식단 품질 보장(중요):
+     * - 주말/특정 조건에서 저녁이 null로 생성되는 케이스가 있어, DB에 dinner 레코드가 저장되지 않는 문제가 발생했습니다.
+     * - 주간은 "밥+반찬3+국/찌개" 규칙이 깨지면 UX가 크게 무너져서,
+     *   개인 식단 생성 로직을 재사용하여 최대 3회(제외 조건 완화) 자동 복구합니다.
+     */
+    const ensureCompletePersonalDailyPlan = async (): Promise<WeeklyDailyPlan | null> => {
+      const attempts = [
+        { usedByCategory }, // 1) 정상(주간 제외 목록 적용)
+        {
+          // 2) 반찬/국 제외를 완화(주말 저녁 누락 방지)
+          usedByCategory: {
+            rice: usedByCategory.rice,
+            side: new Set<string>(),
+            soup: new Set<string>(),
+            snack: new Set<string>(),
+          },
+        },
+        {
+          // 3) 전부 완화(무조건 생성 우선)
+          usedByCategory: {
+            rice: new Set<string>(),
+            side: new Set<string>(),
+            soup: new Set<string>(),
+            snack: new Set<string>(),
+          },
+        },
+      ] as const;
+
+      for (let i = 0; i < attempts.length; i++) {
+        console.log(`🧪 [weekly] 개인 식단 복구 시도 ${i + 1}/${attempts.length}`, {
+          date,
+          preferredRice,
+        });
+
+        const result = await generatePersonalDiet(
+          options.userId,
+          options.profile,
+          date,
+          weeklyAvailableRecipes,
+          attempts[i].usedByCategory,
+          preferredRice,
+          undefined,
+          false,
+        );
+
+        const breakfast = (result.breakfast as unknown as MealComposition | null) ?? null;
+        const lunch = (result.lunch as unknown as MealComposition | null) ?? null;
+        const dinner = (result.dinner as unknown as MealComposition | null) ?? null;
+
+        const valid = isValidMeal(breakfast) && isValidMeal(lunch) && isValidMeal(dinner);
+        if (!valid) {
+          console.warn("⚠️ [weekly] 구성 규칙 미충족(복구 재시도):", {
+            date,
+            breakfast: {
+              rice: breakfast?.rice?.title,
+              sides: breakfast?.sides?.length ?? 0,
+              soup: breakfast?.soup?.title,
+            },
+            lunch: {
+              rice: lunch?.rice?.title,
+              sides: lunch?.sides?.length ?? 0,
+              soup: lunch?.soup?.title,
+            },
+            dinner: {
+              rice: dinner?.rice?.title,
+              sides: dinner?.sides?.length ?? 0,
+              soup: dinner?.soup?.title,
+            },
+          });
+          continue;
+        }
+
+        return {
+          date,
+          breakfast,
+          lunch,
+          dinner,
+          snack: (result.snack as any) ?? null,
+          totalNutrition: result.totalNutrition,
+        } as any;
+      }
+
+      return null;
+    };
 
     if (options.familyMembers && options.familyMembers.length > 0) {
       // 가족 식단 생성 (주간 중복 방지 로직 포함)
@@ -107,32 +219,52 @@ export async function generateWeeklyDiet(
         maxRepeatsPerWeek,
         dayIndex === 0, // 첫 날은 최근 사용 레시피 회피
         usedByCategory, // 카테고리별 제외 목록
-        riceTypes[riceTypeIndex % riceTypes.length] // 밥 종류 다양화
+        preferredRice, // 밥 종류 다양화
       );
-      dailyPlan = familyPlan.unifiedPlan || familyPlan.individualPlans["user"] || null;
+      dailyPlan =
+        familyPlan.unifiedPlan || familyPlan.individualPlans["user"] || null;
       dailyPlansPersisted = false;
-    } else {
-      // 개인 식단 생성 (건강 맞춤 식단과 동일한 로직 사용)
-      // 주간 컨텍스트(usedByCategory, preferredRiceType)를 전달하여 중복 방지
-      const storedPlan = await generateAndSaveDietPlan(
-        options.userId,
-        date,
-        false, // includeFavorites (주간 식단에서는 기본적으로 찜한 식단 미포함)
-        usedByCategory, // 카테고리별 제외 목록 (주간 중복 방지)
-        riceTypes[riceTypeIndex % riceTypes.length] // 밥 종류 다양화
-      );
 
-      if (!storedPlan) {
-        console.warn("⚠️ 개인 식단 생성 실패 - 빈 데이터로 대체:", date);
-      } else {
-        dailyPlan = storedPlan;
-        dailyPlansPersisted = true;
+      // ✅ 가족 경로에서도 “사용자 화면(주간 캘린더)”에 저녁 누락이 자주 발생할 수 있어,
+      // 개인 식단으로 최소한의 품질(규칙 준수)을 보장합니다.
+      // (가족 통합 식단이 더 중요하더라도, '저녁 없음'은 UX 치명적이어서 우선 복구)
+      const maybeDinner = (dailyPlan as any)?.dinner ?? null;
+      const isDinnerOk =
+        typeof maybeDinner === "object" &&
+        maybeDinner &&
+        "sides" in maybeDinner &&
+        isValidMeal(maybeDinner as MealComposition);
+      if (!isDinnerOk) {
+        console.warn("⚠️ [weekly] 가족 경로에서 저녁 누락/규칙 위반 감지 → 개인 식단으로 복구 시도", {
+          date,
+        });
+        dailyPlan = await ensureCompletePersonalDailyPlan();
+      }
+    } else {
+      // ✅ 개인 주간 식단 생성(중요):
+      // - 기존에는 generateAndSaveDietPlan → generatePersonalDietForAPI 경로로 가며
+      //   "밥+국/찌개+반찬3종" 구조(MealComposition)가 대표 레시피 1개로 축약되어
+      //   아침/점심/저녁이 쉽게 겹치거나, 반찬 3종이 깨지는 문제가 있었습니다.
+      // - 주간 식단은 generatePersonalDiet(원본 로직)를 직접 호출하여 구조를 보존합니다.
+      // - 저녁이 생성되지 않는 경우가 있으므로, 조건을 완화하며 최대 3회 재시도합니다.
+
+      dailyPlan = await ensureCompletePersonalDailyPlan();
+      dailyPlansPersisted = false;
+
+      if (!dailyPlan) {
+        console.error("❌ 개인 식단 생성 실패(모든 재시도 실패):", date);
       }
     }
 
     // 사용된 레시피 추적 (중복 방지용)
     if (dailyPlan) {
-      trackUsedRecipes(dailyPlan, usedRecipeIds, usedRecipeTitles, weeklyRecipeFrequency, usedByCategory);
+      trackUsedRecipes(
+        dailyPlan,
+        usedRecipeIds,
+        usedRecipeTitles,
+        weeklyRecipeFrequency,
+        usedByCategory,
+      );
       dailyPlans[date] = dailyPlan;
       // 밥 종류 인덱스 증가 (다음 날 다른 밥 종류 사용)
       riceTypeIndex++;
@@ -141,13 +273,19 @@ export async function generateWeeklyDiet(
 
   console.log(`\n📊 주간 레시피 다양성 통계:`);
   console.log(`- 총 사용 레시피: ${usedRecipeIds.size}개`);
-  console.log(`- 중복 없이 사용된 레시피: ${Array.from(weeklyRecipeFrequency.values()).filter(count => count === 1).length}개`);
-  console.log(`- 2회 이상 사용된 레시피: ${Array.from(weeklyRecipeFrequency.values()).filter(count => count > 1).length}개`);
+  console.log(
+    `- 중복 없이 사용된 레시피: ${Array.from(weeklyRecipeFrequency.values()).filter((count) => count === 1).length}개`,
+  );
+  console.log(
+    `- 2회 이상 사용된 레시피: ${Array.from(weeklyRecipeFrequency.values()).filter((count) => count > 1).length}개`,
+  );
   console.log(`\n📊 카테고리별 사용 통계:`);
-  console.log(`- 밥 종류: ${usedByCategory.rice.size}개 (${Array.from(usedByCategory.rice).join(', ')})`);
+  console.log(
+    `- 밥 종류: ${usedByCategory.rice.size}개 (${Array.from(usedByCategory.rice).join(", ")})`,
+  );
   console.log(`- 반찬: ${usedByCategory.side.size}개`);
   console.log(`- 국/찌개: ${usedByCategory.soup.size}개`);
-  console.log(`- 간식: ${usedByCategory.snack.size}개`);
+  console.log(`- 간식(주간 끼니 제외): ${usedByCategory.snack.size}개`);
 
   // 4. 장보기 리스트 생성
   console.log("\n🛒 장보기 리스트 생성 중...");
@@ -161,14 +299,20 @@ export async function generateWeeklyDiet(
   const nutritionStats = generateNutritionStats(dailyPlans, dates);
   console.log("📊 생성된 영양 통계:", nutritionStats.length, "일");
   if (nutritionStats.length > 0) {
-    const totalCalories = nutritionStats.reduce((sum, stat) => sum + (stat.total_calories || 0), 0);
+    const totalCalories = nutritionStats.reduce(
+      (sum, stat) => sum + (stat.total_calories || 0),
+      0,
+    );
     console.log("📊 총 칼로리:", totalCalories, "kcal");
-    console.log("📊 일별 칼로리 상세:", nutritionStats.map(stat => ({
-      날짜: stat.date,
-      요일: stat.day_of_week,
-      칼로리: stat.total_calories,
-      식사수: stat.meal_count
-    })));
+    console.log(
+      "📊 일별 칼로리 상세:",
+      nutritionStats.map((stat) => ({
+        날짜: stat.date,
+        요일: stat.day_of_week,
+        칼로리: stat.total_calories,
+        식사수: stat.meal_count,
+      })),
+    );
   }
 
   const duration = Date.now() - startTime;
@@ -198,18 +342,21 @@ export async function generateWeeklyDiet(
 /**
  * ISO 8601 주차 정보 계산
  */
-export function getWeekInfo(dateString: string): { year: number; weekNumber: number } {
+export function getWeekInfo(dateString: string): {
+  year: number;
+  weekNumber: number;
+} {
   const date = new Date(dateString);
-  
+
   // ISO 8601 주차 계산
   const dayOfWeek = date.getDay() || 7; // 일요일=7로 변환
   const nearestThursday = new Date(date);
   nearestThursday.setDate(date.getDate() + 4 - dayOfWeek);
-  
+
   const year = nearestThursday.getFullYear();
   const yearStart = new Date(year, 0, 1);
   const weekNumber = Math.ceil(
-    ((nearestThursday.getTime() - yearStart.getTime()) / 86400000 + 1) / 7
+    ((nearestThursday.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
   );
 
   return { year, weekNumber };
@@ -245,8 +392,9 @@ function trackUsedRecipes(
     side: Set<string>;
     soup: Set<string>;
     snack: Set<string>;
-  }
+  },
 ): void {
+  // ✅ 요구사항: 간식(제철 과일)도 주간에서 중복을 피하도록 추적합니다.
   const meals = ["breakfast", "lunch", "dinner", "snack"] as const;
 
   if (isStoredDailyPlan(dailyPlan)) {
@@ -254,16 +402,16 @@ function trackUsedRecipes(
       const meal = dailyPlan[mealType] as DietPlan | null;
       const recipeId = meal?.recipe_id;
       const recipeTitle = meal?.recipe?.title;
-      
+
       if (recipeId) {
         usedRecipeIds.add(recipeId);
       }
-      
+
       if (recipeTitle) {
         usedRecipeTitles.add(recipeTitle);
         const currentCount = weeklyRecipeFrequency.get(recipeTitle) || 0;
         weeklyRecipeFrequency.set(recipeTitle, currentCount + 1);
-        
+
         // 카테고리별 추적 (간식은 snack 카테고리로)
         if (mealType === "snack") {
           usedByCategory.snack.add(recipeTitle);
@@ -276,26 +424,25 @@ function trackUsedRecipes(
 
   for (const mealType of meals) {
     const meal = dailyPlan[mealType];
-    
-    // 간식은 별도 처리
+
+    // 아침/점심/저녁은 MealComposition 구조
     if (mealType === "snack") {
-      const snackRecipe = meal as RecipeDetailForDiet | undefined;
-      if (snackRecipe?.title) {
-        usedRecipeIds.add(snackRecipe.id || snackRecipe.title);
-        usedRecipeTitles.add(snackRecipe.title);
-        const currentCount = weeklyRecipeFrequency.get(snackRecipe.title) || 0;
-        weeklyRecipeFrequency.set(snackRecipe.title, currentCount + 1);
-        usedByCategory.snack.add(snackRecipe.title);
+      const snack = meal as RecipeDetailForDiet | null | undefined;
+      if (snack?.title) {
+        usedRecipeIds.add(snack.id || snack.title);
+        usedRecipeTitles.add(snack.title);
+        const currentCount = weeklyRecipeFrequency.get(snack.title) || 0;
+        weeklyRecipeFrequency.set(snack.title, currentCount + 1);
+        usedByCategory.snack.add(snack.title);
       }
       continue;
     }
-    
-    // 아침/점심/저녁은 MealComposition 구조
+
     const mealComposition = meal as MealComposition | undefined;
     if (!mealComposition || !isMealComposition(mealComposition)) {
       continue;
     }
-    
+
     // 밥 추적
     if (mealComposition.rice?.title) {
       const riceTitle = mealComposition.rice.title;
@@ -305,7 +452,7 @@ function trackUsedRecipes(
       weeklyRecipeFrequency.set(riceTitle, currentCount + 1);
       usedByCategory.rice.add(riceTitle);
     }
-    
+
     // 반찬 추적
     if (mealComposition.sides?.length) {
       for (const side of mealComposition.sides) {
@@ -318,7 +465,7 @@ function trackUsedRecipes(
         }
       }
     }
-    
+
     // 국/찌개 추적
     if (mealComposition.soup?.title) {
       const soupTitle = mealComposition.soup.title;
@@ -349,7 +496,7 @@ async function generateFamilyDietWithWeeklyContext(
     soup: Set<string>;
     snack: Set<string>;
   },
-  preferredRiceType?: string
+  preferredRiceType?: string,
 ): Promise<FamilyDietPlan> {
   // 주간 컨텍스트를 고려한 가족 식단 생성
   // 카테고리별 제외 목록과 밥 종류를 전달
@@ -361,8 +508,9 @@ async function generateFamilyDietWithWeeklyContext(
     snack: Array.from(usedByCategory.snack),
   });
   console.log("선호 밥 종류:", preferredRiceType);
-  
-  const { generateFamilyDietWithWeeklyContext: generateFamilyDietWithContext } = await import("./family-diet-generator");
+
+  const { generateFamilyDietWithWeeklyContext: generateFamilyDietWithContext } =
+    await import("./family-diet-generator");
   try {
     return await generateFamilyDietWithContext(
       userId,
@@ -370,7 +518,7 @@ async function generateFamilyDietWithWeeklyContext(
       familyMembers,
       targetDate,
       usedByCategory,
-      preferredRiceType
+      preferredRiceType,
     );
   } catch (error) {
     console.error("❌ 가족 식단 생성 실패:", error);
@@ -387,6 +535,12 @@ async function generateFamilyDietWithWeeklyContext(
 async function generateShoppingList(dailyPlans: {
   [date: string]: WeeklyDailyPlan;
 }): Promise<ShoppingListItem[]> {
+  // ✅ 성능 개선:
+  // 기존 로직은 recipeId마다 DB를 1번씩 조회해서 (최대 7일×4끼니×구성요소) 매우 느려질 수 있습니다.
+  // 여기서는 1) 주간에 사용된 recipe_id를 모두 수집한 뒤,
+  // 2) recipe_ingredients를 .in(...)으로 한 번에 조회하여
+  // 3) 메모리에서 집계합니다.
+
   const ingredientMap = new Map<
     string,
     {
@@ -397,19 +551,16 @@ async function generateShoppingList(dailyPlans: {
     }
   >();
 
-  // 모든 식단의 재료 수집
-  for (const dailyPlan of Object.values(dailyPlans)) {
-    const meals = ["breakfast", "lunch", "dinner", "snack"] as const;
+  const recipeIds = new Set<string>();
+  const meals = ["breakfast", "lunch", "dinner"] as const;
 
+  for (const dailyPlan of Object.values(dailyPlans)) {
     if (isStoredDailyPlan(dailyPlan)) {
       for (const mealType of meals) {
         const plan = dailyPlan[mealType] as DietPlan | null;
-        if (!plan?.recipe_id) continue;
-
-        await aggregateIngredients({
-          recipeId: plan.recipe_id,
-          ingredientMap,
-        });
+        if (plan?.recipe_id) {
+          recipeIds.add(plan.recipe_id);
+        }
       }
       continue;
     }
@@ -417,15 +568,35 @@ async function generateShoppingList(dailyPlans: {
     for (const mealType of meals) {
       const meal = dailyPlan[mealType];
       const recipes = extractRecipesFromMeal(meal);
-
       for (const recipe of recipes) {
-        if (!recipe?.id) continue;
-
-        await aggregateIngredients({
-          recipeId: recipe.id,
-          ingredientMap,
-        });
+        if (recipe?.id) {
+          recipeIds.add(recipe.id);
+        }
       }
+    }
+  }
+
+  if (recipeIds.size === 0) {
+    return [];
+  }
+
+  const recipeIdList = Array.from(recipeIds);
+  console.log(`🛒 재료 조회 대상 레시피: ${recipeIdList.length}개 (batch)`);
+
+  const ingredients = await fetchIngredientsForRecipes(recipeIdList);
+  for (const ing of ingredients) {
+    const key = `${ing.name}|${ing.unit}`;
+    const existing = ingredientMap.get(key);
+    if (existing) {
+      existing.quantity += ing.quantity;
+      existing.recipes.add(ing.recipe_id);
+    } else {
+      ingredientMap.set(key, {
+        quantity: ing.quantity,
+        unit: ing.unit,
+        category: ing.category,
+        recipes: new Set([ing.recipe_id]),
+      });
     }
   }
 
@@ -433,7 +604,7 @@ async function generateShoppingList(dailyPlans: {
   const shoppingList: ShoppingListItem[] = [];
   for (const [key, data] of ingredientMap.entries()) {
     const name = key.split("|")[0];
-    
+
     shoppingList.push({
       ingredient_name: name,
       total_quantity: data.quantity,
@@ -455,16 +626,14 @@ async function generateShoppingList(dailyPlans: {
   return shoppingList;
 }
 
-function isStoredDailyPlan(
-  plan: WeeklyDailyPlan
-): plan is StoredDailyDietPlan {
+function isStoredDailyPlan(plan: WeeklyDailyPlan): plan is StoredDailyDietPlan {
   if (!plan) return false;
   const meal = plan.breakfast ?? plan.lunch ?? plan.dinner ?? plan.snack;
   return Boolean(meal && typeof meal === "object" && "meal_type" in meal);
 }
 
 function extractRecipesFromMeal(
-  meal: MealComposition | RecipeDetailForDiet | undefined
+  meal: MealComposition | RecipeDetailForDiet | undefined,
 ): RecipeDetailForDiet[] {
   if (!meal) {
     return [];
@@ -492,13 +661,13 @@ function extractRecipesFromMeal(
 }
 
 function isMealComposition(
-  meal: MealComposition | RecipeDetailForDiet | undefined
+  meal: MealComposition | RecipeDetailForDiet | undefined,
 ): meal is MealComposition {
   return Boolean(
     meal &&
-      typeof meal === "object" &&
-      "totalNutrition" in meal &&
-      "sides" in meal
+    typeof meal === "object" &&
+    "totalNutrition" in meal &&
+    "sides" in meal,
   );
 }
 
@@ -517,31 +686,18 @@ async function aggregateIngredients({
     }
   >;
 }) {
-  const ingredients = await fetchRecipeIngredients(recipeId);
-
-  for (const ingredient of ingredients) {
-    const key = `${ingredient.name}|${ingredient.unit}`;
-
-    const existing = ingredientMap.get(key);
-
-    if (existing) {
-      existing.quantity += ingredient.quantity;
-      existing.recipes.add(ingredient.recipe_id);
-    } else {
-      ingredientMap.set(key, {
-        quantity: ingredient.quantity,
-        unit: ingredient.unit,
-        category: ingredient.category,
-        recipes: new Set([ingredient.recipe_id]),
-      });
-    }
-  }
+  // NOTE: 성능 개선으로 인해 generateShoppingList에서 batch 집계를 사용합니다.
+  // 이 함수는 기존 구현 호환을 위해 남겨두되, 더 이상 사용하지 않습니다.
+  void recipeId;
+  void ingredientMap;
 }
 
 /**
  * 레시피 재료 가져오기 (DB에서 조회)
  */
-async function fetchRecipeIngredients(recipeId: string): Promise<IngredientInfo[]> {
+async function fetchRecipeIngredients(
+  recipeId: string,
+): Promise<IngredientInfo[]> {
   try {
     const supabase = createPublicSupabaseServerClient();
 
@@ -570,19 +726,61 @@ async function fetchRecipeIngredients(recipeId: string): Promise<IngredientInfo[
   }
 }
 
+async function fetchIngredientsForRecipes(
+  recipeIds: string[],
+): Promise<IngredientInfo[]> {
+  try {
+    const supabase = createPublicSupabaseServerClient();
+
+    // Supabase IN 필터가 너무 길어지는 것을 막기 위해 청크 단위로 조회
+    const chunkSize = 100;
+    const all: IngredientInfo[] = [];
+
+    for (let i = 0; i < recipeIds.length; i += chunkSize) {
+      const chunk = recipeIds.slice(i, i + chunkSize);
+      const { data: rows, error } = await supabase
+        .from("recipe_ingredients")
+        .select("recipe_id, ingredient_name, quantity, unit, category")
+        .in("recipe_id", chunk);
+
+      if (error || !rows) {
+        console.warn("⚠️ 레시피 재료 batch 조회 실패:", error);
+        continue;
+      }
+
+      all.push(
+        ...(rows as any[]).map((ing) => ({
+          name: ing.ingredient_name,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          category: ing.category as IngredientCategory,
+          recipe_id: ing.recipe_id,
+          recipe_title: "",
+        })),
+      );
+    }
+
+    return all;
+  } catch (error) {
+    console.error("❌ 재료 batch 조회 오류:", error);
+    return [];
+  }
+}
+
 /**
  * 주간 영양 통계 생성
  * 모든 날짜(일요일 포함)에 대해 통계를 생성하며, 식단이 없는 날짜는 0으로 처리
  */
 function generateNutritionStats(
   dailyPlans: { [date: string]: WeeklyDailyPlan },
-  dates: string[]
+  dates: string[],
 ): WeeklyNutritionStats[] {
   const stats: WeeklyNutritionStats[] = [];
 
   dates.forEach((date, index) => {
     const dailyPlan = dailyPlans[date];
     const dayOfWeek = index + 1; // 1=월요일, 7=일요일
+    // ✅ 요구사항: 주간 통계에도 간식을 포함합니다.
     const meals = ["breakfast", "lunch", "dinner", "snack"] as const;
 
     let totalCalories = 0;
@@ -595,22 +793,39 @@ function generateNutritionStats(
     // 식단이 있는 경우에만 계산
     if (dailyPlan) {
       const isStored = isStoredDailyPlan(dailyPlan);
-      console.log(`📊 ${date} 식단 타입: ${isStored ? 'StoredDailyPlan' : 'MealComposition/RecipeDetailForDiet'}`);
-      
+      console.log(
+        `📊 ${date} 식단 타입: ${isStored ? "StoredDailyPlan" : "MealComposition/RecipeDetailForDiet"}`,
+      );
+
       if (isStored) {
         for (const mealType of meals) {
           const meal = dailyPlan[mealType] as DietPlan | null;
           if (!meal) continue;
-          
+
           // 칼로리 계산: null이나 undefined가 아닌 경우에만 합산
-          const calories = typeof meal.calories === 'number' ? meal.calories : Number(meal.calories) || 0;
-          const carbs = typeof meal.carbohydrates === 'number' ? meal.carbohydrates : Number(meal.carbohydrates) || 0;
-          const protein = typeof meal.protein === 'number' ? meal.protein : Number(meal.protein) || 0;
-          const fat = typeof meal.fat === 'number' ? meal.fat : Number(meal.fat) || 0;
-          const sodium = typeof meal.sodium === 'number' ? meal.sodium : Number(meal.sodium) || 0;
-          
-          console.log(`  ${mealType}: ${calories}kcal (칼로리: ${meal.calories}, 탄수화물: ${meal.carbohydrates}, 단백질: ${meal.protein})`);
-          
+          const calories =
+            typeof meal.calories === "number"
+              ? meal.calories
+              : Number(meal.calories) || 0;
+          const carbs =
+            typeof meal.carbohydrates === "number"
+              ? meal.carbohydrates
+              : Number(meal.carbohydrates) || 0;
+          const protein =
+            typeof meal.protein === "number"
+              ? meal.protein
+              : Number(meal.protein) || 0;
+          const fat =
+            typeof meal.fat === "number" ? meal.fat : Number(meal.fat) || 0;
+          const sodium =
+            typeof meal.sodium === "number"
+              ? meal.sodium
+              : Number(meal.sodium) || 0;
+
+          console.log(
+            `  ${mealType}: ${calories}kcal (칼로리: ${meal.calories}, 탄수화물: ${meal.carbohydrates}, 단백질: ${meal.protein})`,
+          );
+
           totalCalories += calories;
           totalCarbs += carbs;
           totalProtein += protein;
@@ -621,20 +836,39 @@ function generateNutritionStats(
       } else {
         // MealComposition 또는 RecipeDetailForDiet 타입인 경우
         for (const mealType of meals) {
-          const meal = dailyPlan[mealType] as MealComposition | RecipeDetailForDiet | DietPlan | undefined;
+          const meal = dailyPlan[mealType] as
+            | MealComposition
+            | RecipeDetailForDiet
+            | DietPlan
+            | undefined;
           if (!meal) continue;
-          
+
           // DietPlan 타입인 경우 (직접 필드 접근)
-          if ('calories' in meal && 'meal_type' in meal) {
+          if ("calories" in meal && "meal_type" in meal) {
             const dietPlan = meal as DietPlan;
-            const calories = typeof dietPlan.calories === 'number' ? dietPlan.calories : Number(dietPlan.calories) || 0;
-            const carbs = typeof dietPlan.carbohydrates === 'number' ? dietPlan.carbohydrates : Number(dietPlan.carbohydrates) || 0;
-            const protein = typeof dietPlan.protein === 'number' ? dietPlan.protein : Number(dietPlan.protein) || 0;
-            const fat = typeof dietPlan.fat === 'number' ? dietPlan.fat : Number(dietPlan.fat) || 0;
-            const sodium = typeof dietPlan.sodium === 'number' ? dietPlan.sodium : Number(dietPlan.sodium) || 0;
-            
+            const calories =
+              typeof dietPlan.calories === "number"
+                ? dietPlan.calories
+                : Number(dietPlan.calories) || 0;
+            const carbs =
+              typeof dietPlan.carbohydrates === "number"
+                ? dietPlan.carbohydrates
+                : Number(dietPlan.carbohydrates) || 0;
+            const protein =
+              typeof dietPlan.protein === "number"
+                ? dietPlan.protein
+                : Number(dietPlan.protein) || 0;
+            const fat =
+              typeof dietPlan.fat === "number"
+                ? dietPlan.fat
+                : Number(dietPlan.fat) || 0;
+            const sodium =
+              typeof dietPlan.sodium === "number"
+                ? dietPlan.sodium
+                : Number(dietPlan.sodium) || 0;
+
             console.log(`  ${mealType} (DietPlan): ${calories}kcal`);
-            
+
             totalCalories += calories;
             totalCarbs += carbs;
             totalProtein += protein;
@@ -643,16 +877,31 @@ function generateNutritionStats(
             mealCount++;
             continue;
           }
-          
+
           // MealComposition 타입인 경우 (totalNutrition 사용)
-          if ('totalNutrition' in meal && meal.totalNutrition) {
+          if ("totalNutrition" in meal && meal.totalNutrition) {
             const nutrition = meal.totalNutrition;
-            const calories = typeof nutrition.calories === 'number' ? nutrition.calories : Number(nutrition.calories) || 0;
-            const carbs = typeof nutrition.carbs === 'number' ? nutrition.carbs : Number(nutrition.carbs) || 0;
-            const protein = typeof nutrition.protein === 'number' ? nutrition.protein : Number(nutrition.protein) || 0;
-            const fat = typeof nutrition.fat === 'number' ? nutrition.fat : Number(nutrition.fat) || 0;
-            const sodium = typeof nutrition.sodium === 'number' ? nutrition.sodium : Number(nutrition.sodium) || 0;
-            
+            const calories =
+              typeof nutrition.calories === "number"
+                ? nutrition.calories
+                : Number(nutrition.calories) || 0;
+            const carbs =
+              typeof nutrition.carbs === "number"
+                ? nutrition.carbs
+                : Number(nutrition.carbs) || 0;
+            const protein =
+              typeof nutrition.protein === "number"
+                ? nutrition.protein
+                : Number(nutrition.protein) || 0;
+            const fat =
+              typeof nutrition.fat === "number"
+                ? nutrition.fat
+                : Number(nutrition.fat) || 0;
+            const sodium =
+              typeof nutrition.sodium === "number"
+                ? nutrition.sodium
+                : Number(nutrition.sodium) || 0;
+
             totalCalories += calories;
             totalCarbs += carbs;
             totalProtein += protein;
@@ -661,16 +910,31 @@ function generateNutritionStats(
             mealCount++;
             continue;
           }
-          
+
           // RecipeDetailForDiet 타입인 경우 (nutrition 객체 사용)
           const nutrition = (meal as any)?.nutrition;
           if (nutrition) {
-            const calories = typeof nutrition.calories === 'number' ? nutrition.calories : Number(nutrition.calories) || 0;
-            const carbs = typeof nutrition.carbs === 'number' ? nutrition.carbs : Number(nutrition.carbs) || 0;
-            const protein = typeof nutrition.protein === 'number' ? nutrition.protein : Number(nutrition.protein) || 0;
-            const fat = typeof nutrition.fat === 'number' ? nutrition.fat : Number(nutrition.fat) || 0;
-            const sodium = typeof nutrition.sodium === 'number' ? nutrition.sodium : Number(nutrition.sodium) || 0;
-            
+            const calories =
+              typeof nutrition.calories === "number"
+                ? nutrition.calories
+                : Number(nutrition.calories) || 0;
+            const carbs =
+              typeof nutrition.carbs === "number"
+                ? nutrition.carbs
+                : Number(nutrition.carbs) || 0;
+            const protein =
+              typeof nutrition.protein === "number"
+                ? nutrition.protein
+                : Number(nutrition.protein) || 0;
+            const fat =
+              typeof nutrition.fat === "number"
+                ? nutrition.fat
+                : Number(nutrition.fat) || 0;
+            const sodium =
+              typeof nutrition.sodium === "number"
+                ? nutrition.sodium
+                : Number(nutrition.sodium) || 0;
+
             totalCalories += calories;
             totalCarbs += carbs;
             totalProtein += protein;
@@ -705,10 +969,10 @@ export function getNextMonday(): string {
   const today = new Date();
   const dayOfWeek = today.getDay();
   const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
-  
+
   const nextMonday = new Date(today);
   nextMonday.setDate(today.getDate() + daysUntilMonday);
-  
+
   return nextMonday.toISOString().split("T")[0];
 }
 
@@ -719,10 +983,9 @@ export function getThisMonday(): string {
   const today = new Date();
   const dayOfWeek = today.getDay();
   const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  
+
   const thisMonday = new Date(today);
   thisMonday.setDate(today.getDate() - daysFromMonday);
-  
+
   return thisMonday.toISOString().split("T")[0];
 }
-

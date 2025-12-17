@@ -6,6 +6,8 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)",
+  // 개발용 진단 API (Supabase 연결 정보 확인)
+  "/api/debug/supabase(.*)",
   // 홈 화면 위젯(비로그인)에서 사용: 날씨 API는 공개
   "/api/weather(.*)",
   // 건강/응급: 의료시설 검색은 비로그인에서도 사용 가능 (모바일/배포 환경에서 API 리다이렉트로 인한 오류 방지)

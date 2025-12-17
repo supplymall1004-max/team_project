@@ -339,6 +339,20 @@ export function recommendFruitSnack(
     console.log(`질병 필터링 후: ${candidateFruits.map(f => f.name).join(", ")}`);
   }
 
+  // 2-1. CKD/신장질환: 고칼륨 과일(대략 200mg/100g 이상)은 우선 제외
+  // NOTE: 정확한 칼륨 제한은 개인 혈액검사 수치에 따라 달라질 수 있어 "우선순위 필터"로만 적용합니다.
+  const hasKidneyDisease = diseases.includes("kidney_disease") || diseases.includes("ckd");
+  if (hasKidneyDisease) {
+    const before = candidateFruits.length;
+    candidateFruits = candidateFruits.filter((fruit) => {
+      const potassium = fruit.nutrition.potassium;
+      // potassium 정보가 없으면 일단 허용
+      if (typeof potassium !== "number") return true;
+      return potassium <= 200;
+    });
+    console.log(`신장질환(고칼륨) 필터링: ${before} → ${candidateFruits.length}`);
+  }
+
   // 3. 폴백: 제철 과일이 없으면 바나나 (연중 가능)
   if (candidateFruits.length === 0) {
     console.warn("⚠️ 제철 과일 없음 - 바나나로 폴백");
@@ -356,9 +370,13 @@ export function recommendFruitSnack(
   // 최종 선택
   const selectedFruit = candidateFruits[0];
 
-  // 항상 1회분 추천 (칼로리 무관)
-  const servings = 1;
-  const totalCalories = selectedFruit.nutrition.calories * servings;
+  // ✅ 목표 칼로리에 "대략" 맞추기 (정확히 맞출 필요는 없지만 최대한 근접)
+  // - 과일은 1~3회분 범위에서 조절 (과도한 과일 섭취 방지)
+  const fruitCalories = selectedFruit.nutrition.calories;
+  const rawServings =
+    fruitCalories > 0 ? Math.round(targetCalories / fruitCalories) : 1;
+  const servings = Math.max(1, Math.min(3, rawServings));
+  const totalCalories = fruitCalories * servings;
 
   let reason = `${currentMonth}월 제철 과일`;
   if (isChild && selectedFruit.goodForKids) {
@@ -366,6 +384,9 @@ export function recommendFruitSnack(
   }
   if (diseases.length > 0) {
     reason += ` (${diseases.join(", ")} 고려)`;
+  }
+  if (servings !== 1) {
+    reason += ` (목표 칼로리에 맞춰 ${servings}회분 조절)`;
   }
 
   console.log(`✅ 선택: ${selectedFruit.name} ${servings}회분 (${totalCalories}kcal)`);

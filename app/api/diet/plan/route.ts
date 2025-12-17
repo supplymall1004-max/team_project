@@ -9,6 +9,7 @@ import {
   getDailyDietPlan,
   generateAndSaveDietPlan,
 } from "@/lib/diet/queries";
+import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,29 +24,21 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const date = searchParams.get("date") || new Date().toISOString().split("T")[0];
 
-    // 사용자 ID 조회
-    const { getServiceRoleClient } = await import("@/lib/supabase/service-role");
-    const supabase = getServiceRoleClient();
-
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    if (userError || !userData) {
+    // 사용자 ID 조회 (없으면 자동 동기화)
+    const userRow = await ensureSupabaseUser();
+    if (!userRow) {
       return NextResponse.json(
         { error: "사용자 정보를 찾을 수 없습니다" },
         { status: 404 }
       );
     }
 
-    console.log("🍽️ 사용자 ID:", userData.id);
+    console.log("🍽️ 사용자 ID:", userRow.id);
     console.log("📅 날짜:", date);
 
     // 저장된 식단 조회 (GET 요청은 기존 식단만 조회, 자동 생성하지 않음)
     console.log("🔍 기존 식단 조회 중...");
-    const dietPlan = await getDailyDietPlan(userData.id, date);
+    let dietPlan = await getDailyDietPlan(userRow.id, date);
     console.log("🔍 기존 식단 조회 결과:", dietPlan ? "있음" : "없음");
 
     // 식단이 없으면 404 반환 (자동 생성하지 않음)
@@ -54,6 +47,49 @@ export async function GET(request: NextRequest) {
         { error: "해당 날짜의 식단을 찾을 수 없습니다." },
         { status: 404 }
       );
+    }
+
+    // 개발 환경: 크론/레거시 저장으로 규칙이 깨진 경우 자동 복구 (저녁 누락/칼로리 0/구성요약 비어있음)
+    if (process.env.NODE_ENV === "development") {
+      const isInvalidMeal = (meal: any): boolean => {
+        if (!meal) return true;
+        const calories = Number(meal.calories ?? 0);
+        const summary = Array.isArray(meal.compositionSummary) ? meal.compositionSummary : [];
+        // 한식 구성 규칙(밥 + 반찬3 + 국/찌개) 최소 5개가 정상
+        if (summary.length < 3) return true;
+        if (calories <= 0) return true;
+        return false;
+      };
+
+      const hasInvalid =
+        isInvalidMeal(dietPlan.breakfast) ||
+        isInvalidMeal(dietPlan.lunch) ||
+        isInvalidMeal(dietPlan.dinner);
+
+      if (hasInvalid) {
+        console.warn("[DietPlan GET] 규칙 위반 식단 감지 → 자동 재생성(개발용)", {
+          date,
+          breakfast: {
+            calories: dietPlan.breakfast?.calories,
+            summaryLen: dietPlan.breakfast?.compositionSummary?.length,
+            title: dietPlan.breakfast?.recipe?.title,
+          },
+          lunch: {
+            calories: dietPlan.lunch?.calories,
+            summaryLen: dietPlan.lunch?.compositionSummary?.length,
+            title: dietPlan.lunch?.recipe?.title,
+          },
+          dinner: {
+            calories: dietPlan.dinner?.calories,
+            summaryLen: dietPlan.dinner?.compositionSummary?.length,
+            title: dietPlan.dinner?.recipe?.title,
+          },
+        });
+        const regenerated = await generateAndSaveDietPlan(userRow.id, date, false);
+        if (regenerated) {
+          dietPlan = regenerated;
+        }
+      }
     }
 
     return NextResponse.json({ dietPlan }, { status: 200 });

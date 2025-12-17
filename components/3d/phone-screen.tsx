@@ -29,8 +29,10 @@ export function usePageTexture(targetSelector?: string) {
   const captureAttemptedRef = useRef(false);
 
   useEffect(() => {
-    console.log("🚀 [PhoneScreen] usePageTexture 훅 실행됨", { targetSelector });
-    
+    console.log("🚀 [PhoneScreen] usePageTexture 훅 실행됨", {
+      targetSelector,
+    });
+
     // 중복 캡처 방지
     if (captureAttemptedRef.current) {
       console.log("⏭️ [PhoneScreen] 이미 캡처 시도됨, 건너뜀");
@@ -61,7 +63,11 @@ export function usePageTexture(targetSelector?: string) {
         ctx.textAlign = "center";
         ctx.fillText("맛카", canvas.width / 2, canvas.height / 2 - 20);
         ctx.font = "16px sans-serif";
-        ctx.fillText("Flavor Archive", canvas.width / 2, canvas.height / 2 + 20);
+        ctx.fillText(
+          "Flavor Archive",
+          canvas.width / 2,
+          canvas.height / 2 + 20,
+        );
 
         const newTexture = new THREE.Texture(canvas);
         newTexture.needsUpdate = true;
@@ -81,14 +87,19 @@ export function usePageTexture(targetSelector?: string) {
 
         // 캡처할 대상 요소 선택
         let targetElement: HTMLElement | null = null;
-        
+
         if (targetSelector) {
           targetElement = document.querySelector(targetSelector) as HTMLElement;
-          console.log(`🔍 선택자 "${targetSelector}" 검색 결과:`, targetElement ? "✅ 찾음" : "❌ 없음");
-          
+          console.log(
+            `🔍 선택자 "${targetSelector}" 검색 결과:`,
+            targetElement ? "✅ 찾음" : "❌ 없음",
+          );
+
           if (!targetElement) {
             // 대체 선택자 시도
-            console.log("⚠️ [PhoneScreen] 지정된 선택자를 찾을 수 없습니다. document.body로 대체합니다.");
+            console.log(
+              "⚠️ [PhoneScreen] 지정된 선택자를 찾을 수 없습니다. document.body로 대체합니다.",
+            );
             targetElement = document.body;
           }
         } else {
@@ -97,13 +108,17 @@ export function usePageTexture(targetSelector?: string) {
         }
 
         if (!targetElement) {
-          console.error("❌ [PhoneScreen] 캡처 대상 요소를 찾을 수 없습니다. 폴백 텍스처를 생성합니다.");
+          console.error(
+            "❌ [PhoneScreen] 캡처 대상 요소를 찾을 수 없습니다. 폴백 텍스처를 생성합니다.",
+          );
           console.groupEnd();
           createFallbackTexture();
           return;
         }
 
-        console.log(`📐 요소 크기: ${targetElement.offsetWidth}x${targetElement.offsetHeight}`);
+        console.log(
+          `📐 요소 크기: ${targetElement.offsetWidth}x${targetElement.offsetHeight}`,
+        );
 
         // html2canvas로 캡처 (성능 최적화 옵션 적용)
         console.log("🎨 html2canvas 캡처 시작...");
@@ -135,7 +150,10 @@ export function usePageTexture(targetSelector?: string) {
         console.groupEnd();
       } catch (error) {
         console.error("❌ [PhoneScreen] 페이지 캡처 실패:", error);
-        console.error("❌ [PhoneScreen] 에러 상세:", error instanceof Error ? error.message : String(error));
+        console.error(
+          "❌ [PhoneScreen] 에러 상세:",
+          error instanceof Error ? error.message : String(error),
+        );
         console.groupEnd();
         createFallbackTexture();
       }
@@ -146,22 +164,26 @@ export function usePageTexture(targetSelector?: string) {
     let attemptCount = 0;
     const maxAttempts = 5; // 최대 5번 시도 (약 7.5초)
     let timeoutId: NodeJS.Timeout | null = null;
-    
+
     const tryCapture = () => {
       attemptCount++;
       console.log(`🔄 [PhoneScreen] 캡처 시도 ${attemptCount}/${maxAttempts}`);
-      
+
       if (targetSelector) {
         const element = document.querySelector(targetSelector);
         if (element) {
           console.log(`✅ [PhoneScreen] 요소 찾음, 캡처 시작`);
           capturePage();
         } else if (attemptCount >= maxAttempts) {
-          console.warn(`⚠️ [PhoneScreen] 최대 시도 횟수 도달 (${maxAttempts}회). 요소를 찾지 못했습니다. 폴백 텍스처를 생성합니다.`);
+          console.warn(
+            `⚠️ [PhoneScreen] 최대 시도 횟수 도달 (${maxAttempts}회). 요소를 찾지 못했습니다. 폴백 텍스처를 생성합니다.`,
+          );
           createFallbackTexture();
         } else {
           // 요소가 아직 없으면 1.5초 후 다시 시도
-          console.log(`⏳ [PhoneScreen] 요소를 찾지 못했습니다. 1.5초 후 재시도...`);
+          console.log(
+            `⏳ [PhoneScreen] 요소를 찾지 못했습니다. 1.5초 후 재시도...`,
+          );
           timeoutId = setTimeout(tryCapture, 1500);
         }
       } else {
@@ -180,7 +202,6 @@ export function usePageTexture(targetSelector?: string) {
         clearTimeout(timeoutId);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetSelector]);
 
   return { texture, isLoading };

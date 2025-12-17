@@ -45,7 +45,9 @@ CREATE INDEX IF NOT EXISTS idx_weekly_shopping_lists_category ON weekly_shopping
 CREATE TABLE IF NOT EXISTS weekly_nutrition_stats (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   weekly_diet_plan_id UUID NOT NULL REFERENCES weekly_diet_plans(id) ON DELETE CASCADE,
-  day_of_week INTEGER NOT NULL, -- 요일 (1=월요일, 7=일요일)
+  -- ⚠️ 주의: 프로젝트 내 다른 스키마(complete_schema.sql)와 일관성 유지
+  -- day_of_week: 0=일요일, 6=토요일 (CHECK 제약 포함)
+  day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
   date DATE NOT NULL,
   total_calories DECIMAL(10, 2),
   total_carbohydrates DECIMAL(10, 2),
@@ -87,7 +89,7 @@ COMMENT ON TABLE weekly_nutrition_stats IS '주간 영양 통계 (일별 영양�
 COMMENT ON COLUMN weekly_diet_plans.week_start_date IS '주차 시작일 (항상 월요일)';
 COMMENT ON COLUMN weekly_diet_plans.week_number IS 'ISO 8601 주차 번호 (1-53)';
 COMMENT ON COLUMN weekly_shopping_lists.recipes_using IS '해당 재료를 사용하는 레시피 ID 목록';
-COMMENT ON COLUMN weekly_nutrition_stats.day_of_week IS '1=월요일, 7=일요일';
+COMMENT ON COLUMN weekly_nutrition_stats.day_of_week IS '요일 (0=일요일, 6=토요일)';
 
 
 

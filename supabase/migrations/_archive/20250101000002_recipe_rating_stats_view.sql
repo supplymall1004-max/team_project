@@ -1,29 +1,11 @@
--- ============================================
--- 레시피 평가 통계 뷰 생성 (검색 API 지원)
--- ============================================
+-- ⚠️ DEPRECATED (비활성)
+--
+-- 레거시 recipe_rating_stats 뷰 정의 파일입니다.
+-- 현재 DB에는 최신 마이그레이션으로 뷰/인덱스가 이미 구성되어 있어 중복 적용이 불필요합니다.
+--
+-- 따라서 이 파일은 의도적으로 "실행되지 않도록" 비활성화했습니다.
 
--- 기존 뷰 삭제 (있을 경우)
-DROP VIEW IF EXISTS recipe_rating_stats CASCADE;
-
--- 레시피 평가 통계 뷰 생성
-CREATE OR REPLACE VIEW recipe_rating_stats AS
-SELECT 
-    recipe_id,
-    COUNT(*) as rating_count,
-    ROUND(AVG(rating), 2) as average_rating,
-    MIN(rating) as min_rating,
-    MAX(rating) as max_rating
-FROM recipe_ratings
-GROUP BY recipe_id;
-
-COMMENT ON VIEW recipe_rating_stats IS '레시피별 평가 통계 뷰 (평균 평점, 평가 개수)';
-
--- 인덱스 확인 (이미 생성되어 있어야 함)
--- CREATE INDEX IF NOT EXISTS idx_recipe_ratings_recipe_id ON recipe_ratings(recipe_id);
-
--- ============================================
--- 완료
--- ============================================
-
-
-
+DO $$
+BEGIN
+  RAISE NOTICE 'SKIP: deprecated legacy migration 20250101000002_recipe_rating_stats_view.sql';
+END $$;

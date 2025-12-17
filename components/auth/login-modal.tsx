@@ -13,8 +13,9 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { SignIn } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,8 +24,30 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export function LoginModal() {
+interface LoginModalProps {
+  /**
+   * 로그인 모달을 열 때, 주변 UI(예: 모바일 햄버거 메뉴)를 닫기 위해 사용합니다.
+   */
+  onOpen?: () => void;
+}
+
+export function LoginModal({ onOpen }: LoginModalProps) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    // 모달이 열린 상태에서 /sign-in 같은 인증 페이지로 이동하면
+    // "SignIn이 겹쳐 보이는" UX가 생길 수 있어 자동으로 닫습니다.
+    if (!open) return;
+    if (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up")) {
+      if (process.env.NODE_ENV === "development") {
+        console.groupCollapsed("[LoginModal] 인증 라우트 진입으로 모달 닫기");
+        console.log("pathname:", pathname);
+        console.groupEnd();
+      }
+      setOpen(false);
+    }
+  }, [open, pathname]);
 
   const handleToggle = useCallback(
     (next: boolean) => {
@@ -38,35 +61,23 @@ export function LoginModal() {
 
   return (
     <Dialog open={open} onOpenChange={handleToggle}>
-      <Button variant="default" onClick={() => handleToggle(true)}>
+      <Button
+        variant="default"
+        onClick={() => {
+          onOpen?.();
+          handleToggle(true);
+        }}
+      >
         로그인
       </Button>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle>Flavor Archive 로그인</DialogTitle>
         </DialogHeader>
-        <SignIn appearance={{ elements: { formButtonPrimary: "bg-primary" } }} />
+        <SignIn
+          appearance={{ elements: { formButtonPrimary: "bg-primary" } }}
+        />
       </DialogContent>
     </Dialog>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

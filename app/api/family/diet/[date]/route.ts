@@ -1,13 +1,12 @@
 /**
  * @file app/api/family/diet/[date]/route.ts
  * @description 특정 날짜 가족 식단 조회 API
- * 
+ *
  * GET /api/family/diet/[date] - 가족 식단 조회
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClerkSupabaseClient } from "@/lib/supabase/server";
 import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -20,15 +19,15 @@ import { DISEASE_LABELS, ALLERGY_LABELS } from "@/types/family";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ date: string }> }
+  { params }: { params: Promise<{ date: string }> },
 ) {
   try {
     console.group("📋 GET /api/family/diet/[date]");
     const searchParams = request.nextUrl.searchParams;
     const includeSummary = searchParams.get("scope") === "previous";
-    
+
     const { userId } = await auth();
-    
+
     if (!userId) {
       console.error("❌ 인증 실패");
       console.groupEnd();
@@ -37,7 +36,10 @@ export async function GET(
 
     const { date } = await params;
     console.log("📅 조회 날짜:", date);
-    console.log("📋 scope 파라미터:", includeSummary ? "previous (요약 포함)" : "없음");
+    console.log(
+      "📋 scope 파라미터:",
+      includeSummary ? "previous (요약 포함)" : "없음",
+    );
 
     // 사용자 정보 확인 및 자동 동기화
     console.log("🔍 사용자 정보 확인 중...");
@@ -47,22 +49,27 @@ export async function GET(
       console.error("❌ 사용자 정보 없음 (동기화 실패)");
       console.groupEnd();
       return NextResponse.json(
-        { error: "User not found. Please try again after user synchronization." },
-        { status: 404 }
+        {
+          error: "User not found. Please try again after user synchronization.",
+        },
+        { status: 404 },
       );
     }
 
     console.log("✅ 사용자 정보 확인 완료:", userRow.id);
     const supabaseUserId = userRow.id;
 
-    const supabase = await createClerkSupabaseClient();
+    // diet_plans는 조회/저장 시 권한 이슈(PGRST301: No suitable key)가 자주 발생할 수 있어
+    // 서버 API에서는 Service Role 클라이언트를 사용해 안정적으로 조회합니다.
+    // (개발 환경에서는 RLS도 비활성화되어 있어 안전합니다.)
+    const supabase = getServiceRoleClient();
 
     // 해당 날짜의 모든 식단 조회
     let plans: any[] = [];
     console.log("🔍 식단 데이터 조회 중...");
     console.log("   - user_id:", supabaseUserId);
     console.log("   - plan_date:", date);
-    
+
     const { data: planRows, error } = await supabase
       .from("diet_plans")
       .select("*")
@@ -77,14 +84,17 @@ export async function GET(
       plans = planRows ?? [];
       console.log(`📊 조회된 식단 데이터 개수: ${plans.length}개`);
       if (plans.length > 0) {
-        console.log("📊 식단 데이터 상세:", plans.map(p => ({
-          id: p.id,
-          meal_type: p.meal_type,
-          family_member_id: p.family_member_id,
-          is_unified: p.is_unified,
-          recipe_title: p.recipe_title,
-          calories: p.calories,
-        })));
+        console.log(
+          "📊 식단 데이터 상세:",
+          plans.map((p) => ({
+            id: p.id,
+            meal_type: p.meal_type,
+            family_member_id: p.family_member_id,
+            is_unified: p.is_unified,
+            recipe_title: p.recipe_title,
+            calories: p.calories,
+          })),
+        );
       } else {
         console.warn("⚠️ 해당 날짜에 식단 데이터가 없습니다");
       }
@@ -114,7 +124,7 @@ export async function GET(
 
     // 식사별로 재구성
     const result: Record<string, any> = {};
-    
+
     for (const [memberId, planList] of Object.entries(groupedPlans)) {
       if (planList.length === 0 && memberId !== "user") continue;
 
@@ -150,7 +160,7 @@ export async function GET(
     console.groupEnd();
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -160,7 +170,7 @@ export async function GET(
  */
 function groupByMealType(plans: any[], mealType: string) {
   const meals = plans.filter((p) => p.meal_type === mealType);
-  
+
   if (meals.length === 0) return null;
 
   return meals.map((meal) => ({
@@ -226,20 +236,22 @@ async function buildFamilyDietSummary({
 }): Promise<FamilyDietSummary | null> {
   // 가족 구성원은 Service Role 클라이언트로 조회 (RLS 우회)
   const serviceClient = getServiceRoleClient();
-  const {
-    data: familyMembersData,
-    error: familyMembersError,
-  } = await serviceClient
-    .from("family_members")
-    .select("id, name, relationship, diseases, allergies, include_in_unified_diet")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true });
+  const { data: familyMembersData, error: familyMembersError } =
+    await serviceClient
+      .from("family_members")
+      .select(
+        "id, name, relationship, diseases, allergies, include_in_unified_diet",
+      )
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true });
 
   if (familyMembersError) {
     console.error("❌ 가족 구성원 조회 실패:", familyMembersError);
   }
 
-  const familyMembers = Array.isArray(familyMembersData) ? familyMembersData : [];
+  const familyMembers = Array.isArray(familyMembersData)
+    ? familyMembersData
+    : [];
 
   console.group("[buildFamilyDietSummary] 가족 구성원 조회");
   console.log("조회된 가족 구성원 수:", familyMembers.length);
@@ -264,8 +276,15 @@ async function buildFamilyDietSummary({
       includeInUnified: true,
       diseases: (healthProfile?.diseases as string[]) || [],
       allergies: (healthProfile?.allergies as string[]) || [],
-      notes: buildMemberNotes(userName, healthProfile?.diseases, healthProfile?.allergies),
-      healthFlags: buildHealthFlags(healthProfile?.diseases, healthProfile?.allergies),
+      notes: buildMemberNotes(
+        userName,
+        healthProfile?.diseases,
+        healthProfile?.allergies,
+      ),
+      healthFlags: buildHealthFlags(
+        healthProfile?.diseases,
+        healthProfile?.allergies,
+      ),
     },
     ...familyMembers.map((member) => ({
       id: member.id,
@@ -288,11 +307,11 @@ async function buildFamilyDietSummary({
   console.group("[buildFamilyDietSummary] 영양소 계산");
   console.log("plans.unified 존재 여부:", !!plans.unified);
   console.log("plans.unified 데이터:", plans.unified);
-  
+
   const nutrientTotals = aggregateNutritionFromPlan(plans.unified);
   console.log("계산된 영양소 합계:", nutrientTotals);
   console.groupEnd();
-  
+
   const includedMemberIds = memberTabs
     .filter((member) => member.includeInUnified !== false)
     .map((member) => member.id);
@@ -318,8 +337,9 @@ async function buildFamilyDietSummary({
   };
 }
 
-
-function aggregateNutritionFromPlan(plan?: MemberMeals | null): NutritionInfo | null {
+function aggregateNutritionFromPlan(
+  plan?: MemberMeals | null,
+): NutritionInfo | null {
   if (!plan) {
     return null;
   }
@@ -413,4 +433,3 @@ function buildHealthFlags(
 
   return flags;
 }
-

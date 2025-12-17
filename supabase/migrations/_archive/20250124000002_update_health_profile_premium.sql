@@ -1,13 +1,12 @@
--- Add premium_features column and ensure other columns are arrays
--- 20250124000002_update_health_profile_premium.sql
+-- ⚠️ DEPRECATED (비활성)
+--
+-- 레거시 user_health_profiles 프리미엄 컬럼(premium_features TEXT[]) 추가 마이그레이션입니다.
+-- 현재 프로젝트는 JSONB 기반 건강 프로필 구조/최신 마이그레이션 체인을 사용 중이므로
+-- 이 파일을 다시 적용할 필요가 없습니다.
+--
+-- 따라서 이 파일은 의도적으로 "실행되지 않도록" 비활성화했습니다.
 
-ALTER TABLE public.user_health_profiles 
-ADD COLUMN IF NOT EXISTS premium_features TEXT[] DEFAULT '{}';
-
--- Ensure existing columns are arrays (they should be based on previous migration, but good to be safe)
--- If they were created as arrays in 000001, this is just a check or no-op.
--- We are adding comments to columns for clarity if supported, or just ensuring the structure.
-
-COMMENT ON COLUMN public.user_health_profiles.premium_features IS 'List of active premium features: lunchbox, fitness, diet, vegan, etc.';
-COMMENT ON COLUMN public.user_health_profiles.diseases IS 'List of diseases';
-COMMENT ON COLUMN public.user_health_profiles.allergies IS 'List of allergies';
+DO $$
+BEGIN
+  RAISE NOTICE 'SKIP: deprecated legacy migration 20250124000002_update_health_profile_premium.sql';
+END $$;

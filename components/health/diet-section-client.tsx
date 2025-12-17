@@ -478,9 +478,9 @@ export function DietSectionClient() {
 
       {/* 식단 카드 미리보기 (아침/점심/저녁/간식) */}
       <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <DietCard mealType="breakfast" dietPlan={dietPlan.breakfast} />
-        <DietCard mealType="lunch" dietPlan={dietPlan.lunch} />
-        <DietCard mealType="dinner" dietPlan={dietPlan.dinner} />
+        <DietCard mealType="breakfast" dietPlan={dietPlan.breakfast} date={summaryDate ?? undefined} />
+        <DietCard mealType="lunch" dietPlan={dietPlan.lunch} date={summaryDate ?? undefined} />
+        <DietCard mealType="dinner" dietPlan={dietPlan.dinner} date={summaryDate ?? undefined} />
         <DietCard mealType="snack" dietPlan={dietPlan.snack} />
       </div>
 

@@ -518,11 +518,21 @@ export default function MedicalFacilitiesPage() {
     // 강조할 의료기관 ID 설정
     setHighlightedFacilityId(facility.id);
 
+    // ✅ 모바일/앱 모드에서 현재 "목록" 탭이면 지도 DOM이 숨겨져 있어
+    // scrollIntoView를 해도 사용자가 지도를 볼 수 없습니다.
+    // "지도에서 보기"는 의도적으로 지도 탭으로 전환합니다.
+    setViewMode("map");
+
     // 지도 섹션으로 스크롤
-    const mapSection = document.querySelector("[data-map-section]");
-    if (mapSection) {
-      mapSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    // (탭 전환 렌더링이 끝난 뒤 스크롤되도록 한 프레임 뒤에 실행)
+    requestAnimationFrame(() => {
+      const mapSection = document.querySelector("[data-map-section]");
+      if (mapSection) {
+        mapSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        console.warn("[MedicalFacilitiesPage] 지도 섹션을 찾지 못했습니다.");
+      }
+    });
 
     // 일정 시간 후 강조 해제 (선택사항)
     setTimeout(() => {
@@ -678,28 +688,30 @@ export default function MedicalFacilitiesPage() {
 
       {/* 모바일: 탭 전환 */}
       <div className="lg:hidden mb-4">
-        <div className="flex bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-1">
+        <div className="flex rounded-xl border bg-background/95 p-1 shadow-sm">
           <button
             onClick={() => setViewMode("list")}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-blue/40 ${
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
               viewMode === "list"
-                ? "bg-primary-blue text-white"
-                : "text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-foreground hover:bg-muted"
             }`}
+            aria-pressed={viewMode === "list"}
           >
             <List className="w-4 h-4" />
-            <span>목록</span>
+            <span className="whitespace-nowrap">목록</span>
           </button>
           <button
             onClick={() => setViewMode("map")}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-blue/40 ${
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
               viewMode === "map"
-                ? "bg-primary-blue text-white"
-                : "text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-foreground hover:bg-muted"
             }`}
+            aria-pressed={viewMode === "map"}
           >
             <Map className="w-4 h-4" />
-            <span>지도</span>
+            <span className="whitespace-nowrap">지도</span>
           </button>
         </div>
       </div>

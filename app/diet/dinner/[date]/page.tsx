@@ -26,6 +26,7 @@ import { NutritionBalanceChart } from '@/components/health/visualization/Nutriti
 import { DiseaseRiskGauge } from '@/components/health/visualization/DiseaseRiskGauge';
 import { HealthVisualizationErrorBoundary } from '@/components/health/error-boundary';
 import { useUser } from '@clerk/nextjs';
+import type { HealthMetrics } from '@/types/health-visualization';
 
 // 타입 정의
 interface MealData {
@@ -66,6 +67,27 @@ interface HealthProfile {
   dietary_preferences: string[];
 }
 
+interface HealthProfileApiResponse {
+  profile: HealthProfile | null;
+  error?: string;
+  message?: string;
+  details?: string;
+}
+
+interface HealthMetricsApiResponse {
+  success?: boolean;
+  metrics?: HealthMetrics;
+  error?: string;
+  message?: string;
+  details?: string;
+}
+
+interface DietMealApiResponse {
+  success: boolean;
+  meal?: MealData;
+  error?: string;
+}
+
 export default function DinnerDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -80,7 +102,7 @@ export default function DinnerDetailPage() {
     dinner: null
   });
   const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(null);
-  const [currentHealth, setCurrentHealth] = useState<any>(null);
+  const [currentHealth, setCurrentHealth] = useState<HealthMetrics | null>(null);
   const [dayHealthSummary, setDayHealthSummary] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,37 +120,45 @@ export default function DinnerDetailPage() {
       setError(null);
 
       // 병렬로 데이터 로드
-      const [dinnerResult, breakfastResult, lunchResult, healthResult, currentHealthResult] = await Promise.all([
-        fetch(`/api/diet/meal/dinner/${date}`).then(res => res.json()),
-        fetch(`/api/diet/meal/breakfast/${date}`).then(res => res.json()).catch(() => ({ success: false })),
-        fetch(`/api/diet/meal/lunch/${date}`).then(res => res.json()).catch(() => ({ success: false })),
-        fetch('/api/health/profile').then(res => res.json()),
-        fetch('/api/health/metrics').then(res => res.json())
+      const [dinnerRes, breakfastRes, lunchRes, healthRes, metricsRes] = await Promise.all([
+        fetch(`/api/diet/meal/dinner/${date}`),
+        fetch(`/api/diet/meal/breakfast/${date}`),
+        fetch(`/api/diet/meal/lunch/${date}`),
+        fetch('/api/health/profile'),
+        fetch('/api/health/metrics'),
       ]);
 
-      // 오류 처리
-      if (!dinnerResult.success) {
+      const dinnerResult = (await dinnerRes.json()) as DietMealApiResponse;
+      const breakfastResult = (await breakfastRes.json()) as DietMealApiResponse;
+      const lunchResult = (await lunchRes.json()) as DietMealApiResponse;
+      const healthResult = (await healthRes.json()) as HealthProfileApiResponse;
+      const currentHealthResult = (await metricsRes.json()) as HealthMetricsApiResponse;
+
+      // 오류 처리 (저녁)
+      if (!dinnerRes.ok || !dinnerResult.success || !dinnerResult.meal) {
         throw new Error(dinnerResult.error || '저녁 식단 데이터를 불러올 수 없습니다.');
       }
 
-      if (!healthResult.success) {
-        throw new Error(healthResult.error || '건강 정보를 불러올 수 없습니다.');
+      // 오류 처리 (건강 프로필) - { profile } 형태, null도 정상
+      if (!healthRes.ok) {
+        throw new Error(healthResult.error || healthResult.message || '건강 정보를 불러올 수 없습니다.');
       }
 
-      if (!currentHealthResult.success) {
-        throw new Error(currentHealthResult.error || '건강 메트릭스를 불러올 수 없습니다.');
+      // 오류 처리 (건강 메트릭스)
+      if (!metricsRes.ok || !currentHealthResult.metrics) {
+        throw new Error(currentHealthResult.error || currentHealthResult.message || '건강 메트릭스를 불러올 수 없습니다.');
       }
 
       setMealData(dinnerResult.meal);
 
       // 하루 식단 데이터 설정
       setDayMeals({
-        breakfast: breakfastResult.success ? breakfastResult.meal : null,
-        lunch: lunchResult.success ? lunchResult.meal : null,
+        breakfast: breakfastRes.ok && breakfastResult.success ? breakfastResult.meal ?? null : null,
+        lunch: lunchRes.ok && lunchResult.success ? lunchResult.meal ?? null : null,
         dinner: dinnerResult.meal
       });
 
-      setHealthProfile(healthResult.profile);
+      setHealthProfile(healthResult.profile ?? null);
       setCurrentHealth(currentHealthResult.metrics);
 
       // 하루 건강 요약 계산
@@ -139,7 +169,18 @@ export default function DinnerDetailPage() {
           lunch: lunchResult.success ? lunchResult.meal : null,
           dinner: dinnerResult.meal
         },
-        healthResult.profile
+        // 프로필이 없으면 기본 목표 칼로리로 계산
+        (healthResult.profile ?? {
+          age: 0,
+          gender: '',
+          height_cm: 0,
+          weight_kg: 0,
+          activity_level: '',
+          daily_calorie_goal: 2000,
+          diseases: [],
+          allergies: [],
+          dietary_preferences: [],
+        })
       );
 
     } catch (err) {
@@ -151,7 +192,7 @@ export default function DinnerDetailPage() {
   };
 
   // 하루 건강 요약 계산
-  const calculateDayHealthSummary = async (baseHealth: any, meals: DayMeals, profile: HealthProfile) => {
+  const calculateDayHealthSummary = async (baseHealth: HealthMetrics, meals: DayMeals, profile: HealthProfile) => {
     try {
       // 하루 총 식단 효과 예측
       const response = await fetch('/api/health/day-summary', {

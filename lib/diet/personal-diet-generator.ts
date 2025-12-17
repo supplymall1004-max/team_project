@@ -364,7 +364,8 @@ export async function generatePersonalDiet(
     breakfast.totalNutrition,
     lunch.totalNutrition,
     dinner.totalNutrition,
-    // snack.nutrition은 칼로리 계산에서 제외
+    // ✅ 요구사항: 간식도 일일 섭취량에 포함 (대략 맞추되, 과도한 정밀 매칭은 지양)
+    snack.nutrition,
   ]);
 
   console.log("✅ 식단 생성 완료");
@@ -698,14 +699,20 @@ async function selectMealComposition(
     fat: { target: mealMacroGoals.fat.target * 0.4 / 3 },
   } : undefined;
 
-  for (let i = 0; i < 3; i++) {
+  // ✅ 반드시 3개를 채운다. (후보가 없으면 조건을 점진적으로 완화)
+  let sideAttempts = 0;
+  while (sides.length < 3 && sideAttempts < 9) {
     const side = await selectDishForMeal(
       "side",
       mealType,
       sideCaloriesEach,
       excludedFoods,
       allergies,
-      [...recentlyUsed, ...sides.map(s => s.title), ...excludedByCategory.side], // 이미 선택한 반찬 + 주간/하루 제외 목록
+      [
+        ...recentlyUsed,
+        ...sides.map((s) => s.title),
+        ...excludedByCategory.side,
+      ], // 이미 선택한 반찬 + 주간/하루 제외 목록
       availableRecipes,
       isChildDiet,
       dietaryPreferences,
@@ -716,7 +723,40 @@ async function selectMealComposition(
       sideMacroGoals, // 반찬용 매크로 목표
       dailyNutrition // 일일 영양소 추적기
     );
-    if (side) sides.push(side);
+    if (side) {
+      sides.push(side);
+    } else {
+      // 후보가 너무 적은 경우: 하루/주간 중복 제한을 완화해 재시도
+      if (excludedByCategory.side.length > 0) {
+        excludedByCategory.side = [];
+        console.warn("⚠️ 반찬 후보 부족: 주간/일일 중복 제한을 완화합니다.");
+      }
+    }
+    sideAttempts++;
+  }
+
+  // 최종 폴백: 그래도 반찬이 부족하면 폴백 레시피에서 채움
+  if (sides.length < 3) {
+    console.warn(`⚠️ 반찬이 ${sides.length}개만 선택됨 → 폴백 레시피로 보완합니다.`);
+    const needed = 3 - sides.length;
+    const fallbackSidesRaw = searchFallbackRecipes({
+      dishType: ["side"],
+      mealType,
+      excludeNames: [
+        ...recentlyUsed,
+        ...sides.map((s) => s.title),
+      ],
+      limit: 20,
+    });
+    const fallbackSides = healthProfile
+      ? await integratedFilterRecipes(
+          fallbackSidesRaw,
+          healthProfile,
+          excludedFoods,
+          dailyNutrition,
+        )
+      : fallbackSidesRaw;
+    sides.push(...fallbackSides.slice(0, needed));
   }
 
   // 3. 국/찌개 선택 (주간 컨텍스트 고려)
@@ -918,6 +958,32 @@ async function selectDishForMeal(
     candidates = candidates.filter(recipe =>
       checkAllergyCompatibility(recipe, allergies)
     );
+  }
+
+  // ✅ 후보가 없으면 폴백을 더 공격적으로 시도 (구성 규칙을 깨지 않기 위해)
+  if (candidates.length === 0) {
+    console.warn(`    ⚠️ ${dishType} 후보가 없습니다. 폴백 후보를 확장합니다.`);
+    const excludeAll = [...excludeNames];
+    const fallbackExpanded = searchFallbackRecipes({
+      dishType: [dishType],
+      mealType,
+      excludeNames: excludeAll,
+      limit: 50,
+    });
+    let fallbackFiltered = fallbackExpanded;
+    if (healthProfile) {
+      fallbackFiltered = await integratedFilterRecipes(
+        fallbackExpanded,
+        healthProfile,
+        excludedFoods,
+        dailyNutrition,
+      );
+    } else {
+      fallbackFiltered = fallbackFiltered.filter((recipe) =>
+        checkAllergyCompatibility(recipe, allergies),
+      );
+    }
+    candidates = fallbackFiltered;
   }
 
   // 특수 식단 필터 적용

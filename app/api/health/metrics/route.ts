@@ -122,6 +122,14 @@ async function calculateHealthMetrics(profile: UserHealthProfile): Promise<Healt
 
   // 질병 위험도 계산
   const diseaseRiskScores = calculateDiseaseRiskScores(profile, bmi, nutritionBalance);
+  if (process.env.NODE_ENV === 'development') {
+    const diseaseCodes = Array.isArray((profile as unknown as { diseases?: unknown })?.diseases)
+      ? (profile as unknown as { diseases?: unknown }).diseases
+          .map((d) => (d && typeof d === 'object' && 'code' in (d as object) ? (d as { code?: unknown }).code : d))
+          .filter((c): c is string => typeof c === 'string')
+      : [];
+    console.log('[Health Metrics API] 질병 코드/위험도 요약', { diseaseCodes, diseaseRiskScores });
+  }
 
   // 일일 활동량 (기본값, 실제로는 웨어러블 데이터 연동 가능)
   const dailyActivity = getDefaultDailyActivity();
@@ -265,6 +273,43 @@ function calculateDiseaseRiskScores(
     hypertension: 18
   };
 
+  /**
+   * @description 사용자 질병 코드 확인 유틸
+   *
+   * Supabase `user_health_profiles.diseases`는 JSONB 배열이며,
+   * 현재 운영 데이터에서 `diabetes_type2`, `hyperlipidemia` 처럼 변형된 code가 올 수 있습니다.
+   * 따라서 "정확히 동일" 비교가 아니라, 동의어/부분일치까지 포함하여 체크합니다.
+   */
+  const hasDisease = (matchers: Array<(code: string) => boolean>): boolean => {
+    const raw = (profile as unknown as { diseases?: unknown }).diseases;
+    if (!Array.isArray(raw)) return false;
+
+    const codes = raw
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object' && 'code' in item) {
+          const maybe = (item as { code?: unknown }).code;
+          return typeof maybe === 'string' ? maybe : null;
+        }
+        return null;
+      })
+      .filter((c): c is string => typeof c === 'string' && c.length > 0);
+
+    return codes.some((code) => matchers.some((m) => m(code)));
+  };
+
+  const isDiabetesCode = (code: string) => code.includes('diabetes');
+  const isHypertensionCode = (code: string) => code.includes('hypertension') || code.includes('high_blood_pressure');
+  const isHyperlipidemiaCode = (code: string) =>
+    code.includes('hyperlipidemia') || code.includes('high_cholesterol') || code.includes('dyslipidemia');
+  const isKidneyCode = (code: string) => code.includes('kidney') || code === 'ckd' || code.includes('renal');
+  const isObesityCode = (code: string) => code.includes('obesity') || code.includes('overweight');
+
+  // "진단 보유"라면 위험도가 낮게 표시되지 않도록 하한(최소 위험도)을 적용
+  const applyDiagnosedFloor = (key: keyof DiseaseRiskScores, floor: number) => {
+    scores[key] = Math.max(scores[key], floor);
+  };
+
   // BMI 기반 조정
   if (bmi > 30) {
     scores.cardiovascular += 30;
@@ -283,14 +328,31 @@ function calculateDiseaseRiskScores(
   }
 
   // 질병 이력 기반 조정
-  if (profile.diseases?.some(d => d.code === 'diabetes')) {
+  if (hasDisease([isDiabetesCode])) {
     scores.diabetes += 40;
     scores.kidney += 15;
+    applyDiagnosedFloor('diabetes', 60);
   }
 
-  if (profile.diseases?.some(d => d.code === 'hypertension')) {
+  if (hasDisease([isHypertensionCode])) {
     scores.cardiovascular += 25;
     scores.kidney += 20;
+    applyDiagnosedFloor('hypertension', 60);
+  }
+
+  if (hasDisease([isHyperlipidemiaCode])) {
+    scores.cardiovascular += 20;
+    applyDiagnosedFloor('cardiovascular', 60);
+  }
+
+  if (hasDisease([isKidneyCode])) {
+    scores.kidney += 40;
+    applyDiagnosedFloor('kidney', 60);
+  }
+
+  if (hasDisease([isObesityCode])) {
+    scores.obesity += 35;
+    applyDiagnosedFloor('obesity', 60);
   }
 
   // 범위 제한 (0-100)
