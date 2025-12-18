@@ -123,9 +123,14 @@ async function calculateHealthMetrics(profile: UserHealthProfile): Promise<Healt
   // 질병 위험도 계산
   const diseaseRiskScores = calculateDiseaseRiskScores(profile, bmi, nutritionBalance);
   if (process.env.NODE_ENV === 'development') {
-    const diseaseCodes = Array.isArray((profile as unknown as { diseases?: unknown })?.diseases)
-      ? (profile as unknown as { diseases?: unknown }).diseases
-          .map((d) => (d && typeof d === 'object' && 'code' in (d as object) ? (d as { code?: unknown }).code : d))
+    const rawDiseases = (profile as unknown as { diseases?: unknown }).diseases;
+    const diseaseCodes = Array.isArray(rawDiseases)
+      ? rawDiseases
+          .map((d) =>
+            d && typeof d === 'object' && 'code' in (d as object)
+              ? (d as { code?: unknown }).code
+              : d,
+          )
           .filter((c): c is string => typeof c === 'string')
       : [];
     console.log('[Health Metrics API] 질병 코드/위험도 요약', { diseaseCodes, diseaseRiskScores });

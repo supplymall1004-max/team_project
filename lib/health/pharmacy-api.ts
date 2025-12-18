@@ -142,29 +142,73 @@ export async function searchPharmacies(
     console.log("✅ 약국 정보 API 응답 (XML):", xmlText.substring(0, 500));
 
     // XML을 JSON으로 변환
-    const jsonData = await parseXMLToJSON(xmlText);
-
-    if (jsonData.response?.header?.resultCode !== "00") {
-      const errorMsg =
-        jsonData.response?.header?.resultMsg || "알 수 없는 오류";
-      const resultCode = jsonData.response?.header?.resultCode || "UNKNOWN";
-
-      console.error("❌ 약국 정보 API 오류 응답:", {
-        resultCode,
-        resultMsg: errorMsg,
-        responseHeader: jsonData.response?.header,
-      });
-
-      throw new Error(`약국 정보 API 오류 (코드: ${resultCode}): ${errorMsg}`);
+    let jsonData: any;
+    try {
+      jsonData = await parseXMLToJSON(xmlText);
+    } catch (parseError) {
+      console.error("❌ XML 파싱 실패:", parseError);
+      console.error("XML 텍스트 (처음 1000자):", xmlText.substring(0, 1000));
+      throw new Error(`약국 정보 API 응답 파싱 실패: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
     }
 
-    const items = jsonData.response?.body?.items?.item || [];
-    const totalCount = parseInt(jsonData.response?.body?.totalCount || "0", 10);
+    // 응답 구조 검증
+    if (!jsonData || !jsonData.response) {
+      console.error("❌ 약국 정보 API 응답 구조 오류:", {
+        hasResponse: !!jsonData?.response,
+        jsonDataKeys: jsonData ? Object.keys(jsonData) : [],
+        xmlPreview: xmlText.substring(0, 500),
+      });
+      throw new Error("약국 정보 API 응답 형식이 올바르지 않습니다.");
+    }
+
+    // 헤더 확인
+    if (!jsonData.response.header) {
+      console.error("❌ 약국 정보 API 응답에 header가 없습니다:", jsonData);
+      throw new Error("약국 정보 API 응답에 헤더 정보가 없습니다.");
+    }
+
+    const resultCode = jsonData.response.header.resultCode;
+    const resultMsg = jsonData.response.header.resultMsg || "알 수 없는 오류";
+
+    if (resultCode !== "00") {
+      console.error("❌ 약국 정보 API 오류 응답:", {
+        resultCode,
+        resultMsg,
+        responseHeader: jsonData.response.header,
+        xmlPreview: xmlText.substring(0, 500),
+      });
+
+      // 일반적인 오류 코드 처리
+      if (resultCode === "03" || resultMsg.includes("NODATA")) {
+        // 데이터 없음은 정상적인 경우일 수 있음
+        console.log("ℹ️ 약국 정보가 없습니다 (정상 응답)");
+        return {
+          totalCount: 0,
+          pharmacies: [],
+          hasMore: false,
+        };
+      }
+
+      throw new Error(`약국 정보 API 오류 (코드: ${resultCode}): ${resultMsg}`);
+    }
+
+    // body 확인
+    if (!jsonData.response.body) {
+      console.warn("⚠️ 약국 정보 API 응답에 body가 없습니다. 빈 결과를 반환합니다.");
+      return {
+        totalCount: 0,
+        pharmacies: [],
+        hasMore: false,
+      };
+    }
+
+    const items = jsonData.response.body.items?.item || [];
+    const totalCount = parseInt(jsonData.response.body.totalCount || "0", 10);
 
     // 배열이 아닌 경우 배열로 변환
     const pharmacies: PharmacyInfo[] = Array.isArray(items)
       ? items
-      : items
+      : items && typeof items === 'object'
         ? [items]
         : [];
 
@@ -197,80 +241,118 @@ async function parseXMLToJSON(xmlText: string): Promise<any> {
 
   // 서버 환경에서는 간단한 정규식 파싱
   const json: any = {};
-  const bodyMatch = xmlText.match(/<body>([\s\S]*?)<\/body>/);
-  const headerMatch = xmlText.match(/<header>([\s\S]*?)<\/header>/);
+  
+  try {
+    const bodyMatch = xmlText.match(/<body>([\s\S]*?)<\/body>/);
+    const headerMatch = xmlText.match(/<header>([\s\S]*?)<\/header>/);
 
-  if (headerMatch) {
-    json.response = { header: {} };
-    const resultCode = headerMatch[1].match(
-      /<resultCode>(.*?)<\/resultCode>/,
-    )?.[1];
-    const resultMsg = headerMatch[1].match(
-      /<resultMsg>(.*?)<\/resultMsg>/,
-    )?.[1];
-    json.response.header = { resultCode, resultMsg };
-  }
+    if (headerMatch) {
+      json.response = { header: {} };
+      const resultCode = headerMatch[1].match(
+        /<resultCode>(.*?)<\/resultCode>/,
+      )?.[1];
+      const resultMsg = headerMatch[1].match(
+        /<resultMsg>(.*?)<\/resultMsg>/,
+      )?.[1];
+      json.response.header = { 
+        resultCode: resultCode || "UNKNOWN", 
+        resultMsg: resultMsg || "알 수 없는 오류" 
+      };
+    } else {
+      // 헤더가 없으면 기본 구조 생성
+      json.response = {
+        header: {
+          resultCode: "UNKNOWN",
+          resultMsg: "응답 헤더를 찾을 수 없습니다",
+        },
+      };
+    }
 
-  if (bodyMatch) {
-    if (!json.response) json.response = {};
-    json.response.body = {};
+    if (bodyMatch) {
+      if (!json.response) json.response = {};
+      json.response.body = {};
 
-    const totalCount = bodyMatch[1].match(
-      /<totalCount>(.*?)<\/totalCount>/,
-    )?.[1];
-    if (totalCount) json.response.body.totalCount = totalCount;
+      const totalCount = bodyMatch[1].match(
+        /<totalCount>(.*?)<\/totalCount>/,
+      )?.[1];
+      if (totalCount) {
+        json.response.body.totalCount = totalCount.trim();
+      } else {
+        json.response.body.totalCount = "0";
+      }
 
-    const itemsMatch = bodyMatch[1].match(/<items>([\s\S]*?)<\/items>/);
-    if (itemsMatch) {
-      const itemMatches = itemsMatch[1].matchAll(/<item>([\s\S]*?)<\/item>/g);
-      const items: any[] = [];
+      const itemsMatch = bodyMatch[1].match(/<items>([\s\S]*?)<\/items>/);
+      if (itemsMatch) {
+        const itemMatches = Array.from(itemsMatch[1].matchAll(/<item>([\s\S]*?)<\/item>/g));
+        const items: any[] = [];
 
-      for (const itemMatch of itemMatches) {
-        const item: any = {};
-        const fields = [
-          "rnum",
-          "dutyAddr",
-          "dutyName",
-          "dutyTel1",
-          "dutyTime1s",
-          "dutyTime1c",
-          "dutyTime2s",
-          "dutyTime2c",
-          "dutyTime3s",
-          "dutyTime3c",
-          "dutyTime4s",
-          "dutyTime4c",
-          "dutyTime5s",
-          "dutyTime5c",
-          "dutyTime6s",
-          "dutyTime6c",
-          "dutyTime7s",
-          "dutyTime7c",
-          "dutyTime8s",
-          "dutyTime8c",
-          "postCdn1",
-          "postCdn2",
-          "wgs84Lat",
-          "wgs84Lon",
-        ];
+        for (const itemMatch of itemMatches) {
+          try {
+            const item: any = {};
+            const fields = [
+              "rnum",
+              "dutyAddr",
+              "dutyName",
+              "dutyTel1",
+              "dutyTime1s",
+              "dutyTime1c",
+              "dutyTime2s",
+              "dutyTime2c",
+              "dutyTime3s",
+              "dutyTime3c",
+              "dutyTime4s",
+              "dutyTime4c",
+              "dutyTime5s",
+              "dutyTime5c",
+              "dutyTime6s",
+              "dutyTime6c",
+              "dutyTime7s",
+              "dutyTime7c",
+              "dutyTime8s",
+              "dutyTime8c",
+              "postCdn1",
+              "postCdn2",
+              "wgs84Lat",
+              "wgs84Lon",
+            ];
 
-        for (const field of fields) {
-          const regex = new RegExp(`<${field}>(.*?)<\/${field}>`, "s");
-          const match = itemMatch[1].match(regex);
-          if (match) {
-            item[field] = match[1].trim();
+            for (const field of fields) {
+              const regex = new RegExp(`<${field}>(.*?)<\/${field}>`, "s");
+              const match = itemMatch[1].match(regex);
+              if (match && match[1]) {
+                item[field] = match[1].trim();
+              }
+            }
+
+            // 최소한 dutyName이 있어야 유효한 약국 정보로 간주
+            if (Object.keys(item).length > 0 && item.dutyName) {
+              items.push(item);
+            }
+          } catch (itemError) {
+            console.warn(`[parseXMLToJSON] 약국 항목 파싱 실패 (건너뜀):`, itemError);
+            // 개별 항목 파싱 실패는 무시하고 계속 진행
           }
         }
 
-        if (Object.keys(item).length > 0) {
-          items.push(item);
-        }
+        json.response.body.items = {
+          item: items.length === 1 ? items[0] : items.length > 0 ? items : [],
+        };
+      } else {
+        // items 태그가 없으면 빈 배열
+        json.response.body.items = { item: [] };
       }
-
-      json.response.body.items = {
-        item: items.length === 1 ? items[0] : items,
+    } else {
+      // body가 없으면 빈 body 생성
+      if (!json.response) json.response = {};
+      json.response.body = {
+        totalCount: "0",
+        items: { item: [] },
       };
     }
+  } catch (parseError) {
+    console.error("❌ XML 파싱 중 오류 발생:", parseError);
+    console.error("XML 텍스트 (처음 1000자):", xmlText.substring(0, 1000));
+    throw new Error(`XML 파싱 실패: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
   }
 
   return json;

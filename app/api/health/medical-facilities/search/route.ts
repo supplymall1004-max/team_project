@@ -402,12 +402,8 @@ export async function GET(request: NextRequest) {
         );
 
         // 검색 결과 확인
-        if (
-          !pharmacyResult ||
-          !pharmacyResult.pharmacies ||
-          pharmacyResult.pharmacies.length === 0
-        ) {
-          console.warn("⚠️ 약국 검색 결과가 없습니다.");
+        if (!pharmacyResult) {
+          console.warn("⚠️ 약국 API 응답이 null입니다.");
           console.groupEnd();
           return NextResponse.json({
             success: true,
@@ -419,16 +415,42 @@ export async function GET(request: NextRequest) {
           });
         }
 
+        if (!pharmacyResult.pharmacies || pharmacyResult.pharmacies.length === 0) {
+          console.warn("⚠️ 약국 검색 결과가 없습니다.", {
+            totalCount: pharmacyResult.totalCount,
+            hasPharmacies: !!pharmacyResult.pharmacies,
+            pharmaciesLength: pharmacyResult.pharmacies?.length || 0,
+          });
+          console.groupEnd();
+          return NextResponse.json({
+            success: true,
+            data: {
+              facilities: [],
+              total: pharmacyResult.totalCount || 0,
+              display: 0,
+            },
+          });
+        }
+
         // 약국 데이터를 의료기관 데이터로 변환
         console.log(
           `🔄 약국 API 응답 변환 시작: ${pharmacyResult.pharmacies.length}개 약국`,
         );
-        facilities = convertPharmacyToMedicalFacilities(
-          pharmacyResult.pharmacies,
-          lat,
-          lon,
-        );
-        console.log(`✅ 변환 완료: ${facilities.length}개 약국`);
+        
+        try {
+          facilities = convertPharmacyToMedicalFacilities(
+            pharmacyResult.pharmacies,
+            lat,
+            lon,
+          );
+          console.log(`✅ 변환 완료: ${facilities.length}개 약국`);
+        } catch (convertError) {
+          console.error("❌ 약국 데이터 변환 실패:", convertError);
+          console.error("변환 실패한 약국 데이터 샘플:", pharmacyResult.pharmacies.slice(0, 3));
+          // 변환 실패 시 빈 배열 반환
+          facilities = [];
+          console.warn("⚠️ 약국 데이터 변환 실패로 빈 결과를 반환합니다.");
+        }
 
         // 현재 영업중인 약국만 필터링
         // 주의: 공공데이터 응답에서 영업시간 필드가 비어있거나(<dutyTime..../>) 누락되는 경우가 있어,
@@ -477,11 +499,27 @@ export async function GET(request: NextRequest) {
         totalCount = facilities.length;
       } catch (apiError) {
         console.error("❌ 약국 정보 API 호출 실패:", apiError);
+        
+        // 에러 상세 정보 로깅
+        if (apiError instanceof Error) {
+          console.error("에러 이름:", apiError.name);
+          console.error("에러 메시지:", apiError.message);
+          console.error("에러 스택:", apiError.stack);
+        }
+        
         const apiErrorMessage =
           apiError instanceof Error
             ? apiError.message
             : "약국 정보 API 호출 실패";
-        throw new Error(apiErrorMessage);
+        
+        // API 키 오류인 경우 명확한 메시지 제공
+        if (apiErrorMessage.includes("API 키") || apiErrorMessage.includes("PHARMACY_API_KEY")) {
+          console.error("💡 해결 방법: Vercel Dashboard → Settings → Environment Variables에서 PHARMACY_API_KEY를 설정해주세요.");
+          throw new Error("약국 정보 API 키가 설정되지 않았습니다. 환경변수를 확인해주세요.");
+        }
+        
+        // 그 외 오류는 원본 메시지 전달
+        throw new Error(`약국 검색 실패: ${apiErrorMessage}`);
       }
     } else {
       // 병원, 동물병원, 동물약원은 네이버 로컬 검색 API 사용

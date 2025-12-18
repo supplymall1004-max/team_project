@@ -419,23 +419,65 @@ export function convertPharmacyToMedicalFacilities(
   console.group("[Facility Utils] 약국 API 응답 변환");
   console.log(`📋 변환할 약국 수: ${pharmacies.length}`);
 
+  // 입력 검증
+  if (!Array.isArray(pharmacies)) {
+    console.error("[Facility Utils] pharmacies가 배열이 아닙니다:", typeof pharmacies);
+    console.groupEnd();
+    return [];
+  }
+
+  if (pharmacies.length === 0) {
+    console.log("[Facility Utils] 변환할 약국이 없습니다.");
+    console.groupEnd();
+    return [];
+  }
+
   const facilities: MedicalFacility[] = pharmacies
     .filter((pharmacy) => {
       // 필수 필드 검증
-      if (!pharmacy || !pharmacy.dutyName || !pharmacy.wgs84Lat || !pharmacy.wgs84Lon) {
-        console.warn("[Facility Utils] 필수 필드가 없는 약국을 건너뜁니다:", pharmacy);
+      if (!pharmacy || typeof pharmacy !== 'object') {
+        console.warn("[Facility Utils] 유효하지 않은 약국 데이터:", pharmacy);
         return false;
       }
+      
+      if (!pharmacy.dutyName || typeof pharmacy.dutyName !== 'string' || pharmacy.dutyName.trim() === '') {
+        console.warn("[Facility Utils] 약국명이 없습니다:", pharmacy);
+        return false;
+      }
+      
+      if (!pharmacy.wgs84Lat || !pharmacy.wgs84Lon) {
+        console.warn("[Facility Utils] 좌표가 없습니다:", {
+          name: pharmacy.dutyName,
+          hasLat: !!pharmacy.wgs84Lat,
+          hasLon: !!pharmacy.wgs84Lon,
+        });
+        return false;
+      }
+      
       return true;
     })
     .map((pharmacy, index) => {
       try {
-        const lat = parseFloat(pharmacy.wgs84Lat);
-        const lon = parseFloat(pharmacy.wgs84Lon);
+        const latStr = String(pharmacy.wgs84Lat || '').trim();
+        const lonStr = String(pharmacy.wgs84Lon || '').trim();
+        
+        if (!latStr || !lonStr) {
+          console.warn(`[Facility Utils] 좌표 문자열이 비어있음: ${pharmacy.dutyName}`);
+          return null;
+        }
+
+        const lat = parseFloat(latStr);
+        const lon = parseFloat(lonStr);
 
         // 좌표 검증
         if (isNaN(lat) || isNaN(lon)) {
-          console.warn(`[Facility Utils] 잘못된 좌표: ${pharmacy.wgs84Lat}, ${pharmacy.wgs84Lon}`);
+          console.warn(`[Facility Utils] 잘못된 좌표: ${pharmacy.dutyName} - lat: "${latStr}", lon: "${lonStr}"`);
+          return null;
+        }
+        
+        // 좌표 범위 검증 (한국 영역: 위도 33~43, 경도 124~132)
+        if (lat < 33 || lat > 43 || lon < 124 || lon > 132) {
+          console.warn(`[Facility Utils] 좌표가 한국 영역을 벗어남: ${pharmacy.dutyName} - (${lat}, ${lon})`);
           return null;
         }
 
@@ -445,19 +487,25 @@ export function convertPharmacyToMedicalFacilities(
           distance = calculateDistance(userLat, userLon, lat, lon);
         }
 
-        // 영업 시간 정보 파싱
-        const operatingHours = parsePharmacyOperatingHours(pharmacy);
+        // 영업 시간 정보 파싱 (오류 발생 시 undefined 반환)
+        let operatingHours: OperatingHours | undefined;
+        try {
+          operatingHours = parsePharmacyOperatingHours(pharmacy);
+        } catch (hoursError) {
+          console.warn(`[Facility Utils] 약국 ${pharmacy.dutyName} 영업시간 파싱 실패:`, hoursError);
+          operatingHours = undefined; // 영업시간 없이도 약국 정보는 표시
+        }
 
-        // 고유 ID 생성
-        const id = `pharmacy-${pharmacy.rnum || index}`;
+        // 고유 ID 생성 (rnum이 없으면 인덱스 사용)
+        const id = `pharmacy-${pharmacy.rnum || `idx-${index}`}`;
 
         const facility: MedicalFacility = {
           id,
-          name: pharmacy.dutyName,
+          name: String(pharmacy.dutyName || '').trim() || `약국 ${index + 1}`,
           category: "pharmacy",
-          address: pharmacy.dutyAddr,
+          address: String(pharmacy.dutyAddr || '').trim(),
           roadAddress: "", // 약국 API에는 도로명 주소가 없음
-          phone: pharmacy.dutyTel1 || null,
+          phone: pharmacy.dutyTel1 ? String(pharmacy.dutyTel1).trim() : null,
           latitude: lat,
           longitude: lon,
           distance,
@@ -465,13 +513,25 @@ export function convertPharmacyToMedicalFacilities(
           operatingHours,
         };
 
+        // 최소한 이름과 좌표가 있어야 유효한 약국
+        if (!facility.name || facility.name === '') {
+          console.warn(`[Facility Utils] 약국명이 비어있어 건너뜁니다:`, pharmacy);
+          return null;
+        }
+
         return facility;
       } catch (error) {
-        console.error(`[Facility Utils] 약국 ${index + 1} 변환 실패:`, error, pharmacy);
+        console.error(`[Facility Utils] 약국 ${index + 1} 변환 실패:`, error);
+        console.error(`약국 데이터:`, {
+          dutyName: pharmacy?.dutyName,
+          dutyAddr: pharmacy?.dutyAddr,
+          wgs84Lat: pharmacy?.wgs84Lat,
+          wgs84Lon: pharmacy?.wgs84Lon,
+        });
         return null;
       }
     })
-    .filter((facility): facility is MedicalFacility => facility !== null);
+    .filter((facility): facility is MedicalFacility => facility !== null && facility !== undefined);
 
   // 거리순 정렬 (거리가 있는 경우)
   if (userLat !== undefined && userLon !== undefined) {

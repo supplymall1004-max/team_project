@@ -138,6 +138,15 @@ export default function MedicalFacilityCategoryPage() {
         if (!data.success) {
           const errorMsg = data.error || "의료기관 검색에 실패했습니다.";
           console.error("❌ API 검색 실패:", errorMsg);
+          
+          // 약국 검색 오류인 경우 특별 처리
+          if (category === "pharmacy" && errorMsg.includes("약국")) {
+            console.error("💡 약국 검색 오류 - 가능한 원인:");
+            console.error("   1. PHARMACY_API_KEY 환경변수 누락");
+            console.error("   2. 약국 API 서버 오류");
+            console.error("   3. 네트워크 연결 문제");
+          }
+          
           throw new Error(errorMsg);
         }
 

@@ -13,12 +13,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Clock, Calendar, ChefHat } from 'lucide-react';
+import { ArrowLeft, Clock, Calendar, ChefHat, User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HealthMetricsCard } from '@/components/health/visualization/HealthMetricsCard';
 import { MealImpactPredictor } from '@/components/health/visualization/MealImpactPredictor';
 import { HealthInsightsCard } from '@/components/health/visualization/HealthInsightsCard';
@@ -32,6 +33,8 @@ import { MealRecipeCard } from '@/components/diet/meal-recipe-card';
 import { useUser } from '@clerk/nextjs';
 import type { HealthMetrics } from '@/types/health-visualization';
 import type { RecipeDetailForDiet, RecipeNutrition } from '@/types/recipe';
+import type { FamilyMember } from '@/types/family';
+import { getMemberMealData, getTabMembers } from '@/lib/diet/family-meal-utils';
 
 // 타입 정의
 interface MealData {
@@ -106,6 +109,11 @@ export default function BreakfastDetailPage() {
   const [currentHealth, setCurrentHealth] = useState<HealthMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // 가족 구성원 관련 상태
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [familyDietData, setFamilyDietData] = useState<Record<string, any> | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('self');
 
   // 데이터 로드
   useEffect(() => {
@@ -119,11 +127,16 @@ export default function BreakfastDetailPage() {
       setIsLoading(true);
       setError(null);
 
+      console.group('[BreakfastDetailPage] 데이터 로드 시작');
+      console.log('📅 날짜:', date);
+
       // 병렬로 데이터 로드
-      const [mealRes, healthRes, metricsRes] = await Promise.all([
+      const [mealRes, healthRes, metricsRes, membersRes, familyDietRes] = await Promise.all([
         fetch(`/api/diet/meal/breakfast/${date}`),
         fetch('/api/health/profile'),
         fetch('/api/health/metrics'),
+        fetch('/api/family/members').catch(() => ({ ok: false, json: () => Promise.resolve({ members: [] }) })),
+        fetch(`/api/family/diet/${date}`).catch(() => ({ ok: false, status: 404, json: () => Promise.resolve(null) })),
       ]);
 
       const mealResult = (await mealRes.json()) as DietMealApiResponse;
@@ -149,6 +162,29 @@ export default function BreakfastDetailPage() {
       setHealthProfile(healthResult.profile ?? null);
       setApiHealthProfile(mealResult.healthProfile); // API에서 받은 건강 프로필
       setCurrentHealth(currentHealthResult.metrics);
+
+      // 가족 구성원 데이터 처리
+      if (membersRes.ok) {
+        const membersData = await membersRes.json();
+        const members = membersData.members || [];
+        console.log(`👥 가족 구성원 ${members.length}명 조회됨`);
+        setFamilyMembers(members);
+      } else {
+        console.log('⚠️ 가족 구성원 조회 실패 (무시)');
+        setFamilyMembers([]);
+      }
+
+      // 가족 식단 데이터 처리
+      if (familyDietRes.ok) {
+        const dietData = await familyDietRes.json();
+        console.log('📋 가족 식단 데이터 조회됨:', Object.keys(dietData.plans || {}));
+        setFamilyDietData(dietData.plans || null);
+      } else {
+        console.log('⚠️ 가족 식단 데이터 없음 (무시)');
+        setFamilyDietData(null);
+      }
+
+      console.groupEnd();
 
     } catch (err) {
       console.error('[BreakfastDetailPage] 데이터 로드 실패:', err);
@@ -246,6 +282,25 @@ export default function BreakfastDetailPage() {
     );
   }
 
+  // 탭에 표시할 구성원 목록 생성 (식단이 있는 구성원만)
+  const tabMembers = getTabMembers(
+    familyMembers,
+    familyDietData,
+    'breakfast',
+    date,
+    user?.firstName || user?.username || '본인'
+  );
+
+  // 현재 선택된 구성원의 식단 데이터
+  const currentMealData = activeTab === 'self' 
+    ? mealData 
+    : getMemberMealData(familyDietData, activeTab, 'breakfast', date);
+
+  // 현재 선택된 구성원 정보
+  const currentMember = activeTab === 'self'
+    ? null
+    : familyMembers.find(m => m.id === activeTab);
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -281,188 +336,265 @@ export default function BreakfastDetailPage() {
           </div>
         </div>
 
+        {/* 가족 구성원 탭 (식단이 있는 구성원이 2명 이상일 때만 표시) */}
+        {tabMembers.length > 1 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                구성원별 식단
+              </CardTitle>
+              <CardDescription>
+                가족 구성원들의 아침 식단을 확인할 수 있습니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${tabMembers.length}, 1fr)` }}>
+                  {tabMembers.map((member) => (
+                    <TabsTrigger
+                      key={member.id}
+                      value={member.id}
+                      className="flex items-center gap-2"
+                    >
+                      {member.isUser ? (
+                        <User className="h-4 w-4" />
+                      ) : (
+                        <Users className="h-4 w-4" />
+                      )}
+                      <span className="truncate">{member.name}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
+
         {/* 메인 콘텐츠 그리드 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 왼쪽 컬럼: 식단 정보 */}
-          <div className="space-y-6">
-            {/* 식단 기본 정보 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  {mealData.name}
-                  <Badge variant="secondary">
-                    {mealData.calories}kcal
-                  </Badge>
-                </CardTitle>
-                <CardDescription>
-                  영양 정보 및 상세 구성
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* 영양 정보 요약 */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <div className="text-lg font-semibold text-blue-700">
-                      {mealData.nutrition.protein}g
-                    </div>
-                    <div className="text-xs text-blue-600">단백질</div>
-                  </div>
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <div className="text-lg font-semibold text-green-700">
-                      {mealData.nutrition.carbohydrates}g
-                    </div>
-                    <div className="text-xs text-green-600">탄수화물</div>
-                  </div>
-                  <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                    <div className="text-lg font-semibold text-yellow-700">
-                      {mealData.nutrition.fat}g
-                    </div>
-                    <div className="text-xs text-yellow-600">지방</div>
-                  </div>
-                  <div className="text-center p-3 bg-purple-50 rounded-lg">
-                    <div className="text-lg font-semibold text-purple-700">
-                      {mealData.nutrition.fiber}g
-                    </div>
-                    <div className="text-xs text-purple-600">식이섬유</div>
-                  </div>
-                </div>
+        {currentMealData ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 왼쪽 컬럼: 식단 정보 */}
+            <div className="space-y-6">
+              {/* 구성원 정보 (가족 구성원인 경우) */}
+              {currentMember && (
+                <Card className="border-orange-200 bg-orange-50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-orange-600" />
+                      {currentMember.name}님의 식단
+                    </CardTitle>
+                    <CardDescription>
+                      {currentMember.relationship && `관계: ${currentMember.relationship}`}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              )}
 
-                {/* 재료 목록 */}
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">주요 재료</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {mealData.ingredients.map((ingredient, index) => (
-                      <Badge key={index} variant="outline">
-                        {ingredient.name}
-                        {ingredient.quantity > 0 ? ` ${ingredient.quantity}g` : ''}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 식단 메뉴별 레시피 바로가기 */}
-            {Array.isArray(mealData.relatedRecipes) && mealData.relatedRecipes.length > 0 && (
+              {/* 식단 기본 정보 */}
               <Card>
                 <CardHeader>
-                  <CardTitle>식단 메뉴 레시피 바로가기</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    {currentMealData.name}
+                    <Badge variant="secondary">
+                      {currentMealData.calories}kcal
+                    </Badge>
+                  </CardTitle>
                   <CardDescription>
-                    아래 카드를 눌러 각 메뉴의 레시피 상세로 이동할 수 있어요.
+                    영양 정보 및 상세 구성
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {mealData.relatedRecipes.map((recipe, idx) => {
-                      const nutrition = recipe.nutrition as RecipeNutrition;
-                      return (
-                        <MealRecipeCard
-                          key={`${recipe.id ?? recipe.title}-${idx}`}
-                          recipe={recipe}
-                          category="메뉴"
-                          nutrition={nutrition}
-                        />
-                      );
-                    })}
+                <CardContent className="space-y-4">
+                  {/* 영양 정보 요약 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <div className="text-lg font-semibold text-blue-700">
+                        {currentMealData.nutrition.protein}g
+                      </div>
+                      <div className="text-xs text-blue-600">단백질</div>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <div className="text-lg font-semibold text-green-700">
+                        {currentMealData.nutrition.carbohydrates}g
+                      </div>
+                      <div className="text-xs text-green-600">탄수화물</div>
+                    </div>
+                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                      <div className="text-lg font-semibold text-yellow-700">
+                        {currentMealData.nutrition.fat}g
+                      </div>
+                      <div className="text-xs text-yellow-600">지방</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg">
+                      <div className="text-lg font-semibold text-purple-700">
+                        {currentMealData.nutrition.fiber}g
+                      </div>
+                      <div className="text-xs text-purple-600">식이섬유</div>
+                    </div>
+                  </div>
+
+                  {/* 재료 목록 */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">주요 재료</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {currentMealData.ingredients.length > 0 ? (
+                        currentMealData.ingredients.map((ingredient, index) => (
+                          <Badge key={index} variant="outline">
+                            {ingredient.name}
+                            {ingredient.quantity > 0 ? ` ${ingredient.quantity}g` : ''}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">재료 정보가 없습니다.</p>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            )}
 
-            {/* 식약처 API 데이터 시각화 */}
-            {mealData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>영양소 시각화</CardTitle>
-                  <CardDescription>
-                    식약처 API 데이터 기반 영양 성분 분석
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <NutritionCharts
-                    nutrition={{
-                      calories: mealData.nutrition.calories,
-                      carbohydrate: mealData.nutrition.carbohydrates,
-                      protein: mealData.nutrition.protein,
-                      fat: mealData.nutrition.fat,
-                      sodium: mealData.nutrition.sodium,
-                    }}
+              {/* 식단 메뉴별 레시피 바로가기 (개인 식단만) */}
+              {activeTab === 'self' && Array.isArray(mealData.relatedRecipes) && mealData.relatedRecipes.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>식단 메뉴 레시피 바로가기</CardTitle>
+                    <CardDescription>
+                      아래 카드를 눌러 각 메뉴의 레시피 상세로 이동할 수 있어요.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {mealData.relatedRecipes.map((recipe, idx) => {
+                        const nutrition = recipe.nutrition as RecipeNutrition;
+                        return (
+                          <MealRecipeCard
+                            key={`${recipe.id ?? recipe.title}-${idx}`}
+                            recipe={recipe}
+                            category="메뉴"
+                            nutrition={nutrition}
+                          />
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 식약처 API 데이터 시각화 (개인 식단만) */}
+              {activeTab === 'self' && mealData && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>영양소 시각화</CardTitle>
+                    <CardDescription>
+                      식약처 API 데이터 기반 영양 성분 분석
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <NutritionCharts
+                      nutrition={{
+                        calories: mealData.nutrition.calories,
+                        carbohydrate: mealData.nutrition.carbohydrates,
+                        protein: mealData.nutrition.protein,
+                        fat: mealData.nutrition.fat,
+                        sodium: mealData.nutrition.sodium,
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 질병별 피드백 (개인 식단만) */}
+              {activeTab === 'self' && mealData && apiHealthProfile && (
+                <DiseaseFeedbackCard
+                  diseases={apiHealthProfile.diseases || []}
+                  mealNutrition={mealData.nutrition}
+                  mealName={mealData.name}
+                />
+              )}
+
+              {/* 식단 생성 로직 설명 (개인 식단만) */}
+              {activeTab === 'self' && mealData && apiHealthProfile && (
+                <DietGenerationLogicCard
+                  healthProfile={apiHealthProfile}
+                  mealNutrition={mealData.nutrition}
+                  mealType="breakfast"
+                />
+              )}
+
+              {/* 건강 인사이트 (개인 식단만) */}
+              {activeTab === 'self' && (
+                <HealthInsightsCard
+                  insights={[
+                    {
+                      type: 'positive',
+                      title: '균형 잡힌 아침 식사',
+                      description: '단백질과 탄수화물이 적절히 균형을 이루고 있습니다.',
+                      actionable: false,
+                      priority: 'medium'
+                    },
+                    {
+                      type: 'info',
+                      title: '식이섬유 섭취',
+                      description: '하루 목표 섬유질의 25%를 아침 식사로 섭취했습니다.',
+                      actionable: false,
+                      priority: 'low'
+                    }
+                  ]}
+                />
+              )}
+            </div>
+
+            {/* 오른쪽 컬럼: 건강 시각화 (개인 식단만) */}
+            {activeTab === 'self' && (
+              <div className="space-y-6">
+                {/* 건강 시각화 컴포넌트들을 에러 바운더리로 보호 */}
+                <HealthVisualizationErrorBoundary>
+                  {/* 현재 건강 상태 */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>현재 건강 상태</CardTitle>
+                      <CardDescription>
+                        아침 식사 전 건강 메트릭스
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <HealthMetricsCard metrics={currentHealth} />
+                    </CardContent>
+                  </Card>
+
+                  {/* 아침 식사 효과 예측 */}
+                  <MealImpactPredictor
+                    mealType="breakfast"
+                    mealData={mealData}
+                    currentHealth={currentHealth}
                   />
-                </CardContent>
-              </Card>
-            )}
 
-            {/* 질병별 피드백 */}
-            {mealData && apiHealthProfile && (
-              <DiseaseFeedbackCard
-                diseases={apiHealthProfile.diseases || []}
-                mealNutrition={mealData.nutrition}
-                mealName={mealData.name}
-              />
+                  {/* 영양 균형 차트 */}
+                  <NutritionBalanceChart balance={currentHealth.nutritionBalance} />
+                </HealthVisualizationErrorBoundary>
+              </div>
             )}
-
-            {/* 식단 생성 로직 설명 */}
-            {mealData && apiHealthProfile && (
-              <DietGenerationLogicCard
-                healthProfile={apiHealthProfile}
-                mealNutrition={mealData.nutrition}
-                mealType="breakfast"
-              />
-            )}
-
-            {/* 건강 인사이트 */}
-            <HealthInsightsCard
-              insights={[
-                {
-                  type: 'positive',
-                  title: '균형 잡힌 아침 식사',
-                  description: '단백질과 탄수화물이 적절히 균형을 이루고 있습니다.',
-                  actionable: false,
-                  priority: 'medium'
-                },
-                {
-                  type: 'info',
-                  title: '식이섬유 섭취',
-                  description: '하루 목표 섬유질의 25%를 아침 식사로 섭취했습니다.',
-                  actionable: false,
-                  priority: 'low'
-                }
-              ]}
-            />
           </div>
+        ) : (
+          <Alert>
+            <AlertDescription>
+              선택한 구성원의 아침 식단 정보가 없습니다.
+            </AlertDescription>
+          </Alert>
+        )}
 
-          {/* 오른쪽 컬럼: 건강 시각화 */}
-          <div className="space-y-6">
-            {/* 건강 시각화 컴포넌트들을 에러 바운더리로 보호 */}
-            <HealthVisualizationErrorBoundary>
-              {/* 현재 건강 상태 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>현재 건강 상태</CardTitle>
-                  <CardDescription>
-                    아침 식사 전 건강 메트릭스
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <HealthMetricsCard metrics={currentHealth} />
-                </CardContent>
-              </Card>
-
-              {/* 아침 식사 효과 예측 */}
-              <MealImpactPredictor
-                mealType="breakfast"
-                mealData={mealData}
-                currentHealth={currentHealth}
-              />
-
-              {/* 영양 균형 차트 */}
-              <NutritionBalanceChart balance={currentHealth.nutritionBalance} />
-            </HealthVisualizationErrorBoundary>
-          </div>
-        </div>
-
-        {/* 질병 위험도 게이지 (풀폭) */}
-        <DiseaseRiskGauge risks={currentHealth.diseaseRiskScores} />
+        {/* 질병 위험도 게이지 (풀폭, 개인 식단만) */}
+        {activeTab === 'self' && currentHealth && (
+          <DiseaseRiskGauge 
+            risks={currentHealth.diseaseRiskScores}
+            userDiseases={
+              apiHealthProfile?.diseases 
+                ? Array.isArray(apiHealthProfile.diseases)
+                  ? apiHealthProfile.diseases.map(d => typeof d === 'string' ? d : (d && typeof d === 'object' && 'code' in d ? String((d as { code?: unknown }).code || '') : String(d))).filter(Boolean)
+                  : []
+                : []
+            }
+          />
+        )}
 
         {/* 푸터 안내 */}
         <div className="text-center py-8 border-t">

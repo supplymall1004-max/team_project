@@ -288,7 +288,7 @@ function getRepresentativeImageUrl(mealType: MealType, dietPlan: DietPlan): stri
 
   // 4) 그래도 없으면 레시피 제목 기반 (식약처 아닌 경우도 thumbnail은 관련성 점수로 판단)
   const fallback = getRecipeImageUrlEnhanced(recipe?.title ?? "", thumbnailUrl);
-  if (fallback === "/images/food/soup.svg" && mealType !== "snack") {
+  if (fallback === "/images/food/soup.svg") {
     return DEFAULT_SOUP_IMAGE;
   }
   return fallback;

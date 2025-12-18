@@ -8,7 +8,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClerkSupabaseClient } from "@/lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/service-role";
+import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 
 /**
  * POST /api/diet/notifications/dismiss
@@ -26,14 +27,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const supabase = await createClerkSupabaseClient();
+    // ✅ 프로덕션에서 PGRST301 방지: service-role 클라이언트 사용
+    const supabase = getServiceRoleClient();
 
-    // 사용자의 Supabase user_id 조회
-    const { data: userData } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
+    // 사용자의 Supabase user_id 조회 (없으면 자동 동기화)
+    const userData = await ensureSupabaseUser();
 
     if (!userData) {
       console.error("❌ 사용자를 찾을 수 없음");

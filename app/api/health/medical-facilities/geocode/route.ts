@@ -41,11 +41,12 @@ export async function GET(request: NextRequest) {
 
     if (!result) {
       console.warn("⚠️ 주소를 찾을 수 없습니다.");
+      console.warn(`   검색한 주소: ${address}`);
       console.groupEnd();
       return NextResponse.json(
         {
           success: false,
-          error: "주소를 찾을 수 없습니다.",
+          error: `주소를 찾을 수 없습니다. "${address}"에 대한 검색 결과가 없습니다. 더 구체적인 주소를 입력해보세요 (예: "서울시청", "인천광역시 미추홀구청").`,
         },
         { status: 404 }
       );
@@ -72,8 +73,18 @@ export async function GET(request: NextRequest) {
     console.error("❌ 지오코딩 API 오류:", error);
     console.groupEnd();
 
-    const errorMessage =
-      error instanceof Error ? error.message : "지오코딩 중 오류가 발생했습니다.";
+    const errorMessage = error instanceof Error ? error.message : "지오코딩 중 오류가 발생했습니다.";
+    
+    // 인증 실패인 경우 401로 반환
+    if (errorMessage.includes("인증") || errorMessage.includes("Authentication")) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Maps API 인증에 실패했습니다. 네이버 클라우드 플랫폼 콘솔에서 Maps API 서비스 활성화 및 API 키를 확인해주세요.",
+        },
+        { status: 401 }
+      );
+    }
 
     return NextResponse.json(
       {

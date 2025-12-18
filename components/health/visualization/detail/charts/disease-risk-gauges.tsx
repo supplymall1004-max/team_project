@@ -60,9 +60,14 @@ export function DiseaseRiskGauges({ diseaseRiskScores }: DiseaseRiskGaugesProps)
     return { label: '매우 높음', color: 'bg-red-500', badge: 'bg-red-100 text-red-800' };
   };
 
+  // diseaseRiskScores가 없거나 객체가 아니면 빈 배열 반환
+  if (!diseaseRiskScores || typeof diseaseRiskScores !== 'object') {
+    return null;
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {Object.entries(diseaseRiskScores).map(([key, risk]) => {
+      {Object.entries(diseaseRiskScores || {}).map(([key, risk]) => {
         const info = diseaseInfo[key as keyof typeof diseaseInfo];
         const riskLevel = getRiskLevel(risk);
         const Icon = info.icon;

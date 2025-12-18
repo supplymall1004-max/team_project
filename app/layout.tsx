@@ -139,11 +139,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // 환경 변수 검증 (개발 환경에서만)
-  if (process.env.NODE_ENV === "development") {
-    const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-    const secretKey = process.env.CLERK_SECRET_KEY;
+  // 환경 변수 검증
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const secretKey = process.env.CLERK_SECRET_KEY;
 
+  if (process.env.NODE_ENV === "development") {
     if (!publishableKey || !secretKey) {
       console.error("❌ [Layout] Clerk 환경 변수가 설정되지 않았습니다.");
       console.error(
@@ -156,15 +156,30 @@ export default function RootLayout({
     }
   }
 
-  let publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-
-  // Clerk 키가 없으면 기본값 설정 (빌드 타임에서만 사용)
+  // 프로덕션에서는 환경변수가 필수 (없으면 명확한 에러 표시)
+  let finalPublishableKey = publishableKey;
+  
   if (!publishableKey) {
-    console.warn(
-      "⚠️ [Layout] NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY가 설정되지 않았습니다. 기본값으로 대체합니다.",
-    );
-    // 빌드 타임에서는 임시 키로 설정하여 빌드가 실패하지 않도록 함
-    publishableKey = "pk_test_placeholder";
+    if (process.env.NODE_ENV === "production") {
+      // 프로덕션에서는 환경변수 없이 진행하면 안 됨
+      console.error("❌ [Layout] 프로덕션 환경에서 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY가 설정되지 않았습니다.");
+      console.error("   Vercel Dashboard → Settings → Environment Variables에서 설정해주세요.");
+      // 프로덕션에서는 빈 문자열을 사용하여 ClerkProvider가 명확한 에러를 표시하도록 함
+      // (ClerkProvider는 빈 문자열을 받으면 클라이언트에서 명확한 에러를 표시함)
+      finalPublishableKey = "";
+    } else {
+      // 개발 환경에서는 빌드가 실패하지 않도록 placeholder 사용 (하지만 실제 인증은 실패함)
+      console.warn(
+        "⚠️ [Layout] NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY가 설정되지 않았습니다. 기본값으로 대체합니다.",
+      );
+      finalPublishableKey = "pk_test_placeholder";
+    }
+  } else if (process.env.NODE_ENV === "production" && publishableKey.startsWith("pk_test_")) {
+    // 프로덕션에서 개발 키를 사용하는 경우 경고
+    console.warn("⚠️ [Layout] 프로덕션 환경에서 개발 키(pk_test_)를 사용하고 있습니다.");
+    console.warn("   프로덕션에서는 프로덕션 키(pk_live_)를 사용해야 합니다.");
+    console.warn("   Clerk Dashboard → Settings → API Keys → Production 키를 복사하여");
+    console.warn("   Vercel Dashboard → Settings → Environment Variables에서 업데이트해주세요.");
   }
 
   return (
@@ -177,7 +192,7 @@ export default function RootLayout({
         </div>
       }
     >
-      <ClerkProvider localization={koKR} publishableKey={publishableKey}>
+      <ClerkProvider localization={koKR} publishableKey={finalPublishableKey || ""}>
         <html lang="ko" className="h-full">
           <body
             className={`${geistSans.variable} ${geistMono.variable} ${notoSansSc.variable} min-h-screen bg-background text-foreground antialiased w-full overflow-x-hidden relative`}

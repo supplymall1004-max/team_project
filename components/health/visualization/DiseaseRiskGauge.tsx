@@ -21,6 +21,7 @@ import { useState } from 'react';
 interface DiseaseRiskGaugeProps {
   risks: DiseaseRiskScores;
   className?: string;
+  userDiseases?: string[]; // 사용자가 진단받은 질병 목록
 }
 
 interface DiseaseInfo {
@@ -112,20 +113,49 @@ const DISEASE_INFO: DiseaseInfo[] = [
   }
 ];
 
-export function DiseaseRiskGauge({ risks, className }: DiseaseRiskGaugeProps) {
+export function DiseaseRiskGauge({ risks, className, userDiseases = [] }: DiseaseRiskGaugeProps) {
   const [expandedDisease, setExpandedDisease] = useState<string | null>(null);
 
-  // 위험도 레벨 평가
-  const getRiskLevel = (score: number): { level: string; color: string; bgColor: string } => {
-    if (score >= 80) return { level: '높음', color: 'text-red-700', bgColor: 'bg-red-100' };
-    if (score >= 60) return { level: '중간', color: 'text-yellow-700', bgColor: 'bg-yellow-100' };
-    if (score >= 40) return { level: '주의', color: 'text-orange-700', bgColor: 'bg-orange-100' };
-    return { level: '낮음', color: 'text-green-700', bgColor: 'bg-green-100' };
+  // 질병 코드에서 질병 키 매핑
+  const normalizeDiseaseCode = (code: string): keyof DiseaseRiskScores | null => {
+    const lowerCode = code.toLowerCase();
+    if (lowerCode.includes('diabetes')) return 'diabetes';
+    if (lowerCode.includes('hypertension') || lowerCode.includes('high_blood_pressure')) return 'hypertension';
+    if (lowerCode.includes('hyperlipidemia') || lowerCode.includes('high_cholesterol') || lowerCode.includes('dyslipidemia')) return 'cardiovascular';
+    if (lowerCode.includes('kidney') || lowerCode === 'ckd' || lowerCode.includes('renal')) return 'kidney';
+    if (lowerCode.includes('obesity') || lowerCode.includes('overweight')) return 'obesity';
+    return null;
+  };
+
+  // 사용자가 해당 질병을 가지고 있는지 확인
+  const hasUserDisease = (diseaseKey: keyof DiseaseRiskScores): boolean => {
+    return userDiseases.some(code => {
+      const mapped = normalizeDiseaseCode(code);
+      return mapped === diseaseKey;
+    });
+  };
+
+  // 위험도 레벨 평가 (질병이 있는 경우 최소 "주의"로 표시)
+  const getRiskLevel = (score: number, diseaseKey: keyof DiseaseRiskScores): { level: string; color: string; bgColor: string; isDiagnosed: boolean } => {
+    const isDiagnosed = hasUserDisease(diseaseKey);
+    
+    // 질병이 진단된 경우, 점수와 관계없이 최소 "주의" 이상으로 표시
+    if (isDiagnosed) {
+      if (score >= 80) return { level: '관리 필요', color: 'text-red-700', bgColor: 'bg-red-100', isDiagnosed: true };
+      if (score >= 60) return { level: '관리 필요', color: 'text-orange-700', bgColor: 'bg-orange-100', isDiagnosed: true };
+      return { level: '관리 중', color: 'text-yellow-700', bgColor: 'bg-yellow-100', isDiagnosed: true };
+    }
+    
+    // 질병이 없는 경우 기존 로직
+    if (score >= 80) return { level: '높음', color: 'text-red-700', bgColor: 'bg-red-100', isDiagnosed: false };
+    if (score >= 60) return { level: '중간', color: 'text-yellow-700', bgColor: 'bg-yellow-100', isDiagnosed: false };
+    if (score >= 40) return { level: '주의', color: 'text-orange-700', bgColor: 'bg-orange-100', isDiagnosed: false };
+    return { level: '낮음', color: 'text-green-700', bgColor: 'bg-green-100', isDiagnosed: false };
   };
 
   // 게이지 바 렌더링
-  const renderGaugeBar = (score: number, color: string) => {
-    const riskLevel = getRiskLevel(score);
+  const renderGaugeBar = (score: number, color: string, diseaseKey: keyof DiseaseRiskScores) => {
+    const riskLevel = getRiskLevel(score, diseaseKey);
 
     return (
       <div className="space-y-2">
@@ -212,6 +242,29 @@ export function DiseaseRiskGauge({ risks, className }: DiseaseRiskGaugeProps) {
             const score = risks[disease.key];
             const isExpanded = expandedDisease === disease.key;
             const Icon = disease.icon;
+            const riskLevel = getRiskLevel(score, disease.key);
+            const isDiagnosed = riskLevel.isDiagnosed;
+
+            // 질병이 있는 경우 설명 텍스트 변경
+            const getDescription = () => {
+              if (isDiagnosed) {
+                switch (disease.key) {
+                  case 'diabetes':
+                    return '당뇨병 관리 상태를 나타냅니다.';
+                  case 'hypertension':
+                    return '고혈압 관리 상태를 나타냅니다.';
+                  case 'cardiovascular':
+                    return '심혈관 질환 관리 상태를 나타냅니다.';
+                  case 'kidney':
+                    return '신장 질환 관리 상태를 나타냅니다.';
+                  case 'obesity':
+                    return '비만 관리 상태를 나타냅니다.';
+                  default:
+                    return disease.description;
+                }
+              }
+              return disease.description;
+            };
 
             return (
               <div key={disease.key} className="border rounded-lg p-4">
@@ -219,23 +272,39 @@ export function DiseaseRiskGauge({ risks, className }: DiseaseRiskGaugeProps) {
                   <div className="flex items-center gap-3">
                     <Icon className={`h-5 w-5 text-gray-600`} />
                     <div>
-                      <h4 className="font-medium text-gray-900">{disease.koreanName}</h4>
-                      <p className="text-sm text-gray-600">{disease.description}</p>
+                      <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                        {disease.koreanName}
+                        {isDiagnosed && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                            진단됨
+                          </Badge>
+                        )}
+                      </h4>
+                      <p className="text-sm text-gray-600">{getDescription()}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-gray-900">{score}%</div>
+                    {isDiagnosed ? (
+                      <>
+                        <div className="text-lg font-bold text-gray-900">관리 필요도</div>
+                        <div className="text-sm text-gray-500 mt-1">{score}%</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-lg font-bold text-gray-900">{score}%</div>
+                      </>
+                    )}
                     <Badge
                       variant="outline"
-                      className={getRiskLevel(score).bgColor + ' ' + getRiskLevel(score).color}
+                      className={riskLevel.bgColor + ' ' + riskLevel.color + ' mt-1'}
                     >
-                      {getRiskLevel(score).level}
+                      {riskLevel.level}
                     </Badge>
                   </div>
                 </div>
 
                 {/* 게이지 바 */}
-                {renderGaugeBar(score, disease.color)}
+                {renderGaugeBar(score, disease.color, disease.key)}
 
                 {/* 상세 정보 토글 */}
                 <div className="mt-4">
@@ -254,6 +323,22 @@ export function DiseaseRiskGauge({ risks, className }: DiseaseRiskGaugeProps) {
 
                   {isExpanded && (
                     <div className="mt-4 pt-4 border-t space-y-4">
+                      {/* 질병 진단 안내 */}
+                      {isDiagnosed && (
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                            <div className="text-sm text-blue-800">
+                              <p className="font-medium mb-1">진단된 질병입니다</p>
+                              <p>
+                                이 표시는 {disease.koreanName}을(를) 진단받으신 상태에서의 관리 필요도를 나타냅니다. 
+                                점수가 낮더라도 지속적인 관리와 정기적인 검진이 필요합니다.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* 위험 요인 */}
                       <div>
                         <h5 className="font-medium text-gray-900 mb-2">주요 위험 요인</h5>

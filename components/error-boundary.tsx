@@ -28,10 +28,37 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("🚨 [ErrorBoundary] 에러 발생:", error);
-    console.error("🚨 [ErrorBoundary] 에러 메시지:", error.message);
-    console.error("🚨 [ErrorBoundary] 에러 스택:", error.stack);
-    console.error("🚨 [ErrorBoundary] 에러 정보:", errorInfo);
+    console.group("🚨 [ErrorBoundary] 애플리케이션 오류 발생");
+    console.error("에러 객체:", error);
+    console.error("에러 메시지:", error.message);
+    console.error("에러 스택:", error.stack);
+    console.error("에러 정보:", errorInfo);
+    console.error("컴포넌트 스택:", errorInfo.componentStack);
+    
+    // 일반적인 원인 안내
+    console.error("");
+    console.error("🔍 가능한 원인:");
+    if (error.message.includes("Clerk") || error.message.includes("publishableKey")) {
+      console.error("  → Clerk 인증 설정 문제");
+      console.error("  → NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY 환경변수 확인 필요");
+    }
+    if (error.message.includes("Supabase") || error.message.includes("NEXT_PUBLIC_SUPABASE")) {
+      console.error("  → Supabase 설정 문제");
+      console.error("  → NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY 환경변수 확인 필요");
+    }
+    if (error.message.includes("환경 변수") || error.message.includes("environment variable")) {
+      console.error("  → 환경변수 누락");
+      console.error("  → Vercel Dashboard → Settings → Environment Variables 확인");
+      console.error("  → 환경변수 변경 후 재배포 필요");
+    }
+    
+    console.error("");
+    console.error("✅ 해결 방법:");
+    console.error("  1. 브라우저 콘솔의 위 에러 메시지를 확인");
+    console.error("  2. Vercel Dashboard에서 환경변수 확인");
+    console.error("  3. 환경변수 변경 후 재배포");
+    console.error("  4. 브라우저 캐시 삭제 및 하드 리프레시 (Ctrl+Shift+R)");
+    console.groupEnd();
   }
 
   render() {

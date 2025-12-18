@@ -99,13 +99,27 @@ export function LocationSearch({
         const data = await response.json().catch(() => null);
 
         if (!response.ok || !data?.success) {
-          const message =
-            data?.error ||
-            "주소를 찾을 수 없습니다. 예: '인천광역시 미추홀구청'처럼 더 구체적으로 입력해보세요.";
+          let message = data?.error || "";
+          
+          // 401 인증 실패인 경우 특별한 메시지
+          if (response.status === 401 || message.includes("인증") || message.includes("Authentication")) {
+            message = "지오코딩 API 인증에 실패했습니다. Maps API 서비스가 활성화되어 있고 올바른 API 키를 사용하고 있는지 확인해주세요.";
+          } else if (response.status === 404 || message.includes("찾을 수 없습니다")) {
+            // 도로명 주소인 경우 더 구체적인 안내
+            if (searchQuery.includes("로") || searchQuery.includes("길") || searchQuery.includes("번길")) {
+              message = `도로명 주소 "${searchQuery}"를 찾을 수 없습니다. 주소를 확인하거나 더 간단한 주소로 검색해보세요 (예: "인천광역시 미추홀구", "인천광역시 경인로").`;
+            } else {
+              message = `주소를 찾을 수 없습니다. "${searchQuery}"에 대한 검색 결과가 없습니다. 더 구체적인 주소를 입력해보세요 (예: "서울시청", "인천광역시 미추홀구청").`;
+            }
+          } else {
+            message = message || `주소 검색 중 오류가 발생했습니다. (상태 코드: ${response.status})`;
+          }
+          
           console.warn("[LocationSearch] 지오코딩 실패:", {
             status: response.status,
             message,
             query: searchQuery,
+            responseData: data,
           });
           setSearchError(message);
           console.groupEnd();

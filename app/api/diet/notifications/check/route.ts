@@ -8,7 +8,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { createClerkSupabaseClient } from "@/lib/supabase/server";
+import { getServiceRoleClient } from "@/lib/supabase/service-role";
+import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 
 /**
  * GET /api/diet/notifications/check
@@ -34,17 +35,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const supabase = await createClerkSupabaseClient();
+    // ✅ 프로덕션에서 PGRST301 방지:
+    // - Clerk 토큰 기반 Supabase 클라이언트는 환경변수/키 설정에 따라 PostgREST가 'No suitable key'를 낼 수 있습니다.
+    // - 알림 확인은 서버 전용 API이므로 service-role을 사용해 안정적으로 조회합니다.
+    const supabase = getServiceRoleClient();
 
     console.log("🔍 Supabase client 생성됨, users 테이블 조회 시도...");
     console.log("🔍 조회할 clerk_id:", userId);
 
-    // 사용자의 Supabase user_id 조회
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id, clerk_id, name")
-      .eq("clerk_id", userId)
-      .maybeSingle();
+    // 사용자의 Supabase user_id 조회 (없으면 자동 동기화)
+    let userData: { id: string; name: string } | null = null;
+    let userError: { message: string; code?: string; details?: string | null; hint?: string | null } | null = null;
+    
+    try {
+      userData = await ensureSupabaseUser();
+      if (!userData) {
+        userError = { message: "user_not_found" };
+      }
+    } catch (ensureError) {
+      console.error("❌ ensureSupabaseUser 예외 발생:", ensureError);
+      const error = ensureError as Error;
+      
+      // 환경변수 누락 오류인 경우 명확한 메시지 제공
+      if (error.message.includes("환경변수가 누락되었습니다") || error.message.includes("missing")) {
+        userError = {
+          message: "database_configuration_error",
+          code: "ENV_MISSING",
+          details: error.message,
+          hint: "Vercel Dashboard → Settings → Environment Variables에서 SUPABASE_SERVICE_ROLE_KEY를 확인해주세요."
+        };
+      } else {
+        userError = {
+          message: error.message || "user_sync_failed",
+          code: "UNKNOWN_ERROR",
+          details: error.message,
+        };
+      }
+    }
 
     console.log("🔍 조회 결과:", {
       data: userData,
@@ -60,13 +87,20 @@ export async function GET(request: NextRequest) {
     if (userError || !userData) {
       if (userError) {
         console.error("❌ 사용자 조회 오류:", userError);
+        
+        // PGRST301 또는 환경변수 오류인 경우 더 명확한 로깅
+        if (userError.code === "PGRST301" || userError.code === "ENV_MISSING") {
+          console.error("  ⚠️ 데이터베이스 설정 오류로 인해 알림을 확인할 수 없습니다.");
+          console.error("  → Vercel 환경변수 SUPABASE_SERVICE_ROLE_KEY를 확인해주세요.");
+        }
       } else {
         console.log("⚠️ 사용자를 찾을 수 없음 - 팝업 표시하지 않음");
       }
       console.groupEnd();
       return NextResponse.json({
         shouldShow: false,
-        reason: "user_not_found"
+        reason: userError?.code === "ENV_MISSING" ? "database_config_error" : "user_not_found",
+        ...(process.env.NODE_ENV === "development" && userError ? { error: userError } : {})
       });
     }
 

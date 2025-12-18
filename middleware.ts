@@ -12,6 +12,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/weather(.*)",
   // 건강/응급: 의료시설 검색은 비로그인에서도 사용 가능 (모바일/배포 환경에서 API 리다이렉트로 인한 오류 방지)
   "/api/health/medical-facilities(.*)",
+  // KCDC 알림 API는 공개 데이터이므로 인증 불필요
+  "/api/health/kcdc/alerts(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

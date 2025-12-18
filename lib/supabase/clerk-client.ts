@@ -38,11 +38,34 @@ export function useClerkSupabaseClient() {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error("[useClerkSupabaseClient] 환경 변수가 설정되지 않았습니다:", {
+      const errorMessage = "[useClerkSupabaseClient] Supabase 환경 변수가 설정되지 않았습니다. " +
+        "Vercel Dashboard → Settings → Environment Variables에서 " +
+        "NEXT_PUBLIC_SUPABASE_URL과 NEXT_PUBLIC_SUPABASE_ANON_KEY를 확인해주세요.";
+      
+      console.error(errorMessage, {
         hasUrl: !!supabaseUrl,
         hasKey: !!supabaseKey,
+        nodeEnv: process.env.NODE_ENV,
       });
-      throw new Error("Supabase 환경 변수가 설정되지 않았습니다.");
+      
+      // 프로덕션에서는 더미 클라이언트를 반환하여 앱이 크래시하지 않도록 함
+      // (실제 쿼리는 실패하지만, ErrorBoundary가 에러를 잡을 수 있음)
+      if (process.env.NODE_ENV === "production") {
+        console.warn("[useClerkSupabaseClient] 프로덕션 환경에서 더미 클라이언트를 반환합니다. 환경변수를 확인해주세요.");
+        return createClient(
+          "https://placeholder.supabase.co",
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0",
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false,
+            },
+          }
+        );
+      }
+      
+      // 개발 환경에서는 에러를 throw하여 개발자가 문제를 인지할 수 있도록 함
+      throw new Error(errorMessage);
     }
 
     if (!isAuthLoaded) {

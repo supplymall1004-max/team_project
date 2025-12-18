@@ -111,27 +111,37 @@ export async function generateWeeklyDiet(
     console.log(`\n📆 ${date} 식단 생성 중... (${dayIndex + 1}/7)`);
 
     let dailyPlan: WeeklyDailyPlan | null = null;
-    const preferredRice = riceTypes[riceTypeIndex % riceTypes.length];
 
-    const isValidMeal = (meal: MealComposition | null) => {
-      if (!meal) return false;
-      const riceOk = Boolean(meal.rice?.title);
-      const soupOk = Boolean(meal.soup?.title);
-      const sidesOk = Array.isArray(meal.sides) && meal.sides.length === 3;
-      return riceOk && soupOk && sidesOk;
-    };
+    if (options.familyMembers && options.familyMembers.length > 0) {
+      // 가족 식단 생성 (주간 중복 방지 로직 포함)
+      const familyPlan = await generateFamilyDietWithWeeklyContext(
+        options.userId,
+        options.profile,
+        options.familyMembers,
+        date,
+        usedRecipeTitles,
+        weeklyRecipeFrequency,
+        maxRepeatsPerWeek,
+        dayIndex === 0, // 첫 날은 최근 사용 레시피 회피
+        usedByCategory, // 카테고리별 제외 목록
+        riceTypes[riceTypeIndex % riceTypes.length], // 밥 종류 다양화
+      );
+      dailyPlan =
+        familyPlan.unifiedPlan || familyPlan.individualPlans["user"] || null;
+      dailyPlansPersisted = false;
+    } else {
+      // ✅ 개인 주간 식단 생성(중요):
+      // - 기존에는 generateAndSaveDietPlan → generatePersonalDietForAPI 경로로 가며
+      //   "밥+국/찌개+반찬3종" 구조(MealComposition)가 대표 레시피 1개로 축약되어
+      //   아침/점심/저녁이 쉽게 겹치거나, 반찬 3종이 깨지는 문제가 있었습니다.
+      // - 주간 식단은 generatePersonalDiet(원본 로직)를 직접 호출하여 구조를 보존합니다.
+      // - 저녁이 생성되지 않는 경우가 있으므로, 조건을 완화하며 최대 3회 재시도합니다.
 
-    /**
-     * 주간 식단 품질 보장(중요):
-     * - 주말/특정 조건에서 저녁이 null로 생성되는 케이스가 있어, DB에 dinner 레코드가 저장되지 않는 문제가 발생했습니다.
-     * - 주간은 "밥+반찬3+국/찌개" 규칙이 깨지면 UX가 크게 무너져서,
-     *   개인 식단 생성 로직을 재사용하여 최대 3회(제외 조건 완화) 자동 복구합니다.
-     */
-    const ensureCompletePersonalDailyPlan = async (): Promise<WeeklyDailyPlan | null> => {
+      const preferredRice = riceTypes[riceTypeIndex % riceTypes.length];
       const attempts = [
         { usedByCategory }, // 1) 정상(주간 제외 목록 적용)
         {
-          // 2) 반찬/국 제외를 완화(주말 저녁 누락 방지)
+          // 2) 반찬/국 제외를 완화(저녁 누락 방지)
           usedByCategory: {
             rice: usedByCategory.rice,
             side: new Set<string>(),
@@ -151,7 +161,7 @@ export async function generateWeeklyDiet(
       ] as const;
 
       for (let i = 0; i < attempts.length; i++) {
-        console.log(`🧪 [weekly] 개인 식단 복구 시도 ${i + 1}/${attempts.length}`, {
+        console.log(`🧪 개인 식단 생성 시도 ${i + 1}/${attempts.length}`, {
           date,
           preferredRice,
         });
@@ -163,93 +173,59 @@ export async function generateWeeklyDiet(
           weeklyAvailableRecipes,
           attempts[i].usedByCategory,
           preferredRice,
-          undefined,
-          false,
+          undefined, // premiumFeatures
+          false, // includeFavorites
         );
 
-        const breakfast = (result.breakfast as unknown as MealComposition | null) ?? null;
-        const lunch = (result.lunch as unknown as MealComposition | null) ?? null;
-        const dinner = (result.dinner as unknown as MealComposition | null) ?? null;
+        const breakfast = result.breakfast ?? null;
+        const lunch = result.lunch ?? null;
+        const dinner = result.dinner ?? null;
 
-        const valid = isValidMeal(breakfast) && isValidMeal(lunch) && isValidMeal(dinner);
+        const isValidMeal = (meal: MealComposition | null) => {
+          if (!meal) return false;
+          const riceOk = Boolean(meal.rice?.title);
+          const soupOk = Boolean(meal.soup?.title);
+          const sidesOk = Array.isArray(meal.sides) && meal.sides.length === 3;
+          return riceOk && soupOk && sidesOk;
+        };
+
+        const valid =
+          isValidMeal(breakfast as any) &&
+          isValidMeal(lunch as any) &&
+          isValidMeal(dinner as any);
+
         if (!valid) {
-          console.warn("⚠️ [weekly] 구성 규칙 미충족(복구 재시도):", {
-            date,
+          console.warn("⚠️ 구성 규칙 미충족(재시도):", {
             breakfast: {
-              rice: breakfast?.rice?.title,
-              sides: breakfast?.sides?.length ?? 0,
-              soup: breakfast?.soup?.title,
+              rice: (breakfast as any)?.rice?.title,
+              sides: (breakfast as any)?.sides?.length ?? 0,
+              soup: (breakfast as any)?.soup?.title,
             },
             lunch: {
-              rice: lunch?.rice?.title,
-              sides: lunch?.sides?.length ?? 0,
-              soup: lunch?.soup?.title,
+              rice: (lunch as any)?.rice?.title,
+              sides: (lunch as any)?.sides?.length ?? 0,
+              soup: (lunch as any)?.soup?.title,
             },
             dinner: {
-              rice: dinner?.rice?.title,
-              sides: dinner?.sides?.length ?? 0,
-              soup: dinner?.soup?.title,
+              rice: (dinner as any)?.rice?.title,
+              sides: (dinner as any)?.sides?.length ?? 0,
+              soup: (dinner as any)?.soup?.title,
             },
           });
           continue;
         }
 
-        return {
+        dailyPlan = {
           date,
-          breakfast,
-          lunch,
-          dinner,
-          snack: (result.snack as any) ?? null,
+          breakfast: breakfast as any,
+          lunch: lunch as any,
+          dinner: dinner as any,
+          snack: result.snack ?? null,
           totalNutrition: result.totalNutrition,
         } as any;
+        dailyPlansPersisted = false;
+        break;
       }
-
-      return null;
-    };
-
-    if (options.familyMembers && options.familyMembers.length > 0) {
-      // 가족 식단 생성 (주간 중복 방지 로직 포함)
-      const familyPlan = await generateFamilyDietWithWeeklyContext(
-        options.userId,
-        options.profile,
-        options.familyMembers,
-        date,
-        usedRecipeTitles,
-        weeklyRecipeFrequency,
-        maxRepeatsPerWeek,
-        dayIndex === 0, // 첫 날은 최근 사용 레시피 회피
-        usedByCategory, // 카테고리별 제외 목록
-        preferredRice, // 밥 종류 다양화
-      );
-      dailyPlan =
-        familyPlan.unifiedPlan || familyPlan.individualPlans["user"] || null;
-      dailyPlansPersisted = false;
-
-      // ✅ 가족 경로에서도 “사용자 화면(주간 캘린더)”에 저녁 누락이 자주 발생할 수 있어,
-      // 개인 식단으로 최소한의 품질(규칙 준수)을 보장합니다.
-      // (가족 통합 식단이 더 중요하더라도, '저녁 없음'은 UX 치명적이어서 우선 복구)
-      const maybeDinner = (dailyPlan as any)?.dinner ?? null;
-      const isDinnerOk =
-        typeof maybeDinner === "object" &&
-        maybeDinner &&
-        "sides" in maybeDinner &&
-        isValidMeal(maybeDinner as MealComposition);
-      if (!isDinnerOk) {
-        console.warn("⚠️ [weekly] 가족 경로에서 저녁 누락/규칙 위반 감지 → 개인 식단으로 복구 시도", {
-          date,
-        });
-        dailyPlan = await ensureCompletePersonalDailyPlan();
-      }
-    } else {
-      // ✅ 개인 주간 식단 생성(중요):
-      // - 기존에는 generateAndSaveDietPlan → generatePersonalDietForAPI 경로로 가며
-      //   "밥+국/찌개+반찬3종" 구조(MealComposition)가 대표 레시피 1개로 축약되어
-      //   아침/점심/저녁이 쉽게 겹치거나, 반찬 3종이 깨지는 문제가 있었습니다.
-      // - 주간 식단은 generatePersonalDiet(원본 로직)를 직접 호출하여 구조를 보존합니다.
-      // - 저녁이 생성되지 않는 경우가 있으므로, 조건을 완화하며 최대 3회 재시도합니다.
-
-      dailyPlan = await ensureCompletePersonalDailyPlan();
-      dailyPlansPersisted = false;
 
       if (!dailyPlan) {
         console.error("❌ 개인 식단 생성 실패(모든 재시도 실패):", date);

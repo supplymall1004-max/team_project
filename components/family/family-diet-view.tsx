@@ -133,12 +133,12 @@ export function FamilyDietView({
   }, [fetchDietData]);
 
   // FamilyDietPlan 형식으로 변환
-  const familyDietPlan: FamilyDietPlan = dietData ? {
+  const familyDietPlan: FamilyDietPlan = dietData && dietData.plans ? {
     date: dietData.date,
     individualPlans: Object.fromEntries(
-      Object.entries(dietData.plans).filter(([key]) => key !== 'unified')
+      Object.entries(dietData.plans || {}).filter(([key]) => key !== 'unified')
     ),
-    unifiedPlan: dietData.plans.unified || null,
+    unifiedPlan: dietData.plans?.unified || null,
   } : {
     date: targetDate,
     individualPlans: {},
@@ -179,7 +179,7 @@ export function FamilyDietView({
   }
 
   // 식단이 없는 경우
-  const hasDietData = dietData && Object.keys(dietData.plans).length > 0;
+  const hasDietData = dietData && dietData.plans && Object.keys(dietData.plans).length > 0;
 
   if (!hasDietData) {
     return (

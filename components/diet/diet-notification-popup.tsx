@@ -23,9 +23,13 @@ interface DietNotificationPopupProps {
   onDismissToday?: () => void;
   dontShowTodayChecked?: boolean;
   dietData?: {
-    date: string;
-    plans: Record<string, any>;
-  };
+    date?: string;
+    plans?: Record<string, any>;
+    shouldShow?: boolean;
+    today?: string;
+    dietsCount?: number;
+    [key: string]: any; // 추가 속성 허용
+  } | null;
   loading?: boolean;
 }
 
@@ -53,13 +57,25 @@ export function DietNotificationPopup({
 }: DietNotificationPopupProps) {
 
   // FamilyDietPlan 형식으로 변환
-  const familyDietPlan: FamilyDietPlan | null = dietData ? {
-    date: dietData.date,
-    individualPlans: Object.fromEntries(
-      Object.entries(dietData.plans).filter(([key]) => key !== 'unified')
-    ),
-    unifiedPlan: dietData.plans.unified || null,
-  } : null;
+  // dietData가 없거나 plans가 없으면 null 반환 (에러 방지)
+  const familyDietPlan: FamilyDietPlan | null = (() => {
+    if (!dietData) return null;
+    if (!dietData.plans) return null;
+    if (typeof dietData.plans !== 'object') return null;
+    
+    try {
+      return {
+        date: dietData.date || new Date().toISOString().split("T")[0],
+        individualPlans: Object.fromEntries(
+          Object.entries(dietData.plans).filter(([key]) => key !== 'unified')
+        ),
+        unifiedPlan: dietData.plans?.unified || null,
+      };
+    } catch (error) {
+      console.error("❌ [DietNotificationPopup] familyDietPlan 변환 실패:", error);
+      return null;
+    }
+  })();
 
   // 표시할 식단 결정 (통합 식단 우선, 없으면 첫 번째 개인 식단)
   const displayDiet: DailyDietPlan | null = familyDietPlan?.unifiedPlan ||
@@ -81,12 +97,14 @@ export function DietNotificationPopup({
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Calendar className="h-4 w-4" />
             <span>
-              {dietData ? new Date(dietData.date).toLocaleDateString('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                weekday: 'long'
-              }) : '오늘'}
+              {dietData?.date || dietData?.today
+                ? new Date(dietData.date || dietData.today || new Date().toISOString().split("T")[0]).toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'long'
+                  })
+                : '오늘'}
             </span>
           </div>
 
@@ -96,6 +114,23 @@ export function DietNotificationPopup({
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
               <span className="ml-3 text-gray-600">식단을 불러오는 중...</span>
             </div>
+          )}
+
+          {/* 식단 내용 - plans가 없으면 간단한 메시지 표시 */}
+          {!loading && !displayDiet && dietData && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-center py-8">
+                  <ChefHat className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-900 mb-2">
+                    오늘의 식단이 준비되었습니다!
+                  </p>
+                  <p className="text-sm text-gray-600 mb-4">
+                    {dietData.dietsCount ? `${dietData.dietsCount}개의 식단이 준비되었습니다.` : '식단을 확인해보세요.'}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* 식단 내용 */}

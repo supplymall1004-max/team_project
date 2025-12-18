@@ -188,6 +188,30 @@ export function HealthDashboard({ userId, className }: HealthDashboardProps) {
     );
   }
 
+  // healthMetrics가 없으면 로딩 또는 에러 상태 표시
+  if (!healthMetrics) {
+    if (isLoading) {
+      return (
+        <div className={`flex justify-center items-center py-12 ${className}`}>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-sm text-gray-600">건강 데이터를 불러오는 중...</p>
+          </div>
+        </div>
+      );
+    }
+    
+    if (error) {
+      return (
+        <div className={`text-center py-12 ${className}`}>
+          <p className="text-red-600">{error}</p>
+        </div>
+      );
+    }
+    
+    return null;
+  }
+
   const statusInfo = getHealthStatusInfo(healthMetrics.healthStatus);
   const StatusIcon = statusInfo.icon;
 
@@ -245,26 +269,27 @@ export function HealthDashboard({ userId, className }: HealthDashboardProps) {
 
         <TabsContent value="overview" className="space-y-6">
           {/* 건강 메트릭스 카드들 */}
-          <HealthMetricsCard metrics={healthMetrics} />
+          {healthMetrics && <HealthMetricsCard metrics={healthMetrics} />}
 
           {/* 질병 위험도 게이지 */}
-          <DiseaseRiskGauge risks={healthMetrics.diseaseRiskScores} />
+          {healthMetrics?.diseaseRiskScores && <DiseaseRiskGauge risks={healthMetrics.diseaseRiskScores} />}
         </TabsContent>
 
         <TabsContent value="nutrition" className="space-y-6">
           {/* 영양 균형 차트 */}
-          <NutritionBalanceChart balance={healthMetrics.nutritionBalance} />
+          {healthMetrics?.nutritionBalance && <NutritionBalanceChart balance={healthMetrics.nutritionBalance} />}
 
           {/* 비타민 및 미네랄 레벨 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>비타민 레벨</CardTitle>
-                <CardDescription>일일 권장 섭취량 대비 현재 상태</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(healthMetrics.vitaminLevels).map(([vitamin, level]) => (
+          {healthMetrics && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>비타민 레벨</CardTitle>
+                  <CardDescription>일일 권장 섭취량 대비 현재 상태</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {healthMetrics.vitaminLevels && Object.entries(healthMetrics.vitaminLevels || {}).map(([vitamin, level]) => (
                     <div key={vitamin} className="flex items-center justify-between">
                       <span className="text-sm font-medium capitalize">
                         비타민 {vitamin.slice(-1)}
@@ -294,7 +319,7 @@ export function HealthDashboard({ userId, className }: HealthDashboardProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {Object.entries(healthMetrics.mineralLevels).map(([mineral, level]) => (
+                    {healthMetrics.mineralLevels && Object.entries(healthMetrics.mineralLevels || {}).map(([mineral, level]) => (
                     <div key={mineral} className="flex items-center justify-between">
                       <span className="text-sm font-medium capitalize">
                         {mineral === 'calcium' ? '칼슘' :
@@ -316,11 +341,12 @@ export function HealthDashboard({ userId, className }: HealthDashboardProps) {
                         <span className="text-xs text-gray-500 w-8">{level}%</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-6">

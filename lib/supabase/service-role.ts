@@ -23,10 +23,37 @@ export function getServiceRoleClient() {
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
-    throw new Error(
-      "Supabase URL or Service Role Key is missing. Please check your environment variables."
+    const missingVars = [];
+    if (!supabaseUrl) missingVars.push("NEXT_PUBLIC_SUPABASE_URL");
+    if (!supabaseServiceRoleKey) missingVars.push("SUPABASE_SERVICE_ROLE_KEY");
+    
+    const errorMessage = `Supabase 환경변수가 누락되었습니다: ${missingVars.join(", ")}. Vercel Dashboard → Settings → Environment Variables에서 확인해주세요.`;
+    console.error("❌ [ServiceRoleClient]", errorMessage);
+    throw new Error(errorMessage);
+  }
+
+  // Service Role Key 형식 검증 (일반적으로 "eyJ..."로 시작하는 JWT 토큰)
+  if (!supabaseServiceRoleKey.startsWith("eyJ")) {
+    console.warn(
+      "⚠️ [ServiceRoleClient] SUPABASE_SERVICE_ROLE_KEY가 예상 형식이 아닙니다. " +
+      "Service Role Key는 일반적으로 'eyJ'로 시작하는 JWT 토큰입니다. " +
+      "Vercel 환경변수 값을 확인해주세요."
     );
   }
+
+  // URL 형식 검증
+  try {
+    new URL(supabaseUrl);
+  } catch (urlError) {
+    console.error("❌ [ServiceRoleClient] NEXT_PUBLIC_SUPABASE_URL이 유효한 URL 형식이 아닙니다:", supabaseUrl);
+    throw new Error(
+      `NEXT_PUBLIC_SUPABASE_URL이 유효한 URL 형식이 아닙니다: ${supabaseUrl}`
+    );
+  }
+
+  console.log("✅ [ServiceRoleClient] Supabase Service Role 클라이언트 생성 완료");
+  console.log("   - URL:", supabaseUrl);
+  console.log("   - Service Role Key:", supabaseServiceRoleKey.substring(0, 20) + "...");
 
   return createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {

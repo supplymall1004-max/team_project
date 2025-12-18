@@ -46,6 +46,21 @@ export async function ensureSupabaseUser(): Promise<{ id: string; name: string }
       console.error("  - 에러 메시지:", checkError.message);
       console.error("  - 에러 상세:", checkError.details);
       console.error("  - 에러 힌트:", checkError.hint);
+      
+      // PGRST301 오류는 환경변수 문제일 가능성이 높음
+      if (checkError.code === "PGRST301") {
+        console.error("  ⚠️ PGRST301 오류 감지: 'No suitable key or wrong key type'");
+        console.error("  → 가능한 원인:");
+        console.error("     1. Vercel 환경변수 SUPABASE_SERVICE_ROLE_KEY가 설정되지 않음");
+        console.error("     2. SUPABASE_SERVICE_ROLE_KEY 값이 잘못됨 (anon key를 사용했거나 잘못된 키)");
+        console.error("     3. Service Role Key가 만료되었거나 비활성화됨");
+        console.error("  → 해결 방법:");
+        console.error("     1. Vercel Dashboard → Settings → Environment Variables 확인");
+        console.error("     2. Supabase Dashboard → Settings → API → service_role key 복사");
+        console.error("     3. Vercel에 SUPABASE_SERVICE_ROLE_KEY로 설정 (앞뒤 공백 없이)");
+        console.error("     4. 배포 재시도");
+      }
+      
       console.groupEnd();
       return null;
     }
