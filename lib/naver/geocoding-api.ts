@@ -80,31 +80,51 @@ export async function geocodeAddress(address: string): Promise<{
         // 1. 원본 주소 그대로
         candidateQueries.push(normalized);
         
-        // 2. 번지/번길 제거한 버전 (예: "경인로 251번길 36" → "경인로 251번길")
-        const withoutBuildingNumber = normalized.replace(/\s+\d+번?지?\s*$/, "").replace(/\s+\d+번길\s+\d+/, "번길");
+        // 2. 번지/번길 제거한 버전 (예: "인천광역시 경인로 251번길 36" → "인천광역시 경인로 251번길")
+        // "인천광역시 경인로 251번길 36" → "인천광역시 경인로 251번길"
+        // "인천광역시 경인로 251번길 36-1" → "인천광역시 경인로 251번길"
+        let withoutBuildingNumber = normalized;
+        // 번길 뒤의 번지 제거 (예: "251번길 36" → "251번길", "251번길 36-1" → "251번길")
+        withoutBuildingNumber = withoutBuildingNumber.replace(/(\d+번길)\s+\d+(-?\d*)\s*$/, "$1");
+        // 끝에 있는 번지 제거 (예: "36" 또는 "36-1") - 번길이 없는 경우
+        if (!withoutBuildingNumber.includes("번길")) {
+          withoutBuildingNumber = withoutBuildingNumber.replace(/\s+\d+(-?\d*)\s*$/, "");
+        }
+        
         if (withoutBuildingNumber !== normalized && withoutBuildingNumber.trim()) {
           candidateQueries.push(withoutBuildingNumber.trim());
           console.log(`   → 건물번호 제거: "${withoutBuildingNumber.trim()}"`);
         }
         
-        // 3. 번길까지 제거한 버전 (예: "경인로 251번길" → "경인로")
+        // 3. 번길까지 제거한 버전 (예: "인천광역시 경인로 251번길" → "인천광역시 경인로")
         const withoutStreetNumber = withoutBuildingNumber.replace(/\s+\d+번길/, "").trim();
         if (withoutStreetNumber !== withoutBuildingNumber && withoutStreetNumber.trim()) {
           candidateQueries.push(withoutStreetNumber.trim());
           console.log(`   → 번길 제거: "${withoutStreetNumber.trim()}"`);
         }
         
-        // 4. 시/구 단위만 추출 (예: "인천광역시 경인로" → "인천광역시")
-        // "인천광역시" 또는 "인천광역시 미추홀구" 같은 형식만 추출
-        const cityGuMatch = normalized.match(/^(.+?시(?:\s+.+?구)?)/);
-        if (cityGuMatch && cityGuMatch[1] !== normalized && cityGuMatch[1].trim().length > 2) {
-          const cityGu = cityGuMatch[1].trim();
-          // "인천광역시 경" 같은 잘못된 추출 방지
-          if (!cityGu.endsWith(" 경") && !cityGu.endsWith(" 로") && !cityGu.endsWith(" 길")) {
+        // 4. 구 단위까지 추출 (예: "인천광역시 경인로" → "인천광역시 미추홀구")
+        // "인천광역시 경인로"에서 "인천광역시"만 추출하고, 구 정보가 있으면 추가
+        const cityMatch = normalized.match(/^(인천광역시|서울특별시|부산광역시|대구광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원도|충청북도|충청남도|전라북도|전라남도|경상북도|경상남도|제주특별자치도)/);
+        if (cityMatch) {
+          const city = cityMatch[1];
+          // "인천광역시 미추홀구" 같은 구 정보가 있으면 포함
+          const guMatch = normalized.match(new RegExp(`${city}\\s+(.+?구)`));
+          if (guMatch) {
+            const cityGu = `${city} ${guMatch[1]}`;
+            if (!candidateQueries.includes(cityGu)) {
             candidateQueries.push(cityGu);
             console.log(`   → 시/구 단위: "${cityGu}"`);
           }
+          } else {
+            // 구 정보가 없으면 시 단위만
+            if (!candidateQueries.includes(city)) {
+              candidateQueries.push(city);
+              console.log(`   → 시 단위: "${city}"`);
+            }
+          }
         }
+        
         
         // 중복 제거
         const uniqueQueries = Array.from(new Set(candidateQueries));
@@ -252,19 +272,24 @@ export async function geocodeAddress(address: string): Promise<{
       // 응답에 errorMessage가 있는지 확인
       if ((data as any).errorMessage) {
         console.warn(`⚠️ API 에러 메시지: ${(data as any).errorMessage}`);
+        console.warn(`   쿼리: "${query}"`);
       }
       
       if (data.status !== "OK") {
         console.warn(`⚠️ API 응답 상태가 OK가 아닙니다. (status="${data.status}", query="${query}")`);
-        // 응답 본문 전체 로깅 (디버깅용)
+        // 응답 본문 전체 로깅 (디버깅용, 마지막 쿼리인 경우에만)
+        if (query === queries[queries.length - 1]) {
         console.log("📄 API 응답 본문:", JSON.stringify(data, null, 2));
+        }
         continue;
       }
       
       if (!data.addresses || data.addresses.length === 0) {
         console.warn(`⚠️ 주소를 찾을 수 없습니다. (query="${query}")`);
-        // 응답 본문 전체 로깅 (디버깅용)
+        // 응답 본문 전체 로깅 (디버깅용, 마지막 쿼리인 경우에만)
+        if (query === queries[queries.length - 1]) {
         console.log("📄 API 응답 본문:", JSON.stringify(data, null, 2));
+        }
         continue;
       }
 
@@ -413,11 +438,21 @@ export async function reverseGeocode(
         console.error("🔐 401 인증 실패 - 가능한 원인:");
         console.error("   1. NAVER_CLIENT_ID 또는 NAVER_CLIENT_SECRET 값이 잘못되었습니다.");
         console.error("   2. 네이버 클라우드 플랫폼 콘솔에서 API 키가 비활성화되었습니다.");
-        console.error("   3. 네이버 클라우드 플랫폼 지오코딩 API 서비스가 활성화되지 않았습니다.");
+        console.error("   3. 네이버 클라우드 플랫폼 Maps API 서비스가 활성화되지 않았습니다.");
+        console.error("   4. Maps API용 키가 아닌 기존 지도 API 키를 사용하고 있을 수 있습니다.");
         console.error("💡 해결 방법:");
-        console.error("   - 네이버 클라우드 플랫폼 콘솔에서 API 키 확인");
-        console.error("   - 지오코딩 API 서비스 활성화 확인");
-        console.error("   - .env.local 파일의 환경변수 값이 올바른지 확인");
+        console.error("   - 네이버 클라우드 플랫폼 콘솔 → Application Service → Maps");
+        console.error("   - Maps 상품 활성화 및 새로운 API 키 발급 확인");
+        console.error("   - .env.local 파일의 NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET이 Maps API용인지 확인");
+        console.error(`   - 현재 사용 중인 Client ID: ${clientId.substring(0, 5)}...`);
+        console.error("   ⚠️ 중요: 2025년 7월 1일부터 Maps API는 새로운 키가 필요합니다!");
+      } else if (response.status === 404) {
+        console.error("🔍 404 Not Found - 가능한 원인:");
+        console.error("   1. 역지오코딩 API URL이 잘못되었습니다.");
+        console.error("   2. Maps API 서비스가 활성화되지 않았습니다.");
+        console.error("💡 해결 방법:");
+        console.error("   - 네이버 클라우드 플랫폼 콘솔에서 Maps API 서비스 활성화 확인");
+        console.error("   - API 엔드포인트 URL 확인");
       }
       
       console.groupEnd();

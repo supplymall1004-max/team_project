@@ -154,6 +154,7 @@ function filterFacilitiesByRadius(
     `📏 반경 필터링 적용: 중심(${centerLat}, ${centerLon}), 반경 ${radiusMeters}m`,
   );
 
+  // 반경 필터링을 적용하되, 약국인 경우 여유를 더 크게 설정
   const filtered = facilities.filter((facility) => {
     if (!facility.latitude || !facility.longitude) {
       return false;
@@ -167,12 +168,39 @@ function filterFacilitiesByRadius(
     );
     const distanceMeters = distance * 1000; // km to meters
 
-    return distanceMeters <= radiusMeters;
+    // 약국인 경우 반경 여유를 더 크게 설정 (약국 API의 지역 필터링과 클라이언트 필터링 간 차이 고려)
+    const isPharmacy = facility.category === "pharmacy";
+    const effectiveRadius = isPharmacy ? radiusMeters * 1.5 : radiusMeters; // 약국은 50% 여유
+
+    return distanceMeters <= effectiveRadius;
   });
 
   console.log(
     `📏 반경 필터링 결과: ${facilities.length}개 → ${filtered.length}개 (반경: ${radiusMeters}m 내)`,
   );
+  
+  // 반경 필터링 후에도 0개인 경우, 가장 가까운 약국 몇 개라도 포함
+  if (filtered.length === 0 && facilities.length > 0) {
+    console.warn(`⚠️ 반경 내 약국이 없어 가장 가까운 약국 10개를 포함합니다.`);
+    const facilitiesWithDistance = facilities
+      .filter(f => f.latitude && f.longitude)
+      .map(facility => {
+        const distance = calculateDistance(
+          centerLat,
+          centerLon,
+          facility.latitude,
+          facility.longitude,
+        );
+        return { facility, distanceMeters: distance * 1000 };
+      })
+      .sort((a, b) => a.distanceMeters - b.distanceMeters)
+      .slice(0, 10); // 가장 가까운 10개
+    
+    const nearestFacilities = facilitiesWithDistance.map(item => item.facility);
+    console.log(`📏 가장 가까운 약국 포함: ${nearestFacilities.length}개`);
+    return nearestFacilities;
+  }
+  
   return filtered;
 }
 
@@ -362,6 +390,24 @@ export async function GET(request: NextRequest) {
       );
 
       try {
+        // PHARMACY_API_KEY 환경변수 확인
+        const hasPharmacyApiKey = !!process.env.PHARMACY_API_KEY;
+        console.log(`🔑 PHARMACY_API_KEY 환경변수 확인: ${hasPharmacyApiKey ? "설정됨" : "❌ 없음"}`);
+        if (!hasPharmacyApiKey) {
+          console.error("❌ PHARMACY_API_KEY 환경변수가 설정되지 않았습니다.");
+          console.error("💡 .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.");
+          console.error("💡 공공데이터포털에서 약국 정보 API 키를 발급받아야 합니다: https://www.data.go.kr/data/15000500/openapi.do");
+          console.groupEnd();
+          return NextResponse.json(
+            {
+              success: false,
+              error: "약국 정보 API 키가 설정되지 않았습니다. .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.",
+              details: "공공데이터포털(https://www.data.go.kr/data/15000500/openapi.do)에서 약국 정보 API 키를 발급받아야 합니다.",
+            },
+            { status: 500 },
+          );
+        }
+
         // 위치 기반 검색을 위해 주소 정보 추출
         const pharmacyParams: PharmacySearchParams = {
           numOfRows: Math.min(display, 500), // 최대 500개까지 가져와서 필터링
@@ -396,6 +442,12 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        console.log("📞 약국 API 호출 시작:", {
+          params: pharmacyParams,
+          hasQ0: !!pharmacyParams.Q0,
+          hasQ1: !!pharmacyParams.Q1,
+        });
+
         const pharmacyResult = await searchPharmacies(pharmacyParams);
         console.log(
           `📊 약국 API 응답: 총 ${pharmacyResult.totalCount}개 중 ${pharmacyResult.pharmacies.length}개 반환`,
@@ -420,6 +472,7 @@ export async function GET(request: NextRequest) {
             totalCount: pharmacyResult.totalCount,
             hasPharmacies: !!pharmacyResult.pharmacies,
             pharmaciesLength: pharmacyResult.pharmacies?.length || 0,
+            params: pharmacyParams,
           });
           console.groupEnd();
           return NextResponse.json({
@@ -437,13 +490,29 @@ export async function GET(request: NextRequest) {
           `🔄 약국 API 응답 변환 시작: ${pharmacyResult.pharmacies.length}개 약국`,
         );
         
+        const facilitiesBeforeConvert = pharmacyResult.pharmacies.length;
         try {
           facilities = convertPharmacyToMedicalFacilities(
             pharmacyResult.pharmacies,
             lat,
             lon,
           );
-          console.log(`✅ 변환 완료: ${facilities.length}개 약국`);
+          console.log(`✅ 변환 완료: ${facilitiesBeforeConvert}개 → ${facilities.length}개 약국`);
+          
+          // 변환 후 샘플 로그 (처음 5개)
+          if (facilities.length > 0) {
+            console.log(`📋 변환된 약국 샘플 (처음 5개):`);
+            facilities.slice(0, 5).forEach((facility, idx) => {
+              console.log(`   ${idx + 1}. ${facility.name}`);
+              console.log(`      - 주소: ${facility.address}`);
+              console.log(`      - 좌표: (${facility.latitude}, ${facility.longitude})`);
+              console.log(
+                `      - 거리: ${facility.distance?.toFixed(2) ?? "N/A"}km`,
+              );
+            });
+          } else {
+            console.warn(`⚠️ 변환 후 약국이 0개입니다. 원본 약국 데이터 샘플:`, pharmacyResult.pharmacies.slice(0, 3));
+          }
         } catch (convertError) {
           console.error("❌ 약국 데이터 변환 실패:", convertError);
           console.error("변환 실패한 약국 데이터 샘플:", pharmacyResult.pharmacies.slice(0, 3));
@@ -452,27 +521,17 @@ export async function GET(request: NextRequest) {
           console.warn("⚠️ 약국 데이터 변환 실패로 빈 결과를 반환합니다.");
         }
 
-        // 현재 영업중인 약국만 필터링
-        // 주의: 공공데이터 응답에서 영업시간 필드가 비어있거나(<dutyTime..../>) 누락되는 경우가 있어,
-        // 전부 "unknown"으로 판정되면 결과가 0개가 될 수 있습니다.
-        // UX 관점에서 0개를 반환하기보다는 "영업시간 확인 불가" 상태로라도 약국 목록을 제공하는 것이 낫습니다.
-        const pharmaciesBeforeOperatingFilter = facilities;
+        // 약국을 영업 상태별로 정렬 (영업중인 약국을 최상단에 배치)
+        // 주의: 모든 약국을 포함하되, 영업중인 약국을 우선 표시합니다.
+        // 공공데이터 응답에서 영업시간 필드가 비어있거나(<dutyTime..../>) 누락되는 경우가 있어,
+        // 영업시간 정보 없는 약국도 포함합니다.
+        const facilitiesBeforeSort = facilities.length;
         facilities = filterOperatingPharmacies(facilities);
-        console.log(`✅ 영업중 약국 필터링 완료: ${facilities.length}개`);
-
-        if (
-          facilities.length === 0 &&
-          pharmaciesBeforeOperatingFilter.length > 0
-        ) {
-          console.warn(
-            "⚠️ 영업중 약국 필터링 결과가 0개입니다. (영업시간 정보 누락 가능) 필터링 전 목록으로 대체합니다.",
-          );
-          facilities = pharmaciesBeforeOperatingFilter;
-        }
+        console.log(`✅ 약국 영업 상태 정렬 완료: ${facilitiesBeforeSort}개 (모든 약국 포함, 영업중 우선)`);
 
         // 변환된 약국 샘플 로그 (처음 3개)
         if (facilities.length > 0) {
-          console.log(`📋 변환된 약국 샘플 (처음 3개):`);
+          console.log(`📋 영업중 약국 샘플 (처음 3개):`);
           facilities.slice(0, 3).forEach((facility, idx) => {
             console.log(`   ${idx + 1}. ${facility.name}`);
             console.log(`      - 주소: ${facility.address}`);
@@ -486,25 +545,32 @@ export async function GET(request: NextRequest) {
               `      - 영업 시간: ${facility.operatingHours?.todayHours ?? "N/A"}`,
             );
           });
+        } else if (facilitiesBeforeOperatingFilter > 0) {
+          console.warn(`⚠️ 영업중 필터링 후 약국이 0개입니다. 필터링 전 약국 샘플:`, facilitiesBeforeOperatingFilter);
         }
 
         // 약국 검색 결과에 반경 필터링 추가 적용
+        // 반경 내 결과가 없으면 가장 가까운 약국 몇 개라도 포함하도록 filterFacilitiesByRadius에서 처리
+        const facilitiesBeforeRadiusFilter = facilities.length;
         facilities = filterFacilitiesByRadius(facilities, lat, lon, radius);
-
         console.log(
-          `💊 최종 약국 검색 결과: ${facilities.length}개 (현재 영업중인 약국만, 반경 내)`,
+          `💊 최종 약국 검색 결과: ${facilitiesBeforeRadiusFilter}개 → ${facilities.length}개 (반경 ${radius}m 내 또는 가장 가까운 약국)`,
         );
 
         // 약국 검색 결과의 총 개수 설정
         totalCount = facilities.length;
       } catch (apiError) {
-        console.error("❌ 약국 정보 API 호출 실패:", apiError);
+        console.error("=".repeat(50));
+        console.error("❌ 약국 정보 API 호출 실패");
+        console.error("=".repeat(50));
         
         // 에러 상세 정보 로깅
         if (apiError instanceof Error) {
           console.error("에러 이름:", apiError.name);
           console.error("에러 메시지:", apiError.message);
-          console.error("에러 스택:", apiError.stack);
+          console.error("에러 스택:", apiError.stack?.substring(0, 500));
+        } else {
+          console.error("에러 객체:", apiError);
         }
         
         const apiErrorMessage =
@@ -513,13 +579,36 @@ export async function GET(request: NextRequest) {
             : "약국 정보 API 호출 실패";
         
         // API 키 오류인 경우 명확한 메시지 제공
-        if (apiErrorMessage.includes("API 키") || apiErrorMessage.includes("PHARMACY_API_KEY")) {
-          console.error("💡 해결 방법: Vercel Dashboard → Settings → Environment Variables에서 PHARMACY_API_KEY를 설정해주세요.");
-          throw new Error("약국 정보 API 키가 설정되지 않았습니다. 환경변수를 확인해주세요.");
+        if (apiErrorMessage.includes("API 키") || apiErrorMessage.includes("PHARMACY_API_KEY") || apiErrorMessage.includes("설정되지 않았습니다")) {
+          console.error("💡 해결 방법:");
+          console.error("   1. .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.");
+          console.error("   2. 공공데이터포털(https://www.data.go.kr/data/15000500/openapi.do)에서 약국 정보 API 키를 발급받아야 합니다.");
+          console.error("   3. 환경변수 추가 후 개발 서버를 재시작해주세요.");
+          console.groupEnd();
+          return NextResponse.json(
+            {
+              success: false,
+              error: "약국 정보 API 키가 설정되지 않았습니다.",
+              details: "공공데이터포털(https://www.data.go.kr/data/15000500/openapi.do)에서 약국 정보 API 키를 발급받아 .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.",
+            },
+            { status: 500 },
+          );
         }
         
         // 그 외 오류는 원본 메시지 전달
-        throw new Error(`약국 검색 실패: ${apiErrorMessage}`);
+        console.error("💡 일반적인 오류 원인:");
+        console.error("   1. API 키가 잘못되었거나 만료되었습니다.");
+        console.error("   2. API 서버가 일시적으로 사용 불가능합니다.");
+        console.error("   3. 네트워크 연결 문제가 발생했습니다.");
+        console.groupEnd();
+        return NextResponse.json(
+          {
+            success: false,
+            error: "약국 검색 중 오류가 발생했습니다.",
+            details: apiErrorMessage,
+          },
+          { status: 500 },
+        );
       }
     } else {
       // 병원, 동물병원, 동물약원은 네이버 로컬 검색 API 사용

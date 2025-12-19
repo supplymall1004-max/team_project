@@ -14,8 +14,10 @@
 
 "use client";
 
+import { useEffect, useState } from 'react';
 import { PremiumBanner } from "./premium-banner";
 import { PremiumStatusBanner } from "./premium-status-banner";
+import { getCurrentSubscription } from '@/actions/payments/get-subscription';
 
 interface FixedHeaderProps {
   premiumBannerText?: string;
@@ -39,6 +41,38 @@ export function FixedHeader({
   top = 0, // 맨 위에 위치 (Navbar 위)
   zIndex = 50, // Navbar와 동일한 z-index로 설정
 }: FixedHeaderProps) {
+  const [isPremium, setIsPremium] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadSubscription();
+    
+    // 프리미엄 활성화 이벤트 리스너 추가
+    const handlePremiumActivated = () => {
+      setTimeout(() => {
+        loadSubscription();
+      }, 500);
+    };
+    
+    window.addEventListener('premium-activated', handlePremiumActivated);
+    
+    return () => {
+      window.removeEventListener('premium-activated', handlePremiumActivated);
+    };
+  }, []);
+
+  const loadSubscription = async () => {
+    try {
+      const result = await getCurrentSubscription();
+      setIsPremium(result.isPremium || false);
+    } catch (error) {
+      console.error('❌ [FixedHeader] 구독 정보 로드 실패:', error);
+      setIsPremium(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // top 값을 문자열로 변환 (px 단위)
   const topValue = typeof top === 'number' ? `${top}px` : top;
 
@@ -55,14 +89,21 @@ export function FixedHeader({
         width: '100%',
       }}
     >
-      {/* 프리미엄 상태 배너 (프리미엄 사용자에게만 표시) */}
-      <PremiumStatusBanner />
-      
-      {/* 프리미엄 업그레이드 배너 (Free 사용자에게만 표시) */}
-      <PremiumBanner
-        text={premiumBannerText}
-        href={premiumBannerHref}
-      />
+      {/* 로딩 중에는 아무것도 표시하지 않음 */}
+      {isLoading ? null : (
+        <>
+          {/* 프리미엄 사용자인 경우: 상태 배너만 표시 */}
+          {isPremium ? (
+            <PremiumStatusBanner />
+          ) : (
+            /* Free 사용자인 경우: 업그레이드 배너만 표시 */
+            <PremiumBanner
+              text={premiumBannerText}
+              href={premiumBannerHref}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

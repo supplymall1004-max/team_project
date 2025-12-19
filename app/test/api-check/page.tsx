@@ -288,6 +288,102 @@ export default function ApiCheckPage() {
           }
         },
       },
+      {
+        name: "알림 설정 조회",
+        endpoint: "/api/users/notification-settings",
+        method: "GET",
+        test: async () => {
+          try {
+            const startTime = Date.now();
+            const response = await fetch("/api/users/notification-settings", {
+              method: "GET",
+            });
+            const duration = Date.now() - startTime;
+            const data = await response.json();
+
+            if (response.ok) {
+              return {
+                success: true,
+                message: "알림 설정 조회 성공",
+                details: `응답 시간: ${duration}ms, 설정: ${JSON.stringify(data.settings || {})}`,
+                statusCode: response.status,
+              };
+            } else if (response.status === 401) {
+              return {
+                success: false,
+                message: "인증 필요 (정상 - 로그인 필요)",
+                details: `상태 코드: ${response.status}`,
+                statusCode: response.status,
+              };
+            } else {
+              return {
+                success: false,
+                message: `조회 실패: ${data.error || "알 수 없는 오류"}`,
+                details: `상태 코드: ${response.status}`,
+                statusCode: response.status,
+              };
+            }
+          } catch (error) {
+            return {
+              success: false,
+              message: "API 호출 실패",
+              details: error instanceof Error ? error.message : String(error),
+            };
+          }
+        },
+      },
+      {
+        name: "알림 설정 저장",
+        endpoint: "/api/users/notification-settings",
+        method: "PUT",
+        test: async () => {
+          try {
+            const startTime = Date.now();
+            const response = await fetch("/api/users/notification-settings", {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                healthPopups: false,
+                kcdcAlerts: false,
+                generalNotifications: false,
+              }),
+            });
+            const duration = Date.now() - startTime;
+            const data = await response.json();
+
+            if (response.ok) {
+              return {
+                success: true,
+                message: "알림 설정 저장 성공",
+                details: `응답 시간: ${duration}ms, 저장된 설정: ${JSON.stringify(data.settings || {})}`,
+                statusCode: response.status,
+              };
+            } else if (response.status === 401) {
+              return {
+                success: false,
+                message: "인증 필요 (정상 - 로그인 필요)",
+                details: `상태 코드: ${response.status}`,
+                statusCode: response.status,
+              };
+            } else {
+              return {
+                success: false,
+                message: `저장 실패: ${data.error || "알 수 없는 오류"}`,
+                details: `상태 코드: ${response.status}, 상세: ${data.details || ""}`,
+                statusCode: response.status,
+              };
+            }
+          } catch (error) {
+            return {
+              success: false,
+              message: "API 호출 실패",
+              details: error instanceof Error ? error.message : String(error),
+            };
+          }
+        },
+      },
     ];
 
     const newResults: ApiTestResult[] = [];

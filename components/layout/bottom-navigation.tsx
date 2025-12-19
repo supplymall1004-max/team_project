@@ -85,7 +85,7 @@ export function BottomNavigation() {
                 aria-hidden="true"
               />
               <span className={cn(
-                "text-xs font-medium transition-all duration-200",
+                "text-sm font-medium transition-all duration-200",
                 isActive && "font-semibold"
               )}>{item.label}</span>
             </Link>

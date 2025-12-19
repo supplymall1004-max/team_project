@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Siren, ChevronRight, MapPin, Apple } from 'lucide-react';
+import { Siren, ChevronRight, MapPin, Apple, Sparkles } from 'lucide-react';
 
 interface WeatherData {
   location: string;
@@ -198,6 +198,38 @@ export function EmergencyQuickAccess() {
                 </div>
                 <ChevronRight className="w-4 h-4 text-green-400 group-hover:text-green-600 transition-colors" />
             </Link>
+
+            {/* Recipe Genie - 냉장고 재료 확인하고 레시피 추천 */}
+            <button
+                onClick={() => {
+                    console.groupCollapsed("[RecipeGenieBanner] 배너 클릭");
+                    console.log("url:", "https://gemini.google.com/gem-labs/1wffdEjbZ3E9wChM3O5VcoziuDnKihjDk");
+                    console.log("timestamp:", Date.now());
+                    console.groupEnd();
+                    window.open("https://gemini.google.com/gem-labs/1wffdEjbZ3E9wChM3O5VcoziuDnKihjDk", "_blank", "noopener,noreferrer");
+                }}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        window.open("https://gemini.google.com/gem-labs/1wffdEjbZ3E9wChM3O5VcoziuDnKihjDk", "_blank", "noopener,noreferrer");
+                    }
+                }}
+                className="flex items-center justify-between py-2.5 px-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl hover:bg-yellow-100 hover:border-yellow-300 transition-all group w-full"
+                aria-label="Recipe Genie로 냉장고 재료 확인하고 레시피 추천받기 (새 탭에서 열림)"
+                role="button"
+                tabIndex={0}
+            >
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-full group-hover:bg-yellow-200 transition-colors">
+                        <Sparkles className="w-5 h-5 text-yellow-600" />
+                    </div>
+                    <div className="flex-1 text-left">
+                        <h3 className="font-bold text-yellow-900 text-sm">Google Recipe Genie</h3>
+                        <p className="text-xs text-yellow-700">냉장고 재료 확인하고 레시피 추천</p>
+                    </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-yellow-400 group-hover:text-yellow-600 transition-colors" />
+            </button>
         </div>
     );
 }

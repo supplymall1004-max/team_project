@@ -124,7 +124,7 @@ export function FacilityCard({ facility, onMapClick, className }: FacilityCardPr
             </div>
 
             {/* 주소 정보 */}
-            <div className="space-y-1.5 text-xs">
+            <div className="space-y-1.5 text-sm">
               {facility.roadAddress && (
                 <div className="flex items-start gap-2">
                   <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -154,7 +154,7 @@ export function FacilityCard({ facility, onMapClick, className }: FacilityCardPr
                     {facility.phone}
                   </a>
                 ) : (
-                  <span className="text-xs text-muted-foreground">전화번호 정보 없음</span>
+                  <span className="text-sm text-muted-foreground">전화번호 정보 없음</span>
                 )}
               </div>
               
@@ -193,28 +193,28 @@ export function FacilityCard({ facility, onMapClick, className }: FacilityCardPr
                       ) : (
                         <>
                           {facility.operatingHours.todayHours ? (
-                            <span className="text-xs font-medium text-foreground">
+                            <span className="text-sm font-medium text-foreground">
                               오늘 {facility.operatingHours.todayHours}
                             </span>
                           ) : facility.operatingHours.hours ? (
-                            <span className="text-xs text-muted-foreground break-words">
+                            <span className="text-sm text-muted-foreground break-words">
                               {facility.operatingHours.hours}
                             </span>
                           ) : (
-                            <span className="text-xs text-muted-foreground">영업 시간 정보 없음</span>
+                            <span className="text-sm text-muted-foreground">영업 시간 정보 없음</span>
                           )}
                         </>
                       )}
                       
                       {/* 휴무일 정보 */}
                       {facility.operatingHours.closedDays && facility.operatingHours.closedDays.length > 0 && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-sm text-muted-foreground">
                           (휴무: {facility.operatingHours.closedDays.join(", ")})
                         </span>
                       )}
                     </>
                   ) : (
-                    <span className="text-xs text-muted-foreground">영업 시간 정보 없음</span>
+                    <span className="text-sm text-muted-foreground">영업 시간 정보 없음</span>
                   )}
                 </div>
               </div>
@@ -237,7 +237,7 @@ export function FacilityCard({ facility, onMapClick, className }: FacilityCardPr
                   variant="outline"
                   size="sm"
                   disabled
-                  className="shrink-0 gap-1.5 text-xs px-3 opacity-50 cursor-not-allowed"
+                  className="shrink-0 gap-1.5 text-sm px-3 opacity-50 cursor-not-allowed"
                 >
                   <Phone className="h-3.5 w-3.5 shrink-0" />
                   <span className="whitespace-nowrap">전화번호 없음</span>
@@ -248,10 +248,10 @@ export function FacilityCard({ facility, onMapClick, className }: FacilityCardPr
                   variant="outline"
                   size="sm"
                   onClick={handleMapClick}
-                  className="flex-1 min-w-[100px] gap-1.5 transition-all hover:bg-primary hover:text-primary-foreground text-xs px-2"
+                  className="flex-1 min-w-[100px] gap-1.5 transition-all hover:bg-primary hover:text-primary-foreground text-sm px-2"
                 >
                   <Navigation className="h-3.5 w-3.5 shrink-0" />
-                  <span className="whitespace-nowrap text-xs">지도에서 보기</span>
+                  <span className="whitespace-nowrap text-sm">지도에서 보기</span>
                 </Button>
               )}
               {facility.link && (
@@ -260,7 +260,7 @@ export function FacilityCard({ facility, onMapClick, className }: FacilityCardPr
                   size="sm"
                   asChild
                   className={cn(
-                    "gap-1.5 transition-all hover:bg-primary hover:text-primary-foreground text-xs px-2",
+                    "gap-1.5 transition-all hover:bg-primary hover:text-primary-foreground text-sm px-2",
                     onMapClick ? "flex-1 min-w-[100px]" : "flex-1"
                   )}
                 >
@@ -271,7 +271,7 @@ export function FacilityCard({ facility, onMapClick, className }: FacilityCardPr
                     className="inline-flex items-center justify-center gap-1.5 w-full"
                   >
                     <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                    <span className="whitespace-nowrap text-xs">네이버에서 보기</span>
+                    <span className="whitespace-nowrap text-sm">네이버에서 보기</span>
                   </a>
                 </Button>
               )}

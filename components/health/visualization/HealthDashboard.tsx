@@ -22,6 +22,7 @@ import { HealthInsightsCard } from './HealthInsightsCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getHealthMetrics } from '@/actions/health/metrics';
 
 interface HealthDashboardProps {
   userId?: string;
@@ -45,22 +46,11 @@ export function HealthDashboard({ userId, className }: HealthDashboardProps) {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/health/metrics', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('건강 데이터를 불러오는데 실패했습니다.');
-      }
-
-      const data = await response.json();
-      setHealthMetrics(data.metrics);
+      const result = await getHealthMetrics();
+      setHealthMetrics(result.metrics);
 
       // 건강 인사이트 생성
-      const generatedInsights = generateHealthInsights(data.metrics);
+      const generatedInsights = generateHealthInsights(result.metrics);
       setInsights(generatedInsights);
 
     } catch (err) {

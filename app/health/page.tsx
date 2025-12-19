@@ -13,7 +13,7 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Section } from '@/components/section';
-import { HealthDashboardWrapper } from '@/components/health/health-dashboard-wrapper';
+import { HealthDashboardWrapper } from '@/components/health/dashboard/HealthDashboardWrapper';
 import { HealthVisualizationPreview } from '@/components/home/health-visualization-preview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

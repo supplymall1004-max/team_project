@@ -13,7 +13,6 @@ import { SettingsNavigation } from "@/components/settings/settings-navigation";
 import { BillingCard } from "@/components/settings/billing-card";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { LocationSettingsCard } from "@/components/settings/LocationSettingsCard";
 
 export const metadata = {
   title: "설정 | 맛의 아카이브",
@@ -32,11 +31,6 @@ export default function SettingsPage() {
           <p className="text-muted-foreground">
             건강 정보, 알림 설정, 프로필 등을 관리하세요.
           </p>
-        </div>
-
-        {/* 위치 설정 (네이버지도 현재위치 추적용) */}
-        <div className="mb-8">
-          <LocationSettingsCard />
         </div>
 
         {/* 설정 목록 */}

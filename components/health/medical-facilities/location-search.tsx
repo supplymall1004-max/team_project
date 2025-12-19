@@ -81,7 +81,9 @@ export function LocationSearch({
   };
 
   const handleAddressSearch = async () => {
+    console.log("[LocationSearch] handleAddressSearch 호출됨", { searchQuery, hasOnSearch: !!onSearch });
     if (!searchQuery.trim()) {
+      console.warn("[LocationSearch] 검색어가 비어있어 검색을 건너뜁니다");
       return;
     }
 
@@ -90,9 +92,10 @@ export function LocationSearch({
     setSearchError(null);
     try {
       if (onSearch) {
+        // onSearch가 있으면 부모 컴포넌트에서 처리 (지오코딩 + 검색 포함)
         await onSearch(searchQuery);
       } else {
-        // 서버 사이드에서 지오코딩 API 호출
+        // onSearch가 없으면 직접 지오코딩 API 호출 (기본 동작)
         const response = await fetch(
           `/api/health/medical-facilities/geocode?address=${encodeURIComponent(searchQuery)}`
         );
@@ -150,7 +153,8 @@ export function LocationSearch({
       }
     } catch (error) {
       console.error("❌ 주소 검색 오류:", error);
-      setSearchError("주소 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      const errorMessage = error instanceof Error ? error.message : "주소 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+      setSearchError(errorMessage);
     } finally {
       setIsSearching(false);
       console.groupEnd();

@@ -12,14 +12,9 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { koKR } from "@clerk/localizations";
 import { Geist, Geist_Mono, Noto_Sans_SC } from "next/font/google";
 
-import Navbar from "@/components/Navbar";
-import { SyncUserProvider } from "@/components/providers/sync-user-provider";
-import { DietNotificationProvider } from "@/components/providers/diet-notification-provider";
-import { KcdcAlertsProvider } from "@/components/providers/kcdc-alerts-provider";
-import { PopupProvider } from "@/components/providers/popup-provider";
-import { ToastProvider } from "@/components/providers/toast-provider";
-import { QueryProvider } from "@/components/providers/query-provider";
-import { Footer } from "@/components/footer";
+import Navbar from "@/components/layout/navbar";
+import { AppProviders } from "@/components/providers/app-providers";
+import { Footer } from "@/components/layout/footer";
 import { IntroVideo } from "@/components/intro-video";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -201,43 +196,34 @@ export default function RootLayout({
             {/* 계절별 배경 이미지 */}
             <SeasonBackground opacity={0.4} />
 
-            <SyncUserProvider>
-              <DietNotificationProvider>
-                <KcdcAlertsProvider>
-                  <PopupProvider>
-                    <QueryProvider>
-                      <ToastProvider />
-                      <IntroVideo>
-                        <div className="flex flex-col h-screen w-full max-w-full overflow-hidden">
-                          {/* Navbar (최상단 고정) */}
-                          <Navbar />
+            <AppProviders>
+              <IntroVideo>
+                <div className="flex flex-col h-screen w-full max-w-full overflow-hidden">
+                  {/* Navbar (최상단 고정) */}
+                  <Navbar />
 
-                          {/* 메인 콘텐츠 영역 (스크롤 가능) */}
-                          <main
-                            className="flex-1 bg-gradient-to-b from-white to-orange-50/40 w-full max-w-full overflow-y-auto"
-                            style={{
-                              marginTop: "64px", // Navbar 높이(64px)
-                              paddingTop: "0.5rem",
-                              paddingBottom: "80px", // 하단 네비게이션 공간 확보 (모바일)
-                            }}
-                          >
-                            {children}
+                  {/* 메인 콘텐츠 영역 (스크롤 가능) */}
+                  <main
+                    className="flex-1 bg-gradient-to-b from-white to-orange-50/40 w-full max-w-full overflow-y-auto"
+                    style={{
+                      marginTop: "64px", // Navbar 높이(64px)
+                      paddingTop: "0.5rem",
+                      paddingBottom: "80px", // 하단 네비게이션 공간 확보 (모바일)
+                    }}
+                  >
+                    {children}
 
-                            {/* Footer (회사소개) - 메인 콘텐츠 맨 아래에 위치, 고정하지 않음 */}
-                            <Footer />
-                          </main>
+                    {/* Footer (회사소개) - 메인 콘텐츠 맨 아래에 위치, 고정하지 않음 */}
+                    <Footer />
+                  </main>
 
-                          {/* 하단 네비게이션 (고정, 맨 아래, 모바일에서만 표시) */}
-                          <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-                            <BottomNavigation />
-                          </div>
-                        </div>
-                      </IntroVideo>
-                    </QueryProvider>
-                  </PopupProvider>
-                </KcdcAlertsProvider>
-              </DietNotificationProvider>
-            </SyncUserProvider>
+                  {/* 하단 네비게이션 (고정, 맨 아래, 모바일에서만 표시) */}
+                  <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+                    <BottomNavigation />
+                  </div>
+                </div>
+              </IntroVideo>
+            </AppProviders>
           </body>
         </html>
       </ClerkProvider>

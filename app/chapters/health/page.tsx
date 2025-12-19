@@ -12,7 +12,7 @@
 
 import { Suspense } from 'react';
 import { Section } from '@/components/section';
-import { HealthDashboardWrapper } from '@/components/health/health-dashboard-wrapper';
+import { HealthDashboardWrapper } from '@/components/health/dashboard/HealthDashboardWrapper';
 import { HealthVisualizationPreview } from '@/components/home/health-visualization-preview';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { ErrorBoundary } from '@/components/error-boundary';

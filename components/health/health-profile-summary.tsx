@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserHealthProfile, DISEASE_LABELS, ALLERGY_LABELS, ACTIVITY_LEVEL_LABELS, Disease, Allergy } from "@/types/health";
 import Link from "next/link";
+import { getHealthProfile } from "@/actions/health/profile";
 
 export function HealthProfileSummary() {
   const { user } = useUser();
@@ -34,51 +35,13 @@ export function HealthProfileSummary() {
         console.group("[HealthProfileSummary] 건강 정보 요약 로드");
         console.log("사용자 ID:", user.id);
 
-        const response = await fetch("/api/health/profile");
+        const profile = await getHealthProfile();
         
-        console.log("📡 API 응답 상태:", response.status, response.statusText);
-        console.log("📡 응답 헤더:", Object.fromEntries(response.headers.entries()));
+        console.log("✅ 건강 프로필 조회 완료:", profile);
         
-        if (!response.ok) {
-          let errorData: any = {};
-          try {
-            // Content-Type 확인
-            const contentType = response.headers.get("content-type");
-            console.log("📡 응답 Content-Type:", contentType);
-            
-            if (contentType && contentType.includes("application/json")) {
-              // JSON 응답인 경우
-              errorData = await response.json();
-            } else {
-              // 텍스트 응답인 경우
-              const text = await response.text();
-              console.error("❌ 응답 본문 (텍스트):", text);
-              if (text) {
-                try {
-                  errorData = JSON.parse(text);
-                } catch {
-                  errorData = { message: text, error: "Internal Server Error" };
-                }
-              }
-            }
-          } catch (parseError) {
-            console.error("❌ 응답 파싱 실패:", parseError);
-            errorData = { error: "Failed to parse error response" };
-          }
-          
-          console.error("❌ 건강 정보 조회 실패:", response.status, response.statusText);
-          console.error("❌ 에러 상세:", errorData);
-          console.groupEnd();
-          setIsLoading(false);
-          return;
-        }
-
-        const result = await response.json();
-        console.log("✅ API 응답 데이터:", result);
-        
-        if (result.profile) {
-          setProfile(result.profile);
-          console.log("✅ 건강 정보 요약 로드 성공:", result.profile);
+        if (profile) {
+          setProfile(profile);
+          console.log("✅ 건강 정보 요약 로드 성공:", profile);
         } else {
           console.log("ℹ️ 건강 정보가 아직 입력되지 않았습니다");
         }

@@ -16,7 +16,8 @@ interface RoyalRecipesListPageProps {
 }
 
 export async function generateMetadata({ params }: RoyalRecipesListPageProps) {
-  const { era } = await params;
+  const resolvedParams = await params;
+  const { era } = resolvedParams;
   const eraName = getEraName(era as RecipeEra);
 
   return {
@@ -28,7 +29,8 @@ export async function generateMetadata({ params }: RoyalRecipesListPageProps) {
 export default async function RoyalRecipesListPage({
   params,
 }: RoyalRecipesListPageProps) {
-  const { era } = await params;
+  const resolvedParams = await params;
+  const { era } = resolvedParams;
 
   // era 유효성 검사
   const validEras: RecipeEra[] = ["sanguk", "goryeo", "joseon"];

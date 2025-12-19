@@ -71,7 +71,7 @@ export function RecipeCard({ recipe, className }: RecipeCardProps) {
           <div className="flex h-full items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100">
             <div className="text-center">
               <ImageOff className="h-8 w-8 text-orange-300 mx-auto mb-2" />
-              <p className="text-xs text-orange-600">이미지 로딩 실패</p>
+              <p className="text-sm text-orange-600">이미지 로딩 실패</p>
             </div>
           </div>
         )}
@@ -101,7 +101,7 @@ export function RecipeCard({ recipe, className }: RecipeCardProps) {
                 />
               ))}
             </div>
-            <span className="text-xs sm:text-sm text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {recipe.average_rating.toFixed(1)} ({recipe.rating_count})
             </span>
           </div>
@@ -110,7 +110,7 @@ export function RecipeCard({ recipe, className }: RecipeCardProps) {
         )}
 
         {/* 메타 정보 (조리 시간, 난이도) */}
-        <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 sm:gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span>{formatCookingTime(recipe.cooking_time_minutes)}</span>

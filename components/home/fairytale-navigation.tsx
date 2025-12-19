@@ -129,6 +129,11 @@ interface FairytaleNavigationProps {
    * 추가 클래스명
    */
   className?: string;
+  /**
+   * 제외할 카테고리 제목 배열
+   * 예: ["📚 레시피 아카이브"] - 메인 페이지에서만 레시피 아카이브 섹션 제외
+   */
+  excludeCategories?: string[];
 }
 
 /**
@@ -137,6 +142,7 @@ interface FairytaleNavigationProps {
 export function FairytaleNavigation({
   backgroundImage,
   className = "",
+  excludeCategories = [],
 }: FairytaleNavigationProps) {
   const [isDesktop, setIsDesktop] = useState(false);
   const [currentSeason, setCurrentSeason] = useState<string>("봄");
@@ -174,6 +180,11 @@ export function FairytaleNavigation({
     return null;
   }
 
+  // 제외할 카테고리 필터링
+  const filteredCategories = categories.filter(
+    (category) => !excludeCategories.includes(category.title)
+  );
+
   // 배경 이미지 결정
   const bgImage = backgroundImage || `/${currentSeason}.jpg`;
 
@@ -201,7 +212,7 @@ export function FairytaleNavigation({
 
       {/* 분류별 섹션 */}
       <div className="relative z-10 w-full px-6 py-10 lg:px-12 lg:py-16">
-        {categories.map((category, categoryIndex) => (
+        {filteredCategories.map((category, categoryIndex) => (
           <div
             key={categoryIndex}
             className="mb-12 last:mb-0"

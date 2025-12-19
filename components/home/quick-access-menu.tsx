@@ -126,7 +126,7 @@ export function QuickAccessMenu() {
               {/* 라벨 텍스트 */}
               <span
                 className={cn(
-                  "text-xs font-medium text-center",
+                  "text-sm font-medium text-center",
                   "text-gray-700"
                 )}
               >

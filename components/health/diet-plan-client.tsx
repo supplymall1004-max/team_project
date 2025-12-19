@@ -30,6 +30,8 @@ import {
   getCachedDietPlan,
   setCachedDietPlan,
 } from "@/lib/cache/diet-plan-cache";
+import { checkHealthProfile } from "@/actions/health/check";
+import { getHealthProfile } from "@/actions/health/profile";
 
 export function DietPlanClient() {
   const { user, isLoaded } = useUser();
@@ -146,22 +148,12 @@ export function DietPlanClient() {
       // 병렬로 건강 정보 확인 및 프로필 로드
       console.log("🔍 건강 정보 확인 중...");
       console.log("사용자 ID:", user.id);
-      const [healthCheckRes, profileResponse] = await Promise.all([
-        fetch("/api/health/check"),
-        fetch("/api/health/profile").catch(() => ({ ok: false, json: () => Promise.resolve(null) }))
+      const [healthCheck, profile] = await Promise.all([
+        checkHealthProfile(),
+        getHealthProfile().catch(() => null),
       ]);
 
-      console.log("📡 건강 정보 API 응답 상태:", healthCheckRes.status);
-
-      let healthCheck;
-      try {
-        healthCheck = await healthCheckRes.json();
-        console.log("📋 건강 정보 확인 결과:", healthCheck);
-      } catch (jsonError) {
-        console.error("❌ 건강 정보 API 응답 파싱 실패:", jsonError);
-        console.error("📡 응답 텍스트 (디버깅용):", await healthCheckRes.text());
-        throw new Error("건강 정보 확인 중 오류가 발생했습니다");
-      }
+      console.log("📋 건강 정보 확인 결과:", healthCheck);
 
       if (!healthCheck.hasProfile) {
         console.warn("⚠️ 건강 정보가 없습니다");
@@ -186,16 +178,9 @@ export function DietPlanClient() {
       setHasHealthProfile(true);
 
       // 프로필 정보 로드 결과 처리
-      if (profileResponse.ok) {
-        try {
-          const profileData = await profileResponse.json();
-          if (profileData?.profile) {
-            console.log("✅ 건강 프로필 정보 로드 성공");
-            setUserHealthProfile(profileData.profile);
-          }
-        } catch (profileError) {
-          console.warn("⚠️ 건강 프로필 로드 실패:", profileError);
-        }
+      if (profile) {
+        console.log("✅ 건강 프로필 정보 로드 성공");
+        setUserHealthProfile(profile);
       }
 
       // 식단 조회 또는 생성

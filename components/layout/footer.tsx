@@ -1,5 +1,5 @@
 /**
- * @file footer.tsx
+ * @file components/layout/footer.tsx
  * @description Flavor Archive 공통 푸터 컴포넌트.
  *
  * 주요 기능:
@@ -53,31 +53,11 @@ export async function Footer() {
             </Link>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">{disclaimerText}</p>
-        <div className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">{disclaimerText}</p>
+        <div className="text-sm text-muted-foreground">
           © {new Date().getFullYear()} {copyrightText}. All rights reserved.
         </div>
       </div>
     </footer>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

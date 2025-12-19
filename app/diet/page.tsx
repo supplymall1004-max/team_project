@@ -10,15 +10,18 @@
 
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Section } from '@/components/section';
 import { DietSectionClientOnly } from '@/components/health/diet-section';
 import { LazyWeeklyDietSummary } from '@/components/home/lazy-sections';
 import { HealthVisualizationPreview } from '@/components/home/health-visualization-preview';
+import { HealthInfoTabs } from '@/components/diet/health-info-tabs';
+import { PremiumDietSummary } from '@/components/diet/premium-diet-summary';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { ErrorBoundary } from '@/components/error-boundary';
+import type { UserHealthProfile } from '@/types/health';
 
 function SectionSkeleton() {
   return (
@@ -31,6 +34,29 @@ function SectionSkeleton() {
 function DietManagementContent() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'today';
+  const [healthProfile, setHealthProfile] = useState<UserHealthProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  // 건강 정보 로드
+  useEffect(() => {
+    const loadHealthProfile = async () => {
+      try {
+        const response = await fetch('/api/health/profile');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.profile) {
+            setHealthProfile(data.profile);
+          }
+        }
+      } catch (error) {
+        console.error('[DietManagement] 건강 정보 로드 실패:', error);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    loadHealthProfile();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -43,9 +69,10 @@ function DietManagementContent() {
         </div>
 
         <Tabs defaultValue={initialTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="today">오늘의 식단</TabsTrigger>
             <TabsTrigger value="weekly">주간 식단</TabsTrigger>
+            <TabsTrigger value="health-guide">건강 맞춤 가이드</TabsTrigger>
             <TabsTrigger value="visualization">건강 시각화</TabsTrigger>
             <TabsTrigger value="records">식단 기록</TabsTrigger>
           </TabsList>
@@ -59,6 +86,21 @@ function DietManagementContent() {
           <TabsContent value="weekly" className="space-y-6">
             <ErrorBoundary>
               <LazyWeeklyDietSummary />
+            </ErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="health-guide" className="space-y-6">
+            <ErrorBoundary>
+              {isLoadingProfile ? (
+                <div className="flex items-center justify-center py-12">
+                  <LoadingSpinner />
+                </div>
+              ) : (
+                <>
+                  <PremiumDietSummary healthProfile={healthProfile} />
+                  <HealthInfoTabs healthProfile={healthProfile} />
+                </>
+              )}
             </ErrorBoundary>
           </TabsContent>
 

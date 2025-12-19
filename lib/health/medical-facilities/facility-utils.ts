@@ -653,36 +653,62 @@ function parsePharmacyOperatingHours(pharmacy: PharmacyInfo): OperatingHours | u
 }
 
 /**
- * 현재 영업중인 약국만 필터링
+ * 약국을 영업 상태별로 정렬 (영업중인 약국을 우선 표시)
+ * 
+ * 모든 약국을 포함하되, 영업중인 약국을 최상단에 배치합니다.
+ * 영업시간 정보가 없는 약국도 포함합니다 (공공데이터 API의 영업시간 정보 누락 대응)
  *
  * @param facilities 약국 의료기관 배열
- * @returns 현재 영업중인 약국만 포함된 배열
+ * @returns 영업중인 약국이 우선 정렬된 배열 (모든 약국 포함)
  */
 export function filterOperatingPharmacies(facilities: MedicalFacility[]): MedicalFacility[] {
-  console.group("[Facility Utils] 약국 영업 상태 필터링");
-  console.log(`📋 필터링 전 약국 수: ${facilities.length}`);
+  console.group("[Facility Utils] 약국 영업 상태 정렬");
+  console.log(`📋 정렬 전 약국 수: ${facilities.length}`);
 
-  const operatingFacilities = facilities.filter(facility => {
+  // 모든 약국을 포함하되, 영업 상태에 따라 우선순위 부여
+  const sortedFacilities = facilities.map(facility => {
+    // 영업 상태 우선순위 계산
+    let priority = 3; // 기본값: 영업 종료/휴무
+    
     if (!facility.operatingHours) {
-      console.log(`⚠️ ${facility.name}: 영업시간 정보 없음 - 제외`);
-      return false;
-    }
-
-    const status = facility.operatingHours.todayStatus;
-    const isOperating = status === "open" || status === "closing_soon";
-
-    if (isOperating) {
-      console.log(`✅ ${facility.name}: 영업중 (${status})`);
+      priority = 2; // 영업시간 정보 없음
     } else {
-      console.log(`❌ ${facility.name}: 영업종료 또는 휴무 (${status})`);
+      const status = facility.operatingHours.todayStatus;
+      if (status === "open" || status === "closing_soon") {
+        priority = 1; // 영업중 (최우선)
+      } else if (status === "unknown") {
+        priority = 2; // 영업시간 확인 불가
+      } else {
+        priority = 3; // 영업 종료/휴무
+      }
     }
-
-    return isOperating;
+    
+    return { facility, priority };
   });
 
-  console.log(`✅ 필터링 완료: ${operatingFacilities.length}개 영업중인 약국`);
+  // 우선순위별로 정렬 (1: 영업중, 2: 정보없음/확인불가, 3: 영업종료)
+  sortedFacilities.sort((a, b) => a.priority - b.priority);
+
+  const result = sortedFacilities.map(item => item.facility);
+
+  // 통계 로그
+  const openCount = result.filter(f => 
+    f.operatingHours?.todayStatus === "open" || 
+    f.operatingHours?.todayStatus === "closing_soon"
+  ).length;
+  const unknownCount = result.filter(f => 
+    !f.operatingHours || f.operatingHours.todayStatus === "unknown"
+  ).length;
+  const closedCount = result.filter(f => 
+    f.operatingHours?.todayStatus === "closed"
+  ).length;
+
+  console.log(`✅ 정렬 완료: ${result.length}개 약국`);
+  console.log(`   - 영업중: ${openCount}개`);
+  console.log(`   - 영업시간 확인 불가/정보 없음: ${unknownCount}개`);
+  console.log(`   - 영업 종료/휴무: ${closedCount}개`);
   console.groupEnd();
 
-  return operatingFacilities;
+  return result;
 }
 

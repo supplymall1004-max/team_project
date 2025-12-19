@@ -54,34 +54,17 @@ export function DietImpactDetail() {
 
         console.log('[DietImpactDetail] 건강 데이터 조회 시작');
 
-        const [metricsResponse, profileResponse] = await Promise.all([
-          fetch('/api/health/metrics', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }),
-          fetch('/api/health/profile', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }).catch(() => null),
+        const [metricsResult, profile] = await Promise.all([
+          getHealthMetrics(),
+          getHealthProfile().catch(() => null),
         ]);
 
-        if (!metricsResponse.ok) {
-          const errorText = await metricsResponse.text().catch(() => '');
-          throw new Error(`건강 데이터를 불러올 수 없습니다: ${metricsResponse.status}`);
-        }
-
-        const metricsData = await metricsResponse.json();
-        console.log('[DietImpactDetail] 건강 메트릭스 조회 완료:', metricsData);
+        console.log('[DietImpactDetail] 건강 메트릭스 조회 완료:', metricsResult);
         
-        setHealthMetrics(metricsData.metrics);
+        setHealthMetrics(metricsResult.metrics);
 
-        if (profileResponse && profileResponse.ok) {
-          const profileData = await profileResponse.json();
-          setHealthProfile(profileData.profile);
+        if (profile) {
+          setHealthProfile(profile);
         }
       } catch (err) {
         console.error('[DietImpactDetail] 건강 데이터 조회 실패:', err);

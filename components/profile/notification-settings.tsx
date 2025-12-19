@@ -63,10 +63,13 @@ export function NotificationSettings() {
         const result = await response.json();
         
         if (result.settings) {
-          console.log("저장된 설정:", result.settings);
+          console.log("✅ 저장된 설정:", result.settings);
+          console.log("healthPopups:", result.settings.healthPopups);
+          console.log("kcdcAlerts:", result.settings.kcdcAlerts);
+          console.log("generalNotifications:", result.settings.generalNotifications);
           setSettings({ ...DEFAULT_SETTINGS, ...result.settings });
         } else {
-          console.log("알림 설정 없음, 기본값 사용");
+          console.log("⚠️ 알림 설정 없음, 기본값 사용");
           setSettings(DEFAULT_SETTINGS);
         }
 
@@ -130,11 +133,16 @@ export function NotificationSettings() {
       const result = await response.json();
       console.log("✅ 설정 저장 성공");
       console.log("저장된 데이터:", result);
+      console.log("저장된 healthPopups:", result.settings?.healthPopups);
+      console.log("저장된 kcdcAlerts:", result.settings?.kcdcAlerts);
+      console.log("저장된 generalNotifications:", result.settings?.generalNotifications);
       console.groupEnd();
 
       // 저장된 설정으로 상태 업데이트
       if (result.settings) {
-        setSettings({ ...DEFAULT_SETTINGS, ...result.settings });
+        const updatedSettings = { ...DEFAULT_SETTINGS, ...result.settings };
+        console.log("[NotificationSettings] 업데이트된 설정 상태:", updatedSettings);
+        setSettings(updatedSettings);
       }
 
       toast({

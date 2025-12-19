@@ -1,12 +1,14 @@
 /**
  * 응급조치 메인 페이지
  * 
- * 알레르기 응급조치 정보 및 에피네프린 사용법
+ * 알레르기 응급조치 정보 및 영유아 응급처치 가이드
  */
 
-import { Phone, AlertTriangle, Siren, MapPin } from 'lucide-react';
+import { Phone, AlertTriangle, Siren, MapPin, Baby } from 'lucide-react';
 import Link from 'next/link';
 import { createClerkSupabaseClient } from '@/lib/supabase/server';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { BabyEmergencyGuide } from '@/components/health/baby-emergency-guide';
 
 // EmergencyProcedure와 Allergy 인터페이스는 사용되지 않으므로 제거
 
@@ -71,7 +73,7 @@ export default async function EmergencyPage() {
                         <h1 className="text-4xl font-bold text-red-900">응급조치 안내</h1>
                     </div>
                     <p className="text-lg text-red-700">
-                        알레르기 반응 발생 시 즉시 대처하세요
+                        응급 상황 발생 시 즉시 대처하세요
                     </p>
                 </div>
 
@@ -94,7 +96,33 @@ export default async function EmergencyPage() {
                     </div>
                 </div>
 
-                {/* 에피네프린 자가주사기 사용법 */}
+                {/* 탭으로 알레르기와 영유아 응급처치 구분 */}
+                <Tabs defaultValue="baby" className="space-y-6">
+                    <TabsList className="grid w-full grid-cols-2 h-auto p-1">
+                        <TabsTrigger
+                            value="baby"
+                            className="flex items-center gap-2 py-3 px-4 data-[state=active]:bg-white data-[state=active]:shadow-md"
+                        >
+                            <Baby className="w-5 h-5" />
+                            <span className="font-medium">영유아 응급처치</span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="allergy"
+                            className="flex items-center gap-2 py-3 px-4 data-[state=active]:bg-white data-[state=active]:shadow-md"
+                        >
+                            <AlertTriangle className="w-5 h-5" />
+                            <span className="font-medium">알레르기 응급조치</span>
+                        </TabsTrigger>
+                    </TabsList>
+
+                    {/* 영유아 응급처치 탭 */}
+                    <TabsContent value="baby" className="space-y-6">
+                        <BabyEmergencyGuide />
+                    </TabsContent>
+
+                    {/* 알레르기 응급조치 탭 */}
+                    <TabsContent value="allergy" className="space-y-8">
+                        {/* 에피네프린 자가주사기 사용법 */}
                 <div className="bg-white rounded-xl border-2 border-red-200 p-6 space-y-4">
                     <h2 className="text-2xl font-bold text-red-900 flex items-center gap-2">
                         <AlertTriangle className="w-6 h-6" />
@@ -212,24 +240,26 @@ export default async function EmergencyPage() {
                     </div>
                 )}
 
-                {/* 주변 의료기관 찾기 */}
-                <div className="bg-white rounded-xl border-2 border-blue-200 p-6">
-                    <div className="flex items-start gap-4">
-                        <MapPin className="w-8 h-8 flex-shrink-0 mt-1 text-blue-600" />
-                        <div className="flex-1">
-                            <h2 className="text-2xl font-bold text-blue-900 mb-2">주변 의료기관 찾기</h2>
-                            <p className="text-blue-700 mb-4">
-                                새벽에 아플 때 주변 병원, 약국, 동물병원의 위치를 빠르게 찾아보세요.
-                            </p>
-                            <Link
-                                href="/health/emergency/medical-facilities"
-                                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
-                            >
-                                의료기관 찾기 →
-                            </Link>
+                        {/* 주변 의료기관 찾기 */}
+                        <div className="bg-white rounded-xl border-2 border-blue-200 p-6">
+                            <div className="flex items-start gap-4">
+                                <MapPin className="w-8 h-8 flex-shrink-0 mt-1 text-blue-600" />
+                                <div className="flex-1">
+                                    <h2 className="text-2xl font-bold text-blue-900 mb-2">주변 의료기관 찾기</h2>
+                                    <p className="text-blue-700 mb-4">
+                                        새벽에 아플 때 주변 병원, 약국, 동물병원의 위치를 빠르게 찾아보세요.
+                                    </p>
+                                    <Link
+                                        href="/health/emergency/medical-facilities"
+                                        className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                                    >
+                                        의료기관 찾기 →
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </TabsContent>
+                </Tabs>
 
                 {/* 하단 안내 */}
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">

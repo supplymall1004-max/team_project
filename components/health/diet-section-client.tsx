@@ -197,20 +197,7 @@ export function DietSectionClient() {
         console.group("[DietSection] 건강 정보 확인 시작");
         console.log("사용자 ID:", user.id);
         
-        const healthCheckRes = await fetch("/api/health/check");
-        console.log("📡 API 응답 상태:", healthCheckRes.status, healthCheckRes.statusText);
-        
-        if (!healthCheckRes.ok) {
-          console.error("❌ 건강 정보 확인 실패:", healthCheckRes.status, healthCheckRes.statusText);
-          const errorText = await healthCheckRes.text().catch(() => "응답 본문을 읽을 수 없습니다");
-          console.error("❌ 에러 상세:", errorText);
-          setHasHealthProfile(false);
-          setIsLoading(false);
-          console.groupEnd();
-          return;
-        }
-
-        const healthCheck = await healthCheckRes.json();
+        const healthCheck = await checkHealthProfile();
         console.log("✅ 건강 정보 확인 결과:", healthCheck);
         
         if (!healthCheck.hasProfile) {

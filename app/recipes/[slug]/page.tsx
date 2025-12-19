@@ -27,7 +27,8 @@ interface RecipeDetailPageProps {
 export default async function RecipeDetailPage({
   params,
 }: RecipeDetailPageProps) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
 
   const recipe = await getRecipeBySlug(slug);
 

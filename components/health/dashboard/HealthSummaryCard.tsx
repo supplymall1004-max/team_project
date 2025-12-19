@@ -1,21 +1,17 @@
 /**
- * @file components/health/health-summary-dashboard.tsx
- * @description 건강 정보 요약 대시보드 컴포넌트
+ * @file components/health/dashboard/HealthSummaryCard.tsx
+ * @description 건강 요약 카드 컴포넌트
  *
- * 사용자의 건강 정보를 종합적으로 요약하여 보여줍니다:
- * - 건강 프로필 요약
- * - 최근 건강 기록 (병원, 약물, 검진)
- * - 건강 트렌드 차트
- * - 건강 권장사항
+ * 개인 건강 정보를 요약하여 표시하는 카드입니다.
+ * health-summary-dashboard.tsx에서 추출한 핵심 기능입니다.
  */
 
 "use client";
 
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import {
   Heart,
   Activity,
@@ -31,152 +27,24 @@ import {
   Clock,
   User,
   Target,
-  Zap
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
-import { useToast } from "@/hooks/use-toast";
+import type { HealthSummary } from "./types";
 
-interface HealthProfile {
-  id: string;
-  user_id: string;
-  age: number | null;
-  gender: "male" | "female" | "other" | null;
-  height_cm: number | null;
-  weight_kg: number | null;
-  activity_level: string | null;
-  daily_calorie_goal: number;
-  diseases: string[];
-  allergies: string[];
-  dietary_preferences: string[];
-  created_at: string;
-  updated_at: string;
+interface HealthSummaryCardProps {
+  summary: HealthSummary;
+  className?: string;
 }
 
-interface HealthSummary {
-  profile: HealthProfile | null;
-  recentHospitalVisits: number;
-  activeMedications: number;
-  upcomingVaccinations: number;
-  lastHealthCheckup: string | null;
-  healthScore: number;
-  bmi: number | null;
-  recommendations: string[];
-}
-
-export function HealthSummaryDashboard() {
-  const [summary, setSummary] = useState<HealthSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  // 건강 요약 데이터 조회
-  useEffect(() => {
-    const fetchHealthSummary = async () => {
-      try {
-        setLoading(true);
-
-        // 건강 프로필 조회
-        const profileResponse = await fetch("/api/health/profile");
-        const profileData = await profileResponse.json();
-
-        if (!profileResponse.ok) {
-          throw new Error(profileData.message || "건강 프로필 조회 실패");
-        }
-
-        const profile = profileData.profile;
-
-        // BMI 계산
-        let bmi = null;
-        if (profile?.height_cm && profile?.weight_kg) {
-          const heightM = profile.height_cm / 100;
-          bmi = Math.round((profile.weight_kg / (heightM * heightM)) * 10) / 10;
-        }
-
-        // 건강 점수 계산 (간단한 로직)
-        let healthScore = 50; // 기본 점수
-        if (profile) {
-          if (profile.daily_calorie_goal > 0) healthScore += 10;
-          if (profile.activity_level && profile.activity_level !== "sedentary") healthScore += 15;
-          if (profile.height_cm && profile.weight_kg) healthScore += 10;
-          if (profile.diseases.length === 0) healthScore += 15;
-        }
-        healthScore = Math.min(100, Math.max(0, healthScore));
-
-        // 모의 데이터 (실제로는 API에서 가져와야 함)
-        const mockSummary: HealthSummary = {
-          profile,
-          recentHospitalVisits: 1,
-          activeMedications: 2,
-          upcomingVaccinations: 2,
-          lastHealthCheckup: "2024-01-15",
-          healthScore,
-          bmi,
-          recommendations: [
-            "주 3회 이상 유산소 운동을 권장합니다",
-            "수분 섭취를 늘려보세요 (하루 2L 이상)",
-            "채소와 단백질 위주의 식단을 유지하세요",
-            "정기적인 건강검진을 받으세요"
-          ]
-        };
-
-        setSummary(mockSummary);
-      } catch (error) {
-        console.error("건강 요약 데이터 조회 실패:", error);
-        toast({
-          title: "데이터 조회 실패",
-          description: "건강 정보를 불러오는데 실패했습니다.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHealthSummary();
-  }, [toast]);
-
-  if (loading) {
-    return (
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(6)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="h-8 bg-gray-200 rounded"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (!summary) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <AlertTriangle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            건강 정보를 불러올 수 없습니다
-          </h3>
-          <p className="text-gray-600 mb-4">
-            건강 프로필을 먼저 설정해주세요.
-          </p>
-          <Button asChild>
-            <Link href="/health/profile">건강 프로필 설정하기</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
+/**
+ * 건강 요약 카드 컴포넌트
+ */
+export function HealthSummaryCard({ summary, className }: HealthSummaryCardProps) {
   const { profile, healthScore, bmi, recommendations } = summary;
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${className || ""}`}>
       {/* 건강 점수 및 기본 정보 */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -188,9 +56,13 @@ export function HealthSummaryDashboard() {
             <div className="text-2xl font-bold">{healthScore}</div>
             <Progress value={healthScore} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
-              {healthScore >= 80 ? "매우 건강함" :
-               healthScore >= 60 ? "건강함" :
-               healthScore >= 40 ? "보통" : "관리가 필요함"}
+              {healthScore >= 80
+                ? "매우 건강함"
+                : healthScore >= 60
+                  ? "건강함"
+                  : healthScore >= 40
+                    ? "보통"
+                    : "관리가 필요함"}
             </p>
           </CardContent>
         </Card>
@@ -205,12 +77,17 @@ export function HealthSummaryDashboard() {
               {bmi ? `${bmi}` : "측정 필요"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {bmi ?
-                (bmi < 18.5 ? "저체중" :
-                 bmi < 23 ? "정상" :
-                 bmi < 25 ? "과체중" :
-                 bmi < 30 ? "비만" : "고도비만") :
-                "키와 체중을 입력해주세요"}
+              {bmi
+                ? bmi < 18.5
+                  ? "저체중"
+                  : bmi < 23
+                    ? "정상"
+                    : bmi < 25
+                      ? "과체중"
+                      : bmi < 30
+                        ? "비만"
+                        : "고도비만"
+                : "키와 체중을 입력해주세요"}
             </p>
           </CardContent>
         </Card>
@@ -235,12 +112,17 @@ export function HealthSummaryDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-sm font-medium">
-              {profile?.activity_level === "sedentary" ? "거의 없음" :
-               profile?.activity_level === "light" ? "가벼움" :
-               profile?.activity_level === "moderate" ? "보통" :
-               profile?.activity_level === "active" ? "활발함" :
-               profile?.activity_level === "very_active" ? "매우 활발함" :
-               "설정 필요"}
+              {profile?.activity_level === "sedentary"
+                ? "거의 없음"
+                : profile?.activity_level === "light"
+                  ? "가벼움"
+                  : profile?.activity_level === "moderate"
+                    ? "보통"
+                    : profile?.activity_level === "active"
+                      ? "활발함"
+                      : profile?.activity_level === "very_active"
+                        ? "매우 활발함"
+                        : "설정 필요"}
             </div>
           </CardContent>
         </Card>
@@ -289,12 +171,15 @@ export function HealthSummaryDashboard() {
           <CardContent>
             <div className="text-sm font-medium">
               {summary.lastHealthCheckup
-                ? new Date(summary.lastHealthCheckup).toLocaleDateString('ko-KR')
+                ? new Date(summary.lastHealthCheckup).toLocaleDateString("ko-KR")
                 : "검진 필요"}
             </div>
             <p className="text-xs text-muted-foreground">
               {summary.lastHealthCheckup
-                ? `${Math.floor((Date.now() - new Date(summary.lastHealthCheckup).getTime()) / (1000 * 60 * 60 * 24))}일 전`
+                ? `${Math.floor(
+                    (Date.now() - new Date(summary.lastHealthCheckup).getTime()) /
+                      (1000 * 60 * 60 * 24),
+                  )}일 전`
                 : "정기 검진을 권장합니다"}
             </p>
           </CardContent>
@@ -320,18 +205,26 @@ export function HealthSummaryDashboard() {
               <div>
                 <span className="font-medium text-gray-700">성별:</span>
                 <span className="ml-2">
-                  {profile?.gender === "male" ? "남성" :
-                   profile?.gender === "female" ? "여성" :
-                   profile?.gender === "other" ? "기타" : "미설정"}
+                  {profile?.gender === "male"
+                    ? "남성"
+                    : profile?.gender === "female"
+                      ? "여성"
+                      : profile?.gender === "other"
+                        ? "기타"
+                        : "미설정"}
                 </span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">키:</span>
-                <span className="ml-2">{profile?.height_cm ? `${profile.height_cm}cm` : "미설정"}</span>
+                <span className="ml-2">
+                  {profile?.height_cm ? `${profile.height_cm}cm` : "미설정"}
+                </span>
               </div>
               <div>
                 <span className="font-medium text-gray-700">체중:</span>
-                <span className="ml-2">{profile?.weight_kg ? `${profile.weight_kg}kg` : "미설정"}</span>
+                <span className="ml-2">
+                  {profile?.weight_kg ? `${profile.weight_kg}kg` : "미설정"}
+                </span>
               </div>
             </div>
 
@@ -339,11 +232,27 @@ export function HealthSummaryDashboard() {
               <div>
                 <span className="font-medium text-gray-700 text-sm">질병:</span>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {profile.diseases.map((disease, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {disease}
-                    </Badge>
-                  ))}
+                  {profile.diseases.map((disease, index) => {
+                    // diseases는 문자열 배열이거나 객체 배열일 수 있음
+                    let diseaseName: string;
+                    if (typeof disease === "string") {
+                      diseaseName = disease;
+                    } else if (disease && typeof disease === "object") {
+                      diseaseName =
+                        (disease as { custom_name?: string | null; code?: string })
+                          ?.custom_name ||
+                        (disease as { custom_name?: string | null; code?: string })
+                          ?.code ||
+                        "알 수 없음";
+                    } else {
+                      diseaseName = "알 수 없음";
+                    }
+                    return (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {diseaseName}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -352,11 +261,27 @@ export function HealthSummaryDashboard() {
               <div>
                 <span className="font-medium text-gray-700 text-sm">알레르기:</span>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {profile.allergies.map((allergy, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {allergy}
-                    </Badge>
-                  ))}
+                  {profile.allergies.map((allergy, index) => {
+                    // allergies는 문자열 배열이거나 객체 배열일 수 있음
+                    let allergyName: string;
+                    if (typeof allergy === "string") {
+                      allergyName = allergy;
+                    } else if (allergy && typeof allergy === "object") {
+                      allergyName =
+                        (allergy as { custom_name?: string | null; code?: string })
+                          ?.custom_name ||
+                        (allergy as { custom_name?: string | null; code?: string })
+                          ?.code ||
+                        "알 수 없음";
+                    } else {
+                      allergyName = "알 수 없음";
+                    }
+                    return (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {allergyName}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -398,4 +323,3 @@ export function HealthSummaryDashboard() {
     </div>
   );
 }
-

@@ -25,7 +25,8 @@ interface SettlementsPageProps {
 }
 
 export default async function SettlementsPage({ searchParams }: SettlementsPageProps) {
-  const params = await searchParams;
+  const resolvedSearchParams = await searchParams;
+  const params = resolvedSearchParams;
   const paymentMethod = params.method || 'all';
   const period = params.period || 'day';
   

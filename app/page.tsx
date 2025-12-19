@@ -25,7 +25,6 @@ import { FixedHeader } from "@/components/home/fixed-header";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { EmergencyQuickAccess } from "@/components/home/emergency-quick-access";
 import { WeatherWidget } from "@/components/home/weather-widget";
-import { FairytaleNavigation } from "@/components/home/fairytale-navigation";
 
 // 동적 렌더링 강제 (MFDS API 등 외부 API 사용으로 인해)
 export const dynamic = 'force-dynamic';
@@ -42,16 +41,10 @@ export default async function Home() {
       {/* 고정 헤더 (검색바 + 프리미엄 배너) */}
       <FixedHeader />
 
+      {/* 동화 스타일 네비게이션 - 메인 페이지에서 제거 (상세 페이지에서는 유지) */}
 
-      {/* 동화 스타일 네비게이션 (데스크톱만 표시, 모바일에서는 자동으로 숨김) */}
-      <ErrorBoundary>
-        <div className="px-4 pt-4">
-          <FairytaleNavigation />
-        </div>
-      </ErrorBoundary>
-
-      {/* 응급조치 안내 + 날씨 위젯 (같은 줄에 배치) */}
-      <div className="px-4 pt-12 flex flex-col sm:flex-row gap-4">
+      {/* 응급조치 안내 + 날씨 위젯 (프리미엄 바 바로 아래, 같은 줄에 배치) */}
+      <div className="px-4 pt-2 flex flex-col sm:flex-row gap-4">
         {/* 응급조치 안내 (왼쪽, 가로 50%) */}
         <div className="flex-1">
           <EmergencyQuickAccess />

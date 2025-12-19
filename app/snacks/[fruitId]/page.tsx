@@ -20,7 +20,8 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { fruitId } = await params;
+  const resolvedParams = await params;
+  const { fruitId } = resolvedParams;
   const fruit = getFruitById(fruitId);
   
   if (!fruit) {
@@ -36,7 +37,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function FruitDetailPage({ params }: PageProps) {
-  const { fruitId } = await params;
+  const resolvedParams = await params;
+  const { fruitId } = resolvedParams;
   const fruit = getFruitById(fruitId);
   
   if (!fruit) {

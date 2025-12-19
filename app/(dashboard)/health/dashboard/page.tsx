@@ -27,7 +27,7 @@ import {
   Clock
 } from "lucide-react";
 import Link from "next/link";
-import { HealthSummaryDashboard } from "@/components/health/health-summary-dashboard";
+import { HealthDashboard } from "@/components/health/dashboard/HealthDashboard";
 import { FamilyHealthOverview } from "@/components/health/family-health-overview";
 import { VaccinationLifecycleCalendar } from "@/components/health/vaccination-lifecycle-calendar";
 import { VaccinationNotificationSettings } from "@/components/health/vaccination-notification-settings";
@@ -149,7 +149,7 @@ async function DashboardContent() {
 
         <TabsContent value="overview" className="space-y-4">
           <Suspense fallback={<LoadingSpinner />}>
-            <HealthSummaryDashboard />
+            <HealthDashboard mode="summary" />
           </Suspense>
         </TabsContent>
 
