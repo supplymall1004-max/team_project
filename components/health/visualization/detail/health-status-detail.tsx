@@ -38,6 +38,8 @@ import { BodyFatGauge } from './charts/body-fat-gauge';
 import { DiseaseRiskGauges } from './charts/disease-risk-gauges';
 import { HealthTrendChart } from './charts/health-trend-chart';
 import { ComponentContributionChart } from './charts/component-contribution-chart';
+import { getHealthMetrics } from '@/actions/health/metrics';
+import { getHealthProfile } from '@/actions/health/profile';
 
 export function HealthStatusDetail() {
   const router = useRouter();

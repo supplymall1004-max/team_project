@@ -1301,8 +1301,19 @@ export async function getDailyDietPlan(
           return;
         }
 
+        // 데이터베이스 컬럼명을 TypeScript 타입으로 변환
         dailyPlan[mealType] = {
-          ...plan,
+          id: plan.id,
+          user_id: plan.user_id,
+          plan_date: plan.plan_date,
+          meal_type: mealType,
+          recipe_id: plan.recipe_id,
+          calories: plan.calories,
+          carbohydrates: plan.carbs_g ?? plan.carbohydrates ?? null,
+          protein: plan.protein_g ?? plan.protein ?? null,
+          fat: plan.fat_g ?? plan.fat ?? null,
+          sodium: plan.sodium_mg ?? plan.sodium ?? null,
+          created_at: plan.created_at,
           compositionSummary,
           recipe: recipeData as any,
         } as DietPlan;

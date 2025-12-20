@@ -21,6 +21,7 @@ import {
 } from "@/lib/diet/family-summary";
 import { PremiumGate } from "@/components/premium/premium-gate";
 import { getCurrentSubscription } from "@/actions/payments/get-subscription";
+import { checkHealthProfile } from "@/actions/health/check";
 
 interface FamilyDietSummary {
   memberTabs: FamilyMemberTabPayload[];

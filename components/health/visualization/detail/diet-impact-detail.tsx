@@ -38,6 +38,8 @@ import { CalorieGoalGauge } from './charts/calorie-goal-gauge';
 import { MacroGoalBars } from './charts/macro-goal-bars';
 import { ImpactSimulationChart } from './charts/impact-simulation-chart';
 import { GoalProgressTrend } from './charts/goal-progress-trend';
+import { getHealthMetrics } from '@/actions/health/metrics';
+import { getHealthProfile } from '@/actions/health/profile';
 
 export function DietImpactDetail() {
   const router = useRouter();

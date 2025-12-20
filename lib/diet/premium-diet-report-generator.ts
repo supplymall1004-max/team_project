@@ -183,7 +183,19 @@ export function generatePremiumDietReport(
   const totalCalories = finalCalories;
 
   // 미네랄 제한 통합
-  const micronutrients = calculateMicronutrientLimits(activeTabs);
+  const micronutrientLimits = calculateMicronutrientLimits(activeTabs);
+  
+  // 타입 변환: { sodium?: number } -> { sodium?: { max: number } }
+  const micronutrients: PremiumDietReport['micronutrients'] = {};
+  if (micronutrientLimits.sodium !== undefined) {
+    micronutrients.sodium = { max: micronutrientLimits.sodium };
+  }
+  if (micronutrientLimits.potassium !== undefined) {
+    micronutrients.potassium = { max: micronutrientLimits.potassium };
+  }
+  if (micronutrientLimits.phosphorus !== undefined) {
+    micronutrients.phosphorus = { max: micronutrientLimits.phosphorus };
+  }
 
   // 식단 구성 원리 설명 생성
   const dietCompositionLogic = generateDietCompositionLogic(
@@ -224,7 +236,7 @@ export function generatePremiumDietReport(
         },
       },
     },
-    micronutrients,
+    micronutrients: Object.keys(micronutrients).length > 0 ? micronutrients : undefined,
     appliedRestrictions,
     dietCompositionLogic,
   };

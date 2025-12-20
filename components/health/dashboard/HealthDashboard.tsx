@@ -216,7 +216,7 @@ export function HealthDashboard({
 
   if (mode === "visualization") {
     return (
-      <HealthVisualizationDashboard userId={userId} className={className} />
+      <VisualizationDashboard userId={userId} className={className} />
     );
   }
 

@@ -545,8 +545,8 @@ export async function GET(request: NextRequest) {
               `      - 영업 시간: ${facility.operatingHours?.todayHours ?? "N/A"}`,
             );
           });
-        } else if (facilitiesBeforeOperatingFilter > 0) {
-          console.warn(`⚠️ 영업중 필터링 후 약국이 0개입니다. 필터링 전 약국 샘플:`, facilitiesBeforeOperatingFilter);
+        } else if (facilitiesBeforeSort > 0) {
+          console.warn(`⚠️ 영업중 필터링 후 약국이 0개입니다. 필터링 전 약국 샘플:`, facilitiesBeforeSort);
         }
 
         // 약국 검색 결과에 반경 필터링 추가 적용
