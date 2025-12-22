@@ -72,7 +72,7 @@ export async function POST() {
         .eq("clerk_id", userId)
         .maybeSingle();
 
-      if (checkError) {
+      if (checkError && checkError.code !== "PGRST116") {
         console.error("❌ 사용자 확인 실패:", checkError);
         console.groupEnd();
         return NextResponse.json(
@@ -89,17 +89,10 @@ export async function POST() {
       let error;
 
       if (existingUser) {
-        // 기존 사용자가 있으면 업데이트
-        console.log("📝 기존 사용자 업데이트 중...");
-        const { data: updatedUser, error: updateError } = await supabase
-          .from("users")
-          .update({ name: defaultUserName })
-          .eq("clerk_id", userId)
-          .select()
-          .single();
-        
-        data = updatedUser;
-        error = updateError;
+        // 기존 사용자가 있으면 그대로 반환 (업데이트 불필요)
+        console.log("✅ 기존 사용자 발견:", existingUser.id);
+        data = existingUser;
+        error = null;
       } else {
         // 새 사용자 생성 (id는 자동 생성됨)
         console.log("➕ 새 사용자 생성 중...");
@@ -122,18 +115,37 @@ export async function POST() {
         console.error("  - 에러 메시지:", error.message);
         console.error("  - 에러 상세:", error.details);
         console.error("  - 에러 힌트:", error.hint);
-        console.groupEnd();
-        return NextResponse.json(
-          {
-            error: "Failed to create default user",
-            details: error.message,
-            success: false,
-          },
-          { status: 500 }
-        );
+        
+        // 중복 키 에러인 경우 기존 사용자 조회 시도
+        if (error.code === "23505") {
+          console.log("🔄 중복 키 에러 - 기존 사용자 재조회 시도...");
+          const { data: retryUser, error: retryError } = await supabase
+            .from("users")
+            .select("id, clerk_id, name")
+            .eq("clerk_id", userId)
+            .maybeSingle();
+          
+          if (!retryError && retryUser) {
+            console.log("✅ 기존 사용자 재조회 성공:", retryUser.id);
+            data = retryUser;
+            error = null;
+          }
+        }
+        
+        if (error) {
+          console.groupEnd();
+          return NextResponse.json(
+            {
+              error: "Failed to create default user",
+              details: error.message,
+              success: false,
+            },
+            { status: 500 }
+          );
+        }
       }
 
-      console.log("✅ 기본 사용자 생성 성공! Supabase User ID:", data.id);
+      console.log("✅ 기본 사용자 생성/조회 성공! Supabase User ID:", data.id);
       console.groupEnd();
 
       return NextResponse.json(
@@ -166,7 +178,7 @@ export async function POST() {
       .eq("clerk_id", clerkUser.id)
       .maybeSingle();
 
-    if (checkError) {
+    if (checkError && checkError.code !== "PGRST116") {
       console.error("❌ 사용자 확인 실패:", checkError);
       console.groupEnd();
       return NextResponse.json(
@@ -216,6 +228,30 @@ export async function POST() {
       console.error("  - 에러 메시지:", error.message);
       console.error("  - 에러 상세:", error.details);
       console.error("  - 에러 힌트:", error.hint);
+      
+      // 중복 키 에러인 경우 기존 사용자 조회 시도
+      if (error.code === "23505") {
+        console.log("🔄 중복 키 에러 - 기존 사용자 재조회 시도...");
+        const { data: retryUser, error: retryError } = await supabase
+          .from("users")
+          .select("id, clerk_id, name")
+          .eq("clerk_id", clerkUser.id)
+          .maybeSingle();
+        
+        if (!retryError && retryUser) {
+          console.log("✅ 기존 사용자 재조회 성공:", retryUser.id);
+          console.groupEnd();
+          return NextResponse.json(
+            {
+              success: true,
+              user: retryUser,
+              note: "User already exists (retrieved after duplicate key error)",
+            },
+            { status: 200 }
+          );
+        }
+      }
+      
       console.groupEnd();
       return NextResponse.json(
         {

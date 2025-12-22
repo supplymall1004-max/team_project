@@ -82,6 +82,9 @@ export async function GET(
     console.log("✅ 사용자 확인 완료:", userData.id);
     const userId = userData.id;
 
+    // Supabase 클라이언트 초기화
+    const supabase = getServiceRoleClient();
+
     // 3. 주차 정보 파싱
     let weekStartDate: string;
     let weekYear: number;

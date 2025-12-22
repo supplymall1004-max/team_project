@@ -32,12 +32,15 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface EmergencyCategory {
     id: string;
     title: string;
     icon: React.ReactNode;
     iconColor: string; // Tailwind 클래스명 직접 사용
+    bgColor: string; // 비활성 상태 배경색
+    activeBgColor: string; // 활성 상태 배경색
     situations: EmergencySituation[];
 }
 
@@ -64,6 +67,8 @@ const emergencyCategories: EmergencyCategory[] = [
         title: "호흡/생명 위급",
         icon: <Heart className="w-8 h-8" />,
         iconColor: "text-red-600",
+        bgColor: "bg-red-50",
+        activeBgColor: "bg-red-100",
         situations: [
             {
                 id: "choking",
@@ -163,6 +168,8 @@ const emergencyCategories: EmergencyCategory[] = [
         title: "사고/외상",
         icon: <AlertTriangle className="w-8 h-8" />,
         iconColor: "text-orange-600",
+        bgColor: "bg-orange-50",
+        activeBgColor: "bg-orange-100",
         situations: [
             {
                 id: "fall",
@@ -258,6 +265,8 @@ const emergencyCategories: EmergencyCategory[] = [
         title: "일상 응급",
         icon: <Thermometer className="w-8 h-8" />,
         iconColor: "text-blue-600",
+        bgColor: "bg-blue-50",
+        activeBgColor: "bg-blue-100",
         situations: [
             {
                 id: "fever-seizure",
@@ -323,6 +332,8 @@ const emergencyCategories: EmergencyCategory[] = [
         title: "중독/이물질",
         icon: <Pill className="w-8 h-8" />,
         iconColor: "text-purple-600",
+        bgColor: "bg-purple-50",
+        activeBgColor: "bg-purple-100",
         situations: [
             {
                 id: "swallowed",
@@ -386,6 +397,8 @@ const emergencyCategories: EmergencyCategory[] = [
         title: "기타",
         icon: <Waves className="w-8 h-8" />,
         iconColor: "text-teal-600",
+        bgColor: "bg-teal-50",
+        activeBgColor: "bg-teal-100",
         situations: [
             {
                 id: "bathroom",
@@ -418,18 +431,35 @@ export function BabyEmergencyGuide() {
             {/* 응급 상황 분류 탭 */}
             <Tabs defaultValue="breathing" className="space-y-4">
                 <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-2 h-auto p-1">
-                    {emergencyCategories.map((category) => (
-                        <TabsTrigger
-                            key={category.id}
-                            value={category.id}
-                            className="flex flex-col items-center gap-2 py-3 px-2 data-[state=active]:bg-white data-[state=active]:shadow-md"
-                        >
-                            <div className={category.iconColor}>{category.icon}</div>
-                            <span className="text-xs font-medium text-center leading-tight">
-                                {category.title}
-                            </span>
-                        </TabsTrigger>
-                    ))}
+                    {emergencyCategories.map((category) => {
+                        // 각 카테고리별 배경색 클래스 매핑
+                        const bgClassMap: Record<string, { base: string; active: string }> = {
+                            breathing: { base: "bg-red-50", active: "data-[state=active]:bg-red-100" },
+                            accident: { base: "bg-orange-50", active: "data-[state=active]:bg-orange-100" },
+                            daily: { base: "bg-blue-50", active: "data-[state=active]:bg-blue-100" },
+                            poison: { base: "bg-purple-50", active: "data-[state=active]:bg-purple-100" },
+                            other: { base: "bg-teal-50", active: "data-[state=active]:bg-teal-100" },
+                        };
+                        const bgClasses = bgClassMap[category.id] || { base: "bg-gray-50", active: "data-[state=active]:bg-gray-100" };
+
+                        return (
+                            <TabsTrigger
+                                key={category.id}
+                                value={category.id}
+                                className={cn(
+                                    "flex flex-col items-center gap-2 py-3 px-2 transition-colors",
+                                    bgClasses.base,
+                                    bgClasses.active,
+                                    "data-[state=active]:shadow-md"
+                                )}
+                            >
+                                <div className={category.iconColor}>{category.icon}</div>
+                                <span className="text-xs font-medium text-center leading-tight">
+                                    {category.title}
+                                </span>
+                            </TabsTrigger>
+                        );
+                    })}
                 </TabsList>
 
                 {emergencyCategories.map((category) => (

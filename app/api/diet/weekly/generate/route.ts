@@ -130,22 +130,57 @@ export async function POST(request: NextRequest) {
         })
         .select("id, clerk_id, name");
 
-      if (insertError || !newUsers || newUsers.length === 0) {
-        console.error("❌ 사용자 생성 실패:", insertError);
-        console.error("에러 코드:", insertError?.code);
-        console.error("에러 메시지:", insertError?.message);
+      if (insertError) {
+        // 중복 키 에러인 경우 기존 사용자 재조회 시도
+        if (insertError.code === "23505") {
+          console.log("🔄 중복 키 에러 - 기존 사용자 재조회 시도...");
+          const { data: retryUsers, error: retryError } = await serviceSupabase
+            .from("users")
+            .select("id, clerk_id, name")
+            .eq("clerk_id", clerkUserId)
+            .limit(1);
+          
+          if (!retryError && retryUsers && retryUsers.length > 0) {
+            userData = retryUsers[0];
+            console.log("✅ 기존 사용자 재조회 성공:", userData);
+          } else {
+            console.error("❌ 사용자 재조회 실패:", retryError);
+            console.groupEnd();
+            return NextResponse.json(
+              {
+                error: "Failed to find or create user",
+                details: retryError?.message || insertError.message,
+              },
+              { status: 500 },
+            );
+          }
+        } else {
+          console.error("❌ 사용자 생성 실패:", insertError);
+          console.error("에러 코드:", insertError?.code);
+          console.error("에러 메시지:", insertError?.message);
+          console.groupEnd();
+          return NextResponse.json(
+            {
+              error: "Failed to create user",
+              details: insertError?.message,
+            },
+            { status: 500 },
+          );
+        }
+      } else if (newUsers && newUsers.length > 0) {
+        userData = newUsers[0];
+        console.log("✅ 사용자 생성 완료:", userData);
+      } else {
+        console.error("❌ 사용자 생성 실패: 데이터 없음");
         console.groupEnd();
         return NextResponse.json(
           {
             error: "Failed to create user",
-            details: insertError?.message,
+            details: "No user data returned",
           },
           { status: 500 },
         );
       }
-
-      userData = newUsers[0];
-      console.log("✅ 사용자 생성 완료:", userData);
     } else {
       console.log("✅ 사용자 조회 완료:", userData);
     }
@@ -493,125 +528,61 @@ export async function POST(request: NextRequest) {
     }
 
     // 8-3. 장보기 리스트 저장 - service-role 클라이언트 사용
-    console.log("🛒 장보기 리스트 저장 준비:", {
-      shoppingListLength: weeklyDiet.shoppingList.length,
-      weeklyPlanId,
-    });
-    
     if (weeklyDiet.shoppingList.length > 0) {
       console.time("[weekly] persist shopping list");
       const shoppingRecords = weeklyDiet.shoppingList.map((item) => ({
         weekly_diet_plan_id: weeklyPlanId,
         ingredient_name: item.ingredient_name,
-        total_quantity: item.total_quantity || null,
-        unit: item.unit || null,
-        category: item.category || null,
-        recipes_using: Array.isArray(item.recipes_using) ? item.recipes_using : [],
+        total_quantity: item.total_quantity,
+        unit: item.unit,
+        category: item.category,
+        recipes_using: item.recipes_using,
         is_purchased: false,
       }));
 
-      console.log(`💾 장보기 리스트 ${shoppingRecords.length}개 저장 시도...`);
-      const { error: shoppingError, data: insertedShopping } = await serviceSupabase
+      const { error: shoppingError } = await serviceSupabase
         .from("weekly_shopping_lists")
-        .insert(shoppingRecords)
-        .select("id");
+        .insert(shoppingRecords);
 
       if (shoppingError) {
-        console.error("❌ 장보기 리스트 저장 실패:", shoppingError);
+        console.error("⚠️ 장보기 리스트 저장 실패:", shoppingError);
         console.error("에러 코드:", shoppingError?.code);
         console.error("에러 메시지:", shoppingError?.message);
-        console.error("에러 상세:", shoppingError?.details);
-        console.error("에러 힌트:", shoppingError?.hint);
       } else {
-        console.log(`✅ 장보기 리스트 ${insertedShopping?.length || shoppingRecords.length}개 저장 완료`);
+        console.log(`✅ 장보기 리스트 ${shoppingRecords.length}개 저장 완료`);
       }
       console.timeEnd("[weekly] persist shopping list");
-    } else {
-      console.warn("⚠️ 장보기 리스트가 비어있어 저장을 건너뜁니다.");
-      console.log("주간 식단 dailyPlans 키:", Object.keys(weeklyDiet.dailyPlans));
-      
-      // 디버깅: 왜 shoppingList가 비어있는지 확인
-      const recipeIds = new Set<string>();
-      for (const dailyPlan of Object.values(weeklyDiet.dailyPlans)) {
-        for (const mealType of ["breakfast", "lunch", "dinner"] as const) {
-          const meal = dailyPlan[mealType];
-          if (meal && typeof meal === 'object') {
-            if ('recipe' in meal && (meal as any).recipe?.id) {
-              recipeIds.add((meal as any).recipe.id);
-            }
-            if ('rice' in meal && (meal as any).rice?.id) {
-              recipeIds.add((meal as any).rice.id);
-            }
-            if ('sides' in meal && Array.isArray((meal as any).sides)) {
-              (meal as any).sides.forEach((side: any) => {
-                if (side?.id) recipeIds.add(side.id);
-              });
-            }
-            if ('soup' in meal && (meal as any).soup?.id) {
-              recipeIds.add((meal as any).soup.id);
-            }
-          }
-        }
-      }
-      console.log("🔍 추출된 recipe_id 개수:", recipeIds.size);
-      if (recipeIds.size > 0) {
-        console.log("🔍 추출된 recipe_id 샘플:", Array.from(recipeIds).slice(0, 5));
-      }
     }
 
     // 8-4. 영양 통계 저장 - service-role 클라이언트 사용
-    console.log("📊 영양 통계 저장 준비:", {
-      nutritionStatsLength: weeklyDiet.nutritionStats.length,
-      weeklyPlanId,
-    });
-    
     if (weeklyDiet.nutritionStats.length > 0) {
       console.time("[weekly] persist nutrition stats");
-      
-      // 기존 영양 통계 삭제 (같은 주간 식단에 대한 중복 방지)
-      const { error: deleteStatsError } = await serviceSupabase
-        .from("weekly_nutrition_stats")
-        .delete()
-        .eq("weekly_diet_plan_id", weeklyPlanId);
-      
-      if (deleteStatsError) {
-        console.warn("⚠️ 기존 영양 통계 삭제 실패 (무시):", deleteStatsError);
-      } else {
-        console.log("✅ 기존 영양 통계 삭제 완료");
-      }
-      
-      const statsRecords = weeklyDiet.nutritionStats.map((stat) => ({
+        const statsRecords = weeklyDiet.nutritionStats.map((stat) => ({
         weekly_diet_plan_id: weeklyPlanId,
         // DB 스키마(complete_schema.sql)는 day_of_week가 0~6(0=일요일) 체크를 가집니다.
         // 일부 로직은 1~7(7=일요일)로 생성하므로, 저장 전에 0~6으로 정규화합니다.
         day_of_week: stat.day_of_week === 7 ? 0 : stat.day_of_week,
         date: stat.date,
-        total_calories: stat.total_calories || 0,
-        total_carbohydrates: stat.total_carbohydrates || 0,
-        total_protein: stat.total_protein || 0,
-        total_fat: stat.total_fat || 0,
-        total_sodium: stat.total_sodium || 0,
-        meal_count: stat.meal_count || 0,
+        total_calories: stat.total_calories ?? null,
+        total_carbohydrates: stat.total_carbohydrates ?? null,
+        total_protein: stat.total_protein ?? null,
+        total_fat: stat.total_fat ?? null,
+        total_sodium: stat.total_sodium ?? null,
+        meal_count: stat.meal_count ?? 0,
       }));
 
-      console.log(`💾 영양 통계 ${statsRecords.length}개 저장 시도...`);
-      const { error: statsError, data: insertedStats } = await serviceSupabase
+      const { error: statsError } = await serviceSupabase
         .from("weekly_nutrition_stats")
-        .insert(statsRecords)
-        .select("id");
+        .insert(statsRecords);
 
       if (statsError) {
-        console.error("❌ 영양 통계 저장 실패:", statsError);
+        console.error("⚠️ 영양 통계 저장 실패:", statsError);
         console.error("에러 코드:", statsError?.code);
         console.error("에러 메시지:", statsError?.message);
-        console.error("에러 상세:", statsError?.details);
-        console.error("에러 힌트:", statsError?.hint);
       } else {
-        console.log(`✅ 영양 통계 ${insertedStats?.length || statsRecords.length}개 저장 완료`);
+        console.log(`✅ 영양 통계 ${statsRecords.length}개 저장 완료`);
       }
       console.timeEnd("[weekly] persist nutrition stats");
-    } else {
-      console.warn("⚠️ 영양 통계가 비어있어 저장을 건너뜁니다.");
     }
 
     console.log("✅ 주간 식단 생성 및 저장 완료");
@@ -695,6 +666,7 @@ function buildDietPlanRecords({
   protein_g: number;
   fat_g: number;
   sodium_mg: number;
+  fiber_g: number | null;
   potassium_mg: number | null;
   phosphorus_mg: number | null;
   gi_index: number | null;
@@ -747,23 +719,11 @@ function buildCompositionMealRecord({
     soup: meal.soup?.title ? [meal.soup.title] : [],
   };
 
-  // ✅ 개선: recipe_id 추출 로직 강화
-  const recipeId = findFirstRecipeId(meal);
-  if (!recipeId) {
-    console.warn(`⚠️ ${mealType} 식사에서 recipe_id를 찾을 수 없습니다:`, {
-      hasRice: !!meal.rice,
-      riceId: meal.rice?.id,
-      sidesCount: meal.sides?.length || 0,
-      hasSoup: !!meal.soup,
-      soupId: meal.soup?.id,
-    });
-  }
-
   return {
     user_id: userId,
     plan_date: date,
     meal_type: mealType,
-    recipe_id: recipeId,
+    recipe_id: findFirstRecipeId(meal),
     recipe_title:
       summaryItems.length > 0
         ? summaryItems.join(" · ")
@@ -774,6 +734,7 @@ function buildCompositionMealRecord({
     protein_g: getNutritionValue(nutrition, "protein"),
     fat_g: getNutritionValue(nutrition, "fat"),
     sodium_mg: toInt(getNutritionValue(nutrition, "sodium"), 0),
+    fiber_g: toIntOrNull(getNutritionValue(nutrition, "fiber")),
     potassium_mg: toIntOrNull(getNutritionValue(nutrition, "potassium")),
     phosphorus_mg: toIntOrNull(getNutritionValue(nutrition, "phosphorus")),
     gi_index: getNutritionValue(nutrition, "gi") || null,
@@ -820,6 +781,7 @@ function buildSingleRecipeRecord({
     protein_g: getNutritionValue(nutrition, "protein"),
     fat_g: getNutritionValue(nutrition, "fat"),
     sodium_mg: toInt(getNutritionValue(nutrition, "sodium"), 0),
+    fiber_g: toIntOrNull(getNutritionValue(nutrition, "fiber")),
     potassium_mg: toIntOrNull(getNutritionValue(nutrition, "potassium")),
     phosphorus_mg: toIntOrNull(getNutritionValue(nutrition, "phosphorus")),
     gi_index: getNutritionValue(nutrition, "gi") || null,
@@ -849,13 +811,8 @@ function getMealCompositionSummaryItems(meal: MealComposition): string[] {
 }
 
 function findFirstRecipeId(meal: MealComposition): string | null {
-  // ✅ 개선: 모든 구성요소에서 recipe_id 찾기 (우선순위: 밥 > 국 > 반찬)
   if (meal.rice?.id) {
     return meal.rice.id;
-  }
-
-  if (meal.soup?.id) {
-    return meal.soup.id;
   }
 
   if (meal.sides?.length) {
@@ -865,8 +822,10 @@ function findFirstRecipeId(meal: MealComposition): string | null {
     }
   }
 
-  // ✅ 추가: composition_summary에서 레시피 ID 추출 시도 (fallback)
-  // 이는 generateAndSaveDietPlan에서 저장된 경우를 대비
+  if (meal.soup?.id) {
+    return meal.soup.id;
+  }
+
   return null;
 }
 

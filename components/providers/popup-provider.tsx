@@ -103,10 +103,10 @@ export function PopupProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
 
-    // 로그인하지 않은 사용자는 팝업 표시 (기본 동작)
-    if (!userId) {
-      console.log("[PopupProvider] 비로그인 사용자, 팝업 표시");
-      return true;
+    // 로그인하지 않은 사용자는 팝업 표시하지 않음
+    if (!userId || !isLoaded) {
+      console.log("[PopupProvider] 비로그인 사용자 또는 인증 대기 중, 팝업 표시 안 함");
+      return false;
     }
 
     // 사용자 설정 확인

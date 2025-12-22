@@ -317,49 +317,71 @@ export function WeeklyDietSummary() {
           ) : (
             <>
               {/* 7일 캘린더 미리보기 */}
-              <div className="grid grid-cols-7 gap-2 sm:gap-4 mb-6">
-                {weekDates.map((date, index) => {
-                  const stat = data?.nutritionStats?.find(
-                    (s) => s && s.date === date
-                  );
-                  const dateObj = new Date(date);
-                  // 유효한 날짜인지 확인
-                  const dayOfMonth = isNaN(dateObj.getTime()) ? 0 : dateObj.getDate();
-                  const calories = stat?.total_calories || 0;
-                  const hasData = !!stat && calories > 0;
+              <div className="space-y-4 mb-6">
+                {/* 요일 행 */}
+                <div className="grid grid-cols-7 gap-2 sm:gap-4">
+                  {weekDates.map((date, index) => {
+                    const stat = data?.nutritionStats?.find(
+                      (s) => s && s.date === date
+                    );
+                    const dateObj = new Date(date);
+                    const dayOfMonth = isNaN(dateObj.getTime()) ? 0 : dateObj.getDate();
+                    const calories = stat?.total_calories || 0;
+                    const hasData = !!stat && calories > 0;
 
-                  return (
-                    <div
-                      key={date}
-                      className="flex flex-col items-center gap-1 sm:gap-2"
-                    >
-                      {/* 요일 */}
-                      <div className="text-xs sm:text-sm font-medium text-gray-600">
-                        {weekDays[index]}
-                      </div>
-
-                      {/* 날짜 원형 배경 */}
+                    return (
                       <div
-                        className={cn(
-                          "w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center",
-                          "text-sm sm:text-base font-semibold",
-                          hasData
-                            ? "bg-teal-100 text-teal-700"
-                            : "bg-gray-100 text-gray-400"
-                        )}
+                        key={`day-${date}`}
+                        className="flex flex-col items-center gap-2"
                       >
-                        {dayOfMonth}
-                      </div>
-
-                      {/* 칼로리 표시 (작은 텍스트) */}
-                      {hasData && stat && (
-                        <div className="text-xs text-gray-500">
-                          {(stat.total_calories || 0).toLocaleString()}kcal
+                        {/* 요일 */}
+                        <div className="text-xs sm:text-sm font-medium text-gray-600">
+                          {weekDays[index]}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+
+                        {/* 날짜 원형 배경 */}
+                        <div
+                          className={cn(
+                            "w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center",
+                            "text-sm sm:text-base font-semibold",
+                            hasData
+                              ? "bg-teal-100 text-teal-700"
+                              : "bg-gray-100 text-gray-400"
+                          )}
+                        >
+                          {dayOfMonth}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* 칼로리 행 - 별도 행으로 분리하여 가시성 확보 */}
+                <div className="grid grid-cols-7 gap-2 sm:gap-4">
+                  {weekDates.map((date, index) => {
+                    const stat = data?.nutritionStats?.find(
+                      (s) => s && s.date === date
+                    );
+                    const calories = stat?.total_calories || 0;
+                    const hasData = !!stat && calories > 0;
+
+                    return (
+                      <div
+                        key={`calories-${date}`}
+                        className="flex flex-col items-center justify-center min-h-[2.5rem]"
+                      >
+                        {hasData && stat ? (
+                          <div className="text-xs sm:text-sm font-semibold text-teal-700 bg-teal-50 px-2 py-1 rounded-md">
+                            {(stat.total_calories || 0).toLocaleString()}
+                            <span className="text-[10px] sm:text-xs ml-0.5">kcal</span>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-400">-</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* 총 칼로리 표시 */}

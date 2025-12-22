@@ -150,6 +150,23 @@ export async function ensureSupabaseUser(): Promise<{ id: string; name: string }
       console.error("  - 에러 상세:", upsertError.details);
       console.error("  - 에러 힌트:", upsertError.hint);
       console.error("  - 동기화 시도한 데이터:", { clerk_id: userId, name: userName });
+      
+      // 중복 키 에러인 경우 기존 사용자 재조회 시도
+      if (upsertError.code === "23505") {
+        console.log("🔄 중복 키 에러 - 기존 사용자 재조회 시도...");
+        const { data: retryUser, error: retryError } = await supabase
+          .from("users")
+          .select("id, name")
+          .eq("clerk_id", userId)
+          .maybeSingle();
+        
+        if (!retryError && retryUser) {
+          console.log("✅ 기존 사용자 재조회 성공:", retryUser.id);
+          console.groupEnd();
+          return retryUser;
+        }
+      }
+      
       console.groupEnd();
       return null;
     }

@@ -8,6 +8,10 @@ import { Phone, AlertTriangle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { createClerkSupabaseClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
+import { DirectionalEntrance } from '@/components/motion/directional-entrance';
+import { MotionWrapper } from '@/components/motion/motion-wrapper';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
 
 interface PageProps {
     params: Promise<{
@@ -45,16 +49,24 @@ export default async function AllergyEmergencyPage({ params }: PageProps) {
         }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
-            <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-                {/* 뒤로 가기 */}
-                <Link
-                    href="/health/emergency"
-                    className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>응급조치 메인으로</span>
-                </Link>
+        <DirectionalEntrance direction="up" delay={0.3}>
+            <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
+                <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+                    {/* 뒤로 가기 */}
+                    <MotionWrapper>
+                        <motion.div
+                            whileHover={{ scale: 1.05, x: -5 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            <Link
+                                href="/health/emergency"
+                                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                <span>응급조치 메인으로</span>
+                            </Link>
+                        </motion.div>
+                    </MotionWrapper>
 
                 {/* 헤더 */}
                 <div className="bg-white rounded-xl border-2 border-red-200 p-6">
@@ -81,12 +93,18 @@ export default async function AllergyEmergencyPage({ params }: PageProps) {
                                 심각한 알레르기 반응 발생 시 즉시 응급 서비스에 연락하세요.
                             </p>
                         </div>
-                        <a
-                            href="tel:119"
-                            className="px-6 py-3 bg-white text-red-600 rounded-lg font-bold hover:bg-red-50"
+                        <motion.div
+                            whileHover={{ scale: 1.1, rotate: 5 }}
+                            whileTap={{ scale: 0.9 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 17 }}
                         >
-                            119
-                        </a>
+                            <a
+                                href="tel:119"
+                                className="inline-block px-6 py-3 bg-white text-red-600 rounded-lg font-bold hover:bg-red-50 shadow-lg"
+                            >
+                                119
+                            </a>
+                        </motion.div>
                     </div>
                 </div>
 
@@ -171,7 +189,8 @@ export default async function AllergyEmergencyPage({ params }: PageProps) {
                     </p>
                 </div>
             </div>
-        </div>
+            </div>
+        </DirectionalEntrance>
     );
     } catch (error) {
         console.error('알레르기 응급조치 페이지 오류:', error);
@@ -183,12 +202,15 @@ export default async function AllergyEmergencyPage({ params }: PageProps) {
                         <p className="text-red-700">
                             응급조치 정보를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
                         </p>
-                        <Link
-                            href="/health/emergency"
-                            className="inline-block mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                        <Button
+                            asChild
+                            variant="destructive"
+                            className="mt-4"
                         >
-                            응급조치 메인으로 돌아가기
-                        </Link>
+                            <Link href="/health/emergency">
+                                응급조치 메인으로 돌아가기
+                            </Link>
+                        </Button>
                     </div>
                 </div>
             </div>

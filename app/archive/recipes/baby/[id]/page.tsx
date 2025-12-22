@@ -13,11 +13,17 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Clock, Baby, AlertCircle, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BabyRecipe } from "@/components/baby-recipes/baby-recipe-list";
+import { DirectionalEntrance } from "@/components/motion/directional-entrance";
+import { MotionWrapper } from "@/components/motion/motion-wrapper";
+import { StaggerCard } from "@/components/motion/stagger-card";
+import { StaggerItem } from "@/components/motion/stagger-item";
+import { AnimatedBadge } from "@/components/motion/animated-badge";
 
 // 임시 레시피 데이터 (실제로는 데이터베이스에서 가져옴)
 const babyRecipes: Record<string, BabyRecipe & { 
@@ -877,178 +883,317 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
   console.log("[BabyRecipeDetailPage] 이유식 레시피 상세 페이지 렌더링:", id);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 space-y-6">
-        {/* 뒤로가기 버튼 */}
-        <Link href="/archive/recipes?tab=baby">
-          <Button variant="ghost" className="mb-4">
+    <DirectionalEntrance direction="up" delay={0.3}>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4 space-y-6">
+          {/* 뒤로가기 버튼 */}
+          <MotionWrapper>
+            <Link href="/archive/recipes?tab=baby">
+              <Button variant="ghost" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             목록으로 돌아가기
           </Button>
         </Link>
 
         {/* 레시피 헤더 */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <CardTitle className="text-3xl mb-2">{recipe.title}</CardTitle>
-                <CardDescription className="text-base">{recipe.description}</CardDescription>
+        <StaggerCard index={0}>
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <CardTitle className="text-3xl mb-2">{recipe.title}</CardTitle>
+                  <CardDescription className="text-base">{recipe.description}</CardDescription>
+                </div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0, rotate: -180 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 15,
+                    delay: 0.3,
+                  }}
+                >
+                  <Baby className="h-8 w-8 text-pink-500 flex-shrink-0" />
+                </motion.div>
               </div>
-              <Baby className="h-8 w-8 text-pink-500 flex-shrink-0" />
-            </div>
-            <div className="flex flex-wrap gap-2 mt-4">
-              <Badge className={stageColors[recipe.stage]}>
-                {stageLabels[recipe.stage]}
-              </Badge>
-              {recipe.difficulty && (
-                <Badge variant="outline">
-                  {difficultyLabels[recipe.difficulty]}
-                </Badge>
-              )}
-              {recipe.cooking_time_minutes && (
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {recipe.cooking_time_minutes}분
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-        </Card>
+              <div className="flex flex-wrap gap-2 mt-4">
+                <AnimatedBadge delay={0.4}>
+                  <Badge className={stageColors[recipe.stage]}>
+                    {stageLabels[recipe.stage]}
+                  </Badge>
+                </AnimatedBadge>
+                {recipe.difficulty && (
+                  <AnimatedBadge delay={0.5}>
+                    <Badge variant="outline">
+                      {difficultyLabels[recipe.difficulty]}
+                    </Badge>
+                  </AnimatedBadge>
+                )}
+                {recipe.cooking_time_minutes && (
+                  <AnimatedBadge delay={0.6}>
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {recipe.cooking_time_minutes}분
+                    </Badge>
+                  </AnimatedBadge>
+                )}
+              </div>
+            </CardHeader>
+          </Card>
+        </StaggerCard>
 
         {/* 알레르기 주의사항 */}
         {recipe.allergy_warnings && recipe.allergy_warnings.length > 0 && (
-          <Alert className="border-amber-200 bg-amber-50">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-900 font-semibold">알레르기 주의</AlertTitle>
-            <AlertDescription className="text-amber-800 mt-2">
-              이 레시피에는 다음 알레르기 유발 가능 재료가 포함되어 있습니다:{" "}
-              <strong>{recipe.allergy_warnings.join(", ")}</strong>
-              <br />
-              처음 먹일 때는 소량으로 시작하고 아기의 반응을 주의 깊게 관찰하세요.
-            </AlertDescription>
-          </Alert>
+          <StaggerCard index={1}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{
+                type: "spring",
+                stiffness: 150,
+                damping: 20,
+                delay: 0.2,
+              }}
+            >
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-900 font-semibold">알레르기 주의</AlertTitle>
+                <AlertDescription className="text-amber-800 mt-2">
+                  이 레시피에는 다음 알레르기 유발 가능 재료가 포함되어 있습니다:{" "}
+                  <strong>{recipe.allergy_warnings.join(", ")}</strong>
+                  <br />
+                  처음 먹일 때는 소량으로 시작하고 아기의 반응을 주의 깊게 관찰하세요.
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          </StaggerCard>
         )}
 
         {/* 재료 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>재료</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {recipe.ingredients.map((ingredient, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <span className="font-medium">{ingredient.name}</span>
-                    <span className="text-gray-600 ml-2">{ingredient.amount}</span>
-                    {ingredient.note && (
-                      <span className="text-gray-500 text-sm ml-2">({ingredient.note})</span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-
-        {/* 조리 단계 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>조리 방법</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ol className="space-y-4">
-              {recipe.steps.map((step) => (
-                <li key={step.step} className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-100 text-pink-700 flex items-center justify-center font-bold">
-                    {step.step}
-                  </div>
-                  <div className="flex-1 pt-1">
-                    <p className="text-gray-700">{step.description}</p>
-                    {step.timer_minutes && (
-                      <div className="mt-2 flex items-center gap-2 text-sm text-gray-500">
-                        <Clock className="h-4 w-4" />
-                        <span>{step.timer_minutes}분</span>
-                      </div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
-
-        {/* 영양 정보 */}
-        {recipe.nutrition_info && (
+        <StaggerCard index={2}>
           <Card>
             <CardHeader>
-              <CardTitle>영양 정보</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {recipe.nutrition_info.calories && (
-                  <div>
-                    <div className="text-sm text-gray-600">칼로리</div>
-                    <div className="text-2xl font-bold">{recipe.nutrition_info.calories}kcal</div>
-                  </div>
-                )}
-                {recipe.nutrition_info.protein && (
-                  <div>
-                    <div className="text-sm text-gray-600">단백질</div>
-                    <div className="text-2xl font-bold">{recipe.nutrition_info.protein}g</div>
-                  </div>
-                )}
-                {recipe.nutrition_info.carbs && (
-                  <div>
-                    <div className="text-sm text-gray-600">탄수화물</div>
-                    <div className="text-2xl font-bold">{recipe.nutrition_info.carbs}g</div>
-                  </div>
-                )}
-                {recipe.nutrition_info.fat && (
-                  <div>
-                    <div className="text-sm text-gray-600">지방</div>
-                    <div className="text-2xl font-bold">{recipe.nutrition_info.fat}g</div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 조리 팁 */}
-        {recipe.tips && recipe.tips.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>조리 팁</CardTitle>
+              <CardTitle>재료</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {recipe.tips.map((tip, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <div className="w-2 h-2 rounded-full bg-pink-500 mt-2 flex-shrink-0" />
-                    <span className="text-gray-700">{tip}</span>
-                  </li>
+                {recipe.ingredients.map((ingredient, index) => (
+                  <StaggerItem key={index} index={index} delay={0.3}>
+                    <li className="flex items-start gap-2">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 200,
+                          damping: 15,
+                          delay: 0.3 + index * 0.05,
+                        }}
+                      >
+                        <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      </motion.div>
+                      <div>
+                        <span className="font-medium">{ingredient.name}</span>
+                        <span className="text-gray-600 ml-2">{ingredient.amount}</span>
+                        {ingredient.note && (
+                          <span className="text-gray-500 text-sm ml-2">({ingredient.note})</span>
+                        )}
+                      </div>
+                    </li>
+                  </StaggerItem>
                 ))}
               </ul>
             </CardContent>
           </Card>
+        </StaggerCard>
+
+        {/* 조리 단계 */}
+        <StaggerCard index={3}>
+          <Card>
+            <CardHeader>
+              <CardTitle>조리 방법</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ol className="space-y-4">
+                {recipe.steps.map((step) => (
+                  <StaggerItem key={step.step} index={step.step - 1} delay={0.4}>
+                    <li className="flex gap-4">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0, rotate: -180 }}
+                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 200,
+                          damping: 15,
+                          delay: 0.4 + (step.step - 1) * 0.1,
+                        }}
+                        className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-100 text-pink-700 flex items-center justify-center font-bold"
+                      >
+                        {step.step}
+                      </motion.div>
+                      <div className="flex-1 pt-1">
+                        <p className="text-gray-700">{step.description}</p>
+                        {step.timer_minutes && (
+                          <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{
+                              delay: 0.5 + (step.step - 1) * 0.1,
+                            }}
+                            className="mt-2 flex items-center gap-2 text-sm text-gray-500"
+                          >
+                            <Clock className="h-4 w-4" />
+                            <span>{step.timer_minutes}분</span>
+                          </motion.div>
+                        )}
+                      </div>
+                    </li>
+                  </StaggerItem>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
+        </StaggerCard>
+
+        {/* 영양 정보 */}
+        {recipe.nutrition_info && (
+          <StaggerCard index={4}>
+            <Card>
+              <CardHeader>
+                <CardTitle>영양 정보</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {recipe.nutrition_info.calories && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5, duration: 0.5 }}
+                    >
+                      <div className="text-sm text-gray-600">칼로리</div>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
+                        className="text-2xl font-bold"
+                      >
+                        {recipe.nutrition_info.calories}kcal
+                      </motion.div>
+                    </motion.div>
+                  )}
+                  {recipe.nutrition_info.protein && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.55, duration: 0.5 }}
+                    >
+                      <div className="text-sm text-gray-600">단백질</div>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.65, type: "spring", stiffness: 200 }}
+                        className="text-2xl font-bold"
+                      >
+                        {recipe.nutrition_info.protein}g
+                      </motion.div>
+                    </motion.div>
+                  )}
+                  {recipe.nutrition_info.carbs && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6, duration: 0.5 }}
+                    >
+                      <div className="text-sm text-gray-600">탄수화물</div>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.7, type: "spring", stiffness: 200 }}
+                        className="text-2xl font-bold"
+                      >
+                        {recipe.nutrition_info.carbs}g
+                      </motion.div>
+                    </motion.div>
+                  )}
+                  {recipe.nutrition_info.fat && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.65, duration: 0.5 }}
+                    >
+                      <div className="text-sm text-gray-600">지방</div>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.75, type: "spring", stiffness: 200 }}
+                        className="text-2xl font-bold"
+                      >
+                        {recipe.nutrition_info.fat}g
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </StaggerCard>
+        )}
+
+        {/* 조리 팁 */}
+        {recipe.tips && recipe.tips.length > 0 && (
+          <StaggerCard index={5}>
+            <Card>
+              <CardHeader>
+                <CardTitle>조리 팁</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {recipe.tips.map((tip, index) => (
+                    <StaggerItem key={index} index={index} delay={0.6}>
+                      <li className="flex items-start gap-2">
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 200,
+                            damping: 15,
+                            delay: 0.6 + index * 0.05,
+                          }}
+                          className="w-2 h-2 rounded-full bg-pink-500 mt-2 flex-shrink-0"
+                        />
+                        <span className="text-gray-700">{tip}</span>
+                      </li>
+                    </StaggerItem>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </StaggerCard>
         )}
 
         {/* 월령 정보 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>추천 월령</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-700">
-              이 레시피는 <strong>{recipe.age_months_min}개월</strong>
-              {recipe.age_months_max ? `부터 ${recipe.age_months_max}개월` : " 이상"} 아기에게 적합합니다.
-            </p>
-          </CardContent>
-        </Card>
+        <StaggerCard index={6}>
+          <Card>
+            <CardHeader>
+              <CardTitle>추천 월령</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="text-gray-700"
+              >
+                이 레시피는 <strong>{recipe.age_months_min}개월</strong>
+                {recipe.age_months_max ? `부터 ${recipe.age_months_max}개월` : " 이상"} 아기에게 적합합니다.
+              </motion.p>
+            </CardContent>
+          </Card>
+        </StaggerCard>
+        </MotionWrapper>
+        </div>
       </div>
-    </div>
+    </DirectionalEntrance>
   );
 }

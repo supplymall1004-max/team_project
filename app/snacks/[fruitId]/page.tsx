@@ -11,6 +11,7 @@
 import { notFound } from "next/navigation";
 import { getFruitById } from "@/lib/utils/fruit-mapper";
 import { FruitDetailClient } from "@/components/snacks/fruit-detail-client";
+import { DirectionalEntrance } from "@/components/motion/directional-entrance";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -45,6 +46,10 @@ export default async function FruitDetailPage({ params }: PageProps) {
     notFound();
   }
   
-  return <FruitDetailClient fruit={fruit} />;
+  return (
+    <DirectionalEntrance direction="up" delay={0.3}>
+      <FruitDetailClient fruit={fruit} />
+    </DirectionalEntrance>
+  );
 }
 

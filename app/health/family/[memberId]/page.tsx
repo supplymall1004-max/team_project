@@ -13,6 +13,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DirectionalEntrance } from "@/components/motion/directional-entrance";
 
 function SectionSkeleton() {
   return (
@@ -30,26 +31,28 @@ async function FamilyMemberContent({ params }: FamilyMemberPageProps) {
   const { memberId } = await params;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Section className="pt-8">
-        <div className="mb-8">
-          <Button variant="ghost" asChild className="mb-4">
-            <Link href="/health">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              건강 관리로 돌아가기
-            </Link>
-          </Button>
-          <h1 className="text-4xl font-bold mb-2">👤 구성원 건강 상세</h1>
-          <p className="text-muted-foreground">
-            구성원의 건강 상태를 상세하게 확인하세요
-          </p>
-        </div>
+    <DirectionalEntrance direction="up" delay={0.3}>
+      <div className="min-h-screen bg-gray-50">
+        <Section className="pt-8">
+          <div className="mb-8">
+            <Button variant="ghost" asChild className="mb-4">
+              <Link href="/health">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                건강 관리로 돌아가기
+              </Link>
+            </Button>
+            <h1 className="text-4xl font-bold mb-2">👤 구성원 건강 상세</h1>
+            <p className="text-muted-foreground">
+              구성원의 건강 상태를 상세하게 확인하세요
+            </p>
+          </div>
 
-        <ErrorBoundary>
-          <FamilyMemberHealthDetail memberId={memberId} />
-        </ErrorBoundary>
-      </Section>
-    </div>
+          <ErrorBoundary>
+            <FamilyMemberHealthDetail memberId={memberId} />
+          </ErrorBoundary>
+        </Section>
+      </div>
+    </DirectionalEntrance>
   );
 }
 

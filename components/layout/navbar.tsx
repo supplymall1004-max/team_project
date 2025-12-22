@@ -18,6 +18,7 @@ import {
   useAuth,
 } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -132,28 +133,48 @@ const Navbar = () => {
         <Link
           href="/"
           className="flex items-center gap-3 shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
-          onClick={() => {
+          onClick={(e) => {
             handleNavClick("홈");
-            // Next.js Link 컴포넌트가 자동으로 메인 페이지로 이동 처리
+            // 현재 경로가 "/"인 경우 페이지를 새로고침하여 서버 컴포넌트를 다시 렌더링
+            if (pathname === "/") {
+              e.preventDefault();
+              // 서버 컴포넌트를 다시 렌더링하고 스크롤을 맨 위로 이동
+              router.refresh();
+              // 약간의 딜레이 후 스크롤 (렌더링 완료 대기)
+              setTimeout(() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }, 100);
+            }
+            // 다른 경로에서 홈으로 이동하는 경우는 Link 컴포넌트가 자동으로 처리
           }}
           aria-label="Flavor Archive 홈으로 이동"
         >
-          <img
-            src="/icons/maca2.JPG"
-            alt="Flavor Archive 로고"
-            width={50}
-            height={60}
-            className="rounded-lg object-contain"
-            style={{ width: '50px', height: '60px', display: 'block' }}
-            onError={(e) => {
-              console.error('[Navbar] 로고 이미지 로드 실패:', e);
-              // 이미지 로드 실패 시 빈 이미지로 대체
-              const target = e.target as HTMLImageElement;
-              if (target) {
-                target.style.display = 'none';
-              }
-            }}
-          />
+          <div className="relative w-[50px] h-[60px] flex-shrink-0">
+            <Image
+              src="/icons/maca2.JPG"
+              alt="Flavor Archive 로고"
+              width={50}
+              height={60}
+              className="rounded-lg object-contain"
+              priority
+              unoptimized
+              onError={(e) => {
+                if (process.env.NODE_ENV === "development") {
+                  console.error('[Navbar] 로고 이미지 로드 실패:', e);
+                }
+                // 이미지 로드 실패 시 부모 div 숨김
+                const target = e.currentTarget;
+                if (target && target.parentElement) {
+                  target.parentElement.style.display = 'none';
+                }
+              }}
+              onLoad={() => {
+                if (process.env.NODE_ENV === "development") {
+                  console.log('[Navbar] 로고 이미지 로드 완료');
+                }
+              }}
+            />
+          </div>
           <span className="text-lg sm:text-2xl font-bold text-orange-600 whitespace-nowrap">
             Flavor Archive
           </span>

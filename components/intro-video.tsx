@@ -53,11 +53,27 @@ export function IntroVideo({ children }: { children: React.ReactNode }) {
         return;
       }
       
-      // 첫 방문 시 즉시 검은 화면 표시 (동영상 로드 전에도)
-      console.log("첫 방문 사용자, 동영상 표시");
+      // 첫 방문 시 동영상 표시 (최대 3초 타임아웃 설정)
+      console.log("첫 방문 사용자, 동영상 표시 (최대 3초)");
       setShowVideo(true);
       // body 스크롤 즉시 차단
       document.body.style.overflow = "hidden";
+      
+      // 안전장치: 최대 3초 후 자동으로 메인 콘텐츠 표시 (무한 로딩 방지)
+      const safetyTimeout = setTimeout(() => {
+        if (showVideo) {
+          console.warn("⚠️ 인트로 동영상 안전장치 타임아웃 (3초) - 메인 콘텐츠 표시");
+          setShowVideo(false);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("hasSeenIntro", "true");
+          }
+          document.body.style.overflow = "";
+        }
+      }, 3000);
+      
+      return () => {
+        clearTimeout(safetyTimeout);
+      };
     } catch (error) {
       console.error("로컬 스토리지 접근 오류:", error);
       // 오류 발생 시 동영상 표시하지 않음
@@ -65,7 +81,7 @@ export function IntroVideo({ children }: { children: React.ReactNode }) {
       document.body.style.overflow = "";
       console.groupEnd();
     }
-  }, [isMounted]);
+  }, [isMounted, showVideo]);
 
   // 동영상 표시 시 body 스크롤 및 배경색 제어
   useEffect(() => {
@@ -132,12 +148,23 @@ export function IntroVideo({ children }: { children: React.ReactNode }) {
           })
           .catch((error) => {
             console.error("❌ 동영상 재생 실패:", error);
-            // 재생 실패 시에도 3초 후 메인 콘텐츠 표시
-            timerRef.current = setTimeout(() => {
-              console.log("재생 실패로 인한 타임아웃, 메인 콘텐츠 표시");
-              setShowVideo(false);
-            }, 3000);
+            // 재생 실패 시 즉시 메인 콘텐츠 표시 (무한 로딩 방지)
+            console.log("재생 실패로 인한 즉시 메인 콘텐츠 표시");
+            setShowVideo(false);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("hasSeenIntro", "true");
+            }
           });
+      };
+
+      // 동영상 로드 에러 처리 (새 기기에서 파일이 없거나 로드 실패 시)
+      const handleError = () => {
+        console.error("❌ 동영상 로드 에러 발생");
+        // 에러 발생 시 즉시 메인 콘텐츠 표시 (무한 로딩 방지)
+        setShowVideo(false);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("hasSeenIntro", "true");
+        }
       };
 
       // 동영상 종료 시 메인 콘텐츠 표시 (동영상이 3초보다 짧은 경우)
@@ -155,11 +182,13 @@ export function IntroVideo({ children }: { children: React.ReactNode }) {
 
       video.addEventListener("canplay", handleCanPlay);
       video.addEventListener("ended", handleEnded);
+      video.addEventListener("error", handleError);
 
       return () => {
         console.log("인트로 동영상 컴포넌트 정리 작업");
         video.removeEventListener("canplay", handleCanPlay);
         video.removeEventListener("ended", handleEnded);
+        video.removeEventListener("error", handleError);
         if (timerRef.current) {
           clearTimeout(timerRef.current);
         }
@@ -169,22 +198,37 @@ export function IntroVideo({ children }: { children: React.ReactNode }) {
 
     // 동영상 요소가 준비될 때까지 짧은 간격으로 확인
     let cleanup: (() => void) | null = null;
+    let setupAttempts = 0;
+    const maxSetupAttempts = 20; // 최대 20회 시도 (1초)
+    
     const intervalId = setInterval(() => {
+      setupAttempts++;
       const result = checkAndSetup();
       if (result) {
         cleanup = result;
         clearInterval(intervalId);
+      } else if (setupAttempts >= maxSetupAttempts) {
+        // 최대 시도 횟수 초과 시 타임아웃
+        clearInterval(intervalId);
+        console.warn("동영상 요소를 찾을 수 없습니다. 타임아웃 - 메인 콘텐츠 표시");
+        setShowVideo(false);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("hasSeenIntro", "true");
+        }
       }
     }, 50);
 
-    // 최대 1초 대기 후 타임아웃
+    // 최대 2초 대기 후 타임아웃 (안전장치)
     const timeoutId = setTimeout(() => {
       clearInterval(intervalId);
-      if (!videoRef.current) {
-        console.warn("동영상 요소를 찾을 수 없습니다. 타임아웃");
+      if (showVideo) {
+        console.warn("동영상 초기화 타임아웃 - 메인 콘텐츠 표시");
         setShowVideo(false);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("hasSeenIntro", "true");
+        }
       }
-    }, 1000);
+    }, 2000);
 
     return () => {
       clearInterval(intervalId);
@@ -232,11 +276,23 @@ export function IntroVideo({ children }: { children: React.ReactNode }) {
               playsInline
               preload="auto"
               autoPlay
+              onError={(e) => {
+                console.error("❌ 동영상 로드 에러 (onError 핸들러):", e);
+                // 에러 발생 시 즉시 메인 콘텐츠 표시
+                setShowVideo(false);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("hasSeenIntro", "true");
+                }
+              }}
             />
           )}
           {!isVideoReady && isMounted && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-white text-lg">로딩 중...</div>
+              {/* 안전장치: 3초 후 자동으로 메인 콘텐츠 표시 */}
+              <div className="absolute bottom-4 text-white text-xs opacity-50">
+                로딩이 오래 걸리면 페이지를 새로고침해주세요
+              </div>
             </div>
           )}
         </div>

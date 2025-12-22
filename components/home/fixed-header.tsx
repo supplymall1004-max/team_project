@@ -15,6 +15,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { PremiumBanner } from "./premium-banner";
 import { PremiumStatusBanner } from "./premium-status-banner";
 import { getCurrentSubscription } from '@/actions/payments/get-subscription';
@@ -77,7 +78,7 @@ export function FixedHeader({
   const topValue = typeof top === 'number' ? `${top}px` : top;
 
   return (
-    <div 
+    <motion.div 
       className="fixed left-0 right-0 w-full"
       style={{ 
         top: topValue,
@@ -87,6 +88,16 @@ export function FixedHeader({
         margin: 0,
         padding: 0,
         width: '100%',
+      }}
+      initial={{ opacity: 0, y: -50, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{
+        type: "spring",
+        stiffness: 150,
+        damping: 25,
+        mass: 1.2,
+        delay: 0.3,
+        duration: 1.0,
       }}
     >
       {/* 로딩 중에는 아무것도 표시하지 않음 */}
@@ -104,7 +115,7 @@ export function FixedHeader({
           )}
         </>
       )}
-    </div>
+    </motion.div>
   );
 }
 

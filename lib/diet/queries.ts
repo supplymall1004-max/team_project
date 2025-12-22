@@ -787,6 +787,7 @@ export async function generateAndSaveDietPlan(
           protein_g: recipe.protein || 0,
           fat_g: recipe.fat || 0,
           sodium_mg: toInt(recipe.sodium, 0),
+          fiber_g: toIntOrNull((recipe as any).fiber),
           potassium_mg: toIntOrNull(recipe.potassium),
           phosphorus_mg: toIntOrNull(recipe.phosphorus),
           gi_index: recipe.gi ?? null,

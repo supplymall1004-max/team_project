@@ -14,6 +14,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Clock, Calendar, ChefHat, Sunrise, Sun, Moon, TrendingUp, User, Users } from 'lucide-react';
+import { DirectionalEntrance } from '@/components/motion/directional-entrance';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -381,7 +382,8 @@ export default function DinnerDetailPage() {
     : familyMembers.find(m => m.id === activeTab);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <DirectionalEntrance direction="up" delay={0.3}>
+      <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* 헤더 */}
         <div className="flex items-center justify-between">
@@ -685,6 +687,7 @@ export default function DinnerDetailPage() {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </DirectionalEntrance>
   );
 }

@@ -14,6 +14,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Clock, ChefHat, Star, Play, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { MotionWrapper } from "@/components/motion/motion-wrapper";
 import { RecipeDetail } from "@/types/recipe";
 import {
   formatCookingTime,
@@ -70,21 +72,31 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <motion.div 
+      className="space-y-8"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.2 }}
+    >
       {/* 레시피 헤더 */}
-      <div className="space-y-4">
-        <RecipeHeroImage recipe={recipe} />
-
-        {/* 제목 및 메타 정보 */}
+      <MotionWrapper>
         <div className="space-y-4">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">{recipe.title}</h1>
-            {recipe.description && (
-              <p className="text-lg text-muted-foreground">
-                {recipe.description}
-              </p>
-            )}
-          </div>
+          <RecipeHeroImage recipe={recipe} />
+
+          {/* 제목 및 메타 정보 */}
+          <div className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <h1 className="text-4xl font-bold mb-2">{recipe.title}</h1>
+              {recipe.description && (
+                <p className="text-lg text-muted-foreground">
+                  {recipe.description}
+                </p>
+              )}
+            </motion.div>
 
           {/* 별점 */}
           {recipe.rating_stats && recipe.rating_stats.rating_count > 0 && (
@@ -136,23 +148,32 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
             )}
           </div>
 
-          {/* 요리 시작 버튼 */}
-          <Button size="lg" onClick={handleStartCooking} className="mt-4">
-            <Play className="h-5 w-5 mr-2" />
-            요리 시작하기
-          </Button>
+            {/* 요리 시작 버튼 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              <Button size="lg" onClick={handleStartCooking} className="mt-4">
+                <Play className="h-5 w-5 mr-2" />
+                요리 시작하기
+              </Button>
+            </motion.div>
+          </div>
         </div>
-      </div>
+      </MotionWrapper>
 
       {/* 별점 평가 */}
-      <div className="rounded-2xl border border-border/60 bg-white p-6">
-        <RecipeRating
-          recipeId={recipe.id}
-          currentRating={recipe.user_rating}
-          averageRating={recipe.rating_stats?.average_rating || 0}
-          ratingCount={recipe.rating_stats?.rating_count || 0}
-        />
-      </div>
+      <MotionWrapper>
+        <div className="rounded-2xl border border-border/60 bg-white p-6">
+          <RecipeRating
+            recipeId={recipe.id}
+            currentRating={recipe.user_rating}
+            averageRating={recipe.rating_stats?.average_rating || 0}
+            ratingCount={recipe.rating_stats?.rating_count || 0}
+          />
+        </div>
+      </MotionWrapper>
 
       {/* 영양 정보 (식약처 API 데이터) */}
       {(recipe.foodsafety_info_eng ||
@@ -161,7 +182,8 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
         recipe.foodsafety_info_fat ||
         recipe.foodsafety_info_na ||
         recipe.foodsafety_info_fiber) && (
-        <div className="rounded-2xl border border-border/60 bg-white p-6">
+        <MotionWrapper>
+          <div className="rounded-2xl border border-border/60 bg-white p-6">
           <h2 className="text-2xl font-bold mb-4">영양 정보</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {recipe.foodsafety_info_eng !== null &&
@@ -219,11 +241,13 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
                 </div>
               )}
           </div>
-        </div>
+          </div>
+        </MotionWrapper>
       )}
 
       {/* 재료 목록 */}
-      <div className="rounded-2xl border border-border/60 bg-white p-6">
+      <MotionWrapper>
+        <div className="rounded-2xl border border-border/60 bg-white p-6">
         <h2 className="text-2xl font-bold mb-4">재료</h2>
         <ul className="space-y-3">
           {recipe.ingredients.map((ingredient) => {
@@ -267,11 +291,14 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
             );
           })}
         </ul>
-      </div>
+        </div>
+      </MotionWrapper>
 
       {/* 조리 과정 (블로그 형태) */}
-      <RecipeBlogSteps steps={recipe.steps} />
-    </div>
+      <MotionWrapper>
+        <RecipeBlogSteps steps={recipe.steps} />
+      </MotionWrapper>
+    </motion.div>
   );
 }
 

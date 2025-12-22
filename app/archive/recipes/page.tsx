@@ -15,6 +15,9 @@ import { RoyalRecipesQuickAccess } from '@/components/royal-recipes/royal-recipe
 import { MfdsRecipeSection } from '@/components/home/mfds-recipe-section';
 import { BabyRecipeNotice } from '@/components/baby-recipes/baby-recipe-notice';
 import { BabyRecipeList } from '@/components/baby-recipes/baby-recipe-list';
+import { GruelRecipeList } from '@/components/gruel-recipes/gruel-recipe-list';
+import { SpecialRecipeList } from '@/components/special-recipes/special-recipe-list';
+import { VeganRecipeList } from '@/components/vegan-recipes/vegan-recipe-list';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LoadingSpinner } from '@/components/loading-spinner';
@@ -50,6 +53,21 @@ function AllTabContent() {
         <div className="space-y-6">
           <BabyRecipeNotice />
           <BabyRecipeList />
+        </div>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <div className="space-y-6">
+          <GruelRecipeList />
+        </div>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <div className="space-y-6">
+          <SpecialRecipeList />
+        </div>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <div className="space-y-6">
+          <VeganRecipeList />
         </div>
       </ErrorBoundary>
     </div>
@@ -97,6 +115,36 @@ function BabyTabContent() {
   );
 }
 
+function GruelTabContent() {
+  return (
+    <ErrorBoundary>
+      <div className="space-y-6">
+        <GruelRecipeList />
+      </div>
+    </ErrorBoundary>
+  );
+}
+
+function SpecialTabContent() {
+  return (
+    <ErrorBoundary>
+      <div className="space-y-6">
+        <SpecialRecipeList />
+      </div>
+    </ErrorBoundary>
+  );
+}
+
+function VeganTabContent() {
+  return (
+    <ErrorBoundary>
+      <div className="space-y-6">
+        <VeganRecipeList />
+      </div>
+    </ErrorBoundary>
+  );
+}
+
 export default function RecipeArchivePage() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -114,6 +162,9 @@ export default function RecipeArchivePage() {
           royalContent={<RoyalTabContent />}
           mfdsContent={<MfdsTabContent />}
           babyContent={<BabyTabContent />}
+          gruelContent={<GruelTabContent />}
+          specialContent={<SpecialTabContent />}
+          veganContent={<VeganTabContent />}
         />
       </Section>
     </div>

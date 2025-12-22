@@ -20,6 +20,8 @@ interface SectionProps extends Omit<LayoutSectionProps, "title"> {
   id?: string;
   title?: string; // title을 optional로 변경 (기존 코드 호환성)
   variant?: "default" | "card" | "bordered";
+  /** 탭 내부에서 사용될 때 상단 패딩을 줄이는 옵션 */
+  inTabs?: boolean;
 }
 
 /**
@@ -40,6 +42,7 @@ export function Section({
   className,
   actions,
   variant = "default",
+  inTabs = false,
 }: SectionProps) {
   const variantStyles = {
     default: "",
@@ -51,7 +54,9 @@ export function Section({
     <section
       id={id}
       className={cn(
-        "py-8 sm:py-12 md:py-16",
+        inTabs 
+          ? "pt-4 pb-8 sm:pb-12 md:pb-16" 
+          : "py-8 sm:py-12 md:py-16",
         variantStyles[variant],
         className,
       )}

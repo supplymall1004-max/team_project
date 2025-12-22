@@ -24,6 +24,7 @@
 
 "use client";
 
+import { MotionConfig } from "framer-motion";
 import { SyncUserProvider } from "./sync-user-provider";
 import { QueryProvider } from "./query-provider";
 import { ToastProvider } from "./toast-provider";
@@ -49,15 +50,24 @@ export function AppProviders({ children }: AppProvidersProps) {
   }
 
   return (
-    <SyncUserProvider>
-      <QueryProvider>
-        <ToastProvider />
-        <DietNotificationProvider>
-          <KcdcAlertsProvider>
-            <PopupProvider>{children}</PopupProvider>
-          </KcdcAlertsProvider>
-        </DietNotificationProvider>
-      </QueryProvider>
-    </SyncUserProvider>
+    <MotionConfig
+      reducedMotion="user"
+      transition={{
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
+      }}
+    >
+      <SyncUserProvider>
+        <QueryProvider>
+          <ToastProvider />
+          <DietNotificationProvider>
+            <KcdcAlertsProvider>
+              <PopupProvider>{children}</PopupProvider>
+            </KcdcAlertsProvider>
+          </DietNotificationProvider>
+        </QueryProvider>
+      </SyncUserProvider>
+    </MotionConfig>
   );
 }

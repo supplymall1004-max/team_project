@@ -71,7 +71,7 @@ export async function RecipeSection() {
     sectionContent["recipe-section-button"]?.content.text || "레시피 아카이브 전체 보기";
 
   return (
-    <Section id="recipes" title={sectionTitle} description={sectionDescription}>
+    <Section id="recipes" title={sectionTitle} description={sectionDescription} inTabs>
       <div className="space-y-4 sm:space-y-6">
         {featuredRecipes.length > 0 ? (
           <>

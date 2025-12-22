@@ -25,6 +25,9 @@ import { FixedHeader } from "@/components/home/fixed-header";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { EmergencyQuickAccess } from "@/components/home/emergency-quick-access";
 import { WeatherWidget } from "@/components/home/weather-widget";
+import { ScrollProgress } from "@/components/motion/scroll-progress";
+import { DirectionalEntrance } from "@/components/motion/directional-entrance";
+import { ParallaxSection } from "@/components/motion/parallax-section";
 
 // 동적 렌더링 강제 (MFDS API 등 외부 API 사용으로 인해)
 export const dynamic = 'force-dynamic';
@@ -38,6 +41,9 @@ export default async function Home() {
         contain: 'layout style paint',
       }}
     >
+      {/* 스크롤 진행 표시기 */}
+      <ScrollProgress />
+
       {/* 고정 헤더 (검색바 + 프리미엄 배너) */}
       <FixedHeader />
 
@@ -45,21 +51,25 @@ export default async function Home() {
 
       {/* 응급조치 안내 + 날씨 위젯 (프리미엄 바 바로 아래, 같은 줄에 배치) */}
       <div className="px-4 pt-2 flex flex-col sm:flex-row gap-4">
-        {/* 응급조치 안내 (왼쪽, 가로 50%) */}
-        <div className="flex-1">
+        {/* 응급조치 안내 (왼쪽에서 진입) */}
+        <DirectionalEntrance direction="left" delay={0.8} className="flex-1">
           <EmergencyQuickAccess />
-        </div>
+        </DirectionalEntrance>
         
-        {/* 날씨 위젯 (오른쪽, 가로 50%) */}
-        <div className="flex-1">
+        {/* 날씨 위젯 (오른쪽에서 진입) */}
+        <DirectionalEntrance direction="right" delay={1.0} className="flex-1">
           <ErrorBoundary>
             <WeatherWidget />
           </ErrorBoundary>
-        </div>
+        </DirectionalEntrance>
       </div>
 
-      {/* 즉시 렌더링되는 클라이언트 섹션 */}
-      <HomeLanding />
+      {/* 히어로 섹션 (아래에서 진입 + 패럴랙스 효과) */}
+      <ParallaxSection speed={0.3} scaleRange={[0.98, 1]}>
+        <DirectionalEntrance direction="up" delay={1.2}>
+          <HomeLanding />
+        </DirectionalEntrance>
+      </ParallaxSection>
 
       {/* 카테고리별 미리보기 섹션들 */}
       {/* 레시피 아카이브 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}

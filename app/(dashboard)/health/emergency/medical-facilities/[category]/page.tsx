@@ -17,6 +17,8 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { DirectionalEntrance } from "@/components/motion/directional-entrance";
+import { MotionWrapper } from "@/components/motion/motion-wrapper";
 import { MapView } from "@/components/health/medical-facilities/map-view";
 import { FacilityCardList } from "@/components/health/medical-facilities/facility-card-list";
 import { FacilityFilter } from "@/components/health/medical-facilities/facility-filter";
@@ -329,7 +331,8 @@ export default function MedicalFacilityCategoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <DirectionalEntrance direction="up" delay={0.3}>
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* 헤더 섹션 */}
       <div className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4">
@@ -497,7 +500,8 @@ export default function MedicalFacilityCategoryPage() {
           />
         </div>
       </div>
-    </div>
+      </div>
+    </DirectionalEntrance>
   );
 }
 

@@ -1,6 +1,9 @@
+"use client";
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
+import { motion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 
@@ -46,13 +49,43 @@ function Button({
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
-  const Comp = asChild ? Slot : "button"
+  // Slot을 사용하는 경우 motion을 적용할 수 없으므로 일반 버튼 사용
+  if (asChild) {
+    return (
+      <Slot
+        data-slot="button"
+        className={cn(buttonVariants({ variant, size, className }))}
+        {...props}
+      />
+    )
+  }
+
+  // motion.button을 사용하는 경우에만 애니메이션 props 추가
+  const motionProps = {
+    whileHover: { 
+      scale: 1.05,
+      y: -2,
+      boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
+      transition: { 
+        type: "spring" as const,
+        stiffness: 400,
+        damping: 17,
+        duration: 0.2 
+      }
+    },
+    whileTap: { 
+      scale: 0.95,
+      y: 0,
+      transition: { duration: 0.1 }
+    },
+  }
 
   return (
-    <Comp
+    <motion.button
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
+      {...(motionProps as any)}
+      {...(props as any)}
     />
   )
 }

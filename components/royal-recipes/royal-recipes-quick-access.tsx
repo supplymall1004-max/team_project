@@ -152,6 +152,7 @@ export function RoyalRecipesQuickAccess({
         id={id}
         title="궁중 레시피 아카이브"
         description="잊혀져 가는 시대별 궁중 음식 레시피를 만나보세요"
+        inTabs
       >
         {content}
       </Section>

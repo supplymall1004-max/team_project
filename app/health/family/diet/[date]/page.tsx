@@ -17,6 +17,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createClerkSupabaseClient } from "@/lib/supabase/server";
 import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 import { FamilyDietView } from "@/components/family/family-diet-view";
+import { DirectionalEntrance } from "@/components/motion/directional-entrance";
 import type { FamilyMember } from "@/types/family";
 
 interface PageProps {
@@ -92,34 +93,36 @@ export default async function FamilyDietPage({ params }: PageProps) {
     console.groupEnd();
 
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            가족 맞춤 식단
-          </h1>
-          <p className="text-lg text-gray-600">
-            {new Date(date).toLocaleDateString('ko-KR', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              weekday: 'long'
-            })}
-          </p>
-        </div>
-
-        <Suspense fallback={
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-            <span className="ml-3 text-gray-600">식단을 불러오는 중...</span>
+      <DirectionalEntrance direction="up" delay={0.3}>
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              가족 맞춤 식단
+            </h1>
+            <p className="text-lg text-gray-600">
+              {new Date(date).toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+              })}
+            </p>
           </div>
-        }>
-          <FamilyDietView
-            targetDate={date}
-            userName={userData.name || "사용자"}
-            familyMembers={familyMembers || []}
-          />
-        </Suspense>
-      </div>
+
+          <Suspense fallback={
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+              <span className="ml-3 text-gray-600">식단을 불러오는 중...</span>
+            </div>
+          }>
+            <FamilyDietView
+              targetDate={date}
+              userName={userData.name || "사용자"}
+              familyMembers={familyMembers || []}
+            />
+          </Suspense>
+        </div>
+      </DirectionalEntrance>
     );
   } catch (error) {
     console.error("❌ 페이지 로딩 오류:", error);

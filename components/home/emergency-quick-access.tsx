@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Siren, ChevronRight, MapPin, Apple, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { staggerContainer, staggerItem, springTransition } from '@/lib/animations';
 
 interface WeatherData {
   location: string;
@@ -127,12 +129,18 @@ export function EmergencyQuickAccess() {
   }, []);
 
     return (
-        <div className="py-2 space-y-2">
+        <motion.div
+            className="py-2 space-y-2"
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+        >
             {/* 응급조치 안내 */}
-            <Link
-                href="/health/emergency"
-                className="flex items-center justify-between py-2.5 px-4 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all group"
-            >
+            <motion.div variants={staggerItem}>
+                <Link
+                    href="/health/emergency"
+                    className="flex items-center justify-between py-2.5 px-4 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all group"
+                >
                 <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full group-hover:bg-red-200 transition-colors">
                         <Siren className="w-5 h-5 text-red-600 animate-pulse" />
@@ -143,13 +151,15 @@ export function EmergencyQuickAccess() {
                     </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors" />
-            </Link>
+                </Link>
+            </motion.div>
 
             {/* 주변 의료기관 찾기 */}
-            <Link
-                href="/health/emergency/medical-facilities"
-                className="flex items-center justify-between py-2.5 px-4 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 hover:border-blue-300 transition-all group"
-            >
+            <motion.div variants={staggerItem}>
+                <Link
+                    href="/health/emergency/medical-facilities"
+                    className="flex items-center justify-between py-2.5 px-4 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 hover:border-blue-300 transition-all group"
+                >
                 <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
                         <MapPin className="w-5 h-5 text-blue-600" />
@@ -160,13 +170,15 @@ export function EmergencyQuickAccess() {
                     </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-blue-400 group-hover:text-blue-600 transition-colors" />
-            </Link>
+                </Link>
+            </motion.div>
 
             {/* 건강 맞춤 식단 */}
-            <Link
-                href="/diet"
-                className="flex items-center justify-between py-2.5 px-4 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 hover:border-green-300 transition-all group"
-            >
+            <motion.div variants={staggerItem}>
+                <Link
+                    href="/diet"
+                    className="flex items-center justify-between py-2.5 px-4 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 hover:border-green-300 transition-all group"
+                >
                 <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full group-hover:bg-green-200 transition-colors">
                         <Apple className="w-5 h-5 text-green-600" />
@@ -197,10 +209,12 @@ export function EmergencyQuickAccess() {
                     </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-green-400 group-hover:text-green-600 transition-colors" />
-            </Link>
+                </Link>
+            </motion.div>
 
             {/* Recipe Genie - 냉장고 재료 확인하고 레시피 추천 */}
-            <button
+            <motion.div variants={staggerItem}>
+                <motion.button
                 onClick={() => {
                     console.groupCollapsed("[RecipeGenieBanner] 배너 클릭");
                     console.log("url:", "https://gemini.google.com/gem-labs/1wffdEjbZ3E9wChM3O5VcoziuDnKihjDk");
@@ -229,7 +243,8 @@ export function EmergencyQuickAccess() {
                     </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-yellow-400 group-hover:text-yellow-600 transition-colors" />
-            </button>
-        </div>
+                </motion.button>
+            </motion.div>
+        </motion.div>
     );
 }

@@ -14,6 +14,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import { DirectionalEntrance } from "@/components/motion/directional-entrance";
+import { MotionWrapper } from "@/components/motion/motion-wrapper";
+import { Button } from "@/components/ui/button";
 import {
   parseNutritionInfo,
   getCookingSteps,
@@ -158,28 +161,31 @@ export default function MfdsRecipeDetailPage() {
           <p className="text-gray-600 mb-4">
             {error || "레시피를 찾을 수 없습니다."}
           </p>
-          <button
+          <Button
             onClick={() => router.push("/recipes/mfds")}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            variant="default"
           >
             목록으로 돌아가기
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="bg-white shadow-sm">
+    <DirectionalEntrance direction="up" delay={0.3}>
+      <main className="min-h-screen bg-gray-50">
+        {/* 헤더 */}
+        <MotionWrapper>
+          <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => router.push("/recipes/mfds")}
-            className="text-blue-600 hover:text-blue-800 mb-4 inline-flex items-center"
+            className="mb-4"
           >
             ← 목록으로 돌아가기
-          </button>
+          </Button>
           <h1 className="text-3xl font-bold text-gray-900">{recipe.RCP_NM}</h1>
         </div>
       </header>
@@ -324,7 +330,9 @@ export default function MfdsRecipeDetailPage() {
           </div>
         </section>
       </div>
-    </main>
+      </MotionWrapper>
+      </main>
+    </DirectionalEntrance>
   );
 }
 

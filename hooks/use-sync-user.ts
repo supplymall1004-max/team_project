@@ -87,6 +87,10 @@ export function useSyncUser() {
               return;
             } else {
               console.error("❌ 요청 타임아웃: 최대 재시도 횟수 초과");
+              // 무한 로딩 방지를 위해 동기화 완료로 표시
+              syncedRef.current = true;
+              retryCountRef.current = 0;
+              console.warn("⚠️ 타임아웃으로 재시도를 중단합니다 (무한 로딩 방지)");
               console.groupEnd();
               return;
             }
@@ -111,6 +115,10 @@ export function useSyncUser() {
           } else {
             // 최대 재시도 횟수 초과
             console.error("❌ 네트워크 연결 실패: 최대 재시도 횟수 초과");
+            // 무한 로딩 방지를 위해 동기화 완료로 표시
+            syncedRef.current = true;
+            retryCountRef.current = 0;
+            console.warn("⚠️ 네트워크 오류로 재시도를 중단합니다 (무한 로딩 방지)");
             console.groupEnd();
             return;
           }
@@ -142,6 +150,10 @@ export function useSyncUser() {
               return;
             } else {
               console.error("❌ Clerk 사용자 정보 조회 실패: 최대 재시도 횟수 초과");
+              // 무한 로딩 방지를 위해 동기화 완료로 표시
+              syncedRef.current = true;
+              retryCountRef.current = 0;
+              console.warn("⚠️ Clerk 정보 조회 실패로 재시도를 중단합니다 (무한 로딩 방지)");
               console.groupEnd();
               return;
             }
@@ -162,6 +174,10 @@ export function useSyncUser() {
               return;
             } else {
               console.error("❌ 서버 에러: 최대 재시도 횟수 초과");
+              // 무한 로딩 방지를 위해 동기화 완료로 표시
+              syncedRef.current = true;
+              retryCountRef.current = 0;
+              console.warn("⚠️ 서버 에러로 재시도를 중단합니다 (무한 로딩 방지)");
               console.groupEnd();
               return;
             }
@@ -169,6 +185,10 @@ export function useSyncUser() {
           
           // 기타 에러 (401, 403 등)는 재시도하지 않음
           console.error("❌ 사용자 동기화 실패 (재시도 불가):", response.status);
+          // 무한 로딩 방지를 위해 동기화 완료로 표시
+          syncedRef.current = true;
+          retryCountRef.current = 0;
+          console.warn("⚠️ 사용자 동기화 실패했지만 재시도를 중단합니다 (무한 로딩 방지)");
           console.groupEnd();
           return;
         }
@@ -186,6 +206,10 @@ export function useSyncUser() {
             console.log("✅ 사용자 동기화 성공");
           } else {
             console.error("❌ 사용자 동기화 응답 실패:", data);
+            // 실패해도 더 이상 재시도하지 않도록 설정 (무한 로딩 방지)
+            syncedRef.current = true;
+            retryCountRef.current = 0;
+            console.warn("⚠️ 사용자 동기화 실패했지만 재시도를 중단합니다 (무한 로딩 방지)");
           }
         } else {
           // JSON이 아닌 경우에도 성공으로 처리 (200 OK)
@@ -204,17 +228,25 @@ export function useSyncUser() {
           console.error("❌ 전체 에러 객체:", error);
         }
         
+        // 무한 로딩 방지를 위해 동기화 완료로 표시 (에러가 발생해도)
+        syncedRef.current = true;
+        retryCountRef.current = 0;
+        console.warn("⚠️ 예외 발생으로 재시도를 중단합니다 (무한 로딩 방지)");
+        
         console.groupEnd();
         // 에러가 발생해도 페이지 로딩을 방해하지 않음
       }
     };
 
-    // requestIdleCallback을 사용하여 브라우저가 유휴 상태일 때 실행
+    // 새 기기/비로그인 사용자의 경우 즉시 실행하지 않고 약간의 지연 후 실행
+    // 이렇게 하면 페이지 로딩을 방해하지 않음
+    const delay = userId ? 100 : 500; // 로그인 사용자는 빠르게, 비로그인은 약간 지연
+    
     if (typeof window !== "undefined" && "requestIdleCallback" in window) {
       requestIdleCallback(() => syncUser(), { timeout: 2000 });
     } else {
       // 폴백: 약간의 지연 후 실행
-      setTimeout(() => syncUser(), 100);
+      setTimeout(() => syncUser(), delay);
     }
   }, [isLoaded, userId]);
 }

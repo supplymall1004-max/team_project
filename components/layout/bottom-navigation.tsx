@@ -14,7 +14,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Home, BookOpen, Heart, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +28,7 @@ const menuItems = [
 
 export function BottomNavigation() {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <nav
@@ -62,13 +63,22 @@ export function BottomNavigation() {
               aria-current={isActive ? "page" : undefined}
               role="button"
               tabIndex={0}
-              onClick={() => {
+              onClick={(e) => {
                 console.groupCollapsed("[BottomNavigation] 메뉴 클릭");
                 console.log("href:", item.href);
                 console.log("label:", item.label);
                 console.log("isActive:", isActive);
                 console.log("timestamp:", Date.now());
                 console.groupEnd();
+                
+                // 홈 링크이고 현재 경로가 "/"인 경우 페이지를 새로고침
+                if (item.href === "/" && pathname === "/") {
+                  e.preventDefault();
+                  router.refresh();
+                  setTimeout(() => {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }, 100);
+                }
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {

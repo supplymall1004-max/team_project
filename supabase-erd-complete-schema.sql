@@ -2,15 +2,6 @@
 -- Supabase 데이터베이스 전체 스키마 문서
 -- ERD Cloud에서 관계성 수정 작업을 위한 완전한 SQL 문서
 -- 생성일: 2025-01-28
--- 업데이트: 2025-01-28 (보수적 접근 통합 반영)
--- 
--- 통합 완료된 테이블:
--- - user_settings (user_notification_settings + diet_notification_settings 통합)
--- - cache_entries (health_dashboard_cache + foodsafety_recipes_cache + image_cache_stats + image_usage_logs 통합)
--- - notifications (health_notifications + notification_logs + medication_reminder_logs + vaccination_notification_logs 통합)
--- 
--- 삭제 완료된 테이블:
--- - calorie_calculation_formulas_backup
 -- ============================================================================
 
 -- ============================================================================
@@ -73,20 +64,19 @@ CREATE TABLE calorie_calculation_formulas (
   user_id UUID
 );
 
--- DEPRECATED: 불필요한 백업 테이블 - 삭제 완료
--- CREATE TABLE calorie_calculation_formulas_backup (
---   id UUID,
---   formula_name VARCHAR(100),
---   formula_type VARCHAR(50),
---   gender VARCHAR(10),
---   age_min INTEGER,
---   age_max INTEGER,
---   formula_expression TEXT,
---   description TEXT,
---   is_default BOOLEAN,
---   created_at TIMESTAMPTZ,
---   updated_at TIMESTAMPTZ
--- );
+CREATE TABLE calorie_calculation_formulas_backup (
+  id UUID,
+  formula_name VARCHAR(100),
+  formula_type VARCHAR(50),
+  gender VARCHAR(10),
+  age_min INTEGER,
+  age_max INTEGER,
+  formula_expression TEXT,
+  description TEXT,
+  is_default BOOLEAN,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+);
 
 CREATE TABLE consent_records (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -119,19 +109,18 @@ CREATE TABLE deworming_medications (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- DEPRECATED: user_settings 테이블로 통합됨 (setting_category = 'diet')
--- CREATE TABLE diet_notification_settings (
---   id UUID NOT NULL DEFAULT gen_random_uuid(),
---   user_id UUID NOT NULL,
---   popup_enabled BOOLEAN NOT NULL DEFAULT true,
---   browser_enabled BOOLEAN DEFAULT false,
---   notification_time TIME DEFAULT '05:00:00'::time without time zone,
---   kcdc_enabled BOOLEAN NOT NULL DEFAULT true,
---   last_notification_date DATE,
---   last_dismissed_date DATE,
---   created_at TIMESTAMPTZ DEFAULT now(),
---   updated_at TIMESTAMPTZ DEFAULT now()
--- );
+CREATE TABLE diet_notification_settings (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  popup_enabled BOOLEAN NOT NULL DEFAULT true,
+  browser_enabled BOOLEAN DEFAULT false,
+  notification_time TIME DEFAULT '05:00:00'::time without time zone,
+  kcdc_enabled BOOLEAN NOT NULL DEFAULT true,
+  last_notification_date DATE,
+  last_dismissed_date DATE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
 CREATE TABLE diet_plans (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -145,9 +134,14 @@ CREATE TABLE diet_plans (
   ingredients JSONB DEFAULT '[]'::jsonb,
   instructions TEXT,
   calories INTEGER,
+  protein_g NUMERIC,
+  carbs_g NUMERIC,
+  fat_g NUMERIC,
   sodium_mg INTEGER,
+  fiber_g NUMERIC,
   potassium_mg INTEGER,
   phosphorus_mg INTEGER,
+  gi_index NUMERIC,
   composition_summary JSONB DEFAULT '[]'::jsonb,
   is_unified BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -238,96 +232,33 @@ CREATE TABLE favorite_meals (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ============================================================================
--- 통합된 테이블 (보수적 접근 - 2025-01-28 통합 완료)
--- ============================================================================
--- 
--- 통합 매핑:
--- 1. user_settings 통합:
---    - user_notification_settings (setting_category = 'notification')
---    - diet_notification_settings (setting_category = 'diet')
---
--- 2. cache_entries 통합:
---    - health_dashboard_cache (cache_type = 'health_dashboard')
---    - foodsafety_recipes_cache (cache_type = 'recipe')
---    - image_cache_stats (cache_type = 'image_stats')
---    - image_usage_logs (cache_type = 'image_usage')
---
--- 3. notifications 통합:
---    - health_notifications (type = 'health')
---    - notification_logs (type = 'system')
---    - medication_reminder_logs (type = 'medication', related_type = 'medication_record')
---    - vaccination_notification_logs (type = 'vaccination')
--- ============================================================================
-
-CREATE TABLE user_settings (
+CREATE TABLE foodsafety_recipes_cache (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  setting_category TEXT NOT NULL CHECK (setting_category IN ('notification', 'diet', 'health', 'privacy')),
-  settings JSONB NOT NULL DEFAULT '{}'::jsonb,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  rcp_seq TEXT NOT NULL,
+  rcp_nm TEXT NOT NULL,
+  rcp_pat2 TEXT,
+  rcp_way2 TEXT,
+  rcp_parts_dtls TEXT,
+  rcp_na_tip TEXT,
+  att_file_no_main TEXT,
+  att_file_no_mk TEXT,
+  hash_tag TEXT,
+  manual_data JSONB DEFAULT '[]'::jsonb,
+  cached_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE cache_entries (
+CREATE TABLE health_dashboard_cache (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
-  cache_type TEXT NOT NULL CHECK (cache_type IN ('health_dashboard', 'recipe', 'image_stats', 'image_usage')),
+  user_id UUID NOT NULL,
+  family_member_id UUID,
   cache_key TEXT NOT NULL,
-  cache_data JSONB NOT NULL DEFAULT '{}'::jsonb,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  family_member_id UUID REFERENCES family_members(id) ON DELETE SET NULL,
+  cache_data JSONB NOT NULL,
   expires_at TIMESTAMPTZ NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
-
--- ============================================================================
--- 기존 테이블 (DEPRECATED - 통합 완료, 삭제 예정)
--- ============================================================================
-
--- DEPRECATED: user_settings 테이블로 통합됨 (setting_category = 'diet')
--- CREATE TABLE diet_notification_settings (
---   id UUID NOT NULL DEFAULT gen_random_uuid(),
---   user_id UUID NOT NULL,
---   popup_enabled BOOLEAN NOT NULL DEFAULT true,
---   browser_enabled BOOLEAN DEFAULT false,
---   notification_time TIME DEFAULT '05:00:00'::time without time zone,
---   kcdc_enabled BOOLEAN NOT NULL DEFAULT true,
---   last_notification_date DATE,
---   last_dismissed_date DATE,
---   created_at TIMESTAMPTZ DEFAULT now(),
---   updated_at TIMESTAMPTZ DEFAULT now()
--- );
-
--- DEPRECATED: cache_entries 테이블로 통합됨 (cache_type = 'recipe')
--- CREATE TABLE foodsafety_recipes_cache (
---   id UUID NOT NULL DEFAULT gen_random_uuid(),
---   rcp_seq TEXT NOT NULL,
---   rcp_nm TEXT NOT NULL,
---   rcp_pat2 TEXT,
---   rcp_way2 TEXT,
---   rcp_parts_dtls TEXT,
---   rcp_na_tip TEXT,
---   att_file_no_main TEXT,
---   att_file_no_mk TEXT,
---   hash_tag TEXT,
---   manual_data JSONB DEFAULT '[]'::jsonb,
---   cached_at TIMESTAMPTZ NOT NULL DEFAULT now(),
---   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
---   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
--- );
-
--- DEPRECATED: cache_entries 테이블로 통합됨 (cache_type = 'health_dashboard')
--- CREATE TABLE health_dashboard_cache (
---   id UUID NOT NULL DEFAULT gen_random_uuid(),
---   user_id UUID NOT NULL,
---   family_member_id UUID,
---   cache_key TEXT NOT NULL,
---   cache_data JSONB NOT NULL,
---   expires_at TIMESTAMPTZ NOT NULL,
---   created_at TIMESTAMPTZ DEFAULT now(),
---   updated_at TIMESTAMPTZ DEFAULT now()
--- );
 
 CREATE TABLE health_data_sources (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -362,29 +293,28 @@ CREATE TABLE health_data_sync_logs (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- DEPRECATED: notifications 테이블로 통합됨 (type = 'health')
--- CREATE TABLE health_notifications (
---   id UUID NOT NULL DEFAULT gen_random_uuid(),
---   user_id UUID NOT NULL,
---   family_member_id UUID,
---   type TEXT NOT NULL,
---   channel TEXT NOT NULL,
---   template_id TEXT,
---   title TEXT NOT NULL,
---   message TEXT NOT NULL,
---   priority TEXT NOT NULL DEFAULT 'normal'::text,
---   context_data JSONB DEFAULT '{}'::jsonb,
---   sent_at TIMESTAMPTZ DEFAULT now(),
---   scheduled_at TIMESTAMPTZ,
---   status TEXT NOT NULL DEFAULT 'sent'::text,
---   recipient TEXT,
---   is_read BOOLEAN DEFAULT false,
---   read_at TIMESTAMPTZ,
---   is_test BOOLEAN DEFAULT false,
---   error_message TEXT,
---   retry_count INTEGER DEFAULT 0,
---   created_at TIMESTAMPTZ DEFAULT now()
--- );
+CREATE TABLE health_notifications (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  family_member_id UUID,
+  type TEXT NOT NULL,
+  channel TEXT NOT NULL,
+  template_id TEXT,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'normal'::text,
+  context_data JSONB DEFAULT '{}'::jsonb,
+  sent_at TIMESTAMPTZ DEFAULT now(),
+  scheduled_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'sent'::text,
+  recipient TEXT,
+  is_read BOOLEAN DEFAULT false,
+  read_at TIMESTAMPTZ,
+  is_test BOOLEAN DEFAULT false,
+  error_message TEXT,
+  retry_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
 CREATE TABLE hospital_records (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -427,29 +357,27 @@ CREATE TABLE image_cache_cleanup_logs (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- DEPRECATED: cache_entries 테이블로 통합됨 (cache_type = 'image_stats')
--- CREATE TABLE image_cache_stats (
---   id UUID NOT NULL DEFAULT gen_random_uuid(),
---   stat_date DATE NOT NULL,
---   total_images INTEGER DEFAULT 0,
---   static_images INTEGER DEFAULT 0,
---   gemini_images INTEGER DEFAULT 0,
---   placeholder_images INTEGER DEFAULT 0,
---   total_access_count INTEGER DEFAULT 0,
---   created_at TIMESTAMPTZ DEFAULT now(),
---   updated_at TIMESTAMPTZ DEFAULT now()
--- );
+CREATE TABLE image_cache_stats (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  stat_date DATE NOT NULL,
+  total_images INTEGER DEFAULT 0,
+  static_images INTEGER DEFAULT 0,
+  gemini_images INTEGER DEFAULT 0,
+  placeholder_images INTEGER DEFAULT 0,
+  total_access_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
--- DEPRECATED: cache_entries 테이블로 통합됨 (cache_type = 'image_usage')
--- CREATE TABLE image_usage_logs (
---   id UUID NOT NULL DEFAULT gen_random_uuid(),
---   image_path TEXT NOT NULL,
---   food_name TEXT,
---   source_type TEXT,
---   access_count INTEGER DEFAULT 0,
---   last_accessed_at TIMESTAMPTZ,
---   created_at TIMESTAMPTZ DEFAULT now()
--- );
+CREATE TABLE image_usage_logs (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  image_path TEXT NOT NULL,
+  food_name TEXT,
+  source_type TEXT,
+  access_count INTEGER DEFAULT 0,
+  last_accessed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
 CREATE TABLE kcdc_alerts (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -641,48 +569,46 @@ CREATE TABLE medication_records (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- DEPRECATED: notifications 테이블로 통합됨 (type = 'medication', related_type = 'medication_record')
--- CREATE TABLE medication_reminder_logs (
---   id UUID NOT NULL DEFAULT gen_random_uuid(),
---   medication_record_id UUID NOT NULL,
---   scheduled_time TIMESTAMPTZ NOT NULL,
---   notified_at TIMESTAMPTZ,
---   confirmed_at TIMESTAMPTZ,
---   status TEXT NOT NULL DEFAULT 'pending'::text,
---   created_at TIMESTAMPTZ DEFAULT now(),
---   updated_at TIMESTAMPTZ DEFAULT now()
--- );
+CREATE TABLE medication_reminder_logs (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  medication_record_id UUID NOT NULL,
+  scheduled_time TIMESTAMPTZ NOT NULL,
+  notified_at TIMESTAMPTZ,
+  confirmed_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'pending'::text,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
--- DEPRECATED: notifications 테이블로 통합됨 (type = 'system')
--- CREATE TABLE notification_logs (
---   id UUID NOT NULL DEFAULT gen_random_uuid(),
---   type TEXT NOT NULL,
---   status TEXT NOT NULL,
---   payload JSONB DEFAULT '{}'::jsonb,
---   triggered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
---   actor TEXT,
---   error_message TEXT,
---   created_at TIMESTAMPTZ DEFAULT now()
--- );
+CREATE TABLE notification_logs (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  type TEXT NOT NULL,
+  status TEXT NOT NULL,
+  payload JSONB DEFAULT '{}'::jsonb,
+  triggered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  actor TEXT,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
 CREATE TABLE notifications (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  family_member_id UUID REFERENCES family_members(id) ON DELETE SET NULL,
-  type TEXT NOT NULL CHECK (type IN ('system', 'health', 'vaccination', 'medication', 'periodic_service')),
-  category TEXT CHECK (category IN ('kcdc', 'diet-popup', 'system', 'scheduled', 'reminder', 'overdue', 'checkup', 'appointment', 'general')),
-  channel TEXT CHECK (channel IN ('push', 'sms', 'email', 'in_app')),
+  user_id UUID,
+  family_member_id UUID,
+  type TEXT NOT NULL,
+  category TEXT,
+  channel TEXT,
   title TEXT,
   message TEXT,
-  status TEXT NOT NULL DEFAULT 'pending'::text CHECK (status IN ('pending', 'sent', 'failed', 'dismissed', 'confirmed', 'missed', 'cancelled')),
-  priority TEXT DEFAULT 'normal'::text CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+  status TEXT NOT NULL DEFAULT 'pending'::text,
+  priority TEXT DEFAULT 'normal'::text,
   context_data JSONB DEFAULT '{}'::jsonb,
   scheduled_at TIMESTAMPTZ,
   sent_at TIMESTAMPTZ,
   read_at TIMESTAMPTZ,
   confirmed_at TIMESTAMPTZ,
   related_id UUID,
-  related_type TEXT CHECK (related_type IN ('vaccination_schedule', 'medication_record', 'periodic_service', 'health_checkup', 'appointment')),
+  related_type TEXT,
   recipient TEXT,
   error_message TEXT,
   retry_count INTEGER DEFAULT 0,
@@ -957,20 +883,19 @@ CREATE TABLE user_infection_risk_scores (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- DEPRECATED: user_settings 테이블로 통합됨 (setting_category = 'notification')
--- CREATE TABLE user_notification_settings (
---   id UUID NOT NULL DEFAULT gen_random_uuid(),
---   user_id UUID NOT NULL,
---   periodic_services_enabled BOOLEAN DEFAULT true,
---   periodic_services_reminder_days INTEGER DEFAULT 7,
---   deworming_reminders_enabled BOOLEAN DEFAULT true,
---   vaccination_reminders_enabled BOOLEAN DEFAULT true,
---   checkup_reminders_enabled BOOLEAN DEFAULT true,
---   infection_risk_alerts_enabled BOOLEAN DEFAULT true,
---   travel_risk_alerts_enabled BOOLEAN DEFAULT true,
---   created_at TIMESTAMPTZ DEFAULT now(),
---   updated_at TIMESTAMPTZ DEFAULT now()
--- );
+CREATE TABLE user_notification_settings (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  periodic_services_enabled BOOLEAN DEFAULT true,
+  periodic_services_reminder_days INTEGER DEFAULT 7,
+  deworming_reminders_enabled BOOLEAN DEFAULT true,
+  vaccination_reminders_enabled BOOLEAN DEFAULT true,
+  checkup_reminders_enabled BOOLEAN DEFAULT true,
+  infection_risk_alerts_enabled BOOLEAN DEFAULT true,
+  travel_risk_alerts_enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
 CREATE TABLE user_periodic_health_services (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -1078,22 +1003,21 @@ CREATE TABLE users (
   trial_used_at TIMESTAMPTZ
 );
 
--- DEPRECATED: notifications 테이블로 통합됨 (type = 'vaccination')
--- CREATE TABLE vaccination_notification_logs (
---   id UUID NOT NULL DEFAULT gen_random_uuid(),
---   user_id UUID NOT NULL,
---   family_member_id UUID,
---   vaccination_schedule_id UUID,
---   vaccination_record_id UUID,
---   notification_type TEXT NOT NULL,
---   notification_channel TEXT NOT NULL,
---   scheduled_date DATE NOT NULL,
---   notification_sent_at TIMESTAMPTZ,
---   notification_status TEXT NOT NULL DEFAULT 'pending'::text,
---   reminder_days_before INTEGER,
---   error_message TEXT,
---   created_at TIMESTAMPTZ DEFAULT now()
--- );
+CREATE TABLE vaccination_notification_logs (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  family_member_id UUID,
+  vaccination_schedule_id UUID,
+  vaccination_record_id UUID,
+  notification_type TEXT NOT NULL,
+  notification_channel TEXT NOT NULL,
+  scheduled_date DATE NOT NULL,
+  notification_sent_at TIMESTAMPTZ,
+  notification_status TEXT NOT NULL DEFAULT 'pending'::text,
+  reminder_days_before INTEGER,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 
 CREATE TABLE weekly_diet_plans (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -1139,9 +1063,7 @@ ALTER TABLE allergy_derived_ingredients ADD CONSTRAINT allergy_derived_ingredien
 ALTER TABLE calorie_calculation_formulas ADD CONSTRAINT calorie_calculation_formulas_pkey PRIMARY KEY (id);
 ALTER TABLE consent_records ADD CONSTRAINT consent_records_pkey PRIMARY KEY (id);
 ALTER TABLE deworming_medications ADD CONSTRAINT deworming_medications_pkey PRIMARY KEY (id);
-ALTER TABLE user_settings ADD CONSTRAINT user_settings_pkey PRIMARY KEY (id);
-ALTER TABLE cache_entries ADD CONSTRAINT cache_entries_pkey PRIMARY KEY (id);
--- DEPRECATED: ALTER TABLE diet_notification_settings ADD CONSTRAINT diet_notification_settings_pkey PRIMARY KEY (id);
+ALTER TABLE diet_notification_settings ADD CONSTRAINT diet_notification_settings_pkey PRIMARY KEY (id);
 ALTER TABLE diet_plans ADD CONSTRAINT diet_plans_pkey PRIMARY KEY (id);
 ALTER TABLE disease_excluded_foods_extended ADD CONSTRAINT disease_excluded_foods_extended_pkey PRIMARY KEY (id);
 ALTER TABLE disease_records ADD CONSTRAINT disease_records_pkey PRIMARY KEY (id);
@@ -1149,11 +1071,11 @@ ALTER TABLE diseases ADD CONSTRAINT diseases_pkey PRIMARY KEY (id);
 ALTER TABLE emergency_procedures ADD CONSTRAINT emergency_procedures_pkey PRIMARY KEY (id);
 ALTER TABLE family_members ADD CONSTRAINT family_members_pkey PRIMARY KEY (id);
 ALTER TABLE favorite_meals ADD CONSTRAINT favorite_meals_pkey PRIMARY KEY (id);
--- DEPRECATED: ALTER TABLE foodsafety_recipes_cache ADD CONSTRAINT foodsafety_recipes_cache_pkey PRIMARY KEY (id);
--- DEPRECATED: ALTER TABLE health_dashboard_cache ADD CONSTRAINT health_dashboard_cache_pkey PRIMARY KEY (id);
+ALTER TABLE foodsafety_recipes_cache ADD CONSTRAINT foodsafety_recipes_cache_pkey PRIMARY KEY (id);
+ALTER TABLE health_dashboard_cache ADD CONSTRAINT health_dashboard_cache_pkey PRIMARY KEY (id);
 ALTER TABLE health_data_sources ADD CONSTRAINT health_data_sources_pkey PRIMARY KEY (id);
 ALTER TABLE health_data_sync_logs ADD CONSTRAINT health_data_sync_logs_pkey PRIMARY KEY (id);
--- DEPRECATED: ALTER TABLE health_notifications ADD CONSTRAINT health_notifications_pkey PRIMARY KEY (id);
+ALTER TABLE health_notifications ADD CONSTRAINT health_notifications_pkey PRIMARY KEY (id);
 ALTER TABLE hospital_records ADD CONSTRAINT hospital_records_pkey PRIMARY KEY (id);
 ALTER TABLE identity_verifications ADD CONSTRAINT identity_verifications_pkey PRIMARY KEY (id);
 ALTER TABLE image_cache_cleanup_logs ADD CONSTRAINT image_cache_cleanup_logs_pkey PRIMARY KEY (id);
@@ -1191,7 +1113,7 @@ ALTER TABLE user_health_checkup_recommendations ADD CONSTRAINT user_health_check
 ALTER TABLE user_health_checkup_records ADD CONSTRAINT user_health_checkup_records_pkey PRIMARY KEY (id);
 ALTER TABLE user_health_profiles ADD CONSTRAINT user_health_profiles_pkey PRIMARY KEY (id);
 ALTER TABLE user_infection_risk_scores ADD CONSTRAINT user_infection_risk_scores_pkey PRIMARY KEY (id);
--- DEPRECATED: ALTER TABLE user_notification_settings ADD CONSTRAINT user_notification_settings_pkey PRIMARY KEY (id);
+ALTER TABLE user_notification_settings ADD CONSTRAINT user_notification_settings_pkey PRIMARY KEY (id);
 ALTER TABLE user_periodic_health_services ADD CONSTRAINT user_periodic_health_services_pkey PRIMARY KEY (id);
 ALTER TABLE user_periodic_service_reminders ADD CONSTRAINT user_periodic_service_reminders_pkey PRIMARY KEY (id);
 ALTER TABLE user_subscriptions ADD CONSTRAINT user_subscriptions_pkey PRIMARY KEY (id);
@@ -1224,23 +1146,9 @@ ALTER TABLE consent_records
   ADD CONSTRAINT consent_records_verification_id_fkey 
   FOREIGN KEY (verification_id) REFERENCES identity_verifications(id);
 
--- 통합된 테이블의 외래키 관계
-ALTER TABLE user_settings 
-  ADD CONSTRAINT user_settings_user_id_fkey 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-
-ALTER TABLE cache_entries 
-  ADD CONSTRAINT cache_entries_user_id_fkey 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-
-ALTER TABLE cache_entries 
-  ADD CONSTRAINT cache_entries_family_member_id_fkey 
-  FOREIGN KEY (family_member_id) REFERENCES family_members(id) ON DELETE SET NULL;
-
--- DEPRECATED: user_settings 테이블로 통합됨
--- ALTER TABLE diet_notification_settings 
---   ADD CONSTRAINT diet_notification_settings_user_id_fkey 
---   FOREIGN KEY (user_id) REFERENCES users(id);
+ALTER TABLE diet_notification_settings 
+  ADD CONSTRAINT diet_notification_settings_user_id_fkey 
+  FOREIGN KEY (user_id) REFERENCES users(id);
 
 ALTER TABLE diet_plans 
   ADD CONSTRAINT diet_plans_family_member_id_fkey 
@@ -1314,15 +1222,13 @@ ALTER TABLE health_data_sync_logs
   ADD CONSTRAINT health_data_sync_logs_user_id_fkey 
   FOREIGN KEY (user_id) REFERENCES users(id);
 
--- DEPRECATED: notifications 테이블로 통합됨
--- ALTER TABLE health_notifications 
---   ADD CONSTRAINT health_notifications_family_member_id_fkey 
---   FOREIGN KEY (family_member_id) REFERENCES family_members(id);
+ALTER TABLE health_notifications 
+  ADD CONSTRAINT health_notifications_family_member_id_fkey 
+  FOREIGN KEY (family_member_id) REFERENCES family_members(id);
 
--- DEPRECATED: notifications 테이블로 통합됨
--- ALTER TABLE health_notifications 
---   ADD CONSTRAINT health_notifications_user_id_fkey 
---   FOREIGN KEY (user_id) REFERENCES users(id);
+ALTER TABLE health_notifications 
+  ADD CONSTRAINT health_notifications_user_id_fkey 
+  FOREIGN KEY (user_id) REFERENCES users(id);
 
 ALTER TABLE hospital_records 
   ADD CONSTRAINT hospital_records_data_source_id_fkey 
@@ -1372,18 +1278,17 @@ ALTER TABLE medication_records
   ADD CONSTRAINT medication_records_user_id_fkey 
   FOREIGN KEY (user_id) REFERENCES users(id);
 
--- DEPRECATED: notifications 테이블로 통합됨 (related_id, related_type으로 관계 관리)
--- ALTER TABLE medication_reminder_logs 
---   ADD CONSTRAINT medication_reminder_logs_medication_record_id_fkey 
---   FOREIGN KEY (medication_record_id) REFERENCES medication_records(id);
+ALTER TABLE medication_reminder_logs 
+  ADD CONSTRAINT medication_reminder_logs_medication_record_id_fkey 
+  FOREIGN KEY (medication_record_id) REFERENCES medication_records(id);
 
 ALTER TABLE notifications 
   ADD CONSTRAINT notifications_family_member_id_fkey 
-  FOREIGN KEY (family_member_id) REFERENCES family_members(id) ON DELETE SET NULL;
+  FOREIGN KEY (family_member_id) REFERENCES family_members(id);
 
 ALTER TABLE notifications 
   ADD CONSTRAINT notifications_user_id_fkey 
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+  FOREIGN KEY (user_id) REFERENCES users(id);
 
 ALTER TABLE payment_transactions 
   ADD CONSTRAINT payment_transactions_subscription_id_fkey 
@@ -1485,10 +1390,9 @@ ALTER TABLE user_infection_risk_scores
   ADD CONSTRAINT user_infection_risk_scores_user_id_fkey 
   FOREIGN KEY (user_id) REFERENCES users(id);
 
--- DEPRECATED: user_settings 테이블로 통합됨
--- ALTER TABLE user_notification_settings 
---   ADD CONSTRAINT user_notification_settings_user_id_fkey 
---   FOREIGN KEY (user_id) REFERENCES users(id);
+ALTER TABLE user_notification_settings 
+  ADD CONSTRAINT user_notification_settings_user_id_fkey 
+  FOREIGN KEY (user_id) REFERENCES users(id);
 
 ALTER TABLE user_periodic_health_services 
   ADD CONSTRAINT user_periodic_health_services_family_member_id_fkey 
@@ -1530,25 +1434,21 @@ ALTER TABLE user_vaccination_schedules
   ADD CONSTRAINT user_vaccination_schedules_user_id_fkey 
   FOREIGN KEY (user_id) REFERENCES users(id);
 
--- DEPRECATED: notifications 테이블로 통합됨 (related_id, related_type으로 관계 관리)
--- ALTER TABLE vaccination_notification_logs 
---   ADD CONSTRAINT vaccination_notification_logs_family_member_id_fkey 
---   FOREIGN KEY (family_member_id) REFERENCES family_members(id);
+ALTER TABLE vaccination_notification_logs 
+  ADD CONSTRAINT vaccination_notification_logs_family_member_id_fkey 
+  FOREIGN KEY (family_member_id) REFERENCES family_members(id);
 
--- DEPRECATED: notifications 테이블로 통합됨
--- ALTER TABLE vaccination_notification_logs 
---   ADD CONSTRAINT vaccination_notification_logs_user_id_fkey 
---   FOREIGN KEY (user_id) REFERENCES users(id);
+ALTER TABLE vaccination_notification_logs 
+  ADD CONSTRAINT vaccination_notification_logs_user_id_fkey 
+  FOREIGN KEY (user_id) REFERENCES users(id);
 
--- DEPRECATED: notifications 테이블로 통합됨 (related_id로 관계 관리)
--- ALTER TABLE vaccination_notification_logs 
---   ADD CONSTRAINT vaccination_notification_logs_vaccination_record_id_fkey 
---   FOREIGN KEY (vaccination_record_id) REFERENCES user_vaccination_records(id);
+ALTER TABLE vaccination_notification_logs 
+  ADD CONSTRAINT vaccination_notification_logs_vaccination_record_id_fkey 
+  FOREIGN KEY (vaccination_record_id) REFERENCES user_vaccination_records(id);
 
--- DEPRECATED: notifications 테이블로 통합됨 (related_id로 관계 관리)
--- ALTER TABLE vaccination_notification_logs 
---   ADD CONSTRAINT vaccination_notification_logs_vaccination_schedule_id_fkey 
---   FOREIGN KEY (vaccination_schedule_id) REFERENCES user_vaccination_schedules(id);
+ALTER TABLE vaccination_notification_logs 
+  ADD CONSTRAINT vaccination_notification_logs_vaccination_schedule_id_fkey 
+  FOREIGN KEY (vaccination_schedule_id) REFERENCES user_vaccination_schedules(id);
 
 ALTER TABLE weekly_diet_plans 
   ADD CONSTRAINT weekly_diet_plans_user_id_fkey 
@@ -1582,15 +1482,9 @@ ALTER TABLE deworming_medications
   ADD CONSTRAINT deworming_medications_medication_name_key 
   UNIQUE (medication_name);
 
--- 통합된 테이블의 UNIQUE 제약조건
-ALTER TABLE user_settings 
-  ADD CONSTRAINT user_settings_user_category_unique 
-  UNIQUE (user_id, setting_category);
-
--- DEPRECATED: user_settings 테이블로 통합됨
--- ALTER TABLE diet_notification_settings 
---   ADD CONSTRAINT diet_notification_settings_user_id_unique 
---   UNIQUE (user_id);
+ALTER TABLE diet_notification_settings 
+  ADD CONSTRAINT diet_notification_settings_user_id_unique 
+  UNIQUE (user_id);
 
 ALTER TABLE diseases 
   ADD CONSTRAINT diseases_code_key 
@@ -1600,33 +1494,21 @@ ALTER TABLE favorite_meals
   ADD CONSTRAINT favorite_meals_user_recipe_unique 
   UNIQUE (user_id, recipe_id);
 
--- 통합된 테이블의 UNIQUE 제약조건
-CREATE UNIQUE INDEX cache_entries_unique_key_idx 
-ON cache_entries (
-  cache_type, 
-  cache_key, 
-  COALESCE(user_id, '00000000-0000-0000-0000-000000000000'::uuid),
-  COALESCE(family_member_id, '00000000-0000-0000-0000-000000000000'::uuid)
-);
+ALTER TABLE foodsafety_recipes_cache 
+  ADD CONSTRAINT foodsafety_recipes_cache_rcp_seq_key 
+  UNIQUE (rcp_seq);
 
--- DEPRECATED: cache_entries 테이블로 통합됨
--- ALTER TABLE foodsafety_recipes_cache 
---   ADD CONSTRAINT foodsafety_recipes_cache_rcp_seq_key 
---   UNIQUE (rcp_seq);
-
--- DEPRECATED: cache_entries 테이블로 통합됨
--- ALTER TABLE health_dashboard_cache 
---   ADD CONSTRAINT health_dashboard_cache_unique 
---   UNIQUE (user_id, family_member_id, cache_key);
+ALTER TABLE health_dashboard_cache 
+  ADD CONSTRAINT health_dashboard_cache_unique 
+  UNIQUE (user_id, family_member_id, cache_key);
 
 ALTER TABLE health_data_sources 
   ADD CONSTRAINT health_data_sources_user_source_unique 
   UNIQUE (user_id, source_type, source_name);
 
--- DEPRECATED: cache_entries 테이블로 통합됨
--- ALTER TABLE image_cache_stats 
---   ADD CONSTRAINT image_cache_stats_stat_date_key 
---   UNIQUE (stat_date);
+ALTER TABLE image_cache_stats 
+  ADD CONSTRAINT image_cache_stats_stat_date_key 
+  UNIQUE (stat_date);
 
 ALTER TABLE kcdc_health_checkup_statistics 
   ADD CONSTRAINT kcdc_health_checkup_statistics_unique 
@@ -1672,10 +1554,9 @@ ALTER TABLE user_health_profiles
   ADD CONSTRAINT user_health_profiles_user_id_unique 
   UNIQUE (user_id);
 
--- DEPRECATED: user_settings 테이블로 통합됨
--- ALTER TABLE user_notification_settings 
---   ADD CONSTRAINT user_notification_settings_user_id_unique 
---   UNIQUE (user_id);
+ALTER TABLE user_notification_settings 
+  ADD CONSTRAINT user_notification_settings_user_id_unique 
+  UNIQUE (user_id);
 
 ALTER TABLE user_subscriptions 
   ADD CONSTRAINT user_subscriptions_user_id_unique 
@@ -1700,3 +1581,5 @@ ALTER TABLE weekly_nutrition_stats
 -- ============================================================================
 -- 문서 끝
 -- ============================================================================
+
+

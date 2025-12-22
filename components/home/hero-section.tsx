@@ -14,6 +14,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { staggerContainer, staggerItem, springTransition } from "@/lib/animations";
 
 export interface QuickStartCard {
   title: string;
@@ -165,48 +167,118 @@ export function HeroSection({
 
       {/* 콘텐츠 - 모바일 앱 아이콘 그리드 */}
       <div className="relative z-10 w-full max-w-4xl mx-auto px-4 py-12 sm:px-6 sm:py-20">
-        {/* 베타 배지 */}
-        <div className="text-center mb-8">
+        {/* 베타 배지 (위에서 진입) */}
+        <motion.div
+          className="text-center mb-8"
+          initial={{ opacity: 0, y: -50, scale: 0.8 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ 
+            type: "spring",
+            stiffness: 150,
+            damping: 25,
+            mass: 1.2,
+            delay: 1.4,
+            duration: 1.0,
+          }}
+        >
           <div className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs sm:px-4 sm:text-sm font-semibold text-orange-700">
             {badgeText}
           </div>
-        </div>
+        </motion.div>
 
         {/* 앱 아이콘 그리드 */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 sm:gap-6 max-w-2xl mx-auto">
-          {quickStartCards.map((card) => {
-            return (
-              <Link
-                key={card.title}
-                href={card.href}
-                onClick={() => handleQuickStartClick(card.href)}
-                className="group flex flex-col items-center space-y-2 p-3 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-sm border border-gray-200/80 shadow-md transition-all hover:scale-105 hover:shadow-xl hover:bg-white active:scale-95"
-              >
-                {/* 아이콘 - public/icons 이미지 사용 */}
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition-all relative">
-                  <Image
-                    src={card.iconSrc}
-                    alt=""
-                    fill
-                    className="object-cover"
-                    sizes="64px"
-                    priority={false}
-                  />
-                </div>
+        <motion.div
+          className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 sm:gap-6 max-w-2xl mx-auto"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+        >
+          {quickStartCards.map((card, index) => {
+            // 각 카드가 다른 방향에서 진입하도록 설정
+            const directions: Array<'up' | 'down' | 'left' | 'right' | 'center'> = 
+              ['up', 'down', 'left', 'right', 'center', 'up', 'down', 'left', 'right'];
+            const direction = directions[index % directions.length];
+            
+            // 방향별 초기 위치 설정
+            const getInitialPosition = () => {
+              switch (direction) {
+                case 'up':
+                  return { y: 100, x: 0, scale: 0.8 };
+                case 'down':
+                  return { y: -100, x: 0, scale: 0.8 };
+                case 'left':
+                  return { y: 0, x: 100, scale: 0.8 };
+                case 'right':
+                  return { y: 0, x: -100, scale: 0.8 };
+                case 'center':
+                  return { y: 0, x: 0, scale: 0.5 };
+                default:
+                  return { y: 50, x: 0, scale: 0.8 };
+              }
+            };
 
-                {/* 텍스트 */}
-                <div className="text-center">
-                  <h3 className="text-xs sm:text-sm font-bold text-gray-900 leading-tight">
-                    {card.title}
-                  </h3>
-                  <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5 leading-tight">
-                    {card.description}
-                  </p>
-                </div>
-              </Link>
+            const initialPos = getInitialPosition();
+
+            return (
+              <motion.div
+                key={card.title}
+                initial={{ 
+                  opacity: 0, 
+                  ...initialPos 
+                }}
+                animate={{ 
+                  opacity: 1, 
+                  y: 0, 
+                  x: 0, 
+                  scale: 1 
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 150,
+                  damping: 25,
+                  mass: 1.2,
+                  delay: index * 0.12 + 1.6,
+                  duration: 1.0,
+                }}
+                whileHover={{ 
+                  scale: 1.1, 
+                  y: -5,
+                  transition: { duration: 0.2 }
+                }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link
+                  href={card.href}
+                  onClick={() => handleQuickStartClick(card.href)}
+                  className="group flex flex-col items-center space-y-2 p-3 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-sm border border-gray-200/80 shadow-md transition-all"
+                >
+                  <motion.div
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition-all relative"
+                  >
+                    <Image
+                      src={card.iconSrc}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                      priority={index < 6}
+                    />
+                  </motion.div>
+
+                  {/* 텍스트 */}
+                  <div className="text-center">
+                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 leading-tight">
+                      {card.title}
+                    </h3>
+                    <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5 leading-tight">
+                      {card.description}
+                    </p>
+                  </div>
+                </Link>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

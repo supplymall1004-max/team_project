@@ -32,7 +32,7 @@ export async function MfdsRecipeSection() {
   const sectionDescription = "식품의약품안전처에서 제공하는 공식 레시피를 확인해보세요";
 
   return (
-    <Section id="mfds-recipes" title={sectionTitle} description={sectionDescription}>
+    <Section id="mfds-recipes" title={sectionTitle} description={sectionDescription} inTabs>
       <div className="space-y-4 sm:space-y-6">
         {featuredRecipes.length > 0 ? (
           <>

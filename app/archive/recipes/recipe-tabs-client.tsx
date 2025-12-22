@@ -16,6 +16,9 @@ interface RecipeTabsClientProps {
   royalContent: ReactNode;
   mfdsContent: ReactNode;
   babyContent?: ReactNode;
+  gruelContent?: ReactNode;
+  specialContent?: ReactNode;
+  veganContent?: ReactNode;
 }
 
 function RecipeTabsContent({ 
@@ -23,40 +26,64 @@ function RecipeTabsContent({
   modernContent, 
   royalContent, 
   mfdsContent,
-  babyContent
+  babyContent,
+  gruelContent,
+  specialContent,
+  veganContent
 }: RecipeTabsClientProps) {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'all';
 
   return (
-    <Tabs defaultValue={initialTab} className="w-full">
-      <TabsList className="flex w-full justify-center gap-1 mb-6">
-        <TabsTrigger value="all">전체</TabsTrigger>
-        <TabsTrigger value="modern">현대 레시피</TabsTrigger>
-        <TabsTrigger value="royal">궁중 레시피</TabsTrigger>
-        <TabsTrigger value="mfds">식약처 레시피</TabsTrigger>
-        <TabsTrigger value="baby">이유식 레시피</TabsTrigger>
+    <Tabs defaultValue={initialTab} className="w-full relative">
+      <TabsList className="grid w-full grid-cols-2 gap-2 mb-12 relative z-50" style={{ pointerEvents: 'auto' }}>
+        <TabsTrigger value="all" className="text-xs sm:text-sm">전체</TabsTrigger>
+        <TabsTrigger value="modern" className="text-xs sm:text-sm">현대 레시피</TabsTrigger>
+        <TabsTrigger value="royal" className="text-xs sm:text-sm">궁중 레시피</TabsTrigger>
+        <TabsTrigger value="mfds" className="text-xs sm:text-sm">식약처 레시피</TabsTrigger>
+        <TabsTrigger value="baby" className="text-xs sm:text-sm">이유식 레시피</TabsTrigger>
+        <TabsTrigger value="gruel" className="text-xs sm:text-sm">죽 레시피</TabsTrigger>
+        <TabsTrigger value="special" className="text-xs sm:text-sm">특수 레시피</TabsTrigger>
+        <TabsTrigger value="vegan" className="text-xs sm:text-sm">비건 레시피</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="all">
+      <TabsContent value="all" className="pt-12 mt-4 relative z-0">
         {allContent}
       </TabsContent>
 
-      <TabsContent value="modern">
+      <TabsContent value="modern" className="pt-12 mt-4 relative z-0">
         {modernContent}
       </TabsContent>
 
-      <TabsContent value="royal">
+      <TabsContent value="royal" className="pt-12 mt-4 relative z-0">
         {royalContent}
       </TabsContent>
 
-      <TabsContent value="mfds">
+      <TabsContent value="mfds" className="pt-12 mt-4 relative z-0">
         {mfdsContent}
       </TabsContent>
 
       {babyContent && (
-        <TabsContent value="baby">
+        <TabsContent value="baby" className="pt-12 mt-4 relative z-0">
           {babyContent}
+        </TabsContent>
+      )}
+
+      {gruelContent && (
+        <TabsContent value="gruel" className="pt-12 mt-4 relative z-0">
+          {gruelContent}
+        </TabsContent>
+      )}
+
+      {specialContent && (
+        <TabsContent value="special" className="pt-12 mt-4 relative z-0">
+          {specialContent}
+        </TabsContent>
+      )}
+
+      {veganContent && (
+        <TabsContent value="vegan" className="pt-12 mt-4 relative z-0">
+          {veganContent}
         </TabsContent>
       )}
     </Tabs>

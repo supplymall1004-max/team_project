@@ -27,7 +27,7 @@ export function BabyRecipeNotice() {
   console.log("[BabyRecipeNotice] 이유식 안내 배너 렌더링");
 
   return (
-    <div className="space-y-6 mb-8">
+    <div className="space-y-6 mb-8 pt-4">
       {/* 주요 안내 */}
       <Alert className="border-pink-200 bg-pink-50">
         <Info className="h-4 w-4 text-pink-600" />

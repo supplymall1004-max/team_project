@@ -8,6 +8,9 @@ import Link from "next/link";
 import { getRoyalRecipe, RecipeEra } from "@/lib/royal-recipes/queries";
 import { getRecipeImages } from "@/lib/royal-recipes/images";
 import { RoyalRecipeTitle } from "@/components/royal-recipes/royal-recipe-title";
+import { DirectionalEntrance } from "@/components/motion/directional-entrance";
+import { MotionWrapper } from "@/components/motion/motion-wrapper";
+import { motion } from "framer-motion";
 
 interface RoyalRecipePageProps {
   params: Promise<{ era: string; slug: string }>;
@@ -40,17 +43,30 @@ export default async function RoyalRecipePage({ params }: RoyalRecipePageProps) 
   const images = getRecipeImages(recipe);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-100 via-stone-100 to-amber-200 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* 뒤로가기 버튼 */}
-      <div className="flex justify-start mb-6">
-        <Link
-          href={`/royal-recipes/${era}`}
-          className="inline-flex items-center px-6 py-3 bg-amber-800 text-white rounded-lg hover:bg-amber-900 transition-colors font-medium shadow-md"
-        >
-          ← {era === 'sanguk' ? '삼국시대' : era === 'goryeo' ? '고려시대' : '조선시대'} 레시피 목록으로
-        </Link>
-      </div>
+    <DirectionalEntrance direction="up" delay={0.3}>
+      <div className="min-h-screen bg-gradient-to-br from-amber-100 via-stone-100 to-amber-200 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* 뒤로가기 버튼 */}
+          <MotionWrapper>
+            <div className="flex justify-start mb-6">
+              <motion.div
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 17,
+                }}
+              >
+                <Link
+                  href={`/royal-recipes/${era}`}
+                  className="inline-flex items-center px-6 py-3 bg-amber-800 text-white rounded-lg hover:bg-amber-900 transition-colors font-medium shadow-md"
+                >
+                  ← {era === 'sanguk' ? '삼국시대' : era === 'goryeo' ? '고려시대' : '조선시대'} 레시피 목록으로
+                </Link>
+              </motion.div>
+            </div>
+          </MotionWrapper>
 
         {/* 메인 콘텐츠 */}
         <article className="bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200">
@@ -140,17 +156,30 @@ export default async function RoyalRecipePage({ params }: RoyalRecipePageProps) 
           )}
         </article>
 
-        {/* 하단 네비게이션 */}
-        <div className="flex justify-center mt-8">
-          <Link
-            href={`/royal-recipes/${era}`}
-            className="inline-flex items-center px-8 py-4 bg-amber-800 text-white rounded-lg hover:bg-amber-900 transition-colors font-medium shadow-lg text-lg"
-          >
-            다른 레시피 보기
-          </Link>
+          {/* 하단 네비게이션 */}
+          <MotionWrapper>
+            <div className="flex justify-center mt-8">
+              <motion.div
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 17,
+                }}
+              >
+                <Link
+                  href={`/royal-recipes/${era}`}
+                  className="inline-flex items-center px-8 py-4 bg-amber-800 text-white rounded-lg hover:bg-amber-900 transition-colors font-medium shadow-lg text-lg"
+                >
+                  다른 레시피 보기
+                </Link>
+              </motion.div>
+            </div>
+          </MotionWrapper>
         </div>
       </div>
-    </div>
+    </DirectionalEntrance>
   );
 }
 

@@ -393,7 +393,7 @@ async function getHealthAlerts(userId: string): Promise<HealthAlert[]> {
   // 독감 경보 (KCDC API 데이터)
   const { data: fluAlerts } = await supabase
     .from("kcdc_alerts")
-    .select("id, severity, region, flu_week")
+    .select("id, alert_level, region, week")
     .eq("alert_type", "flu")
     .eq("is_active", true)
     .order("created_at", { ascending: false })
@@ -404,9 +404,9 @@ async function getHealthAlerts(userId: string): Promise<HealthAlert[]> {
     alerts.push({
       id: `flu-${alert.id}`,
       type: "flu_alert",
-      priority: alert.severity === "high" ? "high" : "medium",
+      priority: alert.alert_level === "high" ? "high" : "medium",
       title: "독감 유행 경보",
-      description: `${alert.region} 지역 ${alert.flu_week || 'N/A'}주 독감 유행 단계`,
+      description: `${alert.region} 지역 ${alert.week}주 독감 유행 단계`,
       dueDate: null,
       familyMemberId: null,
       familyMemberName: null,

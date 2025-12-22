@@ -359,7 +359,7 @@ export function BabyRecipeList() {
   }, [searchQuery, selectedStage, selectedAge]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-8">
       {/* 검색 및 필터 */}
       <div className="space-y-4">
         {/* 검색바 */}
@@ -375,7 +375,7 @@ export function BabyRecipeList() {
         </div>
 
         {/* 필터 */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mb-4 pb-3 border-b">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-gray-500" />
             <span className="text-sm font-medium text-gray-700">단계:</span>
@@ -384,27 +384,38 @@ export function BabyRecipeList() {
             variant={selectedStage === "all" ? "default" : "outline"}
             size="sm"
             onClick={() => setSelectedStage("all")}
+            className={selectedStage === "all" ? "bg-orange-600 hover:bg-orange-700 text-white" : ""}
           >
             전체
           </Button>
-          {Object.entries(stageLabels).map(([stage, label]) => (
-            <Button
-              key={stage}
-              variant={selectedStage === stage ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedStage(stage as BabyRecipe["stage"])}
-            >
-              {label}
-            </Button>
-          ))}
+          {Object.entries(stageLabels).map(([stage, label]) => {
+            const isSelected = selectedStage === stage;
+            return (
+              <Button
+                key={stage}
+                variant={isSelected ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedStage(stage as BabyRecipe["stage"])}
+                className={isSelected ? `${stageColors[stage as BabyRecipe["stage"]]} border-2` : ""}
+                style={{ 
+                  zIndex: isSelected ? 10 : 1,
+                  position: 'relative',
+                  pointerEvents: 'auto',
+                }}
+              >
+                {label}
+              </Button>
+            );
+          })}
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mb-6 pb-4 border-b">
           <span className="text-sm font-medium text-gray-700">월령:</span>
           <Button
             variant={selectedAge === "all" ? "default" : "outline"}
             size="sm"
             onClick={() => setSelectedAge("all")}
+            className={selectedAge === "all" ? "bg-orange-600 hover:bg-orange-700 text-white" : ""}
           >
             전체
           </Button>
@@ -412,6 +423,12 @@ export function BabyRecipeList() {
             variant={selectedAge === 4 ? "default" : "outline"}
             size="sm"
             onClick={() => setSelectedAge(4)}
+            className={selectedAge === 4 ? "bg-pink-600 hover:bg-pink-700 text-white" : ""}
+            style={{ 
+              zIndex: selectedAge === 4 ? 10 : 1,
+              position: 'relative',
+              pointerEvents: 'auto',
+            }}
           >
             4~6개월
           </Button>
@@ -419,6 +436,12 @@ export function BabyRecipeList() {
             variant={selectedAge === 7 ? "default" : "outline"}
             size="sm"
             onClick={() => setSelectedAge(7)}
+            className={selectedAge === 7 ? "bg-pink-600 hover:bg-pink-700 text-white" : ""}
+            style={{ 
+              zIndex: selectedAge === 7 ? 10 : 1,
+              position: 'relative',
+              pointerEvents: 'auto',
+            }}
           >
             7~8개월
           </Button>
@@ -426,6 +449,12 @@ export function BabyRecipeList() {
             variant={selectedAge === 9 ? "default" : "outline"}
             size="sm"
             onClick={() => setSelectedAge(9)}
+            className={selectedAge === 9 ? "bg-pink-600 hover:bg-pink-700 text-white" : ""}
+            style={{ 
+              zIndex: selectedAge === 9 ? 10 : 1,
+              position: 'relative',
+              pointerEvents: 'auto',
+            }}
           >
             9~11개월
           </Button>
@@ -433,6 +462,12 @@ export function BabyRecipeList() {
             variant={selectedAge === 12 ? "default" : "outline"}
             size="sm"
             onClick={() => setSelectedAge(12)}
+            className={selectedAge === 12 ? "bg-pink-600 hover:bg-pink-700 text-white" : ""}
+            style={{ 
+              zIndex: selectedAge === 12 ? 10 : 1,
+              position: 'relative',
+              pointerEvents: 'auto',
+            }}
           >
             12개월+
           </Button>

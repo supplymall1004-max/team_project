@@ -20,6 +20,7 @@ import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { ErrorFallback } from "@/components/error-fallback";
 import { SeasonBackground } from "@/components/season-background";
+import { PageTransitionWrapper } from "@/components/motion/page-transition-wrapper";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -67,10 +68,11 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/icons/maca2.JPG", sizes: "512x512", type: "image/jpeg" },
+      { url: "/icon.jpg", sizes: "512x512", type: "image/jpeg" },
       { url: "/icons/maca2.JPG", sizes: "192x192", type: "image/jpeg" },
     ],
-    apple: [{ url: "/icons/maca2.JPG", sizes: "512x512", type: "image/jpeg" }],
+    apple: [{ url: "/icon.jpg", sizes: "512x512", type: "image/jpeg" }],
+    shortcut: [{ url: "/favicon.ico", type: "image/x-icon" }],
   },
   appleWebApp: {
     capable: true,
@@ -211,7 +213,9 @@ export default function RootLayout({
                       paddingBottom: "80px", // 하단 네비게이션 공간 확보 (모바일)
                     }}
                   >
-                    {children}
+                    <PageTransitionWrapper>
+                      {children}
+                    </PageTransitionWrapper>
 
                     {/* Footer (회사소개) - 메인 콘텐츠 맨 아래에 위치, 고정하지 않음 */}
                     <Footer />

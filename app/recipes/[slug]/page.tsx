@@ -14,6 +14,7 @@ import { RecipeDetailClient } from "@/components/recipes/recipe-detail-client";
 import { getRecipeBySlug } from "@/lib/recipes/queries";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Suspense } from "react";
+import { DirectionalEntrance } from "@/components/motion/directional-entrance";
 
 export const metadata = {
   title: "레시피 상세 | 맛의 아카이브",
@@ -37,13 +38,15 @@ export default async function RecipeDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Section className="pt-8">
-        <Suspense fallback={<LoadingSpinner label="레시피를 불러오는 중..." />}>
-          <RecipeDetailClient recipe={recipe} />
-        </Suspense>
-      </Section>
-    </div>
+    <DirectionalEntrance direction="up" delay={0.3}>
+      <div className="min-h-screen bg-gray-50">
+        <Section className="pt-8">
+          <Suspense fallback={<LoadingSpinner label="레시피를 불러오는 중..." />}>
+            <RecipeDetailClient recipe={recipe} />
+          </Suspense>
+        </Section>
+      </div>
+    </DirectionalEntrance>
   );
 }
 
