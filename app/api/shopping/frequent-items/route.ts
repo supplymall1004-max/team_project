@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
+import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 
 interface FrequentItem {
   id: string;
@@ -37,26 +38,26 @@ export async function GET(request: NextRequest) {
 
     console.log("✅ 인증 완료:", clerkUserId);
 
-    // 2. 사용자 ID 조회
-    const supabase = getServiceRoleClient();
+    // 2. 사용자 ID 조회 (없으면 자동 동기화)
+    console.log("🔍 사용자 확인 및 동기화 시도...");
+    const userData = await ensureSupabaseUser();
 
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_id", clerkUserId)
-      .single();
-
-    if (userError || !userData) {
-      console.error("❌ 사용자 조회 실패:", userError);
+    if (!userData) {
+      console.error("❌ 사용자 동기화 실패");
       console.groupEnd();
       return NextResponse.json(
-        { error: "사용자 정보를 찾을 수 없습니다" },
-        { status: 404 }
+        { 
+          error: "사용자 정보를 동기화할 수 없습니다",
+          message: "Clerk 사용자 정보를 Supabase에 동기화하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+        },
+        { status: 500 }
       );
     }
 
-    console.log("✅ 사용자 조회 완료:", userData.id);
+    console.log("✅ 사용자 확인 완료:", userData.id);
     const userId = userData.id;
+    
+    const supabase = getServiceRoleClient();
 
     // 3. 최근 4주간의 주간 식단 조회
     const fourWeeksAgo = new Date();

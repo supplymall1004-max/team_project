@@ -69,12 +69,12 @@ function DietManagementContent() {
         </div>
 
         <Tabs defaultValue={initialTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
-            <TabsTrigger value="today">오늘의 식단</TabsTrigger>
-            <TabsTrigger value="weekly">주간 식단</TabsTrigger>
-            <TabsTrigger value="health-guide">건강 맞춤 가이드</TabsTrigger>
-            <TabsTrigger value="visualization">건강 시각화</TabsTrigger>
-            <TabsTrigger value="records">식단 기록</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 gap-2 mb-6">
+            <TabsTrigger value="today" className="text-xs sm:text-sm">오늘의 식단</TabsTrigger>
+            <TabsTrigger value="weekly" className="text-xs sm:text-sm">주간 식단</TabsTrigger>
+            <TabsTrigger value="health-guide" className="text-xs sm:text-sm">건강 맞춤 가이드</TabsTrigger>
+            <TabsTrigger value="visualization" className="text-xs sm:text-sm">건강 시각화</TabsTrigger>
+            <TabsTrigger value="records" className="text-xs sm:text-sm col-span-2">식단 기록</TabsTrigger>
           </TabsList>
 
           <TabsContent value="today" className="space-y-6">

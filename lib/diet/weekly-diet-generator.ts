@@ -265,8 +265,12 @@ export async function generateWeeklyDiet(
 
   // 4. 장보기 리스트 생성
   console.log("\n🛒 장보기 리스트 생성 중...");
+  console.log("📋 dailyPlans 키 개수:", Object.keys(dailyPlans).length);
   const shoppingList = await generateShoppingList(dailyPlans);
   console.log(`재료 ${shoppingList.length}개 집계 완료`);
+  if (shoppingList.length === 0) {
+    console.warn("⚠️ 장보기 리스트가 비어있습니다. 레시피 ID 추출에 문제가 있을 수 있습니다.");
+  }
 
   // 5. 주간 영양 통계 생성
   console.log("\n📊 주간 영양 통계 생성 중...");
@@ -552,7 +556,93 @@ async function generateShoppingList(dailyPlans: {
     }
   }
 
+  // ✅ 개선: recipe_id가 없어도 composition_summary에서 레시피 정보를 추출 시도
   if (recipeIds.size === 0) {
+    console.warn("⚠️ 주간 식단에서 recipe_id를 찾을 수 없습니다. composition_summary에서 레시피 제목으로 조회를 시도합니다.");
+    
+    // diet_plans 테이블에서 직접 레시피 제목으로 레시피 ID를 찾기
+    try {
+      const supabase = createPublicSupabaseServerClient();
+      const weekStartDate = Object.keys(dailyPlans)[0] ? new Date(Object.keys(dailyPlans)[0]) : null;
+      
+      if (weekStartDate) {
+        const weekEndDate = new Date(weekStartDate);
+        weekEndDate.setDate(weekStartDate.getDate() + 7);
+        
+        // 모든 dailyPlan에서 recipe_title 수집
+        const recipeTitles = new Set<string>();
+        for (const dailyPlan of Object.values(dailyPlans)) {
+          for (const mealType of meals) {
+            const meal = dailyPlan[mealType];
+            if (isMealComposition(meal)) {
+              if (meal.rice?.title) recipeTitles.add(meal.rice.title);
+              if (meal.sides?.length) {
+                meal.sides.forEach(side => {
+                  if (side?.title) recipeTitles.add(side.title);
+                });
+              }
+              if (meal.soup?.title) recipeTitles.add(meal.soup.title);
+            } else if (meal && typeof meal === 'object' && 'title' in meal) {
+              recipeTitles.add((meal as any).title);
+            }
+          }
+        }
+        
+        // 레시피 제목으로 레시피 ID 조회 (부분 일치도 시도)
+        if (recipeTitles.size > 0) {
+          const titleArray = Array.from(recipeTitles);
+          console.log(`🔍 레시피 제목으로 ID 조회 시도: ${titleArray.length}개 제목`);
+          
+          // 정확한 제목 매칭 시도
+          const { data: recipes } = await supabase
+            .from("recipes")
+            .select("id, title")
+            .in("title", titleArray);
+          
+          if (recipes && recipes.length > 0) {
+            recipes.forEach(recipe => {
+              if (recipe.id) recipeIds.add(recipe.id);
+            });
+            console.log(`✅ 정확한 제목 매칭으로 ${recipes.length}개 레시피 ID 찾음`);
+          }
+          
+          // 정확한 매칭이 부족한 경우, 제목에서 주요 키워드 추출하여 부분 일치 시도
+          if (recipeIds.size < titleArray.length * 0.5) {
+            console.log("🔍 부분 일치로 추가 레시피 ID 찾기 시도...");
+            for (const title of titleArray) {
+              // 제목에서 주요 키워드 추출 (예: "흰쌀밥 · 순두부 사과 소스" -> "흰쌀밥", "순두부")
+              const keywords = title
+                .split("·")
+                .map(k => k.trim())
+                .filter(k => k.length > 1)
+                .slice(0, 3); // 최대 3개 키워드만 사용
+              
+              for (const keyword of keywords) {
+                const { data: partialRecipes } = await supabase
+                  .from("recipes")
+                  .select("id, title")
+                  .ilike("title", `%${keyword}%`)
+                  .limit(5);
+                
+                if (partialRecipes) {
+                  partialRecipes.forEach(recipe => {
+                    if (recipe.id) recipeIds.add(recipe.id);
+                  });
+                }
+              }
+            }
+            console.log(`✅ 부분 일치 포함 총 ${recipeIds.size}개 레시피 ID 찾음`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("❌ 레시피 제목으로 ID 조회 실패:", error);
+    }
+  }
+
+  if (recipeIds.size === 0) {
+    console.warn("⚠️ 장보기 리스트를 생성할 수 없습니다: 레시피 ID를 찾을 수 없습니다.");
+    console.warn("💡 해결 방법: diet_plans에 recipe_id가 저장되도록 수정이 필요합니다.");
     return [];
   }
 
