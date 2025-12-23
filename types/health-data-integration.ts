@@ -6,7 +6,15 @@
 /**
  * 데이터 소스 유형
  */
-export type DataSourceType = "mydata" | "health_highway" | "manual";
+export type DataSourceType = 
+  | "mydata" 
+  | "health_highway" 
+  | "manual"
+  | "google_fit"
+  | "fitbit"
+  | "apple_health"
+  | "samsung_health"
+  | "bluetooth";
 
 /**
  * 연결 상태

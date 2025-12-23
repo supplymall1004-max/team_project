@@ -108,6 +108,7 @@ export async function getHealthMetrics(): Promise<HealthMetricsResult> {
       // 기본값으로 메트릭스 계산
       const healthMetrics = await calculateHealthMetrics(
         defaultHealthProfile as UserHealthProfile,
+        userData.id,
       );
 
       console.log("✅ 건강 메트릭스 계산 완료 (기본값)");
@@ -120,7 +121,7 @@ export async function getHealthMetrics(): Promise<HealthMetricsResult> {
     }
 
     // 건강 메트릭스 계산
-    const healthMetrics = await calculateHealthMetrics(healthProfile);
+    const healthMetrics = await calculateHealthMetrics(healthProfile, userData.id);
 
     console.log("✅ 건강 메트릭스 계산 완료");
     console.groupEnd();
@@ -142,6 +143,7 @@ export async function getHealthMetrics(): Promise<HealthMetricsResult> {
  */
 async function calculateHealthMetrics(
   profile: UserHealthProfile,
+  userId: string,
 ): Promise<HealthMetrics> {
   // 기본 건강 지표 계산 (null 값 처리)
   const bmi =
@@ -184,8 +186,8 @@ async function calculateHealthMetrics(
     );
   }
 
-  // 일일 활동량 (기본값, 실제로는 웨어러블 데이터 연동 가능)
-  const dailyActivity = getDefaultDailyActivity();
+  // 일일 활동량 (실제 데이터 조회)
+  const dailyActivity = await getDailyActivity(userId);
 
   // 전체 건강 점수 계산
   const overallHealthScore = calculateOverallHealthScore({
@@ -430,6 +432,53 @@ function calculateDiseaseRiskScores(
   });
 
   return scores;
+}
+
+/**
+ * 일일 활동량 조회 (실제 데이터 또는 기본값)
+ */
+async function getDailyActivity(userId: string): Promise<DailyActivity> {
+  try {
+    const supabase = await createClerkSupabaseClient();
+    const today = new Date().toISOString().split("T")[0];
+
+    // 오늘의 활동량 데이터 조회
+    const { data: activity, error } = await supabase
+      .from("activity_logs")
+      .select("steps, exercise_minutes, calories_burned")
+      .eq("user_id", userId)
+      .is("family_member_id", null)
+      .eq("date", today)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[getDailyActivity] 활동량 조회 실패:", error);
+      return getDefaultDailyActivity();
+    }
+
+    if (activity) {
+      // 운동 강도 계산
+      let exerciseIntensity: "low" | "moderate" | "high" = "low";
+      if (activity.exercise_minutes >= 60) {
+        exerciseIntensity = "high";
+      } else if (activity.exercise_minutes >= 30) {
+        exerciseIntensity = "moderate";
+      }
+
+      return {
+        steps: activity.steps || 0,
+        activeMinutes: activity.exercise_minutes || 0,
+        caloriesBurned: activity.calories_burned || 0,
+        exerciseIntensity,
+      };
+    }
+
+    // 데이터가 없으면 기본값 반환
+    return getDefaultDailyActivity();
+  } catch (error) {
+    console.error("[getDailyActivity] 오류:", error);
+    return getDefaultDailyActivity();
+  }
 }
 
 /**

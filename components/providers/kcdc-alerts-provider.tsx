@@ -8,7 +8,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { KcdcAlertPopup } from "@/components/health/kcdc-alert-popup";
 import type { KcdcAlert } from "@/types/kcdc";
@@ -114,7 +114,13 @@ export function KcdcAlertsProvider({ children }: { children: React.ReactNode }) 
   };
 
   // 알림 확인
-  const checkAlerts = async () => {
+  const checkAlerts = useCallback(async () => {
+    // 비로그인 사용자는 알림 확인하지 않음
+    if (!userId) {
+      console.log("🏥 [KCDC] 사용자 미로그인, 알림 확인 건너뜀");
+      return;
+    }
+
     try {
       console.group("🏥 KCDC 알림 확인");
 
@@ -198,10 +204,16 @@ export function KcdcAlertsProvider({ children }: { children: React.ReactNode }) 
       console.error("❌ 전체 에러 객체:", error);
       console.groupEnd();
     }
-  };
+  }, [userId]);
 
   // 컴포넌트 마운트 시 알림 확인
   useEffect(() => {
+    // 비로그인 사용자는 알림 확인하지 않음
+    if (!userId) {
+      console.log("🏥 [KCDC] 사용자 미로그인, 알림 확인 스케줄 건너뜀");
+      return;
+    }
+
     // 즉시 실행
     const timer = setTimeout(() => {
       checkAlerts();
@@ -216,7 +228,7 @@ export function KcdcAlertsProvider({ children }: { children: React.ReactNode }) 
       clearTimeout(timer);
       clearInterval(interval);
     };
-  }, [userId]);
+  }, [userId, checkAlerts]);
 
   // 사용자 설정이 변경되면 다시 확인
   useEffect(() => {

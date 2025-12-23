@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Search, Filter, SortAsc } from "lucide-react";
 import { RecipeListItem, RecipeFilterState } from "@/types/recipe";
 import { RecipeCard } from "./recipe-card";
@@ -24,6 +24,66 @@ export function RecipeListClient({ initialRecipes }: RecipeListClientProps) {
     maxCookingTime: null,
     sortBy: "newest",
   });
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  // 레시피 제목 기반 분류 함수 (foodsafety_rcp_pat2가 없을 때 사용)
+  const getCategoryFromTitle = useCallback((title: string): string => {
+    const lowerTitle = title.toLowerCase();
+    
+    // 밥류
+    if (lowerTitle.includes("밥") || lowerTitle.includes("rice")) {
+      return "밥류";
+    }
+    
+    // 국/탕류
+    if (lowerTitle.includes("국") || lowerTitle.includes("탕") || lowerTitle.includes("soup")) {
+      return "국/탕류";
+    }
+    
+    // 찌개류
+    if (lowerTitle.includes("찌개") || lowerTitle.includes("stew")) {
+      return "찌개류";
+    }
+    
+    // 반찬류
+    if (
+      lowerTitle.includes("나물") ||
+      lowerTitle.includes("무침") ||
+      lowerTitle.includes("볶음") ||
+      lowerTitle.includes("조림") ||
+      lowerTitle.includes("구이") ||
+      lowerTitle.includes("튀김") ||
+      lowerTitle.includes("전") ||
+      lowerTitle.includes("찐")
+    ) {
+      return "반찬류";
+    }
+    
+    // 디저트/간식류
+    if (
+      lowerTitle.includes("과자") ||
+      lowerTitle.includes("떡") ||
+      lowerTitle.includes("케이크") ||
+      lowerTitle.includes("디저트")
+    ) {
+      return "디저트/간식류";
+    }
+    
+    return "기타";
+  }, []);
+
+  // 사용 가능한 카테고리 목록 추출
+  const availableCategories = useMemo(() => {
+    const categories = new Set<string>();
+    recipes.forEach((recipe) => {
+      // foodsafety_rcp_pat2가 있으면 사용, 없으면 제목 기반 분류
+      const category = recipe.foodsafety_rcp_pat2?.trim() || getCategoryFromTitle(recipe.title);
+      if (category) {
+        categories.add(category);
+      }
+    });
+    return Array.from(categories).sort();
+  }, [recipes, getCategoryFromTitle]);
 
   // 필터링된 레시피 목록
   const filteredRecipes = useMemo(() => {
@@ -36,6 +96,14 @@ export function RecipeListClient({ initialRecipes }: RecipeListClientProps) {
         (recipe) =>
           recipe.title.toLowerCase().includes(searchLower)
       );
+    }
+
+    // 분류 필터
+    if (selectedCategory !== "all") {
+      result = result.filter((recipe) => {
+        const recipeCategory = recipe.foodsafety_rcp_pat2?.trim() || getCategoryFromTitle(recipe.title);
+        return recipeCategory === selectedCategory;
+      });
     }
 
     // 난이도 필터
@@ -71,7 +139,7 @@ export function RecipeListClient({ initialRecipes }: RecipeListClientProps) {
     }
 
     return result;
-  }, [recipes, filters]);
+  }, [recipes, filters, selectedCategory, getCategoryFromTitle]);
 
   const handleSearch = (term: string) => {
     console.groupCollapsed("[RecipeList] 검색어 입력");
@@ -105,6 +173,42 @@ export function RecipeListClient({ initialRecipes }: RecipeListClientProps) {
             />
           </div>
         </div>
+
+        {/* 분류 탭 - 항상 표시 */}
+        <div className="flex flex-wrap gap-2 pb-4 border-b">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">분류:</span>
+            </div>
+            <Button
+              variant={selectedCategory === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                console.log("[RecipeListClient] 전체 버튼 클릭");
+                setSelectedCategory("all");
+              }}
+              className={selectedCategory === "all" ? "bg-orange-600 hover:bg-orange-700 text-white" : ""}
+            >
+              전체
+            </Button>
+            {availableCategories.map((category) => {
+              const isSelected = selectedCategory === category;
+              return (
+                <Button
+                  key={category}
+                  variant={isSelected ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    console.log(`[RecipeListClient] ${category} 버튼 클릭`);
+                    setSelectedCategory(category);
+                  }}
+                  className={isSelected ? "bg-orange-600 hover:bg-orange-700 text-white" : ""}
+                >
+                  {category}
+                </Button>
+              );
+            })}
+          </div>
 
         {/* 필터 옵션 */}
         <div className="flex flex-wrap items-center gap-4">

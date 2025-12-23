@@ -47,6 +47,7 @@ export async function getRecipes(
         difficulty,
         cooking_time_minutes,
         created_at,
+        foodsafety_rcp_pat2,
         user:users!recipes_user_id_fkey(id, name),
         rating_stats:recipe_rating_stats(rating_count, average_rating)
         `
@@ -108,6 +109,7 @@ export async function getRecipes(
         difficulty: item.difficulty,
         cooking_time_minutes: item.cooking_time_minutes,
         created_at: item.created_at,
+        foodsafety_rcp_pat2: item.foodsafety_rcp_pat2 || null,
         rating_count:
           (item.rating_stats as any)?.[0]?.rating_count || 0,
         average_rating:

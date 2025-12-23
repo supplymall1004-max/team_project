@@ -7,9 +7,8 @@ import { notFound } from "next/navigation";
 import { Section } from "@/components/section";
 import { getRoyalRecipesByEra, getEraName, RecipeEra } from "@/lib/royal-recipes/queries";
 import { RoyalRecipe } from "@/lib/royal-recipes/parser";
-import Link from "next/link";
-import Image from "next/image";
 import { getRecipeImages } from "@/lib/royal-recipes/images";
+import { RoyalRecipeListClient } from "@/components/royal-recipes/royal-recipe-list-client";
 
 interface RoyalRecipesListPageProps {
   params: Promise<{ era: string }>;
@@ -73,56 +72,16 @@ export default async function RoyalRecipesListPage({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {recipes.map((recipe) => {
-              const images = getRecipeImages(recipe);
-              
-              return (
-                <Link
-                  key={recipe.id}
-                  href={`/royal-recipes/${era}/${recipe.id}`}
-                  className="group"
-                >
-                  <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-white shadow-sm transition-all hover:shadow-lg hover:-translate-y-1">
-                    {/* 썸네일 이미지 */}
-                    {images.palace ? (
-                      <div className="relative w-full aspect-video overflow-hidden">
-                        <Image
-                          src={images.palace}
-                          alt={recipe.title}
-                          fill
-                          className="object-cover transition-transform group-hover:scale-105"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          unoptimized
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-full aspect-video bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center">
-                        <span className="text-4xl">🍽️</span>
-                      </div>
-                    )}
-
-                    {/* 카드 내용 */}
-                    <div className="p-4">
-                      <div className="mb-2">
-                        <span className="text-xs font-semibold text-orange-600">
-                          {recipe.number}번째 레시피
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2" style={{ fontFamily: "'Noto Sans SC', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif" }}>
-                        {recipe.title}
-                      </h3>
-                      {recipe.content.characteristics && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {recipe.content.characteristics}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          <RoyalRecipeListClient 
+            recipes={recipes.map(({ rawContent, ...recipe }) => {
+              const images = getRecipeImages({ ...recipe, rawContent: "" } as RoyalRecipe);
+              return {
+                ...recipe,
+                images,
+              };
+            })} 
+            era={era as RecipeEra} 
+          />
         )}
       </Section>
     </div>

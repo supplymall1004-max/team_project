@@ -135,17 +135,23 @@ const Navbar = () => {
           className="flex items-center gap-3 shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
           onClick={(e) => {
             handleNavClick("홈");
-            // 현재 경로가 "/"인 경우 페이지를 새로고침하여 서버 컴포넌트를 다시 렌더링
+            console.log("[Navbar] 홈 링크 클릭", { pathname, timestamp: Date.now() });
+            
+            // 현재 경로가 "/"인 경우 강제로 네비게이션하여 페이지를 완전히 다시 로드
             if (pathname === "/") {
               e.preventDefault();
-              // 서버 컴포넌트를 다시 렌더링하고 스크롤을 맨 위로 이동
-              router.refresh();
-              // 약간의 딜레이 후 스크롤 (렌더링 완료 대기)
+              console.log("[Navbar] 현재 홈 페이지에서 홈으로 이동 - 강제 네비게이션");
+              // router.push와 router.refresh를 함께 사용하여 확실하게 리로드
+              router.push("/");
+              // 약간의 딜레이 후 refresh와 스크롤 (렌더링 완료 대기)
               setTimeout(() => {
+                router.refresh();
                 window.scrollTo({ top: 0, behavior: "smooth" });
-              }, 100);
+              }, 50);
+            } else {
+              // 다른 경로에서 홈으로 이동하는 경우는 Link 컴포넌트가 자동으로 처리
+              console.log("[Navbar] 다른 경로에서 홈으로 이동");
             }
-            // 다른 경로에서 홈으로 이동하는 경우는 Link 컴포넌트가 자동으로 처리
           }}
           aria-label="Flavor Archive 홈으로 이동"
         >
@@ -232,6 +238,21 @@ const Navbar = () => {
                 {link.label}
               </Link>
             ))}
+            {/* 설정 메뉴 (로그인한 사용자만 표시) */}
+            <SignedIn>
+              <Link
+                href="/settings"
+                className={cn(
+                  "text-sm font-medium transition-colors",
+                  pathname === "/settings" || pathname?.startsWith("/settings/")
+                    ? "text-orange-600"
+                    : "text-gray-700 hover:text-orange-600",
+                )}
+                onClick={() => handleNavClick("설정")}
+              >
+                설정
+              </Link>
+            </SignedIn>
           </div>
 
           {/* 사용자 메뉴 (로그인/사진) */}

@@ -29,11 +29,13 @@ import {
   fetchVaccinationRecords as fetchHealthHighwayVaccinationRecords,
   type HealthHighwayToken,
 } from "./health-highway-client";
+import type { DataSourceType } from "@/types/health-data-integration";
 
 /**
- * 데이터 소스 유형
+ * 지원되는 데이터 소스 유형 (인증 URL 생성용)
+ * 현재는 mydata와 health_highway만 지원
  */
-export type DataSourceType = "mydata" | "health_highway" | "manual";
+export type SupportedDataSourceType = "mydata" | "health_highway";
 
 /**
  * 동기화 타입
@@ -72,7 +74,7 @@ export interface SyncParams {
 async function getDataSource(
   userId: string,
   dataSourceId?: string
-): Promise<{ id: string; source_type: DataSourceType; connection_metadata: any } | null> {
+): Promise<{ id: string; source_type: SupportedDataSourceType; connection_metadata: any } | null> {
   const supabase = getServiceRoleClient();
 
   let query = supabase
@@ -93,9 +95,14 @@ async function getDataSource(
     return null;
   }
 
+  // 지원되는 데이터 소스 타입만 반환
+  if (data.source_type !== "mydata" && data.source_type !== "health_highway") {
+    return null;
+  }
+
   return {
     id: data.id,
-    source_type: data.source_type as DataSourceType,
+    source_type: data.source_type as SupportedDataSourceType,
     connection_metadata: data.connection_metadata,
   };
 }
@@ -524,7 +531,7 @@ export async function syncHealthData(params: SyncParams): Promise<SyncResult> {
  */
 export async function generateConnectionUrl(
   userId: string,
-  sourceType: DataSourceType,
+  sourceType: SupportedDataSourceType,
   redirectUri: string
 ): Promise<string> {
   console.group("[HealthDataSyncService] 연결 URL 생성");

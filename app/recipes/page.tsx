@@ -6,23 +6,152 @@
  * 1. 레시피 목록 표시 (카드 그리드)
  * 2. 필터링 및 검색 기능
  * 3. 정렬 기능
+ * 4. 탭 네비게이션 (전체, 현대 레시피, 궁중, 식약처, 이유식, 죽, 특수, 비건)
  */
 
-import { Suspense } from "react";
-import { Section } from "@/components/section";
-import { RecipeListClient } from "@/components/recipes/recipe-list-client";
-import { getRecipes } from "@/lib/recipes/queries";
-import { LoadingSpinner } from "@/components/loading-spinner";
+import { Section } from '@/components/section';
+import { RecipeTabsClient } from '@/app/archive/recipes/recipe-tabs-client';
+import { RecipeSectionServer } from '@/app/archive/recipes/recipe-section-server';
+import { RoyalRecipesQuickAccess } from '@/components/royal-recipes/royal-recipes-quick-access';
+import { MfdsRecipeSection } from '@/components/home/mfds-recipe-section';
+import { BabyRecipeNotice } from '@/components/baby-recipes/baby-recipe-notice';
+import { BabyRecipeList } from '@/components/baby-recipes/baby-recipe-list';
+import { GruelRecipeList } from '@/components/gruel-recipes/gruel-recipe-list';
+import { SpecialRecipeList } from '@/components/special-recipes/special-recipe-list';
+import { VeganRecipeList } from '@/components/vegan-recipes/vegan-recipe-list';
+import { Suspense } from 'react';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { LoadingSpinner } from '@/components/loading-spinner';
+
+function SectionSkeleton() {
+  return (
+    <div className="py-12 text-center">
+      <LoadingSpinner />
+    </div>
+  );
+}
+
+// Server Component로 각 탭 콘텐츠를 직접 렌더링
+function AllTabContent() {
+  return (
+    <div className="space-y-8">
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <RecipeSectionServer />
+        </Suspense>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <RoyalRecipesQuickAccess id="royal-recipes" />
+        </Suspense>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <MfdsRecipeSection />
+        </Suspense>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <div className="space-y-6">
+          <BabyRecipeNotice />
+          <BabyRecipeList />
+        </div>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <div className="space-y-6">
+          <GruelRecipeList />
+        </div>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <div className="space-y-6">
+          <SpecialRecipeList />
+        </div>
+      </ErrorBoundary>
+      <ErrorBoundary>
+        <div className="space-y-6">
+          <VeganRecipeList />
+        </div>
+      </ErrorBoundary>
+    </div>
+  );
+}
+
+function ModernTabContent() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<SectionSkeleton />}>
+        <RecipeSectionServer />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function RoyalTabContent() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<SectionSkeleton />}>
+        <RoyalRecipesQuickAccess id="royal-recipes" />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function MfdsTabContent() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<SectionSkeleton />}>
+        <MfdsRecipeSection />
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function BabyTabContent() {
+  return (
+    <ErrorBoundary>
+      <div className="space-y-6">
+        <BabyRecipeNotice />
+        <BabyRecipeList />
+      </div>
+    </ErrorBoundary>
+  );
+}
+
+function GruelTabContent() {
+  return (
+    <ErrorBoundary>
+      <div className="space-y-6">
+        <GruelRecipeList />
+      </div>
+    </ErrorBoundary>
+  );
+}
+
+function SpecialTabContent() {
+  return (
+    <ErrorBoundary>
+      <div className="space-y-6">
+        <SpecialRecipeList />
+      </div>
+    </ErrorBoundary>
+  );
+}
+
+function VeganTabContent() {
+  return (
+    <ErrorBoundary>
+      <div className="space-y-6">
+        <VeganRecipeList />
+      </div>
+    </ErrorBoundary>
+  );
+}
 
 export const metadata = {
   title: "레시피 아카이브 | 맛의 아카이브",
   description: "다양한 레시피를 검색하고 탐색해보세요",
 };
 
-export default async function RecipesPage() {
-  // 초기 레시피 목록 조회 (필터 없음)
-  const initialRecipes = await getRecipes();
-
+export default function RecipesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Section className="pt-8">
@@ -33,9 +162,16 @@ export default async function RecipesPage() {
           </p>
         </div>
 
-        <Suspense fallback={<LoadingSpinner label="레시피를 불러오는 중..." />}>
-          <RecipeListClient initialRecipes={initialRecipes} />
-        </Suspense>
+        <RecipeTabsClient
+          allContent={<AllTabContent />}
+          modernContent={<ModernTabContent />}
+          royalContent={<RoyalTabContent />}
+          mfdsContent={<MfdsTabContent />}
+          babyContent={<BabyTabContent />}
+          gruelContent={<GruelTabContent />}
+          specialContent={<SpecialTabContent />}
+          veganContent={<VeganTabContent />}
+        />
       </Section>
     </div>
   );

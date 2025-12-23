@@ -12,6 +12,11 @@ import { generateConnectionUrl } from "@/lib/health/health-data-sync-service";
 import type { DataSourceType } from "@/types/health-data-integration";
 
 /**
+ * 지원되는 데이터 소스 유형 (인증 URL 생성용)
+ */
+type SupportedDataSourceType = "mydata" | "health_highway";
+
+/**
  * POST /api/health/data-sources/auth-url
  * 데이터 소스 연결 인증 URL 생성
  */
@@ -96,10 +101,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. 인증 URL 생성
+    // 5. 지원되는 데이터 소스 타입 확인
+    if (source_type !== "mydata" && source_type !== "health_highway") {
+      return NextResponse.json(
+        {
+          error: "Validation error",
+          message: "지원하지 않는 데이터 소스 유형입니다. 'mydata' 또는 'health_highway'만 지원됩니다.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 6. 인증 URL 생성
     const authUrl = await generateConnectionUrl(
       premiumCheck.userId,
-      source_type as DataSourceType,
+      source_type as SupportedDataSourceType,
       redirect_uri || `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/health/data-sources/callback`
     );
 

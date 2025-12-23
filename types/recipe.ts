@@ -122,6 +122,7 @@ export interface RecipeListItem {
   rating_count: number;
   average_rating: number;
   created_at?: string; // 정렬을 위해 추가
+  foodsafety_rcp_pat2?: string | null; // 요리종류 (분류 탭용)
   user: {
     name: string;
   };

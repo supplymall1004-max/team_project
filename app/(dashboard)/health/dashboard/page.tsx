@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { HealthDashboard } from "@/components/health/dashboard/HealthDashboard";
+import { IntegratedHealthDashboard } from "@/components/health/visualization/IntegratedHealthDashboard";
 import { FamilyHealthOverview } from "@/components/health/family-health-overview";
 import { VaccinationLifecycleCalendar } from "@/components/health/vaccination-lifecycle-calendar";
 import { VaccinationNotificationSettings } from "@/components/health/vaccination-notification-settings";
@@ -56,7 +57,7 @@ async function DashboardContent() {
           <Button variant="outline" asChild>
             <Link href="/health/profile">
               <Settings className="w-4 h-4 mr-2" />
-              건강 프로필
+              건강 프로필 관리
             </Link>
           </Button>
 
@@ -70,9 +71,9 @@ async function DashboardContent() {
           )}
 
           <Button asChild>
-            <Link href="/health/profile">
+            <Link href="/health/profile?tab=data-entry">
               <Plus className="w-4 h-4 mr-2" />
-              건강 정보 추가
+              건강 데이터 입력
             </Link>
           </Button>
         </div>
@@ -139,13 +140,22 @@ async function DashboardContent() {
       </div>
 
       {/* 메인 대시보드 탭 */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="visualization" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="visualization">건강 시각화</TabsTrigger>
           <TabsTrigger value="overview">건강 개요</TabsTrigger>
           <TabsTrigger value="family">가족 건강</TabsTrigger>
           <TabsTrigger value="vaccinations">예방주사</TabsTrigger>
           <TabsTrigger value="settings">알림 설정</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="visualization" className="space-y-4">
+          <Suspense fallback={<LoadingSpinner />}>
+            <div className="bg-white rounded-lg p-6">
+              <IntegratedHealthDashboard />
+            </div>
+          </Suspense>
+        </TabsContent>
 
         <TabsContent value="overview" className="space-y-4">
           <Suspense fallback={<LoadingSpinner />}>
@@ -189,7 +199,7 @@ async function DashboardContent() {
               병원 방문, 약물 복용, 건강검진 결과를 직접 입력하세요.
             </p>
             <Button size="sm" asChild>
-              <Link href="/health/profile">기록 추가하기</Link>
+              <Link href="/health/log">기록 추가하기</Link>
             </Button>
           </CardContent>
         </Card>

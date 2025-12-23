@@ -20,6 +20,7 @@
  * - 바로가기 메뉴, 하단 네비게이션 등 주요 UI 요소 적용
  */
 
+import { Suspense } from "react";
 import { HomeLanding } from "@/components/home/home-landing";
 import { FixedHeader } from "@/components/home/fixed-header";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -31,6 +32,21 @@ import { ParallaxSection } from "@/components/motion/parallax-section";
 
 // 동적 렌더링 강제 (MFDS API 등 외부 API 사용으로 인해)
 export const dynamic = 'force-dynamic';
+
+// 홈 페이지 로딩 스켈레톤
+function HomeLoadingSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="px-4 pt-2 flex flex-col sm:flex-row gap-4">
+        <div className="flex-1 h-24 bg-gray-200 rounded-lg" />
+        <div className="flex-1 h-24 bg-gray-200 rounded-lg" />
+      </div>
+      <div className="px-4">
+        <div className="h-96 bg-gray-200 rounded-lg" />
+      </div>
+    </div>
+  );
+}
 
 export default async function Home() {
   return (
@@ -67,7 +83,11 @@ export default async function Home() {
       {/* 히어로 섹션 (아래에서 진입 + 패럴랙스 효과) */}
       <ParallaxSection speed={0.3} scaleRange={[0.98, 1]}>
         <DirectionalEntrance direction="up" delay={1.2}>
-          <HomeLanding />
+          <ErrorBoundary>
+            <Suspense fallback={<HomeLoadingSkeleton />}>
+              <HomeLanding />
+            </Suspense>
+          </ErrorBoundary>
         </DirectionalEntrance>
       </ParallaxSection>
 

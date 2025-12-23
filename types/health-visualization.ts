@@ -202,6 +202,97 @@ export interface HealthInsight {
   priority: 'high' | 'medium' | 'low';
 }
 
+// 수면 데이터
+export interface SleepData {
+  id: string;
+  user_id: string;
+  family_member_id: string | null;
+  date: string;
+  sleep_duration_minutes: number | null;
+  sleep_quality_score: number | null; // 1-10
+  deep_sleep_minutes: number | null;
+  light_sleep_minutes: number | null;
+  rem_sleep_minutes: number | null;
+  bedtime: string | null;
+  wake_time: string | null;
+  source: 'manual' | 'fitbit' | 'apple_health' | 'samsung_health';
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// 활동량 데이터
+export interface ActivityData {
+  id: string;
+  user_id: string;
+  family_member_id: string | null;
+  date: string;
+  steps: number;
+  exercise_minutes: number;
+  calories_burned: number;
+  activity_type: string | null;
+  source: 'manual' | 'google_fit' | 'apple_health' | 'samsung_health';
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// 혈압/혈당 데이터
+export interface VitalSigns {
+  id: string;
+  user_id: string;
+  family_member_id: string | null;
+  measured_at: string;
+  systolic_bp: number | null; // 수축기 혈압 (mmHg)
+  diastolic_bp: number | null; // 이완기 혈압 (mmHg)
+  fasting_glucose: number | null; // 공복 혈당 (mg/dL)
+  postprandial_glucose: number | null; // 식후 혈당 (mg/dL)
+  heart_rate: number | null; // 심박수 (bpm)
+  source: 'manual' | 'health_checkup' | 'health_highway' | 'mydata';
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// 체중 기록
+export interface WeightLog {
+  id: string;
+  user_id: string;
+  family_member_id: string | null;
+  date: string;
+  weight_kg: number;
+  body_fat_percentage: number | null;
+  muscle_mass_kg: number | null;
+  source: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// 통합 건강 대시보드 데이터
+export interface IntegratedHealthDashboard {
+  summary: {
+    healthScore: number;
+    bmi: number;
+    dailySteps: number;
+    sleepHours: number;
+  };
+  healthIndicators: HealthMetrics;
+  lifestylePatterns: {
+    activity: ActivityData[];
+    sleep: SleepData[];
+  };
+  healthMonitoring: {
+    vitalSigns: VitalSigns[];
+    weightTrend: WeightLog[];
+  };
+  healthTrends: {
+    healthScoreTrend: { date: string; score: number }[];
+    nutritionTrend: { date: string; nutrition: NutritionBalance }[];
+  };
+  insights: HealthInsight[];
+}
+
 // 기존 타입들과의 호환성
 import { NutritionInfo } from './health';
 import { Ingredient } from './recipe';
