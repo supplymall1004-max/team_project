@@ -13,7 +13,7 @@
 | **제품명**               | 맛의 아카이브 (Flavor Archive)                                                                                                                                       |
 | **슬로건**               | 잊혀진 손맛을 연결하는 디지털 식탁                                                                                                                                   |
 | **버전**                 | V1.0 (MVP)                                                                                                                                                           |
-| **작성일**               | 2025년 1월 (최종 업데이트: 2025-01-27)                                                                                                                               |
+| **작성일**               | 2025년 1월 (최종 업데이트: 2025-01-28)                                                                                                                               |
 | **제품 비전**            | 시대와 세대를 아울러 모든 요리 지식을 통합하고 보존하며, 데이터 기반의 건강한 식생활을 제안하고 요리 창작자의 상업적 활동을 지원하는 세계 최고의 요리 전문 아카이브. |
 | **핵심 목표 (MVP 기준)** | 레거시 콘텐츠 뷰어 및 현대 레시피 검색 기능 안정화 및 초기 사용자 5,000명 확보.                                                                                      |
 
@@ -96,7 +96,11 @@
 | **C-36**  | 질병 관리 API                     | 질병 목록 조회, 질병 상세 정보, 제외 음식 목록 조회 API.                                                   | `GET /api/health/diseases`                                                                            |
 | **C-37**  | 알레르기 관리 API                 | 알레르기 목록 조회, 파생 재료 조회 API.                                                                    | `GET /api/health/allergies`, `GET /api/health/allergies/[code]/derived`                               |
 | **C-38**  | 칼로리 계산 API                   | 다중 공식 지원 칼로리 계산 API (공식 설명 포함).                                                           | `POST /api/health/calculate-calories`                                                                 |
-| **C-39**  | 응급조치 정보 API                 | 알레르기별 응급조치 정보 조회 API.                                                                         | `GET /api/health/emergency/[allergyCode]` (구현 확인 필요)                                            |
+| **C-39**  | 응급조치 정보 API                 | 알레르기별 응급조치 정보 조회 API.                                                                         | `GET /api/health/emergency/[allergyCode]`                                                             |
+| **C-42**  | 가족 구성원 예방접종 안내 팝업   | 가족 구성원 중 예방접종을 맞아야 할 나이가 있는 경우 자동으로 팝업 안내. 나이별 맞춤 예방접종 목록 제공.   | `components/health/vaccination-family-alert.tsx`, `app/api/health/vaccinations/family-recommendations` |
+| **C-43**  | 의료기관/약국 찾기 (지도 연동)   | 네이버 지도 기반 의료기관/약국 검색, 위치 권한 기반 근거리 검색, 카테고리별 필터링.                        | `app/(dashboard)/health/emergency/medical-facilities/*`, `app/api/health/medical-facilities/*`         |
+| **C-44**  | 건강정보 자동 연동                | 마이데이터/건강정보고속도로 연동, 병원/약물/질병/검진 기록 자동 동기화, 수동 동기화 버튼, 동기화 로그 조회. | `app/health/data-sources/*`, `lib/health/health-data-sync-service.ts`, `app/api/health/sync/*`         |
+| **C-45**  | 신원확인 기능                     | 본인 및 가족 구성원 신원확인(이름/주민등록번호 해시 저장), 건강정보 연동 선행 조건.                        | `app/api/identity/verifications/route.ts`, `components/health/family-member-identity-verification.tsx` |
 
 > **비고:** GI 지수 필터, 영양 리포트, 일일 알림 팝업, 어린이 성장기 식단 등은 현재 제품 범위에서 제외되어 본 문서에서도 제거했습니다. 필요 시 별도 백로그 문서로 관리합니다.
 
@@ -130,6 +134,7 @@
 | **D-4** | 정산 내역 관리       | 결제 내역 및 정산 통계를 조회하고 관리할 수 있습니다. 카드/현금/프로모션 코드별 결제 내역 필터링 및 통계 제공.                                   | `app/admin/settlements`, `components/admin/settlements/*`, `actions/admin/settlements/*`                |
 | **D-5** | 밀키트 관리          | 밀키트 제품을 수동으로 등록하고 관리할 수 있습니다. 쿠팡 파트너스 API 연동(시뮬레이션) 및 제품 정보 CRUD 기능 제공.                              | `app/admin/meal-kits`, `components/admin/meal-kits/*`, `actions/admin/meal-kits/*`                      |
 | **D-6** | 레시피 관리          | 사용자가 업로드한 레시피를 관리하고, 일괄 삭제, 시드 데이터 생성 등의 기능을 제공합니다.                                                         | `app/admin/recipes`, `components/admin/recipes/*`, `actions/admin/recipes/*`                            |
+| **D-7** | 동의 기록 관리       | 개인정보 처리 동의 내역 조회, 필터링, 내보내기 기능. 동의 유형별(신원확인, 건강정보 수집, 데이터 동기화) 관리 및 감사 로그.                        | `app/admin/consent/*`, `app/api/admin/consent-records/*`, `components/admin/consent/*`                  |
 
 #### 3.7. 🎨 홈페이지 UI/UX 개선 (배달의민족 앱 참고)
 
@@ -186,9 +191,11 @@
 | **가족 맞춤 기능**            | C-6, C-6.1, C-7, C-7.1, C-8                                                                                            |
 | **프리미엄 식단 고급 기능**   | C-9, C-10, C-11, C-12, C-13, C-14, C-15, C-16, C-17, C-18                                                              |
 | **건강정보 관리 시스템**      | C-19, C-20, C-21, C-22, C-23, C-25, C-26, C-27, C-28, C-29, C-30, C-31, C-32, C-33, C-34, C-35, C-36, C-37, C-38, C-39 |
+| **예방접종 및 응급조치**      | C-40, C-41, C-42, C-43                                                                                                 |
+| **건강정보 자동 연동**        | C-44, C-45                                                                                                             |
 | **결제 및 프리미엄 시스템**   | F-1, F-2, F-3, F-4, F-5                                                                                                |
 | **궁중 레시피 아카이브**      | G-1, G-2, G-3                                                                                                          |
-| **관리자 페이지**             | D-1, D-2, D-3, D-4, D-5, D-6                                                                                           |
+| **관리자 페이지**             | D-1, D-2, D-3, D-4, D-5, D-6, D-7                                                                                      |
 | **홈페이지 UI/UX 개선**       | E-1, E-2, E-3, E-4, E-5, E-6, E-7, E-8                                                                                 |
 
 #### 6.2. 후속 고려 대상
@@ -1201,13 +1208,14 @@
 
 ---
 
-### 10. 첨부: 레포 기준 PRD 보강(자동 대조 결과, 2025-12-17)
+### 10. 첨부: 레포 기준 PRD 보강(자동 대조 결과, 2025-01-28)
 
-아래 항목들은 **레포에는 존재하지만, 현재 PRD 본문(기능 표/로드맵)에 명시가 없거나 부족한 내용**입니다. (근거는 실제 파일 경로로 첨부)
+아래 항목들은 **레포에는 존재하지만, 이전 PRD 본문(기능 표/로드맵)에 명시가 없거나 부족했던 내용**입니다. 현재는 **C-42, C-43, C-44, C-45, D-7**로 본문에 반영되었습니다. (근거는 실제 파일 경로로 첨부)
 
-#### 10.1. 🚑 응급조치 확장: 의료기관/약국 찾기 + 지도(네이버) + 위치 권한
+#### 10.1. 🚑 응급조치 확장: 의료기관/약국 찾기 + 지도(네이버) + 위치 권한 ✅ 반영 완료
 
-- **요약**: PRD의 C-18(응급 조치/안전 경고) 범위를 넘어, 실제로는 “근처 의료기관/약국 검색 + 지도 표시 + 위치 권한 UX”까지 구현/구성되어 있습니다.
+- **상태**: **C-43**로 본문에 반영 완료
+- **요약**: PRD의 C-18(응급 조치/안전 경고) 범위를 넘어, 실제로는 "근처 의료기관/약국 검색 + 지도 표시 + 위치 권한 UX"까지 구현/구성되어 있습니다.
 - **근거(레포 경로)**:
   - 응급조치 하위 의료기관 페이지: `app/(dashboard)/health/emergency/medical-facilities/page.tsx`, `app/(dashboard)/health/emergency/medical-facilities/[category]/page.tsx`
   - 의료기관 검색 API: `app/api/health/medical-facilities/search/route.ts`, `app/api/health/medical-facilities/geocode/route.ts`, `app/api/health/geocode/reverse/route.ts`
@@ -1215,17 +1223,16 @@
   - 지도/필터/카드 UI: `components/health/medical-facilities/*`
   - 네이버 API/지도 연동: `lib/naver/*`, `types/naver.d.ts`, `components/home/naver-map.tsx`
   - 위치 권한/설정 UX: `components/location/LocationPermissionToggle.tsx`, `hooks/use-location-preference.ts`, `components/settings/LocationSettingsCard.tsx`
-- **PRD 반영 제안(문서 보강용)**:
-  - C-18 하위 항목으로 “의료기관/약국 찾기(지도/위치 권한 포함)”를 추가하고, 비기능 요구사항(권한 거부/정확도/개인정보)도 함께 명시하는 것이 좋습니다.
 
-#### 10.2. 🏥 건강정보 ‘자동 연동(마이데이터/건강정보고속도로)’은 PRD에 누락(문서/코드/타입은 존재)
+#### 10.2. 🏥 건강정보 '자동 연동(마이데이터/건강정보고속도로)' ✅ 반영 완료
 
-- **요약**: `docs/TODO.md`에는 크게 잡혀 있으나, PRD의 기능/로드맵에는 “건강정보 자동 연동”이 독립 기능으로 정리되어 있지 않습니다.
+- **상태**: **C-44**로 본문에 반영 완료
+- **요약**: `docs/TODO.md`에는 크게 잡혀 있으나, PRD의 기능/로드맵에는 "건강정보 자동 연동"이 독립 기능으로 정리되어 있지 않았습니다.
 - **근거(레포 경로)**:
   - 연결/설정 UI: `app/health/data-sources/page.tsx`, `app/health/data-sources/connect/page.tsx`
   - 타입/가이드: `types/health-data-integration.ts`, `docs/health-data-integration-guide.md`, `docs/health-api-keys-guide.md`
-- **PRD 반영 제안(문서 보강용)**:
-  - Future Enhancements(4장) 또는 로드맵(6장)에 “건강정보 자동 연동(데이터 소스 연결/동기화/로그/동의)”을 별도 트랙으로 추가하는 것이 좋습니다.
+  - 동기화 서비스: `lib/health/health-data-sync-service.ts`, `app/api/health/sync/*`
+  - 병원/약물/질병/검진 기록 동기화: `lib/health/hospital-records-sync.ts`, `lib/health/medication-records-sync.ts`, `lib/health/disease-records-sync.ts`, `lib/health/checkup-results-sync.ts`
 
 #### 10.3. 👶 Baby 레시피 아카이브(레포 존재, PRD 내 기능 정의는 없음)
 
@@ -1250,14 +1257,13 @@
   - TODO(구현 완료 현황)는 “매일 18:00에 **다음 날** 식단 생성”으로 서술되어 있습니다.
   - 운영/UX 관점(사용자가 언제 어떤 식단을 보게 되는지)을 기준으로 문서 문장을 통일하는 것을 권장합니다.
 
-#### 10.6. ✅ ‘동의(Consent) 기록’ 수집/관리(관리자/내보내기) 기능이 PRD에 누락
+#### 10.6. ✅ '동의(Consent) 기록' 수집/관리(관리자/내보내기) 기능 ✅ 반영 완료
 
-- **요약**: 개인정보/연동 동의(Consent) 관련 화면 및 API가 존재합니다. PRD의 “보안/법적 준수(5장/7장)”에는 원칙만 있고, 실제 구현 모듈(관리/내보내기)은 기능으로 정리되어 있지 않습니다.
+- **상태**: **D-7**로 본문에 반영 완료
+- **요약**: 개인정보/연동 동의(Consent) 관련 화면 및 API가 존재합니다. PRD의 "보안/법적 준수(5장/7장)"에는 원칙만 있고, 실제 구현 모듈(관리/내보내기)은 기능으로 정리되어 있지 않았습니다.
 - **근거(레포 경로)**:
   - 관리자 동의 관리 페이지: `app/admin/consent/page.tsx`, `app/admin/consent/consent-page-client.tsx`
   - 동의 기록 API: `app/api/admin/consent-records/route.ts`, `app/api/admin/consent-records/export/route.ts`
-- **PRD 반영 제안(문서 보강용)**:
-  - 관리자 페이지(D-\*) 하위 기능으로 “동의 기록 조회/내보내기(감사 목적)”를 추가하고, 보관 기간/내보내기 권한(관리자만) 같은 운영 기준을 함께 명시하는 것이 좋습니다.
 
 #### 10.7. 🍱 식약처(MFDS) 레시피/테스트 페이지 및 API가 PRD/TODO에 구체 기능으로는 누락
 
@@ -1300,15 +1306,15 @@
 - **PRD 반영 제안(문서 보강용)**:
   - PRD/TODO에서 `tc/`를 “실험/프로토타입 영역(배포 제외)”로 명시하거나, 반대로 제품에 포함할 계획이라면 포함 조건/배포 방식(별도 앱/서브앱)을 문서에 적어두는 것이 좋습니다.
 
-#### 10.12. 🪪 신원확인(본인/가족 구성원) + 동의 기록 연동(레포 존재, PRD 기능 정의 누락)
+#### 10.12. 🪪 신원확인(본인/가족 구성원) + 동의 기록 연동 ✅ 반영 완료
 
-- **요약**: 레포에는 “신원확인(이름/주민등록번호 입력 → 해시 저장 → 가족 구성원 검증 포함)” API가 존재하고, 동의 내역(`consent_records`) 저장과 연결되어 있습니다. 하지만 PRD에는 “신원확인 기능(본인/가족)”이 독립 기능으로 정리되어 있지 않습니다.
+- **상태**: **C-45**로 본문에 반영 완료
+- **요약**: 레포에는 "신원확인(이름/주민등록번호 입력 → 해시 저장 → 가족 구성원 검증 포함)" API가 존재하고, 동의 내역(`consent_records`) 저장과 연결되어 있습니다. 하지만 PRD에는 "신원확인 기능(본인/가족)"이 독립 기능으로 정리되어 있지 않았습니다.
 - **근거(레포 경로)**:
   - 신원확인 API: `app/api/identity/verifications/route.ts`
-  - (연동) 동의 기록 저장: `consent_records` (동의 관리/내보내기는 10.6 참고)
+  - (연동) 동의 기록 저장: `consent_records` (동의 관리/내보내기는 D-7 참고)
   - (연동) 데이터 소스 연결 시 신원확인 선행 체크: `app/api/health/data-sources/auth-url/route.ts` (`checkIdentityVerification()` 호출)
-- **PRD 반영 제안(문서 보강용)**:
-  - 보안/법적 준수(5장/7장) 하위 또는 건강 자동 연동 트랙에 “신원확인 선행 조건”을 명시하고, 어떤 화면/흐름에서 요구되는지(예: 데이터 소스 연결 전) 문서로 고정하는 것이 좋습니다.
+  - 가족 구성원 신원확인: `components/health/family-member-identity-verification.tsx`
 
 #### 10.13. 🔔 알림 설정(식단/건강)이 분리 구현되어 있어 문서에 구조 명시 필요
 

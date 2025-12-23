@@ -16,7 +16,9 @@
 
 import { useEffect, useState } from "react";
 import { Cloud, Droplets, Wind, Eye, RefreshCw, MapPin } from "lucide-react";
+import { motion, Variants } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { slideLeftScale, slowSpringTransition } from "@/lib/animations";
 
 interface WeatherData {
   location: string;
@@ -306,10 +308,47 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
     }
   };
 
+  // 날씨 위젯 애니메이션 variants (오른쪽에서 중앙으로)
+  const weatherVariants: Variants = {
+    initial: { opacity: 0, x: 100, scale: 0.8 },
+    animate: { 
+      opacity: 1, 
+      x: 0, 
+      scale: 1,
+      transition: {
+        ...slowSpringTransition,
+        delay: 0.6,
+      },
+    },
+  };
+
+  // 강조 효과 애니메이션 (빛나는 효과)
+  const glowVariants: Variants = {
+    initial: { 
+      boxShadow: '0 0 0px rgba(147, 51, 234, 0)',
+    },
+    animate: { 
+      boxShadow: [
+        '0 0 0px rgba(147, 51, 234, 0)',
+        '0 0 20px rgba(147, 51, 234, 0.6)',
+        '0 0 40px rgba(147, 51, 234, 0.4)',
+        '0 0 0px rgba(147, 51, 234, 0)',
+      ],
+      transition: {
+        duration: 1.5,
+        delay: 1.4,
+        ease: "easeInOut",
+      },
+    },
+  };
+
   // 로딩 상태
   if (loading) {
     return (
-      <div
+      <motion.div
+        variants={weatherVariants}
+        initial="initial"
+        animate="animate"
         className={cn(
           "py-2.5 px-4 bg-purple-50 border-2 border-purple-200 rounded-xl",
           className
@@ -326,7 +365,7 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -335,13 +374,13 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
     return (
       <div
         className={cn(
-          "py-2.5 px-4 bg-purple-50 border-2 border-purple-200 rounded-xl",
+          "py-2.5 px-4 bg-purple-50 border-2 border-purple-200 rounded-xl group",
           className
         )}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
+            <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
               <Cloud className="h-5 w-5 text-purple-600" />
             </div>
             <div>
@@ -356,7 +395,7 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
             className="rounded-md p-1 hover:bg-purple-200 transition-colors"
             aria-label="새로고침"
           >
-            <RefreshCw className="h-4 w-4 text-purple-600" />
+            <RefreshCw className="h-4 w-4 text-purple-400 group-hover:text-purple-600 transition-colors" />
           </button>
         </div>
       </div>
@@ -368,13 +407,13 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
     return (
       <div
         className={cn(
-          "py-2.5 px-4 bg-purple-50 border-2 border-purple-200 rounded-xl",
+          "py-2.5 px-4 bg-purple-50 border-2 border-purple-200 rounded-xl group",
           className
         )}
       >
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
+            <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
               <Cloud className="h-5 w-5 text-purple-600" />
             </div>
             <div>
@@ -387,7 +426,7 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
             className="rounded-md p-1 hover:bg-purple-200 transition-colors"
             aria-label="새로고침"
           >
-            <RefreshCw className="h-4 w-4 text-purple-600" />
+            <RefreshCw className="h-4 w-4 text-purple-400 group-hover:text-purple-600 transition-colors" />
           </button>
         </div>
       </div>
@@ -395,67 +434,58 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
   }
 
   return (
-    <div
-      className={cn(
-        "py-2.5 px-4 bg-purple-50 border-2 border-purple-200 rounded-xl hover:bg-purple-100 hover:border-purple-300 transition-all",
-        className
-      )}
+    <motion.div
+      variants={weatherVariants}
+      initial="initial"
+      animate="animate"
+      className={cn("rounded-xl", className)}
     >
-      {/* 날씨 정보 헤더 */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full">
-            {weather.icon && (
-              <img
-                src={getWeatherIconUrl(weather.icon)}
-                alt={weather.description}
-                className="h-6 w-6"
-              />
-            )}
-          </div>
-          <div>
-            <h3 className="font-bold text-purple-900 text-sm">날씨 정보</h3>
-            <p className="text-xs text-purple-700">{weather.location}</p>
-          </div>
-        </div>
-        <button
-          onClick={handleRefresh}
-          className="rounded-md p-1 hover:bg-purple-200 transition-colors"
-          aria-label="새로고침"
+      <motion.div
+        variants={glowVariants}
+        initial="initial"
+        animate="animate"
+        className="rounded-xl"
+      >
+        <div
+          className={cn(
+            "py-2.5 px-4 bg-purple-50 border-2 border-purple-200 rounded-xl hover:bg-purple-100 hover:border-purple-300 transition-all group relative overflow-hidden",
+            className
+          )}
         >
-          <RefreshCw className="h-4 w-4 text-purple-600" />
-        </button>
-      </div>
-
-      {/* 주요 날씨 정보 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-purple-900">{weather.temperature}°</span>
-              {weather.feelsLike && (
-                <span className="text-xs text-purple-700">
-                  체감 {weather.feelsLike}°
-                </span>
-              )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
+                {weather.icon ? (
+                  <img
+                    src={getWeatherIconUrl(weather.icon)}
+                    alt={weather.description}
+                    className="h-5 w-5"
+                  />
+                ) : (
+                  <Cloud className="h-5 w-5 text-purple-600" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-purple-900 text-sm">날씨 정보</h3>
+                <p className="text-xs text-purple-700">
+                  {weather.location} · {weather.temperature}° {weather.feelsLike && `(체감 ${weather.feelsLike}°)`}
+                </p>
+                <p className="text-xs text-purple-700 capitalize mt-0.5">
+                  {weather.description} · 습도 {weather.humidity}% · 풍속 {weather.windSpeed}km/h
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-purple-700 capitalize mt-0.5">
-              {weather.description}
-            </p>
+            <button
+              onClick={handleRefresh}
+              className="rounded-md p-1 hover:bg-purple-200 transition-colors"
+              aria-label="새로고침"
+            >
+              <RefreshCw className="h-4 w-4 text-purple-400 group-hover:text-purple-600 transition-colors" />
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-xs text-purple-700">
-          <div className="flex items-center gap-1">
-            <Droplets className="h-3.5 w-3.5" />
-            <span>{weather.humidity}%</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Wind className="h-3.5 w-3.5" />
-            <span>{weather.windSpeed}km/h</span>
-          </div>
-        </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

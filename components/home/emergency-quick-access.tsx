@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Siren, ChevronRight, MapPin, Apple, Sparkles } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { staggerContainer, staggerItem, springTransition } from '@/lib/animations';
+import { Siren, ChevronRight, MapPin, Apple, Sparkles, Syringe } from 'lucide-react';
+import { motion, Variants } from 'framer-motion';
+import { slideDownScale, slideRightScale, slideLeftScale, slideUpScale, slowSpringTransition } from '@/lib/animations';
 
 interface WeatherData {
   location: string;
@@ -128,123 +128,284 @@ export function EmergencyQuickAccess() {
     fetchWeather();
   }, []);
 
+    // 각 카드별 애니메이션 variants 정의
+    const emergencyVariants: Variants = {
+        initial: { opacity: 0, y: -100, scale: 0.8 },
+        animate: { 
+            opacity: 1, 
+            y: 0, 
+            scale: 1,
+            transition: {
+                ...slowSpringTransition,
+                delay: 0.1,
+            },
+        },
+    };
+
+    const vaccinationVariants: Variants = {
+        initial: { opacity: 0, x: -100, scale: 0.8 },
+        animate: { 
+            opacity: 1, 
+            x: 0, 
+            scale: 1,
+            transition: {
+                ...slowSpringTransition,
+                delay: 0.2,
+            },
+        },
+    };
+
+    const medicalFacilitiesVariants: Variants = {
+        initial: { opacity: 0, x: 100, scale: 0.8 },
+        animate: { 
+            opacity: 1, 
+            x: 0, 
+            scale: 1,
+            transition: {
+                ...slowSpringTransition,
+                delay: 0.3,
+            },
+        },
+    };
+
+    const dietVariants: Variants = {
+        initial: { opacity: 0, y: 100, scale: 0.8 },
+        animate: { 
+            opacity: 1, 
+            y: 0, 
+            scale: 1,
+            transition: {
+                ...slowSpringTransition,
+                delay: 0.4,
+            },
+        },
+    };
+
+    const recipeGenieVariants: Variants = {
+        initial: { opacity: 0, x: -100, scale: 0.8 },
+        animate: { 
+            opacity: 1, 
+            x: 0, 
+            scale: 1,
+            transition: {
+                ...slowSpringTransition,
+                delay: 0.5,
+            },
+        },
+    };
+
+    // 강조 효과 애니메이션 (빛나는 효과) - 각 카드 색상별
+    const createGlowVariants = (color: string, delay: number): Variants => ({
+        initial: { 
+            boxShadow: `0 0 0px ${color}00`,
+        },
+        animate: { 
+            boxShadow: [
+                `0 0 0px ${color}00`,
+                `0 0 20px ${color}99`,
+                `0 0 40px ${color}66`,
+                `0 0 0px ${color}00`,
+            ],
+            transition: {
+                duration: 1.5,
+                delay: delay,
+                ease: "easeInOut",
+            },
+        },
+    });
+
+    const emergencyGlow = createGlowVariants('rgba(239, 68, 68', 0.9); // red
+    const vaccinationGlow = createGlowVariants('rgba(14, 165, 233', 1.0); // sky
+    const medicalGlow = createGlowVariants('rgba(59, 130, 246', 1.1); // blue
+    const dietGlow = createGlowVariants('rgba(34, 197, 94', 1.2); // green
+    const recipeGenieGlow = createGlowVariants('rgba(234, 179, 8', 1.3); // yellow
+
     return (
-        <motion.div
-            className="py-2 space-y-2"
-            variants={staggerContainer}
-            initial="initial"
-            animate="animate"
-        >
-            {/* 응급조치 안내 */}
-            <motion.div variants={staggerItem}>
-                <Link
-                    href="/health/emergency"
-                    className="flex items-center justify-between py-2.5 px-4 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all group"
-                >
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full group-hover:bg-red-200 transition-colors">
-                        <Siren className="w-5 h-5 text-red-600 animate-pulse" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-red-900 text-sm">응급조치 안내</h3>
-                        <p className="text-xs text-red-700">알레르기 반응 시 즉시 대처하세요</p>
-                    </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors" />
-                </Link>
-            </motion.div>
-
-            {/* 주변 의료기관 찾기 */}
-            <motion.div variants={staggerItem}>
-                <Link
-                    href="/health/emergency/medical-facilities"
-                    className="flex items-center justify-between py-2.5 px-4 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 hover:border-blue-300 transition-all group"
-                >
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
-                        <MapPin className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-blue-900 text-sm">주변 의료기관 찾기</h3>
-                        <p className="text-xs text-blue-700">병원, 약국, 동물병원 위치 확인</p>
-                    </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-blue-400 group-hover:text-blue-600 transition-colors" />
-                </Link>
-            </motion.div>
-
-            {/* 건강 맞춤 식단 */}
-            <motion.div variants={staggerItem}>
-                <Link
-                    href="/diet"
-                    className="flex items-center justify-between py-2.5 px-4 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 hover:border-green-300 transition-all group"
-                >
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full group-hover:bg-green-200 transition-colors">
-                        <Apple className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                        <h3 className="font-bold text-green-900 text-sm">건강 맞춤 식단</h3>
-                        <p className="text-xs text-green-700">개인 맞춤 식단 상세 정보 확인</p>
-                        {/* 날씨 맞춤 멘트 - 네온사인 스타일 */}
-                        <p 
-                          className="text-xs font-bold mt-1 px-2 py-1 rounded"
-                          style={{
-                            color: '#ffffff',
-                            backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                            textShadow: `
-                              0 0 3px #ff6b35,
-                              0 0 6px #ff6b35,
-                              0 0 9px #ff6b35,
-                              0 0 12px #ff6b35,
-                              0 0 15px #ff6b35,
-                              1px 1px 2px rgba(0, 0, 0, 0.5)
-                            `,
-                            animation: 'neon-flicker 3s infinite',
-                            border: '1px solid rgba(255, 107, 53, 0.3)',
-                          }}
-                        >
-                          {weather ? getWeatherMessage(weather) : "오늘 날씨에 맞는 맛있는 요리 어떠세요?"}
-                        </p>
-                    </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-green-400 group-hover:text-green-600 transition-colors" />
-                </Link>
-            </motion.div>
-
-            {/* Recipe Genie - 냉장고 재료 확인하고 레시피 추천 */}
-            <motion.div variants={staggerItem}>
-                <motion.button
-                onClick={() => {
-                    console.groupCollapsed("[RecipeGenieBanner] 배너 클릭");
-                    console.log("url:", "https://gemini.google.com/gem-labs/1wffdEjbZ3E9wChM3O5VcoziuDnKihjDk");
-                    console.log("timestamp:", Date.now());
-                    console.groupEnd();
-                    window.open("https://gemini.google.com/gem-labs/1wffdEjbZ3E9wChM3O5VcoziuDnKihjDk", "_blank", "noopener,noreferrer");
-                }}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        window.open("https://gemini.google.com/gem-labs/1wffdEjbZ3E9wChM3O5VcoziuDnKihjDk", "_blank", "noopener,noreferrer");
-                    }
-                }}
-                className="flex items-center justify-between py-2.5 px-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl hover:bg-yellow-100 hover:border-yellow-300 transition-all group w-full"
-                aria-label="Recipe Genie로 냉장고 재료 확인하고 레시피 추천받기 (새 탭에서 열림)"
-                role="button"
-                tabIndex={0}
+        <div className="space-y-2">
+            {/* 응급조치 안내 - 위에서 아래로 */}
+            <motion.div
+                variants={emergencyVariants}
+                initial="initial"
+                animate="animate"
             >
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-full group-hover:bg-yellow-200 transition-colors">
-                        <Sparkles className="w-5 h-5 text-yellow-600" />
-                    </div>
-                    <div className="flex-1 text-left">
-                        <h3 className="font-bold text-yellow-900 text-sm">Google Recipe Genie</h3>
-                        <p className="text-xs text-yellow-700">냉장고 재료 확인하고 레시피 추천</p>
-                    </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-yellow-400 group-hover:text-yellow-600 transition-colors" />
-                </motion.button>
+                <motion.div
+                    variants={emergencyGlow}
+                    initial="initial"
+                    animate="animate"
+                    className="rounded-xl"
+                >
+                    <Link
+                        href="/health/emergency"
+                        className="flex items-center justify-between py-2.5 px-4 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all group relative overflow-hidden"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full group-hover:bg-red-200 transition-colors">
+                                <Siren className="w-5 h-5 text-red-600 animate-pulse" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-red-900 text-sm">응급조치 안내</h3>
+                                <p className="text-xs text-red-700">알레르기 반응 시 즉시 대처하세요</p>
+                            </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors" />
+                    </Link>
+                </motion.div>
             </motion.div>
-        </motion.div>
+
+            {/* 예방접종 안내 - 왼쪽에서 중앙으로 */}
+            <motion.div
+                variants={vaccinationVariants}
+                initial="initial"
+                animate="animate"
+            >
+                <motion.div
+                    variants={vaccinationGlow}
+                    initial="initial"
+                    animate="animate"
+                    className="rounded-xl"
+                >
+                    <Link
+                        href="/health/vaccinations"
+                        className="flex items-center justify-between py-2.5 px-4 bg-sky-50 border-2 border-sky-200 rounded-xl hover:bg-sky-100 hover:border-sky-300 transition-all group relative overflow-hidden"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 bg-sky-100 rounded-full group-hover:bg-sky-200 transition-colors">
+                                <Syringe className="w-5 h-5 text-sky-600" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-sky-900 text-sm">예방접종 안내</h3>
+                                <p className="text-xs text-sky-700">나이별 맞춤 예방접종 일정 확인</p>
+                            </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-sky-400 group-hover:text-sky-600 transition-colors" />
+                    </Link>
+                </motion.div>
+            </motion.div>
+
+            {/* 주변 의료기관 찾기 - 오른쪽에서 중앙으로 */}
+            <motion.div
+                variants={medicalFacilitiesVariants}
+                initial="initial"
+                animate="animate"
+            >
+                <motion.div
+                    variants={medicalGlow}
+                    initial="initial"
+                    animate="animate"
+                    className="rounded-xl"
+                >
+                    <Link
+                        href="/health/emergency/medical-facilities"
+                        className="flex items-center justify-between py-2.5 px-4 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 hover:border-blue-300 transition-all group relative overflow-hidden"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
+                                <MapPin className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-blue-900 text-sm">주변 의료기관 찾기</h3>
+                                <p className="text-xs text-blue-700">병원, 약국, 동물병원 위치 확인</p>
+                            </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-blue-400 group-hover:text-blue-600 transition-colors" />
+                    </Link>
+                </motion.div>
+            </motion.div>
+
+            {/* 건강 맞춤 식단 - 아래에서 중앙으로 */}
+            <motion.div
+                variants={dietVariants}
+                initial="initial"
+                animate="animate"
+            >
+                <motion.div
+                    variants={dietGlow}
+                    initial="initial"
+                    animate="animate"
+                    className="rounded-xl"
+                >
+                    <Link
+                        href="/diet"
+                        className="flex items-center justify-between py-2.5 px-4 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 hover:border-green-300 transition-all group relative overflow-hidden"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full group-hover:bg-green-200 transition-colors">
+                                <Apple className="w-5 h-5 text-green-600" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-bold text-green-900 text-sm">건강 맞춤 식단</h3>
+                                <p className="text-xs text-green-700">개인 맞춤 식단 상세 정보 확인</p>
+                                {/* 날씨 맞춤 멘트 - 네온사인 스타일 */}
+                                <p 
+                                  className="text-xs font-bold mt-1 px-2 py-1 rounded"
+                                  style={{
+                                    color: '#ffffff',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                                    textShadow: `
+                                      0 0 3px #ff6b35,
+                                      0 0 6px #ff6b35,
+                                      0 0 9px #ff6b35,
+                                      0 0 12px #ff6b35,
+                                      0 0 15px #ff6b35,
+                                      1px 1px 2px rgba(0, 0, 0, 0.5)
+                                    `,
+                                    animation: 'neon-flicker 3s infinite',
+                                    border: '1px solid rgba(255, 107, 53, 0.3)',
+                                  }}
+                                >
+                                  {weather ? getWeatherMessage(weather) : "오늘 날씨에 맞는 맛있는 요리 어떠세요?"}
+                                </p>
+                            </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-green-400 group-hover:text-green-600 transition-colors" />
+                    </Link>
+                </motion.div>
+            </motion.div>
+
+            {/* Recipe Genie - 왼쪽에서 중앙으로 */}
+            <motion.div
+                variants={recipeGenieVariants}
+                initial="initial"
+                animate="animate"
+            >
+                <motion.div
+                    variants={recipeGenieGlow}
+                    initial="initial"
+                    animate="animate"
+                    className="rounded-xl"
+                >
+                    <motion.button
+                        onClick={() => {
+                            console.groupCollapsed("[RecipeGenieBanner] 배너 클릭");
+                            console.log("url:", "https://gemini.google.com/gem-labs/1wffdEjbZ3E9wChM3O5VcoziuDnKihjDk");
+                            console.log("timestamp:", Date.now());
+                            console.groupEnd();
+                            window.open("https://gemini.google.com/gem-labs/1wffdEjbZ3E9wChM3O5VcoziuDnKihjDk", "_blank", "noopener,noreferrer");
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                window.open("https://gemini.google.com/gem-labs/1wffdEjbZ3E9wChM3O5VcoziuDnKihjDk", "_blank", "noopener,noreferrer");
+                            }
+                        }}
+                        className="flex items-center justify-between py-2.5 px-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl hover:bg-yellow-100 hover:border-yellow-300 transition-all group w-full relative overflow-hidden"
+                        aria-label="Recipe Genie로 냉장고 재료 확인하고 레시피 추천받기 (새 탭에서 열림)"
+                        role="button"
+                        tabIndex={0}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-full group-hover:bg-yellow-200 transition-colors">
+                                <Sparkles className="w-5 h-5 text-yellow-600" />
+                            </div>
+                            <div className="flex-1 text-left">
+                                <h3 className="font-bold text-yellow-900 text-sm">Google Recipe Genie</h3>
+                                <p className="text-xs text-yellow-700">냉장고 재료 확인하고 레시피 추천</p>
+                            </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-yellow-400 group-hover:text-yellow-600 transition-colors" />
+                    </motion.button>
+                </motion.div>
+            </motion.div>
+        </div>
     );
 }

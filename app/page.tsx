@@ -65,19 +65,13 @@ export default async function Home() {
 
       {/* 동화 스타일 네비게이션 - 메인 페이지에서 제거 (상세 페이지에서는 유지) */}
 
-      {/* 응급조치 안내 + 날씨 위젯 (프리미엄 바 바로 아래, 같은 줄에 배치) */}
-      <div className="px-4 pt-2 flex flex-col sm:flex-row gap-4">
-        {/* 응급조치 안내 (왼쪽에서 진입) */}
-        <DirectionalEntrance direction="left" delay={0.8} className="flex-1">
-          <EmergencyQuickAccess />
-        </DirectionalEntrance>
+      {/* 카드 섹션 (응급조치 안내, 예방접종 안내, 주변 의료기관 찾기, 날씨 정보 등) */}
+      <div className="px-4 pt-2 space-y-2">
+        <EmergencyQuickAccess />
         
-        {/* 날씨 위젯 (오른쪽에서 진입) */}
-        <DirectionalEntrance direction="right" delay={1.0} className="flex-1">
-          <ErrorBoundary>
-            <WeatherWidget />
-          </ErrorBoundary>
-        </DirectionalEntrance>
+        <ErrorBoundary>
+          <WeatherWidget />
+        </ErrorBoundary>
       </div>
 
       {/* 히어로 섹션 (아래에서 진입 + 패럴랙스 효과) */}

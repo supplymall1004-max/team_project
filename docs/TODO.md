@@ -1,9 +1,10 @@
 # 맛의 아카이브 (Flavor Archive) 개발 현황 & TODO
 
-> **최종 업데이트: 2025-01-27**  
+> **최종 업데이트: 2025-01-28**  
 > PRD/Design 문서와 실제 구현을 교차 검토하여 **구현 완료 기능**과 **남은 우선순위 작업**을 정리했습니다.  
 > Supabase MCP를 통해 데이터베이스 스키마를 직접 확인하여 실제 구현 상태를 반영했습니다.  
-> 프로젝트 파일 정리 작업 완료 (레거시 파일 삭제, 중복 파일 통합).
+> 프로젝트 파일 정리 작업 완료 (레거시 파일 삭제, 중복 파일 통합).  
+> **최신 추가 기능**: 가족 구성원 예방접종 안내 팝업, 의료기관/약국 찾기, 건강정보 자동 연동, 신원확인 기능, 동의 기록 관리 등 반영 완료.
 
 ---
 
@@ -139,6 +140,16 @@
 - [x] `/admin` 레이아웃 및 네비게이션 (`app/admin/layout.tsx`)
 - [x] 관리자 권한 가드 (Clerk `role=admin` 기반)
 - [x] Sidebar 레이아웃 (`components/admin/sidebar-layout.tsx`)
+- [x] **동의 기록 관리 모듈** (`/admin/consent`)
+  - [x] 동의 내역 조회 API (`app/api/admin/consent-records/route.ts`)
+  - [x] 동의 내역 내보내기 API (`app/api/admin/consent-records/export/route.ts`)
+  - [x] 동의 내역 테이블 컴포넌트 (`components/admin/consent/consent-records-table.tsx`)
+  - [x] 동의 내역 필터 컴포넌트 (`components/admin/consent/consent-records-filters.tsx`)
+  - [x] 동의 내역 내보내기 컴포넌트 (`components/admin/consent/consent-records-export.tsx`)
+  - [x] 동의 기록 관리 페이지 (`app/admin/consent/page.tsx`)
+  - [x] 동의 유형별 필터링 (신원확인, 건강정보 수집, 데이터 동기화)
+  - [x] 기간별 필터링 및 페이지네이션
+  - [x] CSV/Excel 내보내기 기능
 - [x] **페이지 문구 편집 모듈** (`/admin/copy`)
   - [x] JSON 블록 CRUD (`components/admin/copy/copy-list-panel.tsx`)
   - [x] 슬롯 셀렉터 (`slot-selector.tsx`)
@@ -222,7 +233,73 @@
 - [x] lucide-react 아이콘
 - [x] 반응형 디자인 (모바일/태블릿/데스크톱)
 
-### 8. 🔒 보안 및 법적 준수
+### 8. 🏥 응급조치 및 의료기관 찾기
+
+- [x] **응급조치 정보 시스템**
+  - [x] 응급조치 메인 페이지 (`app/(dashboard)/health/emergency/page.tsx`)
+  - [x] 알레르기별 응급조치 상세 페이지 (`app/(dashboard)/health/emergency/[allergyCode]/page.tsx`)
+  - [x] 응급조치 정보 데이터베이스 (`emergency_procedures` 테이블)
+  - [x] 에피네프린 사용법 안내
+  - [x] 위험 신호 인식 가이드
+  - [x] 119 신고 시기 안내
+- [x] **의료기관/약국 찾기 (지도 연동)**
+  - [x] 의료기관 검색 API (`app/api/health/medical-facilities/search/route.ts`)
+  - [x] 약국 검색 API (`app/api/health/pharmacy/search/route.ts`)
+  - [x] 네이버 지도 연동 (`lib/naver/*`, `components/home/naver-map.tsx`)
+  - [x] 위치 권한 관리 (`components/location/LocationPermissionToggle.tsx`, `hooks/use-location-preference.ts`)
+  - [x] 의료기관 메인 페이지 (`app/(dashboard)/health/emergency/medical-facilities/page.tsx`)
+  - [x] 카테고리별 의료기관 페이지 (`app/(dashboard)/health/emergency/medical-facilities/[category]/page.tsx`)
+  - [x] 네이버 지도 링크 섹션 (`components/health/medical-facilities/naver-more-links-section.tsx`)
+  - [x] HIRA 링크 섹션 (`components/health/medical-facilities/hira-links-section.tsx`)
+  - [x] 의료기관 카드 컴포넌트 (`components/health/medical-facilities/facility-card.tsx`)
+  - [x] 위치 검색 컴포넌트 (`components/health/medical-facilities/location-search.tsx`)
+  - [x] 지도 뷰 컴포넌트 (`components/health/medical-facilities/map-view.tsx`)
+  - [x] 거리 기반 정렬 및 필터링
+  - [x] 영업 시간 정보 표시
+  - [x] 역지오코딩 API (`app/api/health/geocode/reverse/route.ts`)
+  - [x] 지오코딩 API (`app/api/health/medical-facilities/geocode/route.ts`)
+
+### 9. 🔐 신원확인 및 동의 관리
+
+- [x] **신원확인 기능**
+  - [x] 신원확인 API (`app/api/identity/verifications/route.ts`)
+  - [x] 본인 신원확인 기능
+  - [x] 가족 구성원 신원확인 기능 (`components/health/family-member-identity-verification.tsx`)
+  - [x] 주민등록번호 해시 저장 (SHA-256)
+  - [x] 신원확인 상태 조회
+  - [x] 가족 구성원별 신원확인 지원 (`identity_verifications.family_member_id`)
+  - [x] 건강정보 자동 연동 선행 조건 체크
+- [x] **동의 기록 관리**
+  - [x] 동의 기록 테이블 (`consent_records` 테이블)
+  - [x] 동의 유형별 기록 (신원확인, 건강정보 수집, 데이터 동기화)
+  - [x] 동의 시간, 위치, 기기 정보 저장
+  - [x] 동의 상태 관리 (granted, withdrawn, expired)
+  - [x] 관리자 동의 기록 조회 및 내보내기 (`app/admin/consent/*`)
+
+### 10. 💉 예방접종 안내 시스템
+
+- [x] **예방접종 상세 페이지**
+  - [x] 예방접종 안내 메인 페이지 (`app/health/vaccinations/page.tsx`)
+  - [x] 생애주기별 탭 콘텐츠 (`LifecycleTabContent`)
+  - [x] 상황별 탭 콘텐츠 (`SituationTabContent`)
+  - [x] 여행 탭 콘텐츠 (`TravelTabContent`)
+  - [x] 계절별 탭 콘텐츠 (`SeasonalTabContent`)
+  - [x] 나이별 요약 탭 콘텐츠 (`AgeSummaryTabContent`)
+  - [x] 질병청 API 실시간 데이터 표시 (`VaccinationApiData` 컴포넌트)
+  - [x] 탭 네비게이션 클라이언트 컴포넌트 (`VaccinationTabsClient`)
+- [x] **가족 구성원 예방접종 안내 팝업**
+  - [x] 가족 구성원별 예방접종 권장사항 조회 API (`app/api/health/vaccinations/family-recommendations/route.ts`)
+  - [x] 나이 계산 로직 (생년월일 기준 개월/세 계산)
+  - [x] 생애주기별 예방접종 마스터 데이터와 비교 로직
+  - [x] 완료된 접종 필터링 로직
+  - [x] 성별 필터링 로직
+  - [x] 팝업 컴포넌트 구현 (`components/health/vaccination-family-alert.tsx`)
+  - [x] 우선순위 배지 표시 (필수/권장/선택)
+  - [x] 나이 정보 표시 (개월/세)
+  - [x] 예방접종 상세 페이지 통합
+  - [x] 상세 정보 보기 버튼 및 링크
+
+### 11. 🔒 보안 및 법적 준수
 
 - [x] Clerk 기반 인증 및 권한 관리
 - [x] Next.js XSS, CSRF 기본 방어
@@ -230,20 +307,20 @@
 - [x] 개인정보처리방침 페이지
 - [x] 의료 면책 조항 (푸터 및 이용약관)
 
-### 9. 🚀 성능 최적화
+### 12. 🚀 성능 최적화
 
 - [x] Next.js Image 컴포넌트 적용
 - [x] 코드 스플리팅 및 지연 로딩 (Next.js 기본)
 - [x] 이미지 프리로딩 구현
 - [x] 캐시 전략 (이미지, API)
 
-### 10. 📱 접근성 (Accessibility)
+### 13. 📱 접근성 (Accessibility)
 
 - [x] 모든 이미지에 Alt Text 추가
 - [x] 키보드 네비게이션 지원 (shadcn/ui 기본)
 - [x] 색상 대비 비율 WCAG AA 기준 준수
 
-### 11. 🏠 홈페이지 챕터 구조
+### 14. 🏠 홈페이지 챕터 구조
 
 - [x] 챕터 1: 레시피 & 식단 아카이브 페이지 (`app/chapters/recipes-diet/page.tsx`)
   - [x] 현대 레시피 섹션 통합
@@ -262,7 +339,7 @@
   - [x] 챕터 2 미리보기 카드
   - [x] 전체보기 링크 통합
 
-### 12. 💚 건강 시각화 시스템
+### 15. 💚 건강 시각화 시스템
 
 - [x] 건강 시각화 타입 정의 (`types/health-visualization.ts`)
 - [x] 건강 메트릭스 카드 (`components/health/visualization/HealthMetricsCard.tsx`)
@@ -512,6 +589,14 @@
   - [x] pg_cron 확장 활성화 마이그레이션
   - [x] KCDC 동기화 크론 잡 생성 SQL
   - [x] 크론 잡 설정 가이드 문서 작성
+- [x] **가족 구성원 예방접종 안내 팝업**
+  - [x] 가족 구성원별 예방접종 권장사항 조회 API (`app/api/health/vaccinations/family-recommendations/route.ts`)
+  - [x] 나이 계산 로직 (생년월일 기준 개월/세 계산)
+  - [x] 생애주기별 예방접종 마스터 데이터와 비교 로직
+  - [x] 완료된 접종 필터링 로직
+  - [x] 팝업 컴포넌트 구현 (`components/health/vaccination-family-alert.tsx`)
+  - [x] 우선순위 배지 표시 (필수/권장/선택)
+  - [x] 예방접종 상세 페이지 통합 (`app/health/vaccinations/page.tsx`)
 - [ ] 리마인더 주기 설정 (주간/월간) - DB 설정 테이블 추가 필요
 
 ### B-2. KCDC 프리미엄 기능 (Phase 1 & Phase 9)
@@ -596,27 +681,43 @@
     - [x] 환경 변수 추가 (`docs/env-setup-guide.md` 업데이트)
     - [x] API 연동 가이드 문서 작성 (`docs/health-data-integration-guide.md`)
     - [x] 타입 정의 파일 생성 (`types/health-data-integration.ts`)
-- [ ] **Phase 3: 건강정보 자동 연동 기능 구현**
-  - [ ] 데이터 소스 연결 관리
-    - [ ] 데이터 소스 연결 UI 컴포넌트 구현 (`components/health/data-source-connector.tsx`)
-    - [ ] 데이터 소스 연결 API 구현 (`app/api/health/data-sources/route.ts`)
-    - [ ] 사용자 동의 처리 페이지 구현 (`app/(dashboard)/health/data-sources/consent/page.tsx`)
-  - [ ] 병원기록 자동 연동
-    - [ ] 병원기록 동기화 로직 구현 (`lib/health/hospital-records-sync.ts`)
-    - [ ] 병원기록 조회 API 구현 (`app/api/health/hospital-records/route.ts`)
-    - [ ] 병원기록 UI 컴포넌트 구현 (`components/health/hospital-records-list.tsx`)
-  - [ ] 약물 복용 기록 자동 연동
-    - [ ] 약물 복용 기록 동기화 로직 구현 (`lib/health/medication-records-sync.ts`)
-    - [ ] 약물 복용 기록 관리 API 구현 (`app/api/health/medications/route.ts`)
-    - [ ] 약물 복용 기록 UI 컴포넌트 구현 (`components/health/medication-records-list.tsx`)
-  - [ ] 질병 기록 자동 연동
-    - [ ] 질병 기록 동기화 로직 구현 (`lib/health/disease-records-sync.ts`)
-    - [ ] 질병 기록 관리 API 구현 (`app/api/health/diseases/records/route.ts`)
-    - [ ] 질병 기록 UI 컴포넌트 구현 (`components/health/disease-records-list.tsx`)
-  - [ ] 건강검진 정보 자동 연동
-    - [ ] 건강검진 결과 동기화 로직 구현 (`lib/health/checkup-results-sync.ts`)
-    - [ ] 건강검진 결과 연동 API 확장 (`app/api/health/kcdc-premium/checkups/sync/route.ts`)
-    - [ ] 건강검진 결과 UI 개선 (`components/health/premium/checkup-record-card.tsx` 확장)
+- [x] **Phase 3: 건강정보 자동 연동 기능 구현**
+  - [x] 데이터 소스 연결 관리
+    - [x] 데이터 소스 연결 UI 컴포넌트 구현 (`app/health/data-sources/page.tsx`)
+    - [x] 데이터 소스 연결 API 구현 (`app/api/health/data-sources/route.ts`)
+    - [x] OAuth 인증 URL 생성 API (`app/api/health/data-sources/auth-url/route.ts`)
+    - [x] OAuth 콜백 처리 API (`app/api/health/data-sources/callback/route.ts`)
+    - [x] 연결 완료 페이지 구현 (`app/health/data-sources/connect/page.tsx`)
+  - [x] 병원기록 자동 연동
+    - [x] 병원기록 동기화 로직 구현 (`lib/health/hospital-records-sync.ts`)
+    - [x] 병원기록 조회 API 구현 (`app/api/health/hospital-records/route.ts`)
+    - [x] 병원기록 UI 컴포넌트 구현 (`app/health/hospital-records/page.tsx`)
+  - [x] 약물 복용 기록 자동 연동
+    - [x] 약물 복용 기록 동기화 로직 구현 (`lib/health/medication-records-sync.ts`)
+    - [x] 약물 복용 기록 관리 API 구현 (`app/api/health/medications/route.ts`)
+    - [x] 약물 복용 기록 UI 컴포넌트 구현 (`app/health/medication-records/page.tsx`)
+  - [x] 질병 기록 자동 연동
+    - [x] 질병 기록 동기화 로직 구현 (`lib/health/disease-records-sync.ts`)
+    - [x] 질병 기록 관리 API 구현 (`app/api/health/diseases/records/route.ts`)
+    - [x] 질병 기록 UI 컴포넌트 구현 (`app/health/disease-records/page.tsx`)
+  - [x] 건강검진 정보 자동 연동
+    - [x] 건강검진 결과 동기화 로직 구현 (`lib/health/checkup-results-sync.ts`)
+    - [x] 건강검진 결과 연동 API 확장 (`app/api/health/kcdc-premium/checkups/sync/route.ts`)
+  - [x] 수동 동기화 기능
+    - [x] 수동 동기화 버튼 컴포넌트 (`components/health/health-sync-button.tsx`)
+    - [x] 수동 동기화 API (`app/api/health/sync/route.ts` POST)
+    - [x] 동기화 상태 조회 API (`app/api/health/sync/route.ts` GET)
+    - [x] 동기화 로그 조회 API (`app/api/health/sync/logs/route.ts`)
+    - [x] 동기화 상태 페이지 (`app/health/sync-status/page.tsx`)
+    - [x] 가족 구성원별 동기화 버튼 (`components/health/family-member-health-sync-button.tsx`)
+    - [x] 쿨다운 정책 (1시간) 구현
+    - [x] 프리미엄 접근 제어
+    - [x] 신원확인 선행 조건 체크
+    - [x] 동기화 로그 기록 및 조회
+    - [x] 에러 처리 및 재시도 로직
+- [ ] **Phase 3 후속 작업**
+  - [ ] 동기화 상태 페이지의 수동 동기화 버튼 실제 API 호출로 통일 (현재 더미 로직)
+  - [ ] 건강검진 결과 UI 개선 (`components/health/premium/checkup-record-card.tsx` 확장)
 - [x] **Phase 4: 생애주기별 예방주사 알림 서비스 고도화**
   - [x] 생애주기별 예방주사 일정 생성 알고리즘
     - [x] 예방주사 일정 생성 로직 개선 (`lib/health/lifecycle-vaccination-scheduler.ts`)
@@ -859,15 +960,33 @@
 
 ---
 
-**마지막 업데이트**: 2025-01-27  
+**마지막 업데이트**: 2025-01-28  
 **업데이트 내용**:
 
+- **가족 구성원 예방접종 안내 팝업** 기능 추가
+  - 가족 구성원별 예방접종 권장사항 조회 API 구현
+  - 나이 기반 맞춤 예방접종 목록 제공
+  - 예방접종 상세 페이지 통합
+- **의료기관/약국 찾기** 기능 추가
+  - 네이버 지도 연동 및 위치 기반 검색
+  - 카테고리별 의료기관 필터링
+  - 위치 권한 관리 시스템
+- **건강정보 자동 연동** 기능 추가
+  - 마이데이터/건강정보고속도로 연동
+  - 병원/약물/질병/검진 기록 자동 동기화
+  - 수동 동기화 버튼 및 동기화 로그 조회
+- **신원확인 기능** 추가
+  - 본인 및 가족 구성원 신원확인
+  - 건강정보 연동 선행 조건 체크
+- **동의 기록 관리** 기능 추가 (관리자)
+  - 동의 내역 조회, 필터링, 내보내기
+  - 동의 유형별 관리 및 감사 로그
 - 홈페이지 챕터 구조 기능 추가 (챕터 1, 챕터 2 페이지 및 미리보기 컴포넌트)
 - 건강 시각화 시스템 완료 상태 반영 (6개 시각화 컴포넌트, 2개 API 엔드포인트)
 - 프로젝트 파일 정리 작업 완료 (레거시 파일 삭제, 중복 파일 통합)
-- 관리자 콘솔 추가 기능 반영 (프로모션 코드 관리, 정산 내역 관리, 밀키트 관리, 레시피 관리)
+- 관리자 콘솔 추가 기능 반영 (프로모션 코드 관리, 정산 내역 관리, 밀키트 관리, 레시피 관리, 동의 기록 관리)
 - 실제 구현된 컴포넌트 및 페이지 확인 및 문서화
-- PRD.md에 관리자 페이지 기능 추가 (D-3 ~ D-6)
+- PRD.md에 관리자 페이지 기능 추가 (D-3 ~ D-7)
 - 데이터베이스 테이블 목록 업데이트
 
 **다음 마일스톤**:
@@ -907,10 +1026,11 @@
 
 - [ ] “일일 식단 크론이 18:00에 생성하는 식단이 오늘/내일 중 무엇인지”를 PRD/TODO에서 동일한 문장으로 통일
 
-### 6) 동의(Consent) 기록 관리/내보내기 — 문서 누락
+### 6) 동의(Consent) 기록 관리/내보내기 ✅ 반영 완료
 
-- [ ] 관리자 기능(D-\*)에 “동의 기록 조회/내보내기”를 명시하고, 운영 정책(보관 기간/권한/감사 로그)을 TODO로 추가
+- [x] 관리자 기능(D-\*)에 "동의 기록 조회/내보내기"를 명시하고, 운영 정책(보관 기간/권한/감사 로그)을 TODO로 추가
   - 근거: `app/admin/consent/*`, `app/api/admin/consent-records/*`
+  - 상태: **D-7**로 PRD에 반영 완료, TODO에도 구현 완료 섹션에 추가됨
 
 ### 7) 식약처(MFDS) 레시피 탐색/검색 + 테스트 페이지 — 문서 누락
 
@@ -937,33 +1057,38 @@
 - [ ] `tc/` 폴더를 제품 범위에서 제외(프로토타입)할지, 포함할지 결정 후 문서화(배포/유지보수 정책 포함)
   - 근거: `tc/christmas-storybook-player/*` (독립 `package.json`/`next.config.mjs` 보유)
 
-### 12) 신원확인(본인/가족) 기능 — PRD/TODO에 기능 정의 누락
+### 12) 신원확인(본인/가족) 기능 ✅ 반영 완료
 
-- [ ] “신원확인(이름/주민등록번호 입력 → 해시 저장 → 가족 구성원 검증)” 기능을 PRD에 독립 항목으로 추가하고, 어디에 쓰이는지(예: 건강정보 자동 연동/데이터 소스 연결 선행 조건) 명시
+- [x] "신원확인(이름/주민등록번호 입력 → 해시 저장 → 가족 구성원 검증)" 기능을 PRD에 독립 항목으로 추가하고, 어디에 쓰이는지(예: 건강정보 자동 연동/데이터 소스 연결 선행 조건) 명시
   - 근거: `app/api/identity/verifications/route.ts`, `app/api/health/data-sources/auth-url/route.ts`
+  - 상태: **C-45**로 PRD에 반영 완료, TODO에도 구현 완료 섹션에 추가됨
 
 ### 13) 알림 설정이 2트랙(식단/건강)으로 분리 — 문서 구조 명시 필요
 
 - [ ] 알림 설정을 “식단 알림(기본)”과 “건강 알림(프리미엄)”으로 분리해 PRD/TODO에 구조와 정책을 명시(사용 테이블/권한/설정 UI 위치 포함)
   - 근거: `app/api/diet/notifications/settings/route.ts` (`diet_notification_settings`), `app/api/health/notifications/settings/route.ts` (`user_notification_settings`)
 
-### 14) 건강정보 자동 연동(OAuth) 사용자 흐름 문서화 — PRD에 단계 설명 보강 필요
+### 14) 건강정보 자동 연동(OAuth) 사용자 흐름 문서화 ✅ 반영 완료
 
-- [ ] 데이터 소스 연결 흐름을 “auth-url → callback → connect 페이지 → connect API” 기준으로 사용자 관점 단계(어떤 화면을 거치는지)로 PRD에 정리
+- [x] 데이터 소스 연결 흐름을 "auth-url → callback → connect 페이지 → connect API" 기준으로 사용자 관점 단계(어떤 화면을 거치는지)로 PRD에 정리
   - 근거: `app/health/data-sources/page.tsx`, `app/api/health/data-sources/auth-url/route.ts`, `app/api/health/data-sources/callback/route.ts`, `app/health/data-sources/connect/page.tsx`, `app/api/health/data-sources/route.ts`
+  - 상태: **C-44**로 PRD에 반영 완료, TODO에도 구현 완료 섹션에 추가됨
 
-### 15) 건강정보 자동 연동 “동기화 결과 데이터(테이블)” 문서화 — PRD에 데이터 흐름 보강 필요
+### 15) 건강정보 자동 연동 "동기화 결과 데이터(테이블)" 문서화 ✅ 반영 완료
 
-- [ ] 자동 연동 결과가 어디에 저장되는지(연결/로그/병원/약/질병/검진/프로필 반영)를 PRD에 정리
+- [x] 자동 연동 결과가 어디에 저장되는지(연결/로그/병원/약/질병/검진/프로필 반영)를 PRD에 정리
   - 근거: `lib/health/health-data-sync-service.ts`, `lib/health/hospital-records-sync.ts`, `lib/health/medication-records-sync.ts`, `lib/health/disease-records-sync.ts`, `lib/health/checkup-results-sync.ts`
+  - 상태: **C-44**로 PRD에 반영 완료, TODO에도 구현 완료 섹션에 추가됨
 
-### 16) 건강정보 자동 연동 “실행/운영 정책” 문서화 — PRD에 운영 정책 보강 필요
+### 16) 건강정보 자동 연동 "실행/운영 정책" 문서화 ✅ 반영 완료
 
-- [ ] 자동 연동의 실행 방식(수동 버튼/API), 쿨다운(1시간), 상태/로그 화면 및 접근 제어(프리미엄/신원확인) 정책을 PRD에 정리
+- [x] 자동 연동의 실행 방식(수동 버튼/API), 쿨다운(1시간), 상태/로그 화면 및 접근 제어(프리미엄/신원확인) 정책을 PRD에 정리
   - 근거: `components/health/health-sync-button.tsx`, `app/api/health/sync/route.ts`, `app/api/health/sync/logs/route.ts`, `app/health/sync-status/page.tsx`
+  - 상태: **C-44**로 PRD에 반영 완료, TODO에도 구현 완료 섹션에 추가됨
 
-### 17) 가족 구성원 단위 동기화 문서화 + “동기화 상태 페이지” 동작 불일치 수정
+### 17) 가족 구성원 단위 동기화 문서화 + "동기화 상태 페이지" 동작 불일치 수정
 
-- [ ] PRD에 가족 구성원 단위 동기화(`familyMemberId`) 지원을 명시하고, UX 흐름(구성원별 신원확인 선행)을 정리
+- [x] PRD에 가족 구성원 단위 동기화(`familyMemberId`) 지원을 명시하고, UX 흐름(구성원별 신원확인 선행)을 정리
   - 근거: `components/health/family-member-health-sync-button.tsx`, `app/api/health/sync/route.ts`
-- [ ] `app/health/sync-status/page.tsx`의 “수동 동기화” 버튼이 실제 `/api/health/sync`를 호출하도록 구현 정합성 맞추기(현재는 더미 대기 로직)
+  - 상태: **C-44, C-45**로 PRD에 반영 완료
+- [ ] `app/health/sync-status/page.tsx`의 "수동 동기화" 버튼이 실제 `/api/health/sync`를 호출하도록 구현 정합성 맞추기(현재는 더미 대기 로직)
