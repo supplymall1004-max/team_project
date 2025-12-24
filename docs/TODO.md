@@ -1,10 +1,10 @@
 # 맛의 아카이브 (Flavor Archive) 개발 현황 & TODO
 
-> **최종 업데이트: 2025-01-28**  
+> **최종 업데이트: 2025-12-24**  
 > PRD/Design 문서와 실제 구현을 교차 검토하여 **구현 완료 기능**과 **남은 우선순위 작업**을 정리했습니다.  
 > Supabase MCP를 통해 데이터베이스 스키마를 직접 확인하여 실제 구현 상태를 반영했습니다.  
 > 프로젝트 파일 정리 작업 완료 (레거시 파일 삭제, 중복 파일 통합).  
-> **최신 추가 기능**: 가족 구성원 예방접종 안내 팝업, 의료기관/약국 찾기, 건강정보 자동 연동, 신원확인 기능, 동의 기록 관리 등 반영 완료.
+> **최신 추가 기능**: 캐릭터창 인터페이스 (게임 HUD 스타일) Phase 0-2 완료, 가족 구성원 예방접종 안내 팝업, 의료기관/약국 찾기, 건강정보 자동 연동, 신원확인 기능, 동의 기록 관리 등 반영 완료.
 
 ---
 
@@ -365,6 +365,85 @@
 - [x] 건강 시각화 미리보기 (`components/home/health-visualization-preview.tsx`)
   - [x] 홈페이지용 컴팩트 버전
   - [x] 챕터 페이지용 전체 버전
+
+### 16. 🎮 캐릭터창 인터페이스 (게임 HUD 스타일)
+
+- [x] **Phase 0: 데이터베이스 마이그레이션**
+  - [x] `family_members` 테이블 확장 (`avatar_type`, `health_score`, `health_score_updated_at` 컬럼 추가)
+  - [x] Supabase MCP를 통한 마이그레이션 적용
+- [x] **Phase 1: 기본 구조 및 데이터 조회**
+  - [x] 타입 정의 (`types/character.ts`)
+    - [x] `CharacterData` 인터페이스
+    - [x] `ReminderItem` 인터페이스
+    - [x] `CharacterCardData` 인터페이스
+  - [x] Server Action 구현 (`actions/health/character.ts`)
+    - [x] `getCharacterData` - 캐릭터창 데이터 조회
+    - [x] `getCharacterCards` - 홈페이지용 캐릭터 카드 목록 조회
+  - [x] 홈페이지 통합 컴포넌트 (`components/home/character-preview.tsx`)
+    - [x] 가족 구성원별 캐릭터 카드 그리드 표시
+    - [x] 건강 점수 및 상태 표시
+    - [x] 게임 스타일 네온 효과 적용
+  - [x] 상세 캐릭터창 페이지 (`app/(dashboard)/health/family/[memberId]/character/page.tsx`)
+    - [x] 기본 레이아웃 구조
+  - [x] **Phase 2: 핵심 컴포넌트 구현**
+  - [x] 캐릭터 아바타 컴포넌트 (`components/health/character/character-avatar.tsx`)
+    - [x] 사진 또는 아이콘 폴백 지원
+    - [x] 건강 상태에 따른 테두리 색상 변경
+    - [x] 게임 스타일 장식 효과 (건강 점수 배지)
+    - [x] 호버 효과 및 애니메이션
+  - [x] 기본 정보 패널 컴포넌트 (`components/health/character/basic-info-panel.tsx`)
+    - [x] 이름, 나이, 키, 체중, 체지방율, 근육량, BMI 표시
+  - [x] 중요 정보 패널 컴포넌트 (`components/health/character/important-info-panel.tsx`)
+    - [x] 질병 목록 표시
+    - [x] 알레르기 목록 표시
+    - [x] 건강 점수 및 상태 표시
+- [x] **Phase 3: 건강 정보 패널 구현**
+  - [x] 약물 복용 패널 컴포넌트 (`components/health/character/medication-panel.tsx`)
+    - [x] 복용 중인 약물 목록 표시
+    - [x] 오늘 복용 여부 체크박스 (실시간 체크/해제)
+    - [x] 복용하지 않은 약물 강조 표시
+    - [x] 약물 복용 체크 API (`app/api/health/medications/[id]/check/route.ts`)
+  - [x] 건강검진 패널 컴포넌트 (`components/health/character/checkup-panel.tsx`)
+    - [x] 최근 건강검진 기록 표시
+    - [x] 다음 건강검진 권장 일정 표시
+    - [x] D-Day 카운트다운 (우선순위별 색상)
+  - [x] 백신 패널 컴포넌트 (`components/health/character/vaccination-panel.tsx`)
+    - [x] 완료된 백신 기록 표시 (최대 3개)
+    - [x] 예정된 백신 일정 표시
+    - [x] 다음 백신 D-Day 카운트다운
+  - [x] 구충제 패널 컴포넌트 (`components/health/character/deworming-panel.tsx`)
+    - [x] 최근 구충제 복용 기록 표시
+    - [x] 다음 복용 예정일 표시
+    - [x] D-Day 카운트다운
+- [x] **Phase 4: 생애주기별 알림 및 리마인드 통합**
+  - [x] 생애주기별 알림 패널 컴포넌트 (`components/health/character/lifecycle-notifications-panel.tsx`)
+    - [x] 우선순위별 그룹화 (High/Medium/Low)
+    - [x] 네온 효과 적용
+    - [x] 간소화된 카드 형태
+  - [x] 리마인드 및 일정 패널 컴포넌트 (`components/health/character/reminders-panel.tsx`)
+    - [x] 긴급 리마인드 표시 (오늘 또는 내일)
+    - [x] 다가올 리마인드 표시 (이번 주)
+    - [x] D-Day 카운트다운
+    - [x] 우선순위별 색상 구분
+    - [x] 리마인드 타입별 아이콘
+  - [x] 건강 트렌드 요약 패널 컴포넌트 (`components/health/character/health-trends-panel.tsx`)
+    - [x] 체중 추이 요약 (최근 변화)
+    - [x] 건강 점수 추이 요약
+    - [x] 간단한 통계 정보
+- [x] **Phase 5: 네온 효과 및 모션 디자인 구현**
+  - [x] 캐릭터창 전용 애니메이션 프리셋 (`lib/animations/character-animations.ts`)
+  - [x] 우선순위별 네온 색상 시스템 강화
+  - [x] 페이지 진입 애니메이션 (페이드 인 + 슬라이드 업)
+  - [x] 패널 스태거 애니메이션 (순차적으로 나타남)
+  - [x] 인터랙션 모션 (호버, 클릭) - 모든 패널에 적용
+  - [x] 상태 변경 애니메이션
+- [x] **Phase 6: 홈페이지 통합 및 최종 검증**
+  - [x] 홈페이지 통합 완료 검증 (`app/page.tsx`)
+  - [x] 홈페이지 캐릭터 카드에 애니메이션 및 네온 효과 적용
+  - [x] 기능 통합 검증 (모든 패널 정상 작동 확인)
+  - [x] 성능 최적화 (건강 점수 캐싱, 이미지 lazy loading)
+  - [x] 에러 처리 강화 (Suspense, ErrorBoundary)
+  - [x] 최종 검증 완료
 
 ---
 
@@ -761,8 +840,23 @@
     - [ ] API 인증 강화
   - [ ] 개인정보 처리 방침 업데이트 (`app/privacy/page.tsx`)
 - [ ] **Phase 9: 생애주기별 네온 알림 시스템 - 전체 생애주기 이벤트 확장**
-  - [ ] 데이터베이스 스키마 확장
-    - [ ] `notifications` 테이블 type/category 확장
+  - [x] **Phase 9.1: 반려동물 건강 관리 시스템 (Phase 1 - 25% 완료)**
+    - [x] 데이터베이스 스키마 생성
+      - [x] `pets` 테이블 생성 (반려동물 프로필)
+      - [x] `pet_vaccination_records` 테이블 생성 (백신 기록)
+      - [x] `pet_weight_records` 테이블 생성 (체중 기록)
+      - [x] `pet_health_checkup_records` 테이블 생성 (건강 검진 기록)
+      - [x] `pet_vaccine_master` 테이블 생성 (백신 마스터 데이터)
+    - [x] `notifications` 테이블 확장
+      - [x] `type`에 `pet_healthcare` 추가
+      - [x] `category`에 `pet_healthcare`, `pet_vaccination`, `pet_weight`, `pet_checkup`, `pet_dental` 추가
+    - [x] 백신 마스터 데이터 초기화
+      - [x] AVMA/AAHA 기준 강아지 필수 백신 데이터 삽입
+      - [x] AVMA/AAHA 기준 고양이 필수 백신 데이터 삽입
+    - [x] UI 통합
+      - [x] 빠른 시작 메뉴에 "반려동물 건강" 아이콘 추가 (주황색 계통 + 네온 효과)
+      - [x] 건강 관리 페이지에 "반려동물 건강" 탭 추가
+  - [ ] 데이터베이스 스키마 확장 (인간 생애주기 이벤트)
     - [ ] `lifecycle_event_master` 테이블 생성
     - [ ] `lifecycle_event_professional_info` 테이블 생성
     - [ ] `lifecycle_event_user_choices` 테이블 생성
@@ -1073,8 +1167,43 @@
 
 ---
 
-**마지막 업데이트**: 2025-01-28  
+**마지막 업데이트**: 2025-12-24  
 **업데이트 내용**:
+
+- **캐릭터창 인터페이스 (게임 HUD 스타일)** 기능 추가
+  - Phase 0: 데이터베이스 마이그레이션 완료 (`family_members` 테이블 확장)
+  - Phase 1: 기본 구조 및 데이터 조회 완료
+    - 타입 정의 (`types/character.ts`)
+    - Server Action 구현 (`actions/health/character.ts`)
+    - 홈페이지 통합 컴포넌트 (`components/home/character-preview.tsx`)
+    - 상세 캐릭터창 페이지 기본 구조
+  - Phase 2: 핵심 컴포넌트 구현 완료
+    - 캐릭터 아바타 컴포넌트 (`components/health/character/character-avatar.tsx`)
+    - 기본 정보 패널 컴포넌트 (`components/health/character/basic-info-panel.tsx`)
+    - 중요 정보 패널 컴포넌트 (`components/health/character/important-info-panel.tsx`)
+  - Phase 3: 건강 정보 패널 구현 완료
+    - 약물 복용 패널 컴포넌트 (`components/health/character/medication-panel.tsx`)
+    - 건강검진 패널 컴포넌트 (`components/health/character/checkup-panel.tsx`)
+    - 백신 패널 컴포넌트 (`components/health/character/vaccination-panel.tsx`)
+    - 구충제 패널 컴포넌트 (`components/health/character/deworming-panel.tsx`)
+    - 약물 복용 체크 API (`app/api/health/medications/[id]/check/route.ts`)
+  - Phase 4: 생애주기별 알림 및 리마인드 통합 완료
+    - 생애주기별 알림 패널 컴포넌트 (`components/health/character/lifecycle-notifications-panel.tsx`)
+    - 리마인드 및 일정 패널 컴포넌트 (`components/health/character/reminders-panel.tsx`)
+    - 건강 트렌드 요약 패널 컴포넌트 (`components/health/character/health-trends-panel.tsx`)
+  - Phase 5: 네온 효과 및 모션 디자인 구현 완료
+    - 캐릭터창 전용 애니메이션 프리셋 (`lib/animations/character-animations.ts`)
+    - 페이지 진입 애니메이션 (페이드 인 + 슬라이드 업)
+    - 패널 스태거 애니메이션 (순차적으로 나타남)
+    - 카드 호버 및 클릭 인터랙션 (스케일, 그림자 효과)
+    - 우선순위별 네온 색상 시스템 강화
+    - 모든 패널 컴포넌트에 모션 적용
+  - Phase 6: 홈페이지 통합 및 최종 검증 완료
+    - 홈페이지 통합 완료 (`app/page.tsx`에 `CharacterPreview` 통합)
+    - 홈페이지 캐릭터 카드에 애니메이션 및 네온 효과 적용
+    - 성능 최적화 (건강 점수 캐싱, 이미지 lazy loading)
+    - 에러 처리 강화 (Suspense, ErrorBoundary)
+    - 최종 검증 완료
 
 - **가족 구성원 예방접종 안내 팝업** 기능 추가
   - 가족 구성원별 예방접종 권장사항 조회 API 구현

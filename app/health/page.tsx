@@ -15,6 +15,7 @@ import { useSearchParams } from 'next/navigation';
 import { Section } from '@/components/section';
 import { HealthDashboardWrapper } from '@/components/health/dashboard/HealthDashboardWrapper';
 import { HealthVisualizationPreview } from '@/components/home/health-visualization-preview';
+import { LifecycleNotificationGrid } from '@/components/health/lifecycle-notification-grid';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,7 +47,7 @@ function HealthManagementContent() {
         </div>
 
         <Tabs defaultValue={initialTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 mb-6 text-foreground gap-1 h-auto min-h-9 p-1">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 mb-6 text-foreground gap-1 h-auto min-h-9 p-1">
             <TabsTrigger 
               value="dashboard" 
               className="text-foreground data-[state=active]:text-foreground text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap"
@@ -64,6 +65,12 @@ function HealthManagementContent() {
               className="text-foreground data-[state=active]:text-foreground text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap"
             >
               가족 건강
+            </TabsTrigger>
+            <TabsTrigger 
+              value="pets" 
+              className="text-foreground data-[state=active]:text-foreground text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-400 data-[state=active]:via-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:font-bold"
+            >
+              반려동물 건강
             </TabsTrigger>
             <TabsTrigger 
               value="records" 
@@ -112,23 +119,15 @@ function HealthManagementContent() {
               </CardContent>
             </Card>
 
-            {/* 건강 알림 및 권장사항 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  🔔 건강 알림 및 권장사항
-                </CardTitle>
-                <CardDescription>예방접종, 건강검진, 약물 복용 알림</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="text-sm">• 예방접종 예정일: 할머니 독감 예방접종 (2025.02.15)</p>
-                  <p className="text-sm">• 건강검진 권장일: 아빠 정기 건강검진 (2025.02.20)</p>
-                  <p className="text-sm">• 약물 복용 알림: 할머니 혈압약 오전 9시 (완료 ✓)</p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* 생애주기별 건강 알림 */}
+            <ErrorBoundary>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-4">🔔 생애주기별 건강 알림</h2>
+                <Suspense fallback={<SectionSkeleton />}>
+                  <LifecycleNotificationGrid />
+                </Suspense>
+              </div>
+            </ErrorBoundary>
           </TabsContent>
 
           <TabsContent value="profile" className="space-y-6">
@@ -175,6 +174,38 @@ function HealthManagementContent() {
                 <p className="text-sm text-muted-foreground">
                   (기능 개발 예정)
                 </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="pets" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">🐾</span>
+                  반려동물 건강
+                </CardTitle>
+                <CardDescription>반려동물 생애주기별 건강 관리 및 백신 추적</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground mb-4">
+                    반려동물의 건강을 체계적으로 관리하고, AVMA/AAHA 기준에 따른 생애주기별 건강 이벤트를 추적할 수 있습니다.
+                  </p>
+                  <Button asChild className="bg-gradient-to-r from-orange-400 via-amber-500 to-orange-600 hover:from-orange-500 hover:via-amber-600 hover:to-orange-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200">
+                    <Link href="/health/pets">반려동물 건강 관리 시작하기</Link>
+                  </Button>
+                  <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                    <h4 className="font-semibold text-orange-900 mb-2">주요 기능</h4>
+                    <ul className="space-y-1 text-sm text-orange-800">
+                      <li>• 반려동물 프로필 관리 (강아지/고양이)</li>
+                      <li>• 생애주기별 건강 이벤트 자동 매칭</li>
+                      <li>• 백신 D-Day 카운트다운</li>
+                      <li>• 체중 변화 그래프 시각화</li>
+                      <li>• 건강 검진 일정 관리</li>
+                    </ul>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

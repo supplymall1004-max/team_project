@@ -44,11 +44,53 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
   const [error, setError] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  // 캐시된 날씨 정보 확인
+  const getCachedWeather = (lat: number, lon: number): WeatherData | null => {
+    try {
+      const cacheKey = `weather_${lat.toFixed(2)}_${lon.toFixed(2)}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        // 10분 이내 캐시는 유효
+        if (Date.now() - timestamp < 10 * 60 * 1000) {
+          return data;
+        }
+      }
+    } catch (err) {
+      // 캐시 읽기 실패는 무시
+    }
+    return null;
+  };
+
+  // 날씨 정보 캐시 저장
+  const setCachedWeather = (lat: number, lon: number, data: WeatherData) => {
+    try {
+      const cacheKey = `weather_${lat.toFixed(2)}_${lon.toFixed(2)}`;
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data,
+        timestamp: Date.now(),
+      }));
+    } catch (err) {
+      // 캐시 저장 실패는 무시
+    }
+  };
+
   // 날씨 정보 가져오기
-  const fetchWeather = async (lat: number, lon: number) => {
+  const fetchWeather = async (lat: number, lon: number, retryCount = 0) => {
     try {
       console.group("[WeatherWidget] 날씨 정보 조회");
       console.log(`📍 위치: ${lat}, ${lon}`);
+
+      // 캐시 확인
+      const cached = getCachedWeather(lat, lon);
+      if (cached) {
+        console.log("✅ 캐시된 날씨 정보 사용");
+        setWeather(cached);
+        setLoading(false);
+        setError(null);
+        console.groupEnd();
+        return;
+      }
 
       setLoading(true);
       setError(null);
@@ -86,8 +128,45 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
 
       // HTTP 에러 상태 확인 (JSON 응답인 경우)
       if (!response.ok) {
-        console.error(`❌ 날씨 API HTTP 오류: ${response.status} ${response.statusText}`);
-        console.error("❌ 에러 응답:", data);
+        // 429 Too Many Requests 에러 처리 (우선 처리)
+        if (response.status === 429) {
+          console.warn("⚠️ [WeatherWidget] API 호출 제한 초과 (429). 캐시된 데이터를 확인합니다.");
+          
+          // 캐시된 데이터가 있으면 조용히 사용
+          const cached = getCachedWeather(lat, lon);
+          if (cached) {
+            console.log("✅ [WeatherWidget] 캐시된 날씨 정보 사용");
+            setWeather(cached);
+            setError(null);
+            setLoading(false);
+            console.groupEnd();
+            return;
+          }
+          
+          // 재시도 로직 (최대 1회, 지수 백오프)
+          if (retryCount < 1) {
+            const delay = Math.pow(2, retryCount) * 2000; // 2초
+            console.log(`⏳ [WeatherWidget] ${delay}ms 후 재시도... (${retryCount + 1}/1)`);
+            setTimeout(() => {
+              fetchWeather(lat, lon, retryCount + 1);
+            }, delay);
+            return;
+          }
+          
+          // 재시도 실패 시 조용히 처리 (에러 표시하지 않음)
+          console.warn("⚠️ [WeatherWidget] API 호출 제한으로 인해 날씨 정보를 불러올 수 없습니다. 잠시 후 자동으로 다시 시도됩니다.");
+          setError(null); // 사용자에게 에러를 표시하지 않음
+          setWeather(null);
+          setLoading(false);
+          console.groupEnd();
+          return;
+        }
+        
+        // 429가 아닌 다른 HTTP 오류
+        console.error(`❌ [WeatherWidget] 날씨 API HTTP 오류: ${response.status} ${response.statusText}`);
+        if (data && Object.keys(data).length > 0) {
+          console.error("❌ [WeatherWidget] 에러 응답:", data);
+        }
         
         // NO_DATA는 정상적인 상황일 수 있음 (해당 시간대에 데이터가 없을 수 있음)
         if (data?.error?.includes("NO_DATA") || data?.error?.includes("데이터가 없습니다")) {
@@ -115,6 +194,30 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
 
       if (!data.success) {
         console.error("❌ 날씨 API 응답 실패:", data);
+        
+        // 429 에러 처리 (API 응답에서도 확인)
+        if (data.error?.includes("API 호출 제한") || data.error?.includes("429")) {
+          console.warn("⚠️ [WeatherWidget] API 호출 제한 초과. 캐시된 데이터를 확인합니다.");
+          
+          // 캐시된 데이터가 있으면 조용히 사용
+          const cached = getCachedWeather(lat, lon);
+          if (cached) {
+            console.log("✅ [WeatherWidget] 캐시된 날씨 정보 사용");
+            setWeather(cached);
+            setError(null);
+            setLoading(false);
+            console.groupEnd();
+            return;
+          }
+          
+          // 캐시가 없으면 조용히 처리 (에러 표시하지 않음)
+          console.warn("⚠️ [WeatherWidget] API 호출 제한으로 인해 날씨 정보를 불러올 수 없습니다. 잠시 후 자동으로 다시 시도됩니다.");
+          setError(null); // 사용자에게 에러를 표시하지 않음
+          setWeather(null);
+          setLoading(false);
+          console.groupEnd();
+          return;
+        }
         
         // API 키 관련 에러인 경우
         if (data.error?.includes("API 키") || data.error?.includes("설정되지 않았습니다")) {
@@ -145,6 +248,10 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
 
       console.log("✅ 날씨 정보 수신:", data.data);
       setWeather(data.data);
+      // 캐시에 저장
+      if (data.data) {
+        setCachedWeather(lat, lon, data.data);
+      }
       console.groupEnd();
     } catch (err) {
       // 네트워크 오류나 기타 예외는 조용히 처리

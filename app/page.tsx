@@ -29,6 +29,18 @@ import { WeatherWidget } from "@/components/home/weather-widget";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
 import { DirectionalEntrance } from "@/components/motion/directional-entrance";
 import { ParallaxSection } from "@/components/motion/parallax-section";
+import { CharacterPreview } from "@/components/home/character-preview";
+
+function SectionSkeleton() {
+  return (
+    <div className="py-12 text-center">
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto"></div>
+        <div className="h-64 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  );
+}
 
 // 동적 렌더링 강제 (MFDS API 등 외부 API 사용으로 인해)
 export const dynamic = 'force-dynamic';
@@ -98,10 +110,12 @@ export default async function Home() {
         <DietManagementPreview />
       </ErrorBoundary> */}
 
-      {/* 건강 관리 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}
-      {/* <ErrorBoundary>
-        <HealthManagementPreview />
-      </ErrorBoundary> */}
+      {/* 건강 관리 미리보기 - 캐릭터창 프리뷰 */}
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <CharacterPreview />
+        </Suspense>
+      </ErrorBoundary>
 
       {/* 스토리 & 학습 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}
       {/* <ErrorBoundary>

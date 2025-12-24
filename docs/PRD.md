@@ -118,6 +118,7 @@
 | **C-46.11.3** | 반려동물 체중 관리 | 체중 기록 및 추적, 체중 변화 그래프 시각화, 분기별 체중 기록 권고 알림 | `pet_weight_records` 테이블, `lib/health/pet-weight-analyzer.ts`, `components/health/pets/pet-weight-tab.tsx` |
 | **C-46.11.4** | 반려동물 건강 검진 관리 | 구강 관리(치과 검진, 스케일링), 혈액 검사 리마인더, 정기 검진 일정 관리 | `pet_health_checkup_records` 테이블, `components/health/pets/pet-checkup-tab.tsx` |
 | **C-46.11.5** | 반려동물 생애주기별 건강 이벤트 | 중성화 수술 시기 안내, 생애주기별 맞춤 건강 이벤트 자동 매칭 | `lifecycle_event_master` 테이블 (pet_healthcare 카테고리), `components/health/pets/pet-lifecycle-events-tab.tsx` |
+| **C-47**  | 캐릭터창 인터페이스 (게임 HUD 스타일) | 가족 구성원별 캐릭터 아바타 중심 건강 관리 인터페이스. 홈페이지 기능 요약본 역할, 알림 중심, 일정 관리 및 리마인드 시스템 통합. **완료** (Phase 0-6: 데이터베이스 마이그레이션, 기본 구조, 핵심 컴포넌트, 건강 정보 패널, 생애주기별 알림 및 리마인드 통합, 네온 효과 및 모션 디자인, 홈페이지 통합 및 최종 검증). | `components/home/character-preview.tsx`, `app/(dashboard)/health/family/[memberId]/character/page.tsx`, `components/health/character/*`, `actions/health/character.ts`, `app/api/health/medications/[id]/check/route.ts`, `lib/animations/character-animations.ts` |
 
 > **비고:** GI 지수 필터, 영양 리포트, 일일 알림 팝업, 어린이 성장기 식단 등은 현재 제품 범위에서 제외되어 본 문서에서도 제거했습니다. 필요 시 별도 백로그 문서로 관리합니다.
 

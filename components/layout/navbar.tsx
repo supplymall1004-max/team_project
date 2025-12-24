@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/auth/login-modal";
+import { NotificationBadge } from "@/components/health/notification-badge";
 
 const navLinks = [
   { label: "레시피", href: "/archive/recipes", icon: BookOpen },
@@ -223,21 +224,25 @@ const Navbar = () => {
 
           {/* 데스크톱 네비게이션 */}
           <div className="hidden lg:flex items-center gap-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "text-sm font-medium transition-colors",
-                  pathname === link.href || pathname?.startsWith(link.href + "/")
-                    ? "text-orange-600"
-                    : "text-gray-700 hover:text-orange-600",
-                )}
-                onClick={() => handleNavClick(link.label)}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isHealthLink = link.href === "/health";
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "relative text-sm font-medium transition-colors",
+                    pathname === link.href || pathname?.startsWith(link.href + "/")
+                      ? "text-orange-600"
+                      : "text-gray-700 hover:text-orange-600",
+                  )}
+                  onClick={() => handleNavClick(link.label)}
+                >
+                  {link.label}
+                  {isHealthLink && <NotificationBadge className="absolute -top-1 -right-3" />}
+                </Link>
+              );
+            })}
             {/* 설정 메뉴 (로그인한 사용자만 표시) */}
             <SignedIn>
               <Link
@@ -290,19 +295,23 @@ const Navbar = () => {
           <div className="px-4 py-4 space-y-2">
             {navLinks.map((link) => {
               const Icon = link.icon;
+              const isHealthLink = link.href === "/health";
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-2 text-base font-medium rounded-md transition-colors",
+                    "relative flex items-center gap-3 px-4 py-2 text-base font-medium rounded-md transition-colors",
                     pathname === link.href || pathname?.startsWith(link.href + "/")
                       ? "bg-orange-50 text-orange-600"
                       : "text-gray-700 hover:bg-gray-50",
                   )}
                   onClick={() => handleNavClick(link.label)}
                 >
-                  <Icon className="h-5 w-5" />
+                  <div className="relative">
+                    <Icon className="h-5 w-5" />
+                    {isHealthLink && <NotificationBadge className="absolute -top-1 -right-2" />}
+                  </div>
                   <span>{link.label}</span>
                 </Link>
               );

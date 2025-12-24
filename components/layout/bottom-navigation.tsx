@@ -17,6 +17,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, BookOpen, Heart, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NotificationBadge } from "@/components/health/notification-badge";
 
 const menuItems = [
   { icon: Home, label: "홈", href: "/" },
@@ -47,12 +48,15 @@ export function BottomNavigation() {
             pathname === item.href ||
             (item.href !== "/" && pathname?.startsWith(item.href));
 
+          // 건강 메뉴에 알림 배지 추가
+          const isHealthMenu = item.href === "/health";
+
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full",
+                "relative flex flex-col items-center justify-center gap-1 flex-1 h-full",
                 "transition-all duration-200 ease-in-out",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2",
                 isActive
@@ -93,13 +97,16 @@ export function BottomNavigation() {
                 }
               }}
             >
-              <Icon
-                className={cn(
-                  "w-6 h-6 transition-all duration-200",
-                  isActive && "stroke-[2.5] scale-110"
-                )}
-                aria-hidden="true"
-              />
+              <div className="relative">
+                <Icon
+                  className={cn(
+                    "w-6 h-6 transition-all duration-200",
+                    isActive && "stroke-[2.5] scale-110"
+                  )}
+                  aria-hidden="true"
+                />
+                {isHealthMenu && <NotificationBadge />}
+              </div>
               <span className={cn(
                 "text-sm font-medium transition-all duration-200",
                 isActive && "font-semibold"

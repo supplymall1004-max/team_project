@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     // 데이터 매핑 및 저장 (기본 구현)
     // 실제로는 파일 형식에 따라 더 정교한 파싱이 필요합니다
-    let savedCount = 0;
+    const savedCount = 0;
 
     // 여기서는 간단한 예시만 제공하고, 실제 구현 시 파일 형식에 맞는 파서를 작성해야 합니다
     console.log(`📄 파일 파싱 완료: ${parsedData.length}건`);

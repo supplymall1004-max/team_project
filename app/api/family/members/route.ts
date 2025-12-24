@@ -104,7 +104,7 @@ export async function GET() {
     // 가족 구성원 조회
     const { data: members, error } = await supabase
       .from("family_members")
-      .select("id, user_id, name, birth_date, gender, relationship, diseases, allergies, height_cm, weight_kg, activity_level, dietary_preferences, include_in_unified_diet, created_at, updated_at")
+      .select("id, user_id, name, birth_date, gender, relationship, diseases, allergies, height_cm, weight_kg, activity_level, dietary_preferences, include_in_unified_diet, photo_url, member_type, created_at, updated_at")
       .eq("user_id", supabaseUserId)
       .order("created_at", { ascending: true });
 

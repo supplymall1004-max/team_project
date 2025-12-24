@@ -636,7 +636,7 @@ export class BluetoothHealthClient {
           
           // BLE Health Thermometer Profile 형식 파싱
           const flags = value.getUint8(0);
-          let offset = 1;
+          const offset = 1;
 
           // Temperature (IEEE 11073 FLOAT)
           const tempValue = value.getUint32(offset, true);

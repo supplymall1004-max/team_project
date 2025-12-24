@@ -142,8 +142,8 @@ export class GoogleFitClient {
         for (const bucket of stepsResponse.bucket) {
           const date = new Date(parseInt(bucket.startTimeMillis));
           let steps = 0;
-          let activeMinutes = 0;
-          let calories = 0;
+          const activeMinutes = 0;
+          const calories = 0;
 
           // 걸음 수 집계
           if (bucket.dataset && bucket.dataset[0]?.point) {

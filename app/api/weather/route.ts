@@ -197,6 +197,20 @@ export async function GET(request: NextRequest) {
       console.error("❌ 기상청 API HTTP 오류:", weatherResponse.status);
       const errorText = await weatherResponse.text().catch(() => "응답을 읽을 수 없습니다");
       console.error("❌ 오류 응답 내용:", errorText.substring(0, 500));
+      
+      // 429 Too Many Requests 에러에 대한 특별 처리
+      if (weatherResponse.status === 429) {
+        console.warn("⚠️ API 호출 제한 초과 (429). 사용자에게 캐시된 데이터를 사용하도록 안내합니다.");
+        console.groupEnd();
+        return NextResponse.json<WeatherResponse>(
+          {
+            success: false,
+            error: "API 호출 제한을 초과했습니다. 잠시 후 다시 시도해주세요.",
+          },
+          { status: 429 }
+        );
+      }
+      
       console.groupEnd();
       return NextResponse.json<WeatherResponse>(
         {

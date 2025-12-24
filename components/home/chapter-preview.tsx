@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BookOpen, Heart, ChefHat, Calendar, Book, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LifecycleNotificationsPreview } from '@/components/home/lifecycle-notifications-preview';
 
 interface ChapterPreviewProps {
   chapter: 1 | 2;
@@ -191,6 +192,12 @@ export function Chapter2Preview({ className }: { className?: string }) {
             </CardContent>
           </Card>
 
+          {/* 생애주기별 건강 알림 */}
+          <LifecycleNotificationsPreview className="hover:shadow-lg transition-all" />
+        </div>
+
+        {/* 하단 2개 카드 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* 건강 트렌드 */}
           <Card className="hover:shadow-lg transition-all cursor-pointer group">
             <CardHeader>
@@ -215,30 +222,8 @@ export function Chapter2Preview({ className }: { className?: string }) {
 
         {/* 하단 2개 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* 건강 알림 */}
-          <Card className="hover:shadow-lg transition-all cursor-pointer group">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Heart className="h-5 w-5 text-green-600" />
-                🔔 건강 알림
-              </CardTitle>
-              <CardDescription>예방접종, 건강검진, 약물 복용 알림</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• 예방접종 예정일</li>
-                  <li>• 건강검진 권장일</li>
-                  <li>• 약물 복용 알림</li>
-                </ul>
-                <Button asChild variant="outline" className="w-full group-hover:bg-green-50">
-                  <Link href="/health/dashboard">
-                    더보기 <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {/* 생애주기별 건강 알림 */}
+          <LifecycleNotificationsPreview className="hover:shadow-lg transition-all" />
 
           {/* 목표 달성 */}
           <Card className="hover:shadow-lg transition-all cursor-pointer group">

@@ -14,6 +14,7 @@ import { Suspense } from 'react';
 import { Section } from '@/components/section';
 import { HealthDashboardWrapper } from '@/components/health/dashboard/HealthDashboardWrapper';
 import { HealthVisualizationPreview } from '@/components/home/health-visualization-preview';
+import { LifecycleNotificationGrid } from '@/components/health/lifecycle-notification-grid';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,29 +89,23 @@ export default function Chapter2Page() {
           </Card>
         </div>
 
-        {/* 건강 알림 및 권장사항 */}
+        {/* 생애주기별 건강 알림 */}
         <div className="mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                🔔 건강 알림 및 권장사항
-              </CardTitle>
-              <CardDescription>예방접종, 건강검진, 약물 복용 알림</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">• 예방접종 예정일</p>
-                <p className="text-sm text-muted-foreground">• 건강검진 권장일</p>
-                <p className="text-sm text-muted-foreground">• 약물 복용 알림</p>
+          <ErrorBoundary>
+            <div>
+              <h2 className="text-2xl font-bold mb-4">🔔 생애주기별 건강 알림</h2>
+              <Suspense fallback={<SectionSkeleton />}>
+                <LifecycleNotificationGrid />
+              </Suspense>
+              <div className="mt-4 text-center">
+                <Button asChild variant="outline">
+                  <Link href="/health/notifications">
+                    알림 센터 전체보기 <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
               </div>
-              <Button asChild variant="outline" className="w-full mt-4">
-                <Link href="/health/dashboard">
-                  더보기 <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </ErrorBoundary>
         </div>
 
         {/* 건강 목표 추적 */}

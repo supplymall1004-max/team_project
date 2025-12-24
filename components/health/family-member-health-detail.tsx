@@ -28,9 +28,13 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
+  Bell,
+  ArrowRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { LifecycleNotificationGrid } from "@/components/health/lifecycle-notification-grid";
 
 /**
  * 구성원 건강 상세 데이터
@@ -461,6 +465,31 @@ export function FamilyMemberHealthDetail({ memberId }: FamilyMemberHealthDetailP
           </CardContent>
         </Card>
       )}
+
+      {/* 생애주기별 건강 알림 */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              생애주기별 건강 알림
+            </CardTitle>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/health/family/${memberId}/notifications`}>
+                전체 보기
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <LifecycleNotificationGrid 
+            familyMemberId={memberId}
+            priority="all"
+            status="pending"
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

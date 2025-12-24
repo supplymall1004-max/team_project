@@ -28,6 +28,7 @@ export async function HomeLanding() {
   ]);
 
   // 빠른 시작 카드 데이터 구성 (앱 아이콘 스타일 - 세련된 그라데이션 적용)
+  // 아이콘 중복 제거 및 각 기능에 맞는 아이콘으로 재배치
   const quickStartCards: QuickStartCard[] = [
     {
       title: "레시피",
@@ -49,7 +50,7 @@ export async function HomeLanding() {
       title: "이유식 레시피",
       description: "아기 이유식 레시피",
       href: "/archive/recipes?tab=baby",
-      iconSrc: "/icons/18.png",
+      iconSrc: "/icons/24.png", // 18.png에서 변경
       color: "bg-pink-500",
       gradient: "bg-gradient-to-br from-pink-400 via-rose-500 to-pink-600",
     },
@@ -57,7 +58,7 @@ export async function HomeLanding() {
       title: "죽 레시피",
       description: "영양 가득한 죽 레시피",
       href: "/archive/recipes?tab=gruel",
-      iconSrc: "/icons/12.png",
+      iconSrc: "/icons/23.png", // 15.png에서 변경
       color: "bg-amber-600",
       gradient: "bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600",
     },
@@ -65,7 +66,7 @@ export async function HomeLanding() {
       title: "특수 레시피",
       description: "해독, 염증 완화, 기력 회복 특수 레시피",
       href: "/archive/recipes?tab=special",
-      iconSrc: "/icons/11.png",
+      iconSrc: "/icons/17.png",
       color: "bg-purple-600",
       gradient: "bg-gradient-to-br from-purple-500 via-violet-600 to-purple-700",
     },
@@ -81,7 +82,7 @@ export async function HomeLanding() {
       title: "식약처레시피",
       description: "공식 식약처 레시피",
       href: "/recipes/mfds",
-      iconSrc: "/icons/12.png",
+      iconSrc: "/icons/21.png", // 13.png에서 변경 (궁중요리와 중복이지만 사용자 요청)
       color: "bg-green-600",
       gradient: "bg-gradient-to-br from-emerald-500 via-green-600 to-teal-600",
     },
@@ -105,7 +106,7 @@ export async function HomeLanding() {
       title: "건강관리",
       description: "가족 건강 관리",
       href: "/health",
-      iconSrc: "/icons/11.png",
+      iconSrc: "/icons/36.png", // 20.png에서 변경
       color: "bg-red-500",
       gradient: "bg-gradient-to-br from-pink-500 via-rose-500 to-red-500",
     },
@@ -113,9 +114,17 @@ export async function HomeLanding() {
       title: "요리이야기",
       description: "맛있는 이야기들",
       href: "/stories",
-      iconSrc: "/icons/14.png",
+      iconSrc: "/icons/14.png", // 16.png에서 변경
       color: "bg-indigo-500",
       gradient: "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700",
+    },
+    {
+      title: "반려동물",
+      description: "반려동물 건강 관리",
+      href: "/health/pets",
+      iconSrc: "/icons/30.png", // 19.png에서 변경
+      color: "bg-orange-500",
+      gradient: "bg-gradient-to-br from-orange-400 via-amber-500 to-orange-600",
     },
     {
       title: "유틸리티",
