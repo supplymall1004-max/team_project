@@ -112,6 +112,12 @@
 | **C-46.8** | 가족 공유 대시보드 | 가족 구성원별 생애주기 이벤트를 통합 관리하는 공유 캘린더 및 대시보드 | `app/health/family/lifecycle-dashboard`, `components/health/lifecycle-event-family-dashboard.tsx` |
 | **C-46.9** | 정부 정책 API 연동 | 보조금24 API 연동으로 생애주기 이벤트별 정부 지원금 자동 매칭 및 신청 가이드 제공 | `app/api/government-subsidies/*`, `lib/government/subsidy24-client.ts` |
 | **C-46.10** | 심리적 지지 메시지 시스템 | 민감한 이벤트(폐경, 군입대, 은퇴) 시 따뜻한 톤앤매너의 응원 메시지 카드 제공 | `lifecycle_event_support_messages` 테이블, `components/health/lifecycle-event-support-message.tsx` |
+| **C-46.11** | 반려동물 생애주기별 건강 관리 시스템 | AVMA/AAHA 기준 반려동물 생애주기 관리, 백신 추적, 체중 관리, 건강 검진 추적 | `pets`, `pet_vaccination_records`, `pet_weight_records`, `pet_health_checkup_records` 테이블, `components/health/pets/*` |
+| **C-46.11.1** | 반려동물 프로필 관리 | 반려동물 프로필 등록/수정/삭제, 실시간 나이 계산 및 생애주기 단계 판별 (AVMA/AAHA 기준) | `pets` 테이블, `lib/health/pet-lifecycle-calculator.ts`, `components/health/pets/pet-profile-card.tsx` |
+| **C-46.11.2** | 반려동물 백신 관리 | 스마트 백신 추적기 (D-Day 카운트다운, 자동 계산, 종류별 필터링, 백신 일정 캘린더) | `pet_vaccination_records`, `pet_vaccine_master` 테이블, `lib/health/pet-vaccine-scheduler.ts`, `components/health/pets/pet-vaccine-tab.tsx` |
+| **C-46.11.3** | 반려동물 체중 관리 | 체중 기록 및 추적, 체중 변화 그래프 시각화, 분기별 체중 기록 권고 알림 | `pet_weight_records` 테이블, `lib/health/pet-weight-analyzer.ts`, `components/health/pets/pet-weight-tab.tsx` |
+| **C-46.11.4** | 반려동물 건강 검진 관리 | 구강 관리(치과 검진, 스케일링), 혈액 검사 리마인더, 정기 검진 일정 관리 | `pet_health_checkup_records` 테이블, `components/health/pets/pet-checkup-tab.tsx` |
+| **C-46.11.5** | 반려동물 생애주기별 건강 이벤트 | 중성화 수술 시기 안내, 생애주기별 맞춤 건강 이벤트 자동 매칭 | `lifecycle_event_master` 테이블 (pet_healthcare 카테고리), `components/health/pets/pet-lifecycle-events-tab.tsx` |
 
 > **비고:** GI 지수 필터, 영양 리포트, 일일 알림 팝업, 어린이 성장기 식단 등은 현재 제품 범위에서 제외되어 본 문서에서도 제거했습니다. 필요 시 별도 백로그 문서로 관리합니다.
 
@@ -159,6 +165,7 @@
 | **E-6** | 마카의 음식 동화     | 전통 음식의 탄생과 역사를 동화처럼 들려주는 인터랙티브 스토리북 플레이어를 제공합니다. YouTube 비디오를 방 형태로 재생하며, 선물 상자를 클릭하여 다양한 음식 이야기를 선택할 수 있습니다. | `app/(main)/storybook/page.tsx`, `components/storybook/storybook-room.tsx`, `components/storybook/storybook-section.tsx` ✅ 완료 |
 | **E-7** | 챕터 구조 레이아웃   | 홈페이지의 여러 섹션을 두 개의 챕터로 재구성하고, 메인 화면에 대표적인 부분을 배치하는 레이아웃 설계. 챕터 1(레시피 & 식단 아카이브)과 챕터 2(건강 관리 현황)로 구분.                     | `app/chapters/recipes-diet/page.tsx`, `app/chapters/health/page.tsx`, `components/home/chapter-preview.tsx` ✅ 완료              |
 | **E-8** | 건강 시각화 대시보드 | 현재 건강 상태, 영양 균형, 식단 효과 예측, 질병 위험도 등을 시각화하여 제공하는 종합 대시보드.                                                                                            | `components/health/visualization/*`, `app/api/health/metrics`, `app/api/health/meal-impact` ✅ 완료                              |
+| **E-9** | 반려동물 건강 관리 대시보드 | 반려동물 생애주기별 건강 관리, 백신 추적, 체중 관리, 건강 검진 추적을 위한 종합 대시보드. AVMA/AAHA 기준 생애주기 단계 자동 판별 및 맞춤형 건강 이벤트 제공. | `components/health/pets/*`, `app/health/pets/*`, `app/api/health/pets/*` |
 
 ---
 
