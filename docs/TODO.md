@@ -760,15 +760,84 @@
     - [ ] RLS 정책 추가 (프로덕션 환경)
     - [ ] API 인증 강화
   - [ ] 개인정보 처리 방침 업데이트 (`app/privacy/page.tsx`)
-- [ ] **Phase 9: 테스트 및 문서화**
+- [ ] **Phase 9: 생애주기별 네온 알림 시스템 - 전체 생애주기 이벤트 확장**
+  - [ ] 데이터베이스 스키마 확장
+    - [ ] `notifications` 테이블 type/category 확장
+    - [ ] `lifecycle_event_master` 테이블 생성
+    - [ ] `lifecycle_event_professional_info` 테이블 생성
+    - [ ] `lifecycle_event_user_choices` 테이블 생성
+    - [ ] `family_shared_lifecycle_events` 테이블 생성
+    - [ ] `government_subsidies` 테이블 생성
+    - [ ] `user_subsidy_matches` 테이블 생성
+    - [ ] `lifecycle_event_support_messages` 테이블 생성
+  - [ ] 마스터 데이터 초기화
+    - [ ] 모든 생애주기 이벤트 마스터 데이터 삽입
+    - [ ] 전문의 정보 데이터 삽입
+    - [ ] 정부 지원금 정보 초기 데이터 삽입
+    - [ ] 응원 메시지 데이터 삽입
+  - [ ] 민감한 건강 이벤트 구현
+    - [ ] 포경수술 알림 시스템 (전문의 정보 제공, 선택권 존중)
+    - [ ] 첫 생리 알림 시스템 (부모 가이드, 생리대 정보)
+    - [ ] 폐경 알림 시스템 (상태 설명, 극복 방법)
+  - [ ] 교육 단계 이벤트 구현
+    - [ ] 유치원/초등학교/중학교/고등학교 입학 알림
+    - [ ] 수능 알림
+    - [ ] 대학교/대학원/박사과정 입학 알림
+  - [ ] 가족 형성 및 확장 이벤트 구현
+    - [ ] 결혼 준비 알림 시스템 (D-Day 카운트다운, 예산 관리)
+    - [ ] 임신 및 출산 알림 시스템 (주차별 추적, 태아 성장 그래픽)
+    - [ ] 육아 마일스톤 알림 시스템 (백일잔치, 돌잔치 준비)
+  - [ ] 주거 및 경제적 독립 이벤트 구현
+    - [ ] 첫 독립 및 자취 알림 시스템
+    - [ ] 내 집 마련 및 이사 알림 시스템
+  - [ ] 사회적/법적 권리 이벤트 구현
+    - [ ] 운전면허 취득 알림 시스템
+    - [ ] 투표권 획득 알림 시스템 (첫 투표 인증 배지)
+  - [ ] 시니어 및 은퇴 라이프 이벤트 구현
+    - [ ] 은퇴 및 제2의 인생 알림 시스템 (심리적 지지 메시지 포함)
+    - [ ] 실버 건강 관리 알림 시스템
+  - [ ] 라이프스타일 이벤트 구현
+    - [ ] 반려동물 입양 및 관리 알림 시스템
+  - [ ] UI/UX 고도화 기능 구현
+    - [ ] 가족 공유 대시보드 구현 (공유 캘린더, 가족 구성원별 이벤트 통합 뷰)
+    - [ ] 정부 정책 API 연동 (보조금24 API, 이벤트별 지원금 매칭)
+    - [ ] 심리적 지지 메시지 시스템 구현 (따뜻한 톤앤매너, 응원 메시지 카드)
+  - [ ] 비즈니스 로직 구현
+    - [ ] 생애주기 이벤트 생성 로직 (`lib/health/lifecycle-event-generator.ts`)
+    - [ ] 전문의 정보 서비스 (`lib/health/lifecycle-event-professional-info.ts`)
+    - [ ] 사용자 선택 기록 서비스 (`lib/health/lifecycle-event-user-choice.ts`)
+    - [ ] 정부 지원금 매칭 로직 (`lib/government/subsidy-matcher.ts`)
+  - [ ] API 엔드포인트 구현
+    - [ ] 생애주기 이벤트 조회/생성 API
+    - [ ] 전문의 정보 조회 API
+    - [ ] 사용자 선택 기록 API
+    - [ ] 정부 지원금 조회/매칭 API
+    - [ ] 가족 공유 대시보드 API
+  - [ ] UI 컴포넌트 구현
+    - [ ] 생애주기 이벤트 카드 컴포넌트
+    - [ ] 이벤트 상세 모달 컴포넌트
+    - [ ] 전문의 정보 표시 컴포넌트
+    - [ ] 사용자 선택 폼 컴포넌트
+    - [ ] 교육 가이드 컴포넌트
+    - [ ] 결혼 준비 계획 컴포넌트
+    - [ ] 임신 주차별 추적 컴포넌트
+    - [ ] 가족 공유 대시보드 컴포넌트
+    - [ ] 심리적 지지 메시지 카드 컴포넌트
+    - [ ] 정부 지원금 매칭 컴포넌트
+  - [ ] 크론 작업 구현
+    - [ ] 생애주기 이벤트 알림 생성 크론 작업
+    - [ ] 생애주기 이벤트 리마인더 발송 크론 작업
+- [ ] **Phase 10: 테스트 및 문서화**
   - [ ] 테스트 작성
     - [ ] 건강정보 동기화 로직 단위 테스트 (`__tests__/health-data-sync.test.ts`)
     - [ ] 예방주사 일정 생성 알고리즘 테스트 (`__tests__/vaccination-scheduler.test.ts`)
     - [ ] 알림 발송 서비스 테스트 (`__tests__/vaccination-notification.test.ts`)
+    - [ ] 생애주기 이벤트 생성 로직 테스트 (`__tests__/lifecycle-event-generator.test.ts`)
     - [ ] 통합 테스트 작성 (E2E 테스트)
   - [ ] 문서화
     - [ ] 건강정보 자동 연동 사용 가이드 작성 (`docs/user-manual/health-data-integration-guide.md`)
     - [ ] 예방주사 알림 서비스 사용 가이드 작성 (`docs/user-manual/vaccination-notification-guide.md`)
+    - [ ] 생애주기별 네온 알림 시스템 사용 가이드 작성 (`docs/user-manual/lifecycle-notification-guide.md`)
     - [ ] API 문서 업데이트 (Swagger/OpenAPI)
 
 ### C. 테스트 & 품질

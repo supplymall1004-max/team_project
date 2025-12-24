@@ -101,6 +101,17 @@
 | **C-43**  | 의료기관/약국 찾기 (지도 연동)   | 네이버 지도 기반 의료기관/약국 검색, 위치 권한 기반 근거리 검색, 카테고리별 필터링.                        | `app/(dashboard)/health/emergency/medical-facilities/*`, `app/api/health/medical-facilities/*`         |
 | **C-44**  | 건강정보 자동 연동                | 마이데이터/건강정보고속도로 연동, 병원/약물/질병/검진 기록 자동 동기화, 수동 동기화 버튼, 동기화 로그 조회. | `app/health/data-sources/*`, `lib/health/health-data-sync-service.ts`, `app/api/health/sync/*`         |
 | **C-45**  | 신원확인 기능                     | 본인 및 가족 구성원 신원확인(이름/주민등록번호 해시 저장), 건강정보 연동 선행 조건.                        | `app/api/identity/verifications/route.ts`, `components/health/family-member-identity-verification.tsx` |
+| **C-46**  | 생애주기별 네온 알림 시스템 (전체 생애주기 확장) | 태어나서 죽을 때까지의 모든 생애주기 이벤트를 관리하는 통합 알림 시스템. 민감한 사항은 전문의 정보 제공과 선택권 존중 중심으로 설계. | `app/api/health/lifecycle-events/*`, `components/health/lifecycle-event-*`, `lib/health/lifecycle-event-*` |
+| **C-46.1** | 민감한 건강 이벤트 알림 | 포경수술, 첫 생리, 폐경 등 민감한 건강 이벤트 알림 (전문의 정보 제공, 장단점 균형 제시, 선택권 존중) | `lifecycle_event_professional_info` 테이블, `components/health/lifecycle-event-professional-info.tsx` |
+| **C-46.2** | 교육 단계 이벤트 알림 | 유치원/초등학교/중학교/고등학교/대학교/대학원/박사과정 입학, 수능 알림 | `lifecycle_event_master` 테이블, `components/health/lifecycle-event-education-guide.tsx` |
+| **C-46.3** | 가족 형성 및 확장 이벤트 알림 | 결혼 준비, 임신 및 출산, 육아 마일스톤 알림 (D-Day 카운트다운, 예산 관리, 태아 성장 추적) | `components/health/lifecycle-event-wedding-planner.tsx`, `components/health/lifecycle-event-pregnancy-tracker.tsx` |
+| **C-46.4** | 주거 및 경제적 독립 이벤트 알림 | 첫 독립 및 자취, 내 집 마련 및 이사 알림 (부동산 가이드, 정부 지원금 매칭) | `components/health/lifecycle-event-housing-guide.tsx` |
+| **C-46.5** | 사회적/법적 권리 이벤트 알림 | 운전면허 취득, 투표권 획득 알림 (첫 투표 인증 배지) | `components/health/lifecycle-event-legal-guide.tsx` |
+| **C-46.6** | 시니어 및 은퇴 라이프 이벤트 알림 | 은퇴 및 제2의 인생, 실버 건강 관리 알림 (심리적 지지 메시지 포함) | `components/health/lifecycle-event-retirement-planner.tsx`, `components/health/lifecycle-event-support-message.tsx` |
+| **C-46.7** | 라이프스타일 이벤트 알림 | 반려동물 입양 및 관리 알림 (펫로스 증후군 가이드 포함) | `components/health/lifecycle-event-pet-guide.tsx` |
+| **C-46.8** | 가족 공유 대시보드 | 가족 구성원별 생애주기 이벤트를 통합 관리하는 공유 캘린더 및 대시보드 | `app/health/family/lifecycle-dashboard`, `components/health/lifecycle-event-family-dashboard.tsx` |
+| **C-46.9** | 정부 정책 API 연동 | 보조금24 API 연동으로 생애주기 이벤트별 정부 지원금 자동 매칭 및 신청 가이드 제공 | `app/api/government-subsidies/*`, `lib/government/subsidy24-client.ts` |
+| **C-46.10** | 심리적 지지 메시지 시스템 | 민감한 이벤트(폐경, 군입대, 은퇴) 시 따뜻한 톤앤매너의 응원 메시지 카드 제공 | `lifecycle_event_support_messages` 테이블, `components/health/lifecycle-event-support-message.tsx` |
 
 > **비고:** GI 지수 필터, 영양 리포트, 일일 알림 팝업, 어린이 성장기 식단 등은 현재 제품 범위에서 제외되어 본 문서에서도 제거했습니다. 필요 시 별도 백로그 문서로 관리합니다.
 
