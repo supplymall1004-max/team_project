@@ -302,10 +302,10 @@ function TravelTabContent() {
               </div>
               <div className="bg-white rounded-lg p-4 border border-sky-100">
                 <h3 className="font-semibold text-sky-900 mb-2">② 남미 및 아프리카 (브라질, 페루, 가나 등)</h3>
-                <p className="text-sky-800 mb-2">이 지역은 <strong>'황열'</strong> 관리가 가장 엄격합니다.</p>
+                <p className="text-sky-800 mb-2">이 지역은 <strong>&apos;황열&apos;</strong> 관리가 가장 엄격합니다.</p>
                 <ul className="list-disc list-inside space-y-1 text-sky-800 ml-4">
-                  <li><strong>황열(Yellow Fever):</strong> 입국 시 <strong>'노란색 국제공인 예방접종 증명서'</strong>를 요구하는 나라가 많습니다. 최소 출국 10일 전에는 맞아야 효력이 발생하며, 평생 1회 접종으로 유지됩니다.</li>
-                  <li><strong>수막구균:</strong> 아프리카의 '수막염 벨트'(사하라 이남 지역) 방문 시 필수입니다. 뇌수막염을 일으키는 치명적인 박테리아를 막아줍니다.</li>
+                  <li><strong>황열(Yellow Fever):</strong> 입국 시 <strong>&apos;노란색 국제공인 예방접종 증명서&apos;</strong>를 요구하는 나라가 많습니다. 최소 출국 10일 전에는 맞아야 효력이 발생하며, 평생 1회 접종으로 유지됩니다.</li>
+                  <li><strong>수막구균:</strong> 아프리카의 &apos;수막염 벨트&apos;(사하라 이남 지역) 방문 시 필수입니다. 뇌수막염을 일으키는 치명적인 박테리아를 막아줍니다.</li>
                 </ul>
               </div>
               <div className="bg-white rounded-lg p-4 border border-sky-100">
@@ -327,7 +327,7 @@ function TravelTabContent() {
           <div className="rounded-2xl border-2 border-sky-200 bg-sky-50/50 p-6">
             <h2 className="text-2xl font-bold text-sky-900 mb-4">✈️ 여행 전 체크리스트</h2>
             <div className="bg-white rounded-lg p-4 border border-sky-100">
-              <p className="text-sky-800 mb-3">해외 자료를 참고할 때 가장 정확한 기준은 <strong>미국 CDC의 'Traveler's Health'</strong>입니다. 다음 단계에 따라 준비하세요.</p>
+              <p className="text-sky-800 mb-3">해외 자료를 참고할 때 가장 정확한 기준은 <strong>미국 CDC의 &apos;Traveler&apos;s Health&apos;</strong>입니다. 다음 단계에 따라 준비하세요.</p>
               <ol className="list-decimal list-inside space-y-2 text-sky-800 ml-4">
                 <li><strong>출국 4~6주 전 상담:</strong> 백신은 맞자마자 효과가 나타나지 않습니다. 항체가 생기는 기간(보통 2주)을 고려해야 합니다.</li>
                 <li><strong>영문 예방접종 증명서 발급:</strong> 해외에서 사고가 나거나 입국 시 증명이 필요할 수 있습니다. (정부24 또는 질병관리청에서 무료 발급 가능)</li>
@@ -468,7 +468,7 @@ function SeasonalTabContent() {
             <div className="bg-white rounded-lg p-4 border border-sky-100">
               <ul className="list-disc list-inside space-y-2 text-sky-800 ml-4">
                 <li><strong>대상포진</strong>이나 <strong>파상풍(Td/Tdap)</strong> 같은 백신은 계절과 상관없이 맞을 수 있지만, 대기 시간이 길지 않은 <strong>여름철이나 비수기</strong>에 미리 맞아두면 가을철 독감 접종 시기에 겹치지 않아 훨씬 여유롭게 관리하실 수 있습니다.</li>
-                <li><strong>비개발자 초보를 위한 팁:</strong> 매년 10월을 '내 몸 업데이트의 달'로 정해두고 독감 백신을 맞으면서, 의사 선생님께 "올해 제가 추가로 맞아야 할 주사가 또 있을까요?"라고 물어보시는 것이 가장 확실한 방법입니다.</li>
+                <li><strong>비개발자 초보를 위한 팁:</strong> 매년 10월을 &apos;내 몸 업데이트의 달&apos;로 정해두고 독감 백신을 맞으면서, 의사 선생님께 &quot;올해 제가 추가로 맞아야 할 주사가 또 있을까요?&quot;라고 물어보시는 것이 가장 확실한 방법입니다.</li>
               </ul>
             </div>
           </div>
@@ -568,7 +568,7 @@ function AgeSummaryTabContent() {
               <div className="bg-white rounded-lg p-4 border border-sky-100">
                 <h3 className="font-semibold text-sky-900 mb-2">예방접종 도우미(질병관리청)</h3>
                 <p className="text-sky-800">
-                  한국 거주자라면 '질병관리청 예방접종 도우미' 사이트나 앱에서 본인이 지금까지 맞은 주사 기록을 영어와 한국어로 확인할 수 있습니다. 내가 지금까지 어떤 무료 백신을 맞았는지, 다음에 맞아야 할 것은 무엇인지 엑셀 시트처럼 일목요연하게 볼 수 있습니다.
+                  한국 거주자라면 &apos;질병관리청 예방접종 도우미&apos; 사이트나 앱에서 본인이 지금까지 맞은 주사 기록을 영어와 한국어로 확인할 수 있습니다. 내가 지금까지 어떤 무료 백신을 맞았는지, 다음에 맞아야 할 것은 무엇인지 엑셀 시트처럼 일목요연하게 볼 수 있습니다.
                 </p>
               </div>
               <div className="bg-white rounded-lg p-4 border border-sky-100">
@@ -580,7 +580,7 @@ function AgeSummaryTabContent() {
               <div className="bg-white rounded-lg p-4 border border-sky-100">
                 <h3 className="font-semibold text-sky-900 mb-2">어디서 맞나요?</h3>
                 <ul className="list-disc list-inside space-y-1 text-sky-800 ml-4">
-                  <li><strong>일반 백신:</strong> 동네 내과나 보건소에서 가능합니다. 무료 백신은 지정 의료기관에서만 가능하므로 '예방접종 도우미' 사이트에서 '지정 의료기관 찾기'를 통해 집 근처의 참여 병원을 미리 확인하세요.</li>
+                  <li><strong>일반 백신:</strong> 동네 내과나 보건소에서 가능합니다. 무료 백신은 지정 의료기관에서만 가능하므로 &apos;예방접종 도우미&apos; 사이트에서 &apos;지정 의료기관 찾기&apos;를 통해 집 근처의 참여 병원을 미리 확인하세요.</li>
                   <li><strong>특수 백신(황열, 콜레라):</strong> 국립중앙의료원이나 공항 내 검역소 등 지정된 기관에서만 가능하므로 예약이 필수입니다.</li>
                 </ul>
               </div>

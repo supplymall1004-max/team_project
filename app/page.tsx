@@ -30,6 +30,7 @@ import { ScrollProgress } from "@/components/motion/scroll-progress";
 import { DirectionalEntrance } from "@/components/motion/directional-entrance";
 import { ParallaxSection } from "@/components/motion/parallax-section";
 import { CharacterPreview } from "@/components/home/character-preview";
+import { CommunityPreview } from "@/components/home/community-preview";
 
 function SectionSkeleton() {
   return (
@@ -114,6 +115,13 @@ export default async function Home() {
       <ErrorBoundary>
         <Suspense fallback={<SectionSkeleton />}>
           <CharacterPreview />
+        </Suspense>
+      </ErrorBoundary>
+
+      {/* 커뮤니티 미리보기 - 맨 아래 섹션 */}
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <CommunityPreview />
         </Suspense>
       </ErrorBoundary>
 
