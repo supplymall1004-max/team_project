@@ -40,16 +40,22 @@ export function UnifiedDietSection({
   onToggleMember,
 }: UnifiedDietSectionProps) {
   const [togglingMembers, setTogglingMembers] = useState<Set<string>>(new Set());
+  
+  // 반려동물 제외 (member_type이 'pet'이 아닌 경우만)
+  const humanMembers = familyMembers.filter(
+    member => (member as any).member_type !== 'pet'
+  );
+  
   const [servingCount, setServingCount] = useState(() =>
-    Math.max(1, familyMembers.filter((member) => member.include_in_unified_diet !== false).length || 1),
+    Math.max(1, humanMembers.filter((member) => member.include_in_unified_diet !== false).length || 1),
   );
 
-  // 통합 식단에 포함되는 구성원들
-  const includedMembers = familyMembers.filter(
+  // 통합 식단에 포함되는 구성원들 (반려동물 제외)
+  const includedMembers = humanMembers.filter(
     member => member.include_in_unified_diet !== false
   );
 
-  const excludedMembers = familyMembers.filter(
+  const excludedMembers = humanMembers.filter(
     member => member.include_in_unified_diet === false
   );
 
@@ -88,7 +94,10 @@ export function UnifiedDietSection({
   };
 
   useEffect(() => {
-    const count = familyMembers.filter((member) => member.include_in_unified_diet !== false).length || 1;
+    const humanMembers = familyMembers.filter(
+      member => (member as any).member_type !== 'pet'
+    );
+    const count = humanMembers.filter((member) => member.include_in_unified_diet !== false).length || 1;
     setServingCount(Math.max(1, count));
   }, [familyMembers]);
 
@@ -98,7 +107,10 @@ export function UnifiedDietSection({
 
   const handleCartReflect = () => {
     console.group("🛒 장바구니 수량 반영");
-    console.log("포함 구성원 수", familyMembers.filter((m) => m.include_in_unified_diet !== false).length);
+    const humanMembers = familyMembers.filter(
+      member => (member as any).member_type !== 'pet'
+    );
+    console.log("포함 구성원 수", humanMembers.filter((m) => m.include_in_unified_diet !== false).length);
     console.log("장바구니 수량", servingCount);
     console.groupEnd();
     alert(`장바구니 수량을 ${servingCount}인분 기준으로 설정했습니다.`);

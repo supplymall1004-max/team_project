@@ -61,17 +61,32 @@ export interface DiseaseExcludedFood {
 
 // 질병 한글명 맵
 export const DISEASE_LABELS: Record<string, string> = {
+  // 당뇨병 관련
   diabetes: "당뇨병",
+  diabetes_type1: "1형 당뇨병",
+  diabetes_type2: "2형 당뇨병",
+  gestational_diabetes: "임신성 당뇨병",
+  // 심혈관 질환
   hypertension: "고혈압",
-  gout: "통풍",
-  kidney_disease: "신장질환",
-  hyperlipidemia: "고지혈증",
-  obesity: "비만",
+  high_blood_pressure: "고혈압",
   heart_disease: "심장병",
-  liver_disease: "간질환",
   cardiovascular_disease: "심혈관질환",
-  gastrointestinal_disorder: "위장 장애",
+  // 대사 질환
+  hyperlipidemia: "고지혈증",
   high_cholesterol: "고지혈증",
+  dyslipidemia: "이상지질혈증",
+  obesity: "비만",
+  overweight: "과체중",
+  // 신장 질환
+  kidney_disease: "신장질환",
+  ckd: "만성 신장질환",
+  renal_disease: "신장질환",
+  // 간 질환
+  liver_disease: "간질환",
+  // 위장 질환
+  gastrointestinal_disorder: "위장 장애",
+  // 기타
+  gout: "통풍",
   thyroid_disorder: "갑상선 질환",
 };
 

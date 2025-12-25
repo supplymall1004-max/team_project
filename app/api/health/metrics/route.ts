@@ -25,16 +25,59 @@ export async function GET(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: '인증이 필요합니다.' },
-        { status: 401 }
+        { 
+          status: 401,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
       );
     }
 
     // Supabase 클라이언트 생성
-    const supabase = await createClerkSupabaseClient();
+    let supabase;
+    try {
+      supabase = await createClerkSupabaseClient();
+    } catch (supabaseError) {
+      console.error('[Health Metrics API] Supabase 클라이언트 생성 실패:', supabaseError);
+      return NextResponse.json(
+        { 
+          error: '데이터베이스 연결에 실패했습니다.',
+          details: process.env.NODE_ENV === 'development' 
+            ? (supabaseError instanceof Error ? supabaseError.message : String(supabaseError))
+            : undefined
+        },
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+    }
 
     // 사용자의 Supabase user_id 조회 (없으면 자동 동기화)
     console.log('[Health Metrics API] 사용자 확인 및 동기화 시도...');
-    const userData = await ensureSupabaseUser();
+    let userData;
+    try {
+      userData = await ensureSupabaseUser();
+    } catch (userError) {
+      console.error('[Health Metrics API] 사용자 동기화 중 예외 발생:', userError);
+      return NextResponse.json(
+        { 
+          error: '사용자 정보를 확인할 수 없습니다.',
+          details: process.env.NODE_ENV === 'development'
+            ? (userError instanceof Error ? userError.message : String(userError))
+            : undefined
+        },
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+    }
 
     if (!userData) {
       console.error('[Health Metrics API] 사용자 동기화 실패:', {
@@ -45,7 +88,12 @@ export async function GET(request: NextRequest) {
           error: '사용자 정보를 동기화할 수 없습니다. 잠시 후 다시 시도해주세요.',
           details: 'Clerk 사용자 정보를 Supabase에 동기화하는 중 오류가 발생했습니다.'
         },
-        { status: 500 }
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
       );
     }
 
@@ -81,6 +129,10 @@ export async function GET(request: NextRequest) {
         success: true,
         metrics: healthMetrics,
         message: '건강 정보가 없어 기본값으로 계산되었습니다.'
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
     }
 
@@ -90,14 +142,51 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       metrics: healthMetrics
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+      }
     });
 
   } catch (error) {
     console.error('[Health Metrics API] 오류:', error);
-    return NextResponse.json(
-      { error: '건강 메트릭스 계산 중 오류가 발생했습니다.' },
-      { status: 500 }
-    );
+    console.error('[Health Metrics API] 오류 상세:', {
+      name: error instanceof Error ? error.constructor.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
+    // 항상 JSON 응답 반환 보장
+    try {
+      return NextResponse.json(
+        { 
+          error: '건강 메트릭스 계산 중 오류가 발생했습니다.',
+          details: process.env.NODE_ENV === 'development'
+            ? (error instanceof Error ? error.message : String(error))
+            : undefined
+        },
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+    } catch (jsonError) {
+      // JSON 응답 생성 실패 시에도 텍스트로 반환
+      console.error('[Health Metrics API] JSON 응답 생성 실패:', jsonError);
+      return new NextResponse(
+        JSON.stringify({
+          error: '서버 오류가 발생했습니다.',
+        }),
+        { 
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+    }
   }
 }
 

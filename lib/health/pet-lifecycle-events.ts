@@ -14,7 +14,7 @@ export interface PetLifecycleEvent {
   event_code: string;
   event_name: string;
   event_type: 'neutering' | 'dental' | 'blood_test' | 'senior_care' | 'other';
-  target_age_months: number;
+  target_age_months?: number;
   target_age_years?: number;
   priority: 'high' | 'medium' | 'low';
   description: string;
@@ -127,18 +127,16 @@ export function generatePetLifecycleEvents(pet: PetProfile): PetLifecycleEvent[]
     }
 
     // 나이 조건 확인
-    if (event.target_age_months) {
-      if (ageMonths < event.target_age_months) {
+    // target_age_years가 있으면 개월로 변환하여 비교
+    const targetMonths = event.target_age_months ?? (event.target_age_years ? event.target_age_years * 12 : null);
+    
+    if (targetMonths !== null) {
+      if (ageMonths < targetMonths) {
         return false; // 아직 시기가 아님
       }
       // 이미 지난 이벤트는 제외 (중성화 수술 등은 한 번만)
-      if (event.event_type === 'neutering' && ageMonths > event.target_age_months + 3) {
+      if (event.event_type === 'neutering' && ageMonths > targetMonths + 3) {
         return false; // 중성화 수술은 3개월 여유를 두고 제외
-      }
-    }
-    if (event.target_age_years) {
-      if (ageYears < event.target_age_years) {
-        return false; // 아직 시기가 아님
       }
     }
 

@@ -85,10 +85,23 @@ export async function GET(
     console.log('👤 사용자 ID:', userId);
 
     // 일일 식단 조회
+    console.log('[Breakfast Meal API] 일일 식단 조회 시작...');
     const dailyPlan = await getDailyDietPlan(userId, date);
+    
+    console.log('[Breakfast Meal API] 일일 식단 조회 결과:', {
+      hasDailyPlan: !!dailyPlan,
+      hasBreakfast: !!dailyPlan?.breakfast,
+      breakfastData: dailyPlan?.breakfast ? {
+        id: dailyPlan.breakfast.id,
+        recipe_title: dailyPlan.breakfast.recipe?.title,
+        calories: dailyPlan.breakfast.calories,
+      } : null,
+    });
     
     if (!dailyPlan || !dailyPlan.breakfast) {
       console.warn('⚠️ 아침 식단 없음');
+      console.warn('⚠️ dailyPlan:', dailyPlan);
+      console.warn('⚠️ dailyPlan.breakfast:', dailyPlan?.breakfast);
       console.groupEnd();
       return NextResponse.json(
         { success: false, error: `${date}의 아침 식단 정보가 없습니다.` },

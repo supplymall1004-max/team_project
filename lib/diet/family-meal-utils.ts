@@ -74,14 +74,15 @@ export function getMemberMealData(
 }
 
 /**
- * 탭에 표시할 구성원 목록을 생성합니다 (식단 on 상태이고 식단 데이터가 있는 구성원만).
+ * 탭에 표시할 구성원 목록을 생성합니다 (식단 on 상태인 구성원 모두 포함).
+ * 식단 데이터가 없는 구성원도 포함되며, hasMeal 속성으로 식단 데이터 유무를 표시합니다.
  * 
  * @param familyMembers - 가족 구성원 목록
  * @param familyDietData - 가족 식단 데이터
  * @param mealType - 식사 유형 (breakfast, lunch, dinner)
  * @param date - 날짜
  * @param userName - 사용자 이름
- * @returns 탭에 표시할 구성원 목록 (식단 on 상태인 구성원만 포함)
+ * @returns 탭에 표시할 구성원 목록 (식단 on 상태인 구성원 모두 포함, hasMeal로 데이터 유무 표시)
  */
 export function getTabMembers(
   familyMembers: FamilyMember[],
@@ -93,8 +94,19 @@ export function getTabMembers(
   console.group('[getTabMembers] 탭 구성원 필터링');
   console.log('전체 가족 구성원 수:', familyMembers.length);
   
+  // 반려동물 제외 (member_type이 'pet'인 경우 제외)
+  const humanMembers = familyMembers.filter(member => {
+    const isPet = (member as any).member_type === 'pet';
+    if (isPet) {
+      console.log(`- ${member.name}: 반려동물이므로 제외`);
+    }
+    return !isPet;
+  });
+  
+  console.log('반려동물 제외 후 구성원 수:', humanMembers.length);
+  
   // 식단 on 상태인 구성원만 필터링 (include_in_unified_diet !== false)
-  const dietOnMembers = familyMembers.filter(member => {
+  const dietOnMembers = humanMembers.filter(member => {
     const isDietOn = member.include_in_unified_diet !== false; // null/undefined도 true로 처리
     console.log(`- ${member.name}: 식단 on=${isDietOn}, include_in_unified_diet=${member.include_in_unified_diet}`);
     return isDietOn;
@@ -102,24 +114,25 @@ export function getTabMembers(
   
   console.log('식단 on 상태인 구성원 수:', dietOnMembers.length);
   
-  // 식단 데이터가 있는 구성원만 필터링
-  const membersWithMeal = dietOnMembers.filter(member => {
+  // 식단 on 상태인 구성원은 모두 포함 (식단 데이터 유무와 관계없이)
+  // 식단 데이터가 있는지 확인하여 hasMeal 속성에 표시
+  const membersWithMealInfo = dietOnMembers.map(member => {
     const memberMeal = getMemberMealData(familyDietData, member.id, mealType, date);
     const hasMeal = memberMeal !== null;
     console.log(`- ${member.name}: 식단 데이터 있음=${hasMeal}`);
-    return hasMeal;
+    return {
+      id: member.id,
+      name: member.name,
+      isUser: false,
+      hasMeal,
+    };
   });
   
-  console.log('식단 데이터가 있는 구성원 수:', membersWithMeal.length);
+  console.log('식단 on 상태인 구성원 수 (탭 표시):', membersWithMealInfo.length);
   console.groupEnd();
   
   return [
     { id: 'self', name: userName, isUser: true, hasMeal: true },
-    ...membersWithMeal.map(member => ({
-      id: member.id,
-      name: member.name,
-      isUser: false,
-      hasMeal: true,
-    })),
+    ...membersWithMealInfo,
   ];
 }

@@ -6,6 +6,7 @@
  */
 
 import { Variants, Transition } from "framer-motion";
+import type { CharacterEmotion } from "@/types/character";
 
 /**
  * 기본 스프링 전환 설정
@@ -247,4 +248,218 @@ export const neonColors = {
     glow: "rgba(239, 68, 68, 0.6)",
   },
 } as const;
+
+/**
+ * 감정별 애니메이션 variants
+ * intensity: 0-100 (감정 강도에 따라 애니메이션 강도 조절)
+ */
+export function getEmotionVariants(emotion: CharacterEmotion, intensity: number = 50): Variants {
+  const intensityMultiplier = intensity / 100; // 0-1 범위로 정규화
+  const baseScale = 1 + (intensityMultiplier * 0.1); // 최대 10% 확대
+  const baseRotation = intensityMultiplier * 5; // 최대 5도 회전
+
+  switch (emotion) {
+    case "happy":
+      return {
+        animate: {
+          y: [0, -8 * intensityMultiplier, 0],
+          scale: [1, baseScale, 1],
+          rotate: [0, -baseRotation, baseRotation, 0],
+          transition: {
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        },
+      };
+
+    case "sad":
+      return {
+        animate: {
+          y: [0, 5 * intensityMultiplier, 0],
+          scale: [1, 0.98, 1],
+          opacity: [1, 0.9, 1],
+          transition: {
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        },
+      };
+
+    case "sick":
+      return {
+        animate: {
+          x: [-3 * intensityMultiplier, 3 * intensityMultiplier, -3 * intensityMultiplier],
+          rotate: [-2 * intensityMultiplier, 2 * intensityMultiplier, -2 * intensityMultiplier],
+          transition: {
+            duration: 1.2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        },
+      };
+
+    case "tired":
+      return {
+        animate: {
+          scale: [1, 0.99, 1],
+          opacity: [1, 0.85, 1],
+          y: [0, 2 * intensityMultiplier, 0],
+          transition: {
+            duration: 2.5,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        },
+      };
+
+    case "hungry":
+      return {
+        animate: {
+          y: [0, -5 * intensityMultiplier, 0, 5 * intensityMultiplier, 0],
+          scale: [1, 1.02, 1, 0.98, 1],
+          transition: {
+            duration: 1.8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        },
+      };
+
+    case "full":
+      return {
+        animate: {
+          scale: [1, 1.05 * baseScale, 1],
+          y: [0, -2 * intensityMultiplier, 0],
+          transition: {
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        },
+      };
+
+    case "excited":
+      return {
+        animate: {
+          scale: [1, 1.1 * baseScale, 1],
+          rotate: [0, 10 * intensityMultiplier, -10 * intensityMultiplier, 0],
+          y: [0, -10 * intensityMultiplier, 0],
+          transition: {
+            duration: 0.8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        },
+      };
+
+    case "worried":
+      return {
+        animate: {
+          x: [-2 * intensityMultiplier, 2 * intensityMultiplier, -2 * intensityMultiplier],
+          scale: [1, 0.99, 1],
+          transition: {
+            duration: 0.6,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        },
+      };
+
+    case "angry":
+      return {
+        animate: {
+          x: [-5 * intensityMultiplier, 5 * intensityMultiplier, -5 * intensityMultiplier],
+          rotate: [-3 * intensityMultiplier, 3 * intensityMultiplier, -3 * intensityMultiplier],
+          scale: [1, 1.03, 1],
+          transition: {
+            duration: 0.4,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        },
+      };
+
+    case "neutral":
+    default:
+      return {
+        animate: {
+          scale: [1, 1.01, 1],
+          y: [0, -2, 0],
+          transition: {
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        },
+      };
+  }
+}
+
+/**
+ * 감정별 색상 설정
+ */
+export const emotionColors: Record<CharacterEmotion, { border: string; glow: string; bg: string; text: string }> = {
+  happy: {
+    border: "border-yellow-400",
+    glow: "rgba(250, 204, 21, 0.6)",
+    bg: "bg-yellow-50",
+    text: "text-yellow-600",
+  },
+  sad: {
+    border: "border-blue-400",
+    glow: "rgba(96, 165, 250, 0.4)",
+    bg: "bg-blue-50",
+    text: "text-blue-600",
+  },
+  sick: {
+    border: "border-red-400",
+    glow: "rgba(239, 68, 68, 0.6)",
+    bg: "bg-red-50",
+    text: "text-red-600",
+  },
+  tired: {
+    border: "border-gray-400",
+    glow: "rgba(156, 163, 175, 0.4)",
+    bg: "bg-gray-50",
+    text: "text-gray-600",
+  },
+  hungry: {
+    border: "border-orange-400",
+    glow: "rgba(251, 146, 60, 0.6)",
+    bg: "bg-orange-50",
+    text: "text-orange-600",
+  },
+  full: {
+    border: "border-green-400",
+    glow: "rgba(74, 222, 128, 0.6)",
+    bg: "bg-green-50",
+    text: "text-green-600",
+  },
+  excited: {
+    border: "border-pink-400",
+    glow: "rgba(244, 114, 182, 0.6)",
+    bg: "bg-pink-50",
+    text: "text-pink-600",
+  },
+  worried: {
+    border: "border-amber-400",
+    glow: "rgba(251, 191, 36, 0.6)",
+    bg: "bg-amber-50",
+    text: "text-amber-600",
+  },
+  angry: {
+    border: "border-red-500",
+    glow: "rgba(239, 68, 68, 0.8)",
+    bg: "bg-red-100",
+    text: "text-red-700",
+  },
+  neutral: {
+    border: "border-gray-300",
+    glow: "rgba(209, 213, 219, 0.4)",
+    bg: "bg-gray-50",
+    text: "text-gray-600",
+  },
+};
 

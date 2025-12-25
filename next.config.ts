@@ -93,20 +93,20 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  // 헤더 설정: 폰트 preload
-  async headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [
-          {
-            key: "Link",
-            value: '<https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.2/JalnanOTF00.woff>; rel=preload; as=font; type=font/woff; crossorigin=anonymous',
-          },
-        ],
-      },
-    ];
-  },
+  // 헤더 설정 제거: 폰트는 CSS @font-face로 로드되므로 Link preload 헤더가 불필요하고 경고를 발생시킵니다
+  // async headers() {
+  //   return [
+  //     {
+  //       source: "/:path*",
+  //       headers: [
+  //         {
+  //           key: "Link",
+  //           value: '<https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.2/JalnanOTF00.woff>; rel=preload; as=font; type=font/woff; crossorigin=anonymous',
+  //         },
+  //       ],
+  //     },
+  //   ];
+  // },
 };
 
 export default nextConfig;

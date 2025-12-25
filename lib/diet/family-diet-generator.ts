@@ -138,7 +138,17 @@ export async function generateFamilyDiet(
   includeUnified: boolean = true
 ): Promise<FamilyDietPlan> {
   console.group("👨‍👩‍👧‍👦 가족 식단 생성");
-  console.log("가족 구성원:", familyMembers.length + 1, "명 (본인 포함)");
+  
+  // 반려동물 제외 (member_type이 'pet'인 경우 제외)
+  const humanMembers = familyMembers.filter(member => {
+    const isPet = (member as any).member_type === 'pet';
+    if (isPet) {
+      console.log(`🐾 ${member.name}: 반려동물이므로 가족 식단에서 제외`);
+    }
+    return !isPet;
+  });
+  
+  console.log("가족 구성원:", humanMembers.length + 1, "명 (본인 포함, 반려동물 제외)");
   console.log("통합 식단 포함:", includeUnified);
 
   const individualPlans: { [memberId: string]: DailyDietPlan } = {};
@@ -148,8 +158,8 @@ export async function generateFamilyDiet(
   const userPlan = await generatePersonalDiet(userId, userProfile, targetDate);
   individualPlans["user"] = userPlan;
 
-  // 2. 가족 구성원별 식단
-  for (const member of familyMembers) {
+  // 2. 가족 구성원별 식단 (반려동물 제외)
+  for (const member of humanMembers) {
     console.log(`\n📋 ${member.name} 식단 생성...`);
     
     const { years: age } = calculateAge(member.birth_date);
@@ -190,7 +200,7 @@ export async function generateFamilyDiet(
     unifiedPlan = await generateUnifiedDiet(
       userId,
       userProfile,
-      familyMembers,
+      humanMembers,
       targetDate
     );
   }
@@ -216,8 +226,14 @@ async function generateUnifiedDiet(
 ): Promise<DailyDietPlan> {
   console.group("🍽️ 통합 식단 생성");
 
-  // 1. 통합 식단에 포함된 구성원만 필터링
-  const includedMembers = familyMembers.filter(
+  // 1. 반려동물 제외 (member_type이 'pet'인 경우 제외)
+  const humanMembers = familyMembers.filter(member => {
+    const isPet = (member as any).member_type === 'pet';
+    return !isPet;
+  });
+
+  // 2. 통합 식단에 포함된 구성원만 필터링
+  const includedMembers = humanMembers.filter(
     member => member.include_in_unified_diet !== false // null/undefined도 true로 처리
   );
 

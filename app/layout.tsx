@@ -15,7 +15,6 @@ import { Geist, Geist_Mono, Noto_Sans_SC } from "next/font/google";
 import Navbar from "@/components/layout/navbar";
 import { AppProviders } from "@/components/providers/app-providers";
 import { Footer } from "@/components/layout/footer";
-import { IntroVideo } from "@/components/intro-video";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { ErrorFallback } from "@/components/error-fallback";
@@ -65,7 +64,7 @@ export const metadata: Metadata = {
     "Flavor Archive",
   ],
   authors: [{ name: "맛카" }],
-  manifest: "/manifest.json",
+  // manifest는 app/manifest.ts에서 자동으로 처리됩니다
   icons: {
     icon: [
       { url: "/icon.jpg", sizes: "512x512", type: "image/jpeg" },
@@ -199,34 +198,32 @@ export default function RootLayout({
             <SeasonBackground opacity={0.4} />
 
             <AppProviders>
-              <IntroVideo>
-                <div className="flex flex-col h-screen w-full max-w-full overflow-hidden">
-                  {/* Navbar (최상단 고정) */}
-                  <Navbar />
+              <div className="flex flex-col h-screen w-full max-w-full overflow-hidden">
+                {/* Navbar (최상단 고정) */}
+                <Navbar />
 
-                  {/* 메인 콘텐츠 영역 (스크롤 가능) */}
-                  <main
-                    className="flex-1 bg-gradient-to-b from-white to-orange-50/40 w-full max-w-full overflow-y-auto"
-                    style={{
-                      marginTop: "64px", // Navbar 높이(64px)
-                      paddingTop: "0.5rem",
-                      paddingBottom: "80px", // 하단 네비게이션 공간 확보 (모바일)
-                    }}
-                  >
-                    <PageTransitionWrapper>
-                      {children}
-                    </PageTransitionWrapper>
+                {/* 메인 콘텐츠 영역 (스크롤 가능) */}
+                <main
+                  className="flex-1 bg-gradient-to-b from-white to-orange-50/40 w-full max-w-full overflow-y-auto"
+                  style={{
+                    marginTop: "64px", // Navbar 높이(64px)
+                    paddingTop: "0.5rem",
+                    paddingBottom: "80px", // 하단 네비게이션 공간 확보 (모바일)
+                  }}
+                >
+                  <PageTransitionWrapper>
+                    {children}
+                  </PageTransitionWrapper>
 
-                    {/* Footer (회사소개) - 메인 콘텐츠 맨 아래에 위치, 고정하지 않음 */}
-                    <Footer />
-                  </main>
+                  {/* Footer (회사소개) - 메인 콘텐츠 맨 아래에 위치, 고정하지 않음 */}
+                  <Footer />
+                </main>
 
-                  {/* 하단 네비게이션 (고정, 맨 아래, 모바일에서만 표시) */}
-                  <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-                    <BottomNavigation />
-                  </div>
+                {/* 하단 네비게이션 (고정, 맨 아래, 모바일에서만 표시) */}
+                <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+                  <BottomNavigation />
                 </div>
-              </IntroVideo>
+              </div>
             </AppProviders>
           </body>
         </html>

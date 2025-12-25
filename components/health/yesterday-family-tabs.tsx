@@ -447,7 +447,11 @@ export function YesterdayFamilyTabs({
                   <Badge
                     key={`${flag.code}-${flag.type}`}
                     variant={flag.type === "disease" ? "destructive" : "secondary"}
-                    className="rounded-full px-3 py-1 text-xs font-medium shadow-sm"
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-bold shadow-sm transition-all",
+                      flag.type === "disease" && "bg-gradient-to-r from-red-500 to-red-600 text-white border-2 border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.4)] hover:shadow-[0_0_15px_rgba(239,68,68,0.6)]",
+                      flag.type === "allergy" && "bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-2 border-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)] hover:shadow-[0_0_15px_rgba(245,158,11,0.6)]"
+                    )}
                   >
                     {flag.label}
                   </Badge>
@@ -460,15 +464,31 @@ export function YesterdayFamilyTabs({
             <div>
               <p className="text-xs font-medium text-gray-600 mb-2">주의 사항</p>
               <ul className="space-y-2">
-                {detailNotes.map((note, index) => (
-                  <li 
-                    key={`${note}-${index}`}
-                    className="flex items-start gap-2 text-sm text-gray-800 bg-white/60 rounded-lg p-3 border border-amber-100"
-                  >
-                    <span className="text-amber-600 font-bold mt-0.5">•</span>
-                    <span className="flex-1">{note}</span>
-                  </li>
-                ))}
+                {detailNotes.map((note, index) => {
+                  // 질병/알레르기 키워드 추출 (네온 효과 적용)
+                  const isDisease = note.includes('관리') && !note.includes('알레르기');
+                  const isAllergy = note.includes('알레르기');
+                  
+                  return (
+                    <li 
+                      key={`${note}-${index}`}
+                      className={cn(
+                        "flex items-center gap-2 text-sm font-medium rounded-lg p-3 border-2 transition-all",
+                        isDisease && "bg-gradient-to-r from-red-50/80 to-orange-50/80 border-red-300/60 text-red-900 shadow-[0_0_10px_rgba(239,68,68,0.3)] hover:shadow-[0_0_15px_rgba(239,68,68,0.5)]",
+                        isAllergy && "bg-gradient-to-r from-yellow-50/80 to-amber-50/80 border-yellow-300/60 text-amber-900 shadow-[0_0_10px_rgba(245,158,11,0.3)] hover:shadow-[0_0_15px_rgba(245,158,11,0.5)]",
+                        !isDisease && !isAllergy && "bg-white/60 border-amber-100 text-gray-800"
+                      )}
+                    >
+                      <span className={cn(
+                        "font-bold mt-0.5 text-lg",
+                        isDisease && "text-red-500 drop-shadow-[0_0_4px_rgba(239,68,68,0.6)]",
+                        isAllergy && "text-yellow-500 drop-shadow-[0_0_4px_rgba(245,158,11,0.6)]",
+                        !isDisease && !isAllergy && "text-amber-600"
+                      )}>⚠</span>
+                      <span className="flex-1">{note}</span>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ) : (

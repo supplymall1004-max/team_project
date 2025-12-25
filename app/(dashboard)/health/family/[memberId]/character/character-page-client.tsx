@@ -8,7 +8,8 @@
 
 "use client";
 
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -28,7 +29,9 @@ import { DewormingPanel } from "@/components/health/character/deworming-panel";
 import { LifecycleNotificationsPanel } from "@/components/health/character/lifecycle-notifications-panel";
 import { RemindersPanel } from "@/components/health/character/reminders-panel";
 import { HealthTrendsPanel } from "@/components/health/character/health-trends-panel";
-import type { CharacterData } from "@/types/character";
+import { StatusBars } from "@/components/health/character/status-bars";
+import { getCharacterData } from "@/actions/health/character";
+import type { CharacterData, EmotionState } from "@/types/character";
 
 interface CharacterPageClientProps {
   characterData: CharacterData;
@@ -39,9 +42,34 @@ interface CharacterPageClientProps {
  * 캐릭터창 페이지 클라이언트 컴포넌트
  */
 export function CharacterPageClient({
-  characterData,
+  characterData: initialCharacterData,
   memberId,
 }: CharacterPageClientProps) {
+  const [characterData, setCharacterData] = useState<CharacterData>(initialCharacterData);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // 실시간 감정 업데이트 (5분마다)
+  useEffect(() => {
+    const updateEmotion = async () => {
+      try {
+        setIsUpdating(true);
+        const updatedData = await getCharacterData(memberId);
+        setCharacterData(updatedData);
+        console.log("✅ 감정 상태 업데이트 완료:", updatedData.currentEmotion);
+      } catch (error) {
+        console.error("❌ 감정 상태 업데이트 실패:", error);
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+
+    // 초기 로드 후 5분마다 업데이트
+    const interval = setInterval(updateEmotion, 5 * 60 * 1000); // 5분
+
+    // 컴포넌트 언마운트 시 정리
+    return () => clearInterval(interval);
+  }, [memberId]);
+
   return (
     <motion.div
       className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white"
@@ -88,13 +116,40 @@ export function CharacterPageClient({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4, duration: 0.5, type: "spring", stiffness: 200 }}
+            className="relative"
           >
-            <CharacterAvatar
-              member={characterData.member}
-              healthStatus={characterData.importantInfo.health_status}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={characterData.currentEmotion.emotion}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.3 }}
+              >
+                <CharacterAvatar
+                  member={characterData.member}
+                  healthStatus={characterData.importantInfo.health_status}
+                  healthScore={characterData.importantInfo.health_score}
+                  emotion={characterData.currentEmotion}
+                  size="xl"
+                  showBadge={true}
+                  showSpeechBubble={true}
+                  showEmotionIndicator={true}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+
+          {/* 상태 바 (게임 스타일) */}
+          <motion.div
+            className="mt-6 w-full max-w-md"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+          >
+            <StatusBars
               healthScore={characterData.importantInfo.health_score}
-              size="xl"
-              showBadge={true}
+              energy={characterData.importantInfo.health_score} // 에너지는 향후 활동량 기반으로 계산 가능
             />
           </motion.div>
         </motion.div>

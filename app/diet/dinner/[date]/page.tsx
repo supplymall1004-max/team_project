@@ -11,7 +11,7 @@
  * 4. 일일 건강 요약 제공
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Clock, Calendar, ChefHat, Sunrise, Sun, Moon, TrendingUp, User, Users } from 'lucide-react';
 import { DirectionalEntrance } from '@/components/motion/directional-entrance';
@@ -30,7 +30,9 @@ import { HealthVisualizationErrorBoundary } from '@/components/health/error-boun
 import { useUser } from '@clerk/nextjs';
 import type { HealthMetrics } from '@/types/health-visualization';
 import type { FamilyMember } from '@/types/family';
+import type { RecipeDetailForDiet, RecipeNutrition } from '@/types/recipe';
 import { getMemberMealData, getTabMembers } from '@/lib/diet/family-meal-utils';
+import { MealRecipeCard } from '@/components/diet/meal-recipe-card';
 
 // 타입 정의
 interface MealData {
@@ -51,6 +53,7 @@ interface MealData {
     name: string;
     quantity: number;
   }>;
+  relatedRecipes?: RecipeDetailForDiet[];
 }
 
 interface DayMeals {
@@ -116,19 +119,13 @@ export default function DinnerDetailPage() {
   const [familyDietData, setFamilyDietData] = useState<Record<string, any> | null>(null);
   const [activeTab, setActiveTab] = useState<string>('self');
 
-  // 데이터 로드
-  useEffect(() => {
-    if (!isLoaded || !user) return;
-
-    loadPageData();
-  }, [isLoaded, user, date]);
-
-  const loadPageData = async () => {
+  // 데이터 로드 함수 - useCallback으로 최적화
+  const loadPageData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // 병렬로 데이터 로드
+      // 병렬로 데이터 로드 및 JSON 파싱까지 병렬 처리
       const [dinnerRes, breakfastRes, lunchRes, healthRes, metricsRes, membersRes, familyDietRes] = await Promise.all([
         fetch(`/api/diet/meal/dinner/${date}`),
         fetch(`/api/diet/meal/breakfast/${date}`),
@@ -139,81 +136,82 @@ export default function DinnerDetailPage() {
         fetch(`/api/family/diet/${date}`).catch(() => ({ ok: false, status: 404, json: () => Promise.resolve(null) })),
       ]);
 
-      const dinnerResult = (await dinnerRes.json()) as DietMealApiResponse;
-      const breakfastResult = (await breakfastRes.json()) as DietMealApiResponse;
-      const lunchResult = (await lunchRes.json()) as DietMealApiResponse;
-      const healthResult = (await healthRes.json()) as HealthProfileApiResponse;
-      const currentHealthResult = (await metricsRes.json()) as HealthMetricsApiResponse;
+      // JSON 파싱도 병렬로 처리
+      const [dinnerResult, breakfastResult, lunchResult, healthResult, currentHealthResult, membersData, dietData] = await Promise.all([
+        dinnerRes.json().then(data => ({ ok: dinnerRes.ok, data: data as DietMealApiResponse })),
+        breakfastRes.json().then(data => ({ ok: breakfastRes.ok, data: data as DietMealApiResponse })),
+        lunchRes.json().then(data => ({ ok: lunchRes.ok, data: data as DietMealApiResponse })),
+        healthRes.json().then(data => ({ ok: healthRes.ok, data: data as HealthProfileApiResponse })),
+        metricsRes.json().then(data => ({ ok: metricsRes.ok, data: data as HealthMetricsApiResponse })),
+        membersRes.ok ? membersRes.json() : Promise.resolve({ members: [] }),
+        familyDietRes.ok ? familyDietRes.json() : Promise.resolve(null),
+      ]);
 
-      // 오류 처리 (저녁)
-      if (!dinnerRes.ok || !dinnerResult.success || !dinnerResult.meal) {
-        throw new Error(dinnerResult.error || '저녁 식단 데이터를 불러올 수 없습니다.');
+      // 오류 처리 (저녁) - 필수
+      if (!dinnerResult.ok || !dinnerResult.data.success || !dinnerResult.data.meal) {
+        throw new Error(dinnerResult.data.error || '저녁 식단 데이터를 불러올 수 없습니다.');
       }
 
-      // 오류 처리 (건강 프로필) - { profile } 형태, null도 정상
-      if (!healthRes.ok) {
-        throw new Error(healthResult.error || healthResult.message || '건강 정보를 불러올 수 없습니다.');
+      // 오류 처리 (건강 프로필) - 필수
+      if (!healthResult.ok) {
+        throw new Error(healthResult.data.error || healthResult.data.message || '건강 정보를 불러올 수 없습니다.');
       }
 
-      // 오류 처리 (건강 메트릭스)
-      if (!metricsRes.ok || !currentHealthResult.metrics) {
-        throw new Error(currentHealthResult.error || currentHealthResult.message || '건강 메트릭스를 불러올 수 없습니다.');
-      }
+      // 건강 메트릭스는 선택적 (에러가 있어도 기본값 사용)
+      const healthMetrics = currentHealthResult.ok && currentHealthResult.data.metrics 
+        ? currentHealthResult.data.metrics 
+        : null;
 
-      setMealData(dinnerResult.meal);
+      // 상태 업데이트를 한 번에 배치 처리
+      setMealData(dinnerResult.data.meal);
 
       // 하루 식단 데이터 설정
       setDayMeals({
-        breakfast: breakfastRes.ok && breakfastResult.success ? breakfastResult.meal ?? null : null,
-        lunch: lunchRes.ok && lunchResult.success ? lunchResult.meal ?? null : null,
-        dinner: dinnerResult.meal
+        breakfast: breakfastResult.ok && breakfastResult.data.success ? breakfastResult.data.meal ?? null : null,
+        lunch: lunchResult.ok && lunchResult.data.success ? lunchResult.data.meal ?? null : null,
+        dinner: dinnerResult.data.meal
       });
 
-      setHealthProfile(healthResult.profile ?? null);
-      setCurrentHealth(currentHealthResult.metrics);
+      setHealthProfile(healthResult.data.profile ?? null);
+      setCurrentHealth(healthMetrics);
 
-      // 가족 구성원 데이터 처리
-      if (membersRes.ok) {
-        const membersData = await membersRes.json();
-        const members = membersData.members || [];
-        console.log(`👥 가족 구성원 ${members.length}명 조회됨`);
-        setFamilyMembers(members);
-      } else {
-        console.log('⚠️ 가족 구성원 조회 실패 (무시)');
-        setFamilyMembers([]);
-      }
+      // 가족 구성원 데이터 처리 (선택적)
+      const members = Array.isArray(membersData.members) ? membersData.members : [];
+      console.log(`👥 가족 구성원 ${members.length}명 조회됨`);
+      setFamilyMembers(members);
 
-      // 가족 식단 데이터 처리
-      if (familyDietRes.ok) {
-        const dietData = await familyDietRes.json();
-        console.log('📋 가족 식단 데이터 조회됨:', Object.keys(dietData.plans || {}));
-        setFamilyDietData(dietData.plans || null);
+      // 가족 식단 데이터 처리 (선택적)
+      const plans = dietData?.plans || null;
+      if (plans) {
+        console.log('📋 가족 식단 데이터 조회됨:', Object.keys(plans));
       } else {
         console.log('⚠️ 가족 식단 데이터 없음 (무시)');
-        setFamilyDietData(null);
       }
+      setFamilyDietData(plans);
 
-      // 하루 건강 요약 계산
-      await calculateDayHealthSummary(
-        currentHealthResult.metrics,
-        {
-          breakfast: breakfastResult.success ? breakfastResult.meal : null,
-          lunch: lunchResult.success ? lunchResult.meal : null,
-          dinner: dinnerResult.meal
-        },
-        // 프로필이 없으면 기본 목표 칼로리로 계산
-        (healthResult.profile ?? {
-          age: 0,
-          gender: '',
-          height_cm: 0,
-          weight_kg: 0,
-          activity_level: '',
-          daily_calorie_goal: 2000,
-          diseases: [],
-          allergies: [],
-          dietary_preferences: [],
-        })
-      );
+      // 하루 건강 요약 계산 (건강 메트릭스가 있을 때만)
+      if (healthMetrics) {
+        await calculateDayHealthSummary(
+          healthMetrics,
+          {
+            breakfast: breakfastResult.data.success ? breakfastResult.data.meal : null,
+            lunch: lunchResult.data.success ? lunchResult.data.meal : null,
+            dinner: dinnerResult.data.meal
+          },
+          // 프로필이 없으면 기본 목표 칼로리로 계산
+          (healthResult.data.profile ?? {
+            age: 0,
+            gender: '',
+            height_cm: 0,
+            weight_kg: 0,
+            activity_level: '',
+            daily_calorie_goal: 2000,
+            diseases: [],
+            allergies: [],
+            dietary_preferences: [],
+          })
+        );
+      }
 
     } catch (err) {
       console.error('[DinnerDetailPage] 데이터 로드 실패:', err);
@@ -221,7 +219,44 @@ export default function DinnerDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [date]);
+
+  // 데이터 로드 실행
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+    loadPageData();
+  }, [isLoaded, user, loadPageData]);
+
+  // 탭에 표시할 구성원 목록 생성 (식단이 있는 구성원만) - useMemo로 최적화
+  // Hook은 조건부 return 이전에 호출되어야 함
+  const tabMembers = useMemo(() => {
+    // 사용자 이름: fullName 우선, 없으면 firstName + lastName 조합, 그래도 없으면 username
+    const userName = user?.fullName || 
+                     [user?.firstName, user?.lastName].filter(Boolean).join(" ") || 
+                     user?.username || 
+                     '본인';
+    return getTabMembers(
+      familyMembers,
+      familyDietData,
+      'dinner',
+      date,
+      userName
+    );
+  }, [familyMembers, familyDietData, date, user?.fullName, user?.firstName, user?.lastName, user?.username]);
+
+  // 현재 선택된 구성원의 식단 데이터 - useMemo로 최적화
+  const currentMealData = useMemo(() => {
+    return activeTab === 'self' 
+      ? mealData 
+      : getMemberMealData(familyDietData, activeTab, 'dinner', date);
+  }, [activeTab, mealData, familyDietData, date]);
+
+  // 현재 선택된 구성원 정보 - useMemo로 최적화
+  const currentMember = useMemo(() => {
+    return activeTab === 'self'
+      ? null
+      : familyMembers.find(m => m.id === activeTab);
+  }, [activeTab, familyMembers]);
 
   // 하루 건강 요약 계산
   const calculateDayHealthSummary = async (baseHealth: HealthMetrics, meals: DayMeals, profile: HealthProfile) => {
@@ -362,24 +397,16 @@ export default function DinnerDetailPage() {
     );
   }
 
-  // 탭에 표시할 구성원 목록 생성 (식단이 있는 구성원만)
-  const tabMembers = getTabMembers(
-    familyMembers,
-    familyDietData,
-    'dinner',
-    date,
-    user?.firstName || user?.username || '본인'
-  );
-
-  // 현재 선택된 구성원의 식단 데이터
-  const currentMealData = activeTab === 'self' 
-    ? mealData 
-    : getMemberMealData(familyDietData, activeTab, 'dinner', date);
-
-  // 현재 선택된 구성원 정보
-  const currentMember = activeTab === 'self'
-    ? null
-    : familyMembers.find(m => m.id === activeTab);
+  // 디버깅 로그
+  console.log('[DinnerDetailPage] 렌더링 상태:', {
+    mealData: !!mealData,
+    currentMealData: !!currentMealData,
+    activeTab,
+    isLoading,
+    error,
+    isLoaded,
+    user: !!user,
+  });
 
   return (
     <DirectionalEntrance direction="up" delay={0.3}>
@@ -594,6 +621,33 @@ export default function DinnerDetailPage() {
                 </CardContent>
               </Card>
 
+              {/* 식단 메뉴별 레시피 바로가기 (개인 식단만) */}
+              {activeTab === 'self' && Array.isArray(mealData.relatedRecipes) && mealData.relatedRecipes.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>식단 메뉴 레시피 바로가기</CardTitle>
+                    <CardDescription>
+                      아래 카드를 눌러 각 메뉴의 레시피 상세로 이동할 수 있어요.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {mealData.relatedRecipes.map((recipe, idx) => {
+                        const nutrition = recipe.nutrition as RecipeNutrition;
+                        return (
+                          <MealRecipeCard
+                            key={`${recipe.id ?? recipe.title}-${idx}`}
+                            recipe={recipe}
+                            category="메뉴"
+                            nutrition={nutrition}
+                          />
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* 건강 인사이트 (개인 식단만) */}
               {activeTab === 'self' && (
                 <HealthInsightsCard
@@ -638,29 +692,61 @@ export default function DinnerDetailPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <HealthMetricsCard metrics={currentHealth} />
+                      {currentHealth ? (
+                        <HealthMetricsCard metrics={currentHealth} />
+                      ) : (
+                        <p className="text-sm text-gray-500">건강 메트릭스 데이터를 불러올 수 없습니다.</p>
+                      )}
                     </CardContent>
                   </Card>
 
                   {/* 저녁 식사 효과 예측 */}
-                  <MealImpactPredictor
-                    mealType="dinner"
-                    mealData={mealData}
-                    currentHealth={currentHealth}
-                  />
+                  {currentHealth && (
+                    <>
+                      <MealImpactPredictor
+                        mealType="dinner"
+                        mealData={mealData}
+                        currentHealth={currentHealth}
+                      />
 
-                  {/* 영양 균형 차트 */}
-                  <NutritionBalanceChart balance={currentHealth.nutritionBalance} />
+                      {/* 영양 균형 차트 */}
+                      <NutritionBalanceChart balance={currentHealth.nutritionBalance} />
+                    </>
+                  )}
                 </HealthVisualizationErrorBoundary>
               </div>
             )}
           </div>
         ) : (
-          <Alert>
-            <AlertDescription>
-              선택한 구성원의 저녁 식단 정보가 없습니다.
-            </AlertDescription>
-          </Alert>
+          <Card>
+            <CardHeader>
+              <CardTitle>식단 정보 없음</CardTitle>
+              <CardDescription>
+                {activeTab === 'self' 
+                  ? `${date}의 저녁 식단 정보가 없습니다.`
+                  : `선택한 구성원의 저녁 식단 정보가 없습니다.`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Alert>
+                  <AlertDescription>
+                    {activeTab === 'self' 
+                      ? '저녁 식단이 생성되지 않았습니다. 식단 추천을 받아보세요.'
+                      : '해당 구성원의 저녁 식단이 없습니다.'}
+                  </AlertDescription>
+                </Alert>
+                <div className="flex gap-4">
+                  <Button onClick={() => router.push('/diet')} variant="default">
+                    식단 추천 받기
+                  </Button>
+                  <Button onClick={() => router.back()} variant="outline">
+                    뒤로 가기
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* 질병 위험도 게이지 (풀폭, 개인 식단만) */}

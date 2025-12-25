@@ -1172,7 +1172,7 @@ export async function getDailyDietPlan(
   userId: string,
   date: string,
 ): Promise<DailyDietPlan | null> {
-  console.groupCollapsed("[getDailyDietPlan] 식단 조회");
+  console.group("[getDailyDietPlan] 식단 조회");
   console.log("👤 userId:", userId);
   console.log("📅 date:", date);
 
@@ -1284,22 +1284,36 @@ export async function getDailyDietPlan(
         }
 
         // recipe_id가 없는 경우 (폴백 레시피) recipe 객체 생성
-        const recipeData =
-          plan.recipe ||
-          (plan.recipe_title
-            ? {
-                id: plan.recipe_id || `fallback-${plan.recipe_title}`,
-                title: plan.recipe_title,
-                thumbnail_url: null,
-                slug: plan.recipe_title.toLowerCase().replace(/\s+/g, "-"),
-              }
-            : null);
+        let recipeData = plan.recipe;
+        
+        // recipe가 없고 recipe_title이 있으면 폴백 레시피 생성
+        if (!recipeData && plan.recipe_title) {
+          recipeData = {
+            id: plan.recipe_id || `fallback-${plan.recipe_title}`,
+            title: plan.recipe_title,
+            thumbnail_url: null,
+            slug: plan.recipe_title.toLowerCase().replace(/\s+/g, "-"),
+          };
+        }
 
         console.log(`📝 ${mealType} 레시피 데이터:`, recipeData);
+        console.log(`📝 ${mealType} recipe_title:`, plan.recipe_title);
+        console.log(`📝 ${mealType} recipe_id:`, plan.recipe_id);
 
-        if (!recipeData) {
-          console.warn(`⚠️ ${mealType}에 레시피 정보가 없습니다`);
+        // recipeData가 없어도 recipe_title이 있으면 계속 진행
+        if (!recipeData && !plan.recipe_title) {
+          console.warn(`⚠️ ${mealType}에 레시피 정보가 없습니다 (recipe_title도 없음)`);
           return;
+        }
+
+        // recipeData가 없으면 recipe_title로 생성
+        if (!recipeData) {
+          recipeData = {
+            id: plan.recipe_id || `fallback-${plan.recipe_title}`,
+            title: plan.recipe_title,
+            thumbnail_url: null,
+            slug: plan.recipe_title.toLowerCase().replace(/\s+/g, "-"),
+          };
         }
 
         // 데이터베이스 컬럼명을 TypeScript 타입으로 변환

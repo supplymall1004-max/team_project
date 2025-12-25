@@ -11,6 +11,7 @@ import { getServiceRoleClient } from '@/lib/supabase/service-role';
 import { getDailyDietPlan, getUserHealthProfile } from '@/lib/diet/queries';
 import { fetchFoodSafetyRecipes, fetchFoodSafetyRecipeBySeq } from '@/lib/recipes/foodsafety-api';
 import { parseIngredients as parseMfdsIngredients } from '@/lib/services/mfds-recipe-api';
+import type { RecipeDetailForDiet, RecipeNutrition } from '@/types/recipe';
 
 function normalizeConditionCodes(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -121,6 +122,8 @@ export async function GET(
           ? lunchData.recipe.id.replace('foodsafety-', '') 
           : null,
       } : null,
+      // 상세 페이지에서 "레시피 바로가기 카드"로 사용할 후보들
+      relatedRecipes: [] as RecipeDetailForDiet[],
     };
 
     // 식약처 API에서 영양소/재료를 실제로 가져와서 시각화에 사용
@@ -153,6 +156,27 @@ export async function GET(
           const parsed = parseMfdsIngredients(row as any);
           mealData.ingredients = parsed.map((name) => ({ name, quantity: 0 }));
           mealData.calories = mealData.nutrition.calories;
+
+          const nutrition: RecipeNutrition = {
+            calories: parseMfdsNumber(row.INFO_ENG),
+            carbs: parseMfdsNumber(row.INFO_CAR),
+            protein: parseMfdsNumber(row.INFO_PRO),
+            fat: parseMfdsNumber(row.INFO_FAT),
+            sodium: parseMfdsNumber(row.INFO_NA),
+            fiber: parseMfdsNumber(row.INFO_FIBER),
+          };
+
+          mealData.relatedRecipes = [
+            {
+              id: `foodsafety-${row.RCP_SEQ}`,
+              source: 'foodsafety',
+              title: row.RCP_NM,
+              image: row.ATT_FILE_NO_MAIN ?? undefined,
+              ingredients: [],
+              nutrition,
+            },
+          ];
+
           console.log('[Lunch Meal API] 식약처 영양소 반영 완료');
         } else {
           console.warn('[Lunch Meal API] 식약처 레시피 조회 실패(무시):', mfdsResult.error);
@@ -173,6 +197,7 @@ export async function GET(
         if (listResult.success && listResult.data && listResult.data.length > 0) {
           const rows = listResult.data;
           const ingredientSet = new Set<string>();
+          const matchedRecipes: RecipeDetailForDiet[] = [];
           const summed = {
             calories: 0,
             carbohydrates: 0,
@@ -198,6 +223,24 @@ export async function GET(
 
             const parsed = parseMfdsIngredients(partial as any);
             for (const ing of parsed) ingredientSet.add(ing);
+
+            // 레시피 바로가기 카드 후보 추가
+            const nutrition: RecipeNutrition = {
+              calories: parseMfdsNumber(partial.INFO_ENG),
+              carbs: parseMfdsNumber(partial.INFO_CAR),
+              protein: parseMfdsNumber(partial.INFO_PRO),
+              fat: parseMfdsNumber(partial.INFO_FAT),
+              sodium: parseMfdsNumber(partial.INFO_NA),
+              fiber: parseMfdsNumber(partial.INFO_FIBER),
+            };
+            matchedRecipes.push({
+              id: `foodsafety-${partial.RCP_SEQ}`,
+              source: 'foodsafety',
+              title: partial.RCP_NM,
+              image: partial.ATT_FILE_NO_MAIN ?? undefined,
+              ingredients: [],
+              nutrition,
+            });
           }
 
           if (matchedCount > 0) {
@@ -209,6 +252,7 @@ export async function GET(
             mealData.nutrition.fiber = Math.round(summed.fiber * 10) / 10;
             mealData.calories = mealData.nutrition.calories;
             mealData.ingredients = Array.from(ingredientSet).map((name) => ({ name, quantity: 0 }));
+            mealData.relatedRecipes = matchedRecipes;
             console.log('[Lunch Meal API] 식약처 구성요소 합산 완료:', { matchedCount });
           } else {
             console.warn('[Lunch Meal API] 식약처 구성요소 매칭 실패(무시)');

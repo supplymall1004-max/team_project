@@ -74,6 +74,31 @@ export interface HealthScoreTrendData {
 export type HealthStatus = "excellent" | "good" | "fair" | "needs_attention";
 
 /**
+ * 캐릭터 감정 타입
+ */
+export type CharacterEmotion =
+  | "happy" // 기쁨/행복
+  | "sad" // 슬픔/우울
+  | "sick" // 아픔/병듦
+  | "tired" // 피곤함/지침
+  | "hungry" // 배고픔
+  | "full" // 배부름
+  | "excited" // 신남/흥분
+  | "worried" // 걱정/불안
+  | "angry" // 화남
+  | "neutral"; // 평온/중립
+
+/**
+ * 감정 상태 인터페이스
+ */
+export interface EmotionState {
+  emotion: CharacterEmotion;
+  intensity: number; // 0-100 (감정 강도)
+  message: string; // 감정을 설명하는 메시지
+  reason?: string; // 감정의 원인 (선택적)
+}
+
+/**
  * 캐릭터창 데이터 타입
  */
 export interface CharacterData {
@@ -157,6 +182,7 @@ export interface CharacterData {
     nutrition: NutritionTrendData[]; // 최근 3개월 영양 섭취 추이
     healthScore: HealthScoreTrendData[]; // 최근 3개월 건강 점수 추이
   };
+  currentEmotion: EmotionState; // 현재 감정 상태
 }
 
 /**

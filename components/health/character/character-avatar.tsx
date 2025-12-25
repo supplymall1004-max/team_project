@@ -18,16 +18,23 @@
 "use client";
 
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { User, Baby, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { CharacterData } from "@/types/character";
+import type { CharacterData, EmotionState } from "@/types/character";
+import { getEmotionVariants, emotionColors } from "@/lib/animations/character-animations";
+import { SpeechBubble } from "./speech-bubble";
+import { EmotionIndicator } from "./emotion-indicator";
 
 interface CharacterAvatarProps {
   member: CharacterData["member"];
   healthStatus: CharacterData["importantInfo"]["health_status"];
   healthScore: number;
+  emotion?: EmotionState; // 감정 상태 (선택적)
   size?: "sm" | "md" | "lg" | "xl";
   showBadge?: boolean;
+  showSpeechBubble?: boolean; // 말풍선 표시 여부
+  showEmotionIndicator?: boolean; // 감정 표시기 표시 여부
   className?: string;
 }
 
@@ -85,8 +92,11 @@ export function CharacterAvatar({
   member,
   healthStatus,
   healthScore,
+  emotion,
   size = "lg",
   showBadge = true,
+  showSpeechBubble = true,
+  showEmotionIndicator = false,
   className,
 }: CharacterAvatarProps) {
   const sizeClasses = getSizeClasses(size);
@@ -98,20 +108,57 @@ export function CharacterAvatar({
   const hasPhoto =
     member.avatar_type === "photo" && member.photo_url;
 
+  // 감정별 테두리 색상 (감정이 있으면 감정 색상 우선)
+  const emotionBorderColor = emotion
+    ? emotionColors[emotion.emotion].border
+    : borderColor;
+
+  // 감정 애니메이션 variants
+  const emotionVariants = emotion
+    ? getEmotionVariants(emotion.emotion, emotion.intensity)
+    : undefined;
+
+  // 감정별 네온 효과 색상
+  const glowColor = emotion
+    ? emotionColors[emotion.emotion].glow
+    : healthStatus === "excellent"
+      ? "rgba(74, 222, 128, 0.5)"
+      : healthStatus === "good"
+        ? "rgba(96, 165, 250, 0.5)"
+        : healthStatus === "fair"
+          ? "rgba(250, 204, 21, 0.5)"
+          : "rgba(248, 113, 113, 0.5)";
+
   return (
     <div className={cn("relative", className)}>
-      {/* 아바타 원형 프레임 */}
-      <div
+      {/* 말풍선 */}
+      {showSpeechBubble && emotion && (
+        <SpeechBubble
+          emotion={emotion}
+          memberName={member.name}
+          healthScore={healthScore}
+          autoHide={true}
+          autoHideDelay={5000}
+        />
+      )}
+
+      {/* 아바타 원형 프레임 (감정 애니메이션 적용) */}
+      <motion.div
         className={cn(
           "relative rounded-full overflow-hidden",
           "border-4",
-          borderColor,
+          emotionBorderColor,
           "shadow-lg",
           "bg-gradient-to-br from-gray-800 to-gray-900",
           sizeClasses,
           "group-hover:scale-110 transition-transform duration-300",
           "group"
         )}
+        variants={emotionVariants}
+        animate={emotionVariants ? "animate" : undefined}
+        style={{
+          boxShadow: `0 0 20px ${glowColor}`,
+        }}
       >
         {hasPhoto ? (
           <Image
@@ -126,11 +173,11 @@ export function CharacterAvatar({
             {getAgeBasedIcon(age, member.gender)}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* 건강 점수 배지 (게임 스타일) */}
       {showBadge && (
-        <div
+        <motion.div
           className={cn(
             "absolute -top-1 -right-1",
             "w-8 h-8 rounded-full",
@@ -138,12 +185,28 @@ export function CharacterAvatar({
             "border-2 border-white",
             "shadow-md",
             "flex items-center justify-center",
-            "group-hover:scale-110 transition-transform duration-300"
+            "group-hover:scale-110 transition-transform duration-300",
+            "z-10"
           )}
+          animate={{
+            scale: emotion?.emotion === "excited" ? [1, 1.1, 1] : 1,
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: emotion?.emotion === "excited" ? Infinity : 0,
+            ease: "easeInOut",
+          }}
         >
           <span className="text-xs font-bold text-yellow-900">
             {healthScore}
           </span>
+        </motion.div>
+      )}
+
+      {/* 감정 표시기 */}
+      {showEmotionIndicator && emotion && (
+        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-full">
+          <EmotionIndicator emotion={emotion} size="sm" />
         </div>
       )}
 
@@ -153,19 +216,10 @@ export function CharacterAvatar({
           "absolute inset-0 rounded-full",
           "opacity-0 group-hover:opacity-100",
           "transition-opacity duration-300",
-          "pointer-events-none",
-          borderColor.replace("border-", "shadow-").replace("shadow-", "shadow-[0_0_20px_")
+          "pointer-events-none"
         )}
         style={{
-          boxShadow: `0 0 20px ${
-            healthStatus === "excellent"
-              ? "rgba(74, 222, 128, 0.5)"
-              : healthStatus === "good"
-                ? "rgba(96, 165, 250, 0.5)"
-                : healthStatus === "fair"
-                  ? "rgba(250, 204, 21, 0.5)"
-                  : "rgba(248, 113, 113, 0.5)"
-          }`,
+          boxShadow: `0 0 30px ${glowColor}`,
         }}
       />
     </div>

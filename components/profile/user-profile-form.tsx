@@ -70,9 +70,23 @@ export function UserProfileForm() {
       console.log("새 전체 이름:", fullName);
 
       // 전체 이름을 firstName과 lastName으로 분리
-      const nameParts = fullName.trim().split(/\s+/);
-      const firstName = nameParts.slice(1).join(" ") || ""; // 이름 (첫 번째 이후 모든 부분)
-      const lastName = nameParts[0] || ""; // 성 (첫 번째 부분)
+      const trimmedName = fullName.trim();
+      const nameParts = trimmedName.split(/\s+/);
+      
+      // 한국 이름(공백이 없는 경우)은 firstName에 전체 이름 저장
+      // 서양 이름(공백이 있는 경우)은 기존 로직대로 처리
+      let firstName: string;
+      let lastName: string;
+      
+      if (nameParts.length === 1) {
+        // 한국 이름: 전체 이름을 firstName에 저장
+        firstName = trimmedName;
+        lastName = "";
+      } else {
+        // 서양 이름: 첫 번째를 lastName, 나머지를 firstName
+        lastName = nameParts[0] || "";
+        firstName = nameParts.slice(1).join(" ") || "";
+      }
 
       console.log("분리된 이름:", { firstName, lastName });
 

@@ -235,14 +235,16 @@ async function buildFamilyDietSummary({
   plans: Record<string, MemberMeals>;
 }): Promise<FamilyDietSummary | null> {
   // 가족 구성원은 Service Role 클라이언트로 조회 (RLS 우회)
+  // 반려동물 제외 (member_type이 'pet'이 아닌 경우만 조회)
   const serviceClient = getServiceRoleClient();
   const { data: familyMembersData, error: familyMembersError } =
     await serviceClient
       .from("family_members")
       .select(
-        "id, name, relationship, diseases, allergies, include_in_unified_diet",
+        "id, name, relationship, diseases, allergies, include_in_unified_diet, member_type",
       )
       .eq("user_id", userId)
+      .or("member_type.is.null,member_type.neq.pet") // member_type이 null이거나 'pet'이 아닌 경우만
       .order("created_at", { ascending: true });
 
   if (familyMembersError) {
@@ -389,16 +391,80 @@ function buildMemberNotes(
   allergies?: string[] | null,
 ): string[] {
   const notes: string[] = [];
+  const diseaseSet = new Set<string>();
+  const allergySet = new Set<string>();
 
+  // 질병 처리: 객체 또는 문자열 모두 처리
   diseases?.forEach((disease) => {
-    const label = DISEASE_LABELS[disease] ?? disease;
-    notes.push(`${label} 관리로 고위험 식재료를 제외합니다.`);
+    let code: string;
+    if (typeof disease === 'string') {
+      code = disease;
+    } else if (disease && typeof disease === 'object' && 'code' in disease) {
+      code = String(disease.code);
+    } else {
+      code = String(disease);
+    }
+    if (code) diseaseSet.add(code);
   });
 
+  // 알레르기 처리: 객체 또는 문자열 모두 처리
   allergies?.forEach((allergy) => {
-    const label = ALLERGY_LABELS[allergy] ?? allergy;
-    notes.push(`${label} 알레르기 때문에 관련 성분을 자동으로 필터링합니다.`);
+    let code: string;
+    if (typeof allergy === 'string') {
+      code = allergy;
+    } else if (allergy && typeof allergy === 'object' && 'code' in allergy) {
+      code = String(allergy.code);
+    } else {
+      code = String(allergy);
+    }
+    if (code) allergySet.add(code);
   });
+
+  // 질병 메시지 통합 (중복 제거)
+  if (diseaseSet.size > 0) {
+    const diseaseLabels = Array.from(diseaseSet)
+      .map(code => {
+        // 직접 매핑 확인
+        if (DISEASE_LABELS[code]) {
+          return DISEASE_LABELS[code];
+        }
+        // 부분 일치로 매핑 (예: diabetes_type2 -> diabetes)
+        if (code.includes('diabetes')) {
+          if (code.includes('type1')) return DISEASE_LABELS.diabetes_type1 || '1형 당뇨병';
+          if (code.includes('type2')) return DISEASE_LABELS.diabetes_type2 || '2형 당뇨병';
+          if (code.includes('gestational')) return DISEASE_LABELS.gestational_diabetes || '임신성 당뇨병';
+          return DISEASE_LABELS.diabetes || '당뇨병';
+        }
+        if (code.includes('hypertension') || code.includes('high_blood_pressure')) {
+          return DISEASE_LABELS.hypertension || '고혈압';
+        }
+        if (code.includes('hyperlipidemia') || code.includes('high_cholesterol') || code.includes('dyslipidemia')) {
+          return DISEASE_LABELS.hyperlipidemia || '고지혈증';
+        }
+        if (code.includes('kidney') || code === 'ckd' || code.includes('renal')) {
+          return DISEASE_LABELS.kidney_disease || '신장질환';
+        }
+        if (code.includes('obesity') || code.includes('overweight')) {
+          return DISEASE_LABELS.obesity || '비만';
+        }
+        // 매핑되지 않은 경우 코드를 한글로 변환 시도
+        return code.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      })
+      .filter(Boolean);
+    if (diseaseLabels.length > 0) {
+      notes.push(`${diseaseLabels.join(', ')} 관리`);
+    }
+  }
+
+  // 알레르기 메시지 통합 (중복 제거)
+  if (allergySet.size > 0) {
+    const allergyLabels = Array.from(allergySet)
+      .map(code => ALLERGY_LABELS[code] ?? code)
+      .filter(Boolean);
+    if (allergyLabels.length > 0) {
+      notes.push(`${allergyLabels.join(', ')} 알레르기 관리`);
+    }
+  }
 
   console.group("[FamilyDietTabs] summary-notes");
   console.log(memberName, notes);
@@ -412,21 +478,73 @@ function buildHealthFlags(
   allergies?: string[] | null,
 ): HealthFlag[] {
   const flags: HealthFlag[] = [];
+  const diseaseSet = new Set<string>();
+  const allergySet = new Set<string>();
 
+  // 질병 처리: 객체 또는 문자열 모두 처리
   diseases?.forEach((disease) => {
-    const label = DISEASE_LABELS[disease] ?? disease;
+    let code: string;
+    if (typeof disease === 'string') {
+      code = disease;
+    } else if (disease && typeof disease === 'object' && 'code' in disease) {
+      code = String(disease.code);
+    } else {
+      code = String(disease);
+    }
+    if (code) diseaseSet.add(code);
+  });
+
+  // 알레르기 처리: 객체 또는 문자열 모두 처리
+  allergies?.forEach((allergy) => {
+    let code: string;
+    if (typeof allergy === 'string') {
+      code = allergy;
+    } else if (allergy && typeof allergy === 'object' && 'code' in allergy) {
+      code = String(allergy.code);
+    } else {
+      code = String(allergy);
+    }
+    if (code) allergySet.add(code);
+  });
+
+  // 질병 플래그 생성 (중복 제거)
+  diseaseSet.forEach((code) => {
+    let label = DISEASE_LABELS[code];
+    
+    // 매핑이 없으면 부분 일치로 찾기
+    if (!label) {
+      if (code.includes('diabetes')) {
+        if (code.includes('type1')) label = DISEASE_LABELS.diabetes_type1 || '1형 당뇨병';
+        else if (code.includes('type2')) label = DISEASE_LABELS.diabetes_type2 || '2형 당뇨병';
+        else if (code.includes('gestational')) label = DISEASE_LABELS.gestational_diabetes || '임신성 당뇨병';
+        else label = DISEASE_LABELS.diabetes || '당뇨병';
+      } else if (code.includes('hypertension') || code.includes('high_blood_pressure')) {
+        label = DISEASE_LABELS.hypertension || '고혈압';
+      } else if (code.includes('hyperlipidemia') || code.includes('high_cholesterol') || code.includes('dyslipidemia')) {
+        label = DISEASE_LABELS.hyperlipidemia || '고지혈증';
+      } else if (code.includes('kidney') || code === 'ckd' || code.includes('renal')) {
+        label = DISEASE_LABELS.kidney_disease || '신장질환';
+      } else if (code.includes('obesity') || code.includes('overweight')) {
+        label = DISEASE_LABELS.obesity || '비만';
+      } else {
+        // 최후의 수단: 코드를 한글로 변환 시도
+        label = code.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      }
+    }
+    
     flags.push({
       type: "disease",
-      code: disease,
+      code,
       label,
     });
   });
 
-  allergies?.forEach((allergy) => {
-    const label = ALLERGY_LABELS[allergy] ?? allergy;
+  // 알레르기 플래그 생성 (중복 제거)
+  allergySet.forEach((code) => {
+    const label = ALLERGY_LABELS[code] ?? code;
     flags.push({
       type: "allergy",
-      code: allergy,
+      code,
       label,
     });
   });

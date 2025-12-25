@@ -28,6 +28,8 @@ import { auth } from "@clerk/nextjs/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { calculateHealthScore } from "@/lib/health/health-score-calculator";
 import { checkPremiumAccess } from "@/lib/kcdc/premium-guard";
+import { detectCharacterEmotion } from "@/lib/health/emotion-detector";
+import type { EmotionDetectionInput } from "@/lib/health/emotion-detector";
 import type { CharacterData, ReminderItem } from "@/types/character";
 import type {
   MedicationRecord,
@@ -40,6 +42,7 @@ import type {
   DewormingRecord,
 } from "@/types/kcdc";
 import type { WeightLog } from "@/types/health-visualization";
+import type { UserHealthProfile } from "@/types/health";
 
 /**
  * 생년월일로 나이 계산
@@ -138,7 +141,7 @@ export async function getCharacterData(memberId: string): Promise<CharacterData>
 
       const { data: profile } = await supabase
         .from("user_health_profiles")
-        .select("age, gender, height_cm, weight_kg")
+        .select("age, gender, height_cm, weight_kg, diseases, allergies, activity_level, dietary_preferences")
         .eq("user_id", userId)
         .single();
 
@@ -146,19 +149,27 @@ export async function getCharacterData(memberId: string): Promise<CharacterData>
         throw new Error("사용자 정보를 찾을 수 없습니다.");
       }
 
+      // 타입 안전성을 위해 profile 데이터를 명시적으로 처리
+      // Supabase의 타입 추론이 제대로 작동하지 않을 수 있으므로 UserHealthProfile 타입으로 캐스팅
+      const profileData = profile as Partial<UserHealthProfile> | null;
+
       member = {
         id: user.id,
         user_id: userId,
         name: user.name || "본인",
         birth_date: null,
-        gender: profile?.gender || null,
+        gender: profileData?.gender || null,
         relationship: null,
-        diseases: profile?.diseases || [],
-        allergies: profile?.allergies || [],
-        height_cm: profile?.height_cm || null,
-        weight_kg: profile?.weight_kg || null,
-        activity_level: profile?.activity_level || null,
-        dietary_preferences: profile?.dietary_preferences || [],
+        diseases: Array.isArray(profileData?.diseases) 
+          ? profileData.diseases.map((d: any) => typeof d === 'string' ? d : (d?.code || String(d)))
+          : [],
+        allergies: Array.isArray(profileData?.allergies) 
+          ? profileData.allergies.map((a: any) => typeof a === 'string' ? a : (a?.code || String(a)))
+          : [],
+        height_cm: profileData?.height_cm || null,
+        weight_kg: profileData?.weight_kg || null,
+        activity_level: profileData?.activity_level || null,
+        dietary_preferences: Array.isArray(profileData?.dietary_preferences) ? profileData.dietary_preferences : [],
         photo_url: null,
         avatar_type: "icon" as const,
         health_score: null,
@@ -541,7 +552,147 @@ export async function getCharacterData(memberId: string): Promise<CharacterData>
     const nutritionTrendData: CharacterData["healthTrends"]["nutrition"] = [];
     const healthScoreTrendData: CharacterData["healthTrends"]["healthScore"] = [];
 
-    // 14. 결과 조합
+    // 14. 감정 결정을 위한 추가 데이터 수집
+    console.log("🎭 감정 결정을 위한 데이터 수집 시작");
+
+    // 최근 건강 점수 변화 계산 (최근 7일간)
+    let recentHealthScoreChange: number | null = null;
+    if (member.health_score_updated_at) {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      // 간단히 현재 점수와 이전 점수 비교 (실제로는 히스토리 데이터 필요)
+      // 여기서는 건강 점수 추이 데이터가 없으므로 null로 설정
+      recentHealthScoreChange = null;
+    }
+
+    // 오늘 식사 데이터 조회
+    const todayMeals = {
+      breakfast: null as { calories: number; time?: string } | null,
+      lunch: null as { calories: number; time?: string } | null,
+      dinner: null as { calories: number; time?: string } | null,
+    };
+
+    try {
+      const { data: todayDietPlans } = await supabase
+        .from("diet_plans")
+        .select("meal_type, calories, plan_date")
+        .eq("user_id", userId)
+        .eq("plan_date", today)
+        .is("family_member_id", familyMemberId || null)
+        .order("meal_type", { ascending: true });
+
+      if (todayDietPlans) {
+        todayDietPlans.forEach((plan: any) => {
+          if (plan.meal_type === "breakfast") {
+            todayMeals.breakfast = { calories: plan.calories || 0 };
+          } else if (plan.meal_type === "lunch") {
+            todayMeals.lunch = { calories: plan.calories || 0 };
+          } else if (plan.meal_type === "dinner") {
+            todayMeals.dinner = { calories: plan.calories || 0 };
+          }
+        });
+      }
+    } catch (error) {
+      console.warn("⚠️ 식사 데이터 조회 실패 (무시):", error);
+    }
+
+    // 오늘 총 칼로리 계산
+    const currentCalories =
+      (todayMeals.breakfast?.calories || 0) +
+      (todayMeals.lunch?.calories || 0) +
+      (todayMeals.dinner?.calories || 0);
+
+    // 수면 데이터 조회 (최근 1일)
+    let sleepData = null;
+    try {
+      const { data: recentSleep } = await supabase
+        .from("sleep_logs")
+        .select("sleep_duration_minutes, sleep_quality_score, date")
+        .eq("user_id", userId)
+        .is("family_member_id", familyMemberId || null)
+        .order("date", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (recentSleep) {
+        sleepData = {
+          durationMinutes: recentSleep.sleep_duration_minutes,
+          qualityScore: recentSleep.sleep_quality_score,
+          lastSleepDate: recentSleep.date,
+        };
+      }
+    } catch (error) {
+      console.warn("⚠️ 수면 데이터 조회 실패 (무시):", error);
+    }
+
+    // 활동량 데이터 조회 (오늘)
+    let activityData = null;
+    try {
+      const { data: todayActivity } = await supabase
+        .from("activity_logs")
+        .select("steps, calories_burned, date")
+        .eq("user_id", userId)
+        .is("family_member_id", familyMemberId || null)
+        .eq("date", today)
+        .order("date", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (todayActivity) {
+        activityData = {
+          steps: todayActivity.steps,
+          caloriesBurned: todayActivity.calories_burned,
+        };
+      }
+    } catch (error) {
+      console.warn("⚠️ 활동량 데이터 조회 실패 (무시):", error);
+    }
+
+    // 건강 프로필에서 일일 목표 칼로리 조회
+    let dailyCalorieGoal: number | null = null;
+    try {
+      const { data: healthProfile } = await supabase
+        .from("user_health_profiles")
+        .select("daily_calorie_goal")
+        .eq("user_id", userId)
+        .single();
+
+      if (healthProfile) {
+        dailyCalorieGoal = healthProfile.daily_calorie_goal;
+      }
+    } catch (error) {
+      console.warn("⚠️ 건강 프로필 조회 실패 (무시):", error);
+    }
+
+    // 긍정적 알림 확인 (생애주기 이벤트 중 긍정적인 것)
+    const hasPositiveNotifications =
+      highPriorityNotifications.some(
+        (n) => n.message && (n.message.includes("축하") || n.message.includes("완료"))
+      ) || false;
+
+    // 감정 결정
+    const emotionInput: EmotionDetectionInput = {
+      healthScore,
+      healthStatus: getHealthStatus(healthScore),
+      hasDiseases: Array.isArray(member.diseases) && member.diseases.length > 0,
+      recentMeals: todayMeals,
+      dailyCalorieGoal,
+      currentCalories,
+      sleepData,
+      activityData,
+      medicationStatus: {
+        missedCount: missedMedications.length,
+        totalCount: medications.length,
+      },
+      urgentReminders: urgentReminders.length,
+      recentHealthScoreChange,
+      hasPositiveNotifications,
+    };
+
+    const currentEmotion = detectCharacterEmotion(emotionInput);
+    console.log("✅ 감정 결정 완료:", currentEmotion);
+
+    // 15. 결과 조합
     const result: CharacterData = {
       member: member as CharacterData["member"],
       basicInfo: {
@@ -621,6 +772,7 @@ export async function getCharacterData(memberId: string): Promise<CharacterData>
         nutrition: nutritionTrendData,
         healthScore: healthScoreTrendData,
       },
+      currentEmotion,
     };
 
     console.log("✅ 캐릭터창 데이터 조회 완료");

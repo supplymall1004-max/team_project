@@ -58,10 +58,24 @@ export function HealthVisualizationPreview({
           let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
           
           try {
+            const contentType = response.headers.get('content-type');
             const text = await response.text();
-            console.log('[HealthVisualizationPreview] 에러 응답 본문:', text);
+            console.log('[HealthVisualizationPreview] 에러 응답 본문:', text.substring(0, 200));
+            console.log('[HealthVisualizationPreview] 응답 Content-Type:', contentType);
             
-            if (text && text.trim()) {
+            // HTML 응답인 경우 (에러 페이지)
+            if (contentType?.includes('text/html') || text.trim().startsWith('<!DOCTYPE')) {
+              console.error('[HealthVisualizationPreview] HTML 응답 수신 - API 라우트 오류 가능성');
+              errorMessage = '서버에서 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+              
+              // 사용자를 찾을 수 없는 경우 재시도 (사용자 동기화 대기)
+              if (retryCountRef.current < maxRetries) {
+                console.log(`[HealthVisualizationPreview] 재시도 중... (${retryCountRef.current + 1}/${maxRetries})`);
+                retryCountRef.current++;
+                setTimeout(fetchHealthMetrics, retryDelay);
+                return;
+              }
+            } else if (text && text.trim()) {
               try {
                 errorData = JSON.parse(text);
                 errorMessage = errorData?.error || errorData?.message || errorMessage;

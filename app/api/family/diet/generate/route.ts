@@ -72,14 +72,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 가족 구성원 조회
-    const { data: familyMembers } = await supabase
+    // 가족 구성원 조회 (반려동물 제외)
+    const { data: allFamilyMembers } = await supabase
       .from("family_members")
       .select("*")
       .eq("user_id", supabaseUserId);
 
+    // 반려동물 제외 (member_type이 'pet'이 아닌 경우만)
+    const familyMembers = (allFamilyMembers || []).filter(
+      member => (member as any).member_type !== 'pet'
+    );
+
     if (!familyMembers || familyMembers.length === 0) {
       console.warn("⚠️ 가족 구성원 없음 - 개인 식단만 생성");
+    } else {
+      const petCount = (allFamilyMembers || []).filter(
+        member => (member as any).member_type === 'pet'
+      ).length;
+      if (petCount > 0) {
+        console.log(`🐾 반려동물 ${petCount}마리 제외됨`);
+      }
     }
 
     // 가족 식단 생성
