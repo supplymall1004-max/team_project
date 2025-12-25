@@ -187,12 +187,49 @@ export async function POST(request: NextRequest) {
         hint: insertError.hint,
       });
       console.error("❌ 저장하려던 데이터:", JSON.stringify(planRecords, null, 2));
+      
+      // 외래 키 제약조건 위반 시 사용자 친화적인 메시지 제공
+      // PostgreSQL 에러 코드 23503 = Foreign key violation
+      let errorMessage = insertError.message;
+      let userFriendlyMessage = "식단 저장에 실패했습니다.";
+      
+      if (insertError.code === '23503') {
+        // Foreign key violation - 외래 키 제약조건 위반
+        if (insertError.message.includes('recipe_id')) {
+          userFriendlyMessage = "선택한 레시피를 찾을 수 없습니다. 레시피가 삭제되었을 수 있습니다.";
+          errorMessage = "레시피를 찾을 수 없습니다. 레시피가 삭제되었거나 존재하지 않습니다.";
+        } else if (insertError.message.includes('user_id')) {
+          userFriendlyMessage = "사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.";
+          errorMessage = "사용자 정보를 찾을 수 없습니다.";
+        } else if (insertError.message.includes('family_member_id')) {
+          userFriendlyMessage = "가족 구성원 정보를 찾을 수 없습니다.";
+          errorMessage = "가족 구성원 정보를 찾을 수 없습니다.";
+        } else if (insertError.message.includes('weekly_diet_plan_id')) {
+          userFriendlyMessage = "주간 식단 정보를 찾을 수 없습니다.";
+          errorMessage = "주간 식단 정보를 찾을 수 없습니다.";
+        }
+      } else if (insertError.code === '23505') {
+        // Unique violation - 중복 데이터
+        userFriendlyMessage = "이미 같은 날짜의 식단이 존재합니다.";
+        errorMessage = "중복된 식단 데이터입니다.";
+      } else if (insertError.code === '23502') {
+        // Not null violation - 필수 필드 누락
+        userFriendlyMessage = "필수 정보가 누락되었습니다. 다시 시도해주세요.";
+        errorMessage = "필수 필드가 누락되었습니다.";
+      }
+      
       console.groupEnd();
       return NextResponse.json(
         { 
-          error: "Failed to save diet plan",
-          details: insertError.message,
-          code: insertError.code
+          error: "식단 저장 실패",
+          message: userFriendlyMessage, // 사용자 친화적인 메시지
+          details: errorMessage, // 개발자를 위한 상세 메시지
+          code: insertError.code,
+          hint: insertError.hint,
+          // 개발 환경에서만 상세 정보 제공
+          ...(process.env.NODE_ENV === "development" && {
+            attemptedData: planRecords.slice(0, 1), // 첫 번째 레코드만 샘플로 제공
+          }),
         },
         { status: 500 }
       );
@@ -201,9 +238,11 @@ export async function POST(request: NextRequest) {
     console.log(`✅ ${insertedData?.length || planRecords.length}개 식단 레코드 저장 완료`);
 
     // 레시피 사용 이력 기록
+    // recipe_id를 함께 전달하여 데이터 무결성 향상
     console.log("레시피 사용 이력 기록 중...");
     for (const record of planRecords) {
       await trackRecipeUsage(supabaseUserId, record.recipe_title, {
+        recipeId: record.recipe_id || undefined, // 새로 추가: 레시피 ID 전달
         mealType: record.meal_type as any,
         usedDate: targetDate,
       });
@@ -295,14 +334,20 @@ function extractMealRecords(
  * @param mealType - 식사 타입 (breakfast, lunch, dinner, snack)
  * @param recipe - 레시피 정보
  * @param isUnified - 통합 식단 여부
+ * @param weeklyDietPlanId - 주간 식단 계획 ID (선택적, 주간 식단 생성 시 사용)
  * @returns 데이터베이스에 저장할 레코드 객체
+ * 
+ * @description
+ * 식단 레코드를 생성합니다. weekly_diet_plan_id가 제공되면 주간 식단과 연결됩니다.
+ * 이렇게 하면 주간 식단 삭제 시 관련 일일 식단도 함께 관리할 수 있습니다.
  */
 function createDietPlanRecord(
   userId: string,
   planDate: string,
   mealType: string,
   recipe: RecipeDetailForDiet,
-  isUnified: boolean
+  isUnified: boolean,
+  weeklyDietPlanId?: string | null // 새로 추가된 매개변수
 ) {
   // recipe_id 검증: UUID 형식이 아니면 null로 저장
   const recipeId = recipe.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(recipe.id)
@@ -364,6 +409,7 @@ function createDietPlanRecord(
     phosphorus_mg: nutrition.phosphorus ?? null,
     gi_index: nutrition.gi ?? null,
     is_unified: isUnified,
+    weekly_diet_plan_id: weeklyDietPlanId || null, // 새로 추가된 필드: 주간 식단과 연결
   };
 }
 

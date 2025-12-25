@@ -33,6 +33,8 @@ import {
   X,
   Ticket,
   DollarSign,
+  Users,
+  Gamepad2,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -53,6 +55,8 @@ const ICON_MAP = {
   logs: Activity,
   security: ShieldCheck,
   settlements: DollarSign,
+  community: Users,
+  characters: Gamepad2,
 } as const satisfies Record<string, LucideIcon>;
 
 export type AdminNavIcon = keyof typeof ICON_MAP;

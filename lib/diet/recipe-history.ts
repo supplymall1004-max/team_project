@@ -59,11 +59,26 @@ export async function checkRecentlyUsed(
 
 /**
  * 레시피 사용 기록
+ * 
+ * @param userId - 사용자 ID (UUID)
+ * @param recipeTitle - 레시피 제목
+ * @param options - 추가 옵션
+ * @param options.recipeId - 레시피 ID (선택적, 제공 시 직접 사용)
+ * @param options.familyMemberId - 가족 구성원 ID (선택적)
+ * @param options.recipeUrl - 레시피 URL (선택적)
+ * @param options.mealType - 식사 타입 (선택적)
+ * @param options.usedDate - 사용 날짜 (YYYY-MM-DD, 기본값은 오늘)
+ * 
+ * @description
+ * 레시피 사용 이력을 기록합니다. recipe_id가 제공되면 직접 사용하고,
+ * 제공되지 않으면 recipe_title로 레시피를 조회하여 recipe_id를 찾습니다.
+ * 이렇게 하면 레시피 ID로 직접 참조할 수 있어 데이터 무결성이 향상됩니다.
  */
 export async function trackRecipeUsage(
   userId: string,
   recipeTitle: string,
   options: {
+    recipeId?: string; // 새로 추가: 레시피 ID (선택적)
     familyMemberId?: string;
     recipeUrl?: string;
     mealType?: MealType;
@@ -75,10 +90,35 @@ export async function trackRecipeUsage(
     
     const usedDate = options.usedDate || new Date().toISOString().split("T")[0];
 
+    // recipe_id가 제공된 경우 직접 사용, 제공되지 않은 경우 레시피 제목으로 조회 시도
+    let recipeId: string | null = options.recipeId || null;
+    
+    // recipe_id가 없고 recipe_title이 있는 경우 레시피 ID 조회 시도
+    if (!recipeId && recipeTitle) {
+      console.log(`[RecipeHistory] 레시피 ID 조회 시도: ${recipeTitle}`);
+      
+      const { data: recipe, error: lookupError } = await supabase
+        .from("recipes")
+        .select("id")
+        .eq("title", recipeTitle)
+        .maybeSingle();
+      
+      if (lookupError) {
+        console.warn(`⚠️ 레시피 ID 조회 실패 (무시하고 계속 진행): ${lookupError.message}`);
+      } else if (recipe?.id) {
+        recipeId = recipe.id;
+        console.log(`✅ 레시피 ID 조회 성공: ${recipeId}`);
+      } else {
+        console.log(`ℹ️ 레시피 ID를 찾을 수 없음 (제목만 저장): ${recipeTitle}`);
+      }
+    }
+
+    // 데이터베이스에 저장 (recipe_id 포함)
     const { error } = await supabase
       .from("recipe_usage_history")
       .insert({
         user_id: userId,
+        recipe_id: recipeId, // 새로 추가된 필드
         family_member_id: options.familyMemberId,
         recipe_title: recipeTitle,
         recipe_url: options.recipeUrl,
@@ -92,10 +132,11 @@ export async function trackRecipeUsage(
       console.error("  - 에러 코드:", error.code);
       console.error("  - 에러 상세:", error.details);
       console.error("  - 레시피 제목:", recipeTitle);
+      console.error("  - 레시피 ID:", recipeId || "없음");
       console.error("  - 사용 날짜:", usedDate);
       console.error("  - 전체 에러 객체:", JSON.stringify(error, null, 2));
     } else {
-      console.log(`✅ 레시피 사용 기록: ${recipeTitle} (${usedDate})`);
+      console.log(`✅ 레시피 사용 기록: ${recipeTitle} (${usedDate})${recipeId ? ` [ID: ${recipeId}]` : ""}`);
     }
   } catch (err) {
     console.error("❌ 레시피 사용 기록 중 예외 발생:", err instanceof Error ? err.message : String(err));

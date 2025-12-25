@@ -96,6 +96,20 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     href: "/admin/consent",
     icon: "logs",
   },
+  {
+    id: "community",
+    label: "커뮤니티 관리",
+    description: "그룹, 게시글, 댓글 관리",
+    href: "/admin/community",
+    icon: "community",
+  },
+  {
+    id: "characters",
+    label: "캐릭터 관리",
+    description: "캐릭터 정보 및 게임화 데이터 관리",
+    href: "/admin/characters",
+    icon: "characters",
+  },
 ];
 
 const SIGN_IN_REDIRECT = "/sign-in?redirect_url=%2Fadmin";
