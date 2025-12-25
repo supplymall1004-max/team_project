@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { Suspense } from 'react';
 import { PricingSection } from '@/components/pricing/pricing-section';
 import { PricingFAQ } from '@/components/pricing/pricing-faq';
 import { TestModeBanner } from '@/components/pricing/test-mode-banner';
@@ -34,7 +35,9 @@ export default function PricingPage() {
       </section>
 
       {/* 플랜 선택 섹션 */}
-      <PricingSection />
+      <Suspense fallback={<div className="py-16 px-4 text-center">로딩 중...</div>}>
+        <PricingSection />
+      </Suspense>
 
       {/* FAQ 섹션 */}
       <PricingFAQ />

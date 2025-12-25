@@ -18,7 +18,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, CheckCircle, XCircle } from "lucide-react";
@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DataSourceType } from "@/types/health-data-integration";
 
-export default function DataSourceConnectPage() {
+function DataSourceConnectContent() {
   console.log("[DataSourceConnectPage] 페이지 렌더링 시작");
 
   const searchParams = useSearchParams();
@@ -217,6 +217,31 @@ export default function DataSourceConnectPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function DataSourceConnectPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto py-8">
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle className="text-2xl">데이터 소스 연결</CardTitle>
+              <CardDescription>데이터 소스 연결을 처리하고 있습니다...</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                <p className="text-muted-foreground">로딩 중...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <DataSourceConnectContent />
+    </Suspense>
   );
 }
 

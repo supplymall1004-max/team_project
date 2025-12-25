@@ -117,3 +117,13 @@ export interface AdminCharacterFilters {
   dateTo?: string;
 }
 
+/**
+ * 페이지네이션 파라미터
+ */
+export interface AdminPaginationParams {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
