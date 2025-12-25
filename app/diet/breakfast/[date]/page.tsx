@@ -172,33 +172,42 @@ export default function BreakfastDetailPage() {
 
       console.log('[BreakfastDetailPage] 파싱된 데이터:', {
         mealSuccess: mealResult.data.success,
-        mealExists: !!mealResult.data.meal,
-        healthProfileExists: !!healthResult.data.profile,
-        metricsExists: !!currentHealthResult.data.metrics,
+        mealExists: !!(mealResult.data.success && 'meal' in mealResult.data && mealResult.data.meal),
+        healthProfileExists: !!('profile' in healthResult.data && healthResult.data.profile),
+        metricsExists: !!('metrics' in currentHealthResult.data && currentHealthResult.data.metrics),
         membersCount: Array.isArray(membersData.members) ? membersData.members.length : 0,
       });
 
       // 오류 처리 (식단) - 필수
-      if (!mealResult.ok || !mealResult.data.success || !mealResult.data.meal) {
-        const errorMessage = mealResult.data.error || '식단 데이터를 불러올 수 없습니다.';
+      if (!mealResult.ok || !mealResult.data.success || !('meal' in mealResult.data) || !mealResult.data.meal) {
+        const errorMessage = ('error' in mealResult.data ? mealResult.data.error : undefined) || '식단 데이터를 불러올 수 없습니다.';
         console.error('[BreakfastDetailPage] 식단 데이터 오류:', errorMessage);
         throw new Error(errorMessage);
       }
 
       // 오류 처리 (건강 프로필) - 필수
       if (!healthResult.ok) {
-        throw new Error(healthResult.data.error || healthResult.data.message || '건강 정보를 불러올 수 없습니다.');
+        const errorMsg = ('error' in healthResult.data ? healthResult.data.error : undefined) || 
+                        ('message' in healthResult.data ? healthResult.data.message : undefined) || 
+                        '건강 정보를 불러올 수 없습니다.';
+        throw new Error(errorMsg);
       }
 
       // 건강 메트릭스는 선택적 (에러가 있어도 기본값 사용)
-      const healthMetrics = currentHealthResult.ok && currentHealthResult.data.metrics 
+      const healthMetrics = currentHealthResult.ok && ('metrics' in currentHealthResult.data) && currentHealthResult.data.metrics 
         ? currentHealthResult.data.metrics 
         : null;
 
       // 상태 업데이트를 한 번에 배치 처리 (React 18의 자동 배칭 활용)
-      setMealData(mealResult.data.meal);
-      setHealthProfile(healthResult.data.profile ?? null);
-      setApiHealthProfile(mealResult.data.healthProfile);
+      if ('meal' in mealResult.data && mealResult.data.meal) {
+        setMealData(mealResult.data.meal);
+      }
+      if ('profile' in healthResult.data) {
+        setHealthProfile(healthResult.data.profile ?? null);
+      }
+      if ('healthProfile' in mealResult.data) {
+        setApiHealthProfile(mealResult.data.healthProfile);
+      }
       setCurrentHealth(healthMetrics);
 
       // 가족 구성원 데이터 처리 (선택적)

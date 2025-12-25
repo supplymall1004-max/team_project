@@ -400,7 +400,8 @@ function buildMemberNotes(
     if (typeof disease === 'string') {
       code = disease;
     } else if (disease && typeof disease === 'object' && 'code' in disease) {
-      code = String(disease.code);
+      const diseaseObj = disease as { code?: unknown };
+      code = String(diseaseObj.code || '');
     } else {
       code = String(disease);
     }
@@ -413,7 +414,8 @@ function buildMemberNotes(
     if (typeof allergy === 'string') {
       code = allergy;
     } else if (allergy && typeof allergy === 'object' && 'code' in allergy) {
-      code = String(allergy.code);
+      const allergyObj = allergy as { code?: unknown };
+      code = String(allergyObj.code || '');
     } else {
       code = String(allergy);
     }
@@ -487,7 +489,8 @@ function buildHealthFlags(
     if (typeof disease === 'string') {
       code = disease;
     } else if (disease && typeof disease === 'object' && 'code' in disease) {
-      code = String(disease.code);
+      const diseaseObj = disease as { code?: unknown };
+      code = String(diseaseObj.code || '');
     } else {
       code = String(disease);
     }
@@ -500,7 +503,8 @@ function buildHealthFlags(
     if (typeof allergy === 'string') {
       code = allergy;
     } else if (allergy && typeof allergy === 'object' && 'code' in allergy) {
-      code = String(allergy.code);
+      const allergyObj = allergy as { code?: unknown };
+      code = String(allergyObj.code || '');
     } else {
       code = String(allergy);
     }

@@ -32,6 +32,16 @@ import { HealthTrendsPanel } from "@/components/health/character/health-trends-p
 import { StatusBars } from "@/components/health/character/status-bars";
 import { getCharacterData } from "@/actions/health/character";
 import type { CharacterData, EmotionState } from "@/types/character";
+import { DailyQuestPanel } from "@/components/games/daily-quest-panel";
+import { WeeklyQuestPanel } from "@/components/games/weekly-quest-panel";
+import { LevelUpAnimation } from "@/components/games/level-up-animation";
+import { SkinCollection } from "@/components/games/skin-collection";
+import { BadgeGallery } from "@/components/games/badge-gallery";
+import { RandomEventPopup } from "@/components/games/random-event-popup";
+import { FamilyChallengePanel } from "@/components/games/family-challenge-panel";
+import { HealthQuiz } from "@/components/games/health-quiz";
+import { WeeklyLeaderboard } from "@/components/games/weekly-leaderboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CharacterPageClientProps {
   characterData: CharacterData;
@@ -47,6 +57,7 @@ export function CharacterPageClient({
 }: CharacterPageClientProps) {
   const [characterData, setCharacterData] = useState<CharacterData>(initialCharacterData);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("health");
 
   // 실시간 감정 업데이트 (5분마다)
   useEffect(() => {
@@ -154,61 +165,172 @@ export function CharacterPageClient({
           </motion.div>
         </motion.div>
 
-        {/* 패널 컨테이너 (스태거 애니메이션) */}
+        {/* 탭 네비게이션 */}
         <motion.div
-          variants={panelContainerVariants}
-          initial="initial"
-          animate="animate"
+          className="mb-6"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.4 }}
         >
-          {/* 기본 정보 패널 */}
-          <motion.div className="mb-6" variants={panelStaggerVariants}>
-            <BasicInfoPanel data={characterData.basicInfo} />
-          </motion.div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-gray-800/50">
+              <TabsTrigger value="health" className="data-[state=active]:bg-green-600">
+                건강 관리
+              </TabsTrigger>
+              <TabsTrigger value="quests" className="data-[state=active]:bg-purple-600">
+                퀘스트
+              </TabsTrigger>
+              <TabsTrigger value="collection" className="data-[state=active]:bg-blue-600">
+                컬렉션
+              </TabsTrigger>
+              <TabsTrigger value="community" className="data-[state=active]:bg-orange-600">
+                커뮤니티
+              </TabsTrigger>
+            </TabsList>
 
-          {/* 중요 정보 패널 */}
-          <motion.div className="mb-6" variants={panelStaggerVariants}>
-            <ImportantInfoPanel data={characterData.importantInfo} />
-          </motion.div>
+            {/* 건강 관리 탭 */}
+            <TabsContent value="health" className="mt-6">
+              <motion.div
+                variants={panelContainerVariants}
+                initial="initial"
+                animate="animate"
+              >
+                {/* 기본 정보 패널 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <BasicInfoPanel data={characterData.basicInfo} />
+                </motion.div>
 
-          {/* 약물 복용 패널 */}
-          <motion.div className="mb-6" variants={panelStaggerVariants}>
-            <MedicationPanel
-              data={characterData.medications}
-              memberId={memberId}
-            />
-          </motion.div>
+                {/* 중요 정보 패널 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <ImportantInfoPanel data={characterData.importantInfo} />
+                </motion.div>
 
-          {/* 건강검진 패널 */}
-          <motion.div className="mb-6" variants={panelStaggerVariants}>
-            <CheckupPanel data={characterData.checkups} />
-          </motion.div>
+                {/* 약물 복용 패널 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <MedicationPanel
+                    data={characterData.medications}
+                    memberId={memberId}
+                  />
+                </motion.div>
 
-          {/* 백신 패널 */}
-          <motion.div className="mb-6" variants={panelStaggerVariants}>
-            <VaccinationPanel data={characterData.vaccinations} />
-          </motion.div>
+                {/* 건강검진 패널 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <CheckupPanel data={characterData.checkups} />
+                </motion.div>
 
-          {/* 구충제 패널 */}
-          <motion.div className="mb-6" variants={panelStaggerVariants}>
-            <DewormingPanel data={characterData.deworming} />
-          </motion.div>
+                {/* 백신 패널 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <VaccinationPanel data={characterData.vaccinations} />
+                </motion.div>
 
-          {/* 생애주기별 알림 패널 */}
-          <motion.div className="mb-6" variants={panelStaggerVariants}>
-            <LifecycleNotificationsPanel
-              data={characterData.lifecycleNotifications}
-            />
-          </motion.div>
+                {/* 구충제 패널 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <DewormingPanel data={characterData.deworming} />
+                </motion.div>
 
-          {/* 리마인드 및 일정 패널 */}
-          <motion.div className="mb-6" variants={panelStaggerVariants}>
-            <RemindersPanel data={characterData.reminders} memberId={memberId} />
-          </motion.div>
+                {/* 생애주기별 알림 패널 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <LifecycleNotificationsPanel
+                    data={characterData.lifecycleNotifications}
+                  />
+                </motion.div>
 
-          {/* 건강 트렌드 요약 패널 */}
-          <motion.div className="mb-6" variants={panelStaggerVariants}>
-            <HealthTrendsPanel data={characterData.healthTrends} />
-          </motion.div>
+                {/* 리마인드 및 일정 패널 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <RemindersPanel data={characterData.reminders} memberId={memberId} />
+                </motion.div>
+
+                {/* 건강 트렌드 요약 패널 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <HealthTrendsPanel data={characterData.healthTrends} />
+                </motion.div>
+              </motion.div>
+            </TabsContent>
+
+            {/* 퀘스트 탭 */}
+            <TabsContent value="quests" className="mt-6">
+              <motion.div
+                variants={panelContainerVariants}
+                initial="initial"
+                animate="animate"
+              >
+                {/* 일일 퀘스트 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <DailyQuestPanel
+                    memberId={memberId}
+                    onQuestComplete={(quest, rewardPoints) => {
+                      console.log("✅ 퀘스트 완료:", quest.title, "보상:", rewardPoints);
+                    }}
+                  />
+                </motion.div>
+
+                {/* 주간 퀘스트 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <WeeklyQuestPanel
+                    memberId={memberId}
+                    onQuestComplete={(quest, rewardPoints) => {
+                      console.log("✅ 주간 퀘스트 완료:", quest.title, "보상:", rewardPoints);
+                    }}
+                  />
+                </motion.div>
+
+                {/* 레벨업 애니메이션은 레벨업 이벤트 발생 시 표시됨 */}
+              </motion.div>
+            </TabsContent>
+
+            {/* 컬렉션 탭 */}
+            <TabsContent value="collection" className="mt-6">
+              <motion.div
+                variants={panelContainerVariants}
+                initial="initial"
+                animate="animate"
+              >
+                {/* 스킨 컬렉션 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <SkinCollection memberId={memberId} />
+                </motion.div>
+
+                {/* 배지 갤러리 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <BadgeGallery
+                    onBadgeClick={(badge) => {
+                      console.log("배지 클릭:", badge.name);
+                    }}
+                  />
+                </motion.div>
+              </motion.div>
+            </TabsContent>
+
+            {/* 커뮤니티 탭 */}
+            <TabsContent value="community" className="mt-6">
+              <motion.div
+                variants={panelContainerVariants}
+                initial="initial"
+                animate="animate"
+              >
+                {/* 가족 챌린지 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <FamilyChallengePanel memberId={memberId} />
+                </motion.div>
+
+                {/* 건강 퀴즈 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <HealthQuiz
+                    memberId={memberId}
+                    category="health"
+                    onComplete={(score) => {
+                      console.log("✅ 퀴즈 완료, 점수:", score);
+                    }}
+                  />
+                </motion.div>
+
+                {/* 주간 리더보드 */}
+                <motion.div className="mb-6" variants={panelStaggerVariants}>
+                  <WeeklyLeaderboard />
+                </motion.div>
+              </motion.div>
+            </TabsContent>
+          </Tabs>
         </motion.div>
       </Section>
     </motion.div>

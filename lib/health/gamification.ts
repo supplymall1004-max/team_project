@@ -232,3 +232,115 @@ export function getBadgeInfo(badgeId: string): Badge | undefined {
   return BADGES.find((b) => b.id === badgeId);
 }
 
+/**
+ * 포인트 추가 함수
+ * 게임 요소(퀘스트, 미니게임, 퀴즈, 이벤트 등)에서 포인트를 추가할 때 사용
+ * @param userId 사용자 ID
+ * @param points 추가할 포인트
+ * @param reason 포인트 추가 사유 (로깅용)
+ */
+export async function addPoints(
+  userId: string,
+  points: number,
+  reason?: string
+): Promise<{
+  success: boolean;
+  newTotalPoints: number;
+  newBadges: string[];
+  error?: string;
+}> {
+  try {
+    console.group("[AddPoints] 포인트 추가 시작");
+    console.log("userId", userId);
+    console.log("points", points);
+    console.log("reason", reason);
+
+    if (points <= 0) {
+      console.warn("⚠️ 추가할 포인트가 0 이하입니다");
+      console.groupEnd();
+      return {
+        success: false,
+        newTotalPoints: 0,
+        newBadges: [],
+        error: "추가할 포인트는 0보다 커야 합니다.",
+      };
+    }
+
+    const supabase = getServiceRoleClient();
+
+    // 기존 데이터 조회
+    const currentData = await getUserGamificationData(userId);
+    const newTotalPoints = currentData.totalPoints + points;
+
+    // 새로 획득한 배지 확인
+    const updatedData: UserGamificationData = {
+      totalPoints: newTotalPoints,
+      streakDays: currentData.streakDays,
+      badges: [...currentData.badges],
+      lastCompletedDate: currentData.lastCompletedDate,
+    };
+
+    const newBadges: string[] = [];
+    for (const badge of BADGES) {
+      if (!currentData.badges.includes(badge.id) && badge.condition(updatedData)) {
+        newBadges.push(badge.id);
+        updatedData.badges.push(badge.id);
+      }
+    }
+
+    // 데이터베이스 업데이트 (upsert)
+    const { error: upsertError } = await supabase
+      .from('user_gamification')
+      .upsert({
+        user_id: userId,
+        total_points: newTotalPoints,
+        streak_days: currentData.streakDays,
+        badges: updatedData.badges,
+        last_completed_date: currentData.lastCompletedDate,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id',
+      });
+
+    if (upsertError) {
+      console.error("❌ 포인트 추가 실패:", upsertError);
+      console.groupEnd();
+      return {
+        success: false,
+        newTotalPoints: currentData.totalPoints,
+        newBadges: [],
+        error: upsertError.message,
+      };
+    }
+
+    console.log("✅ 포인트 추가 완료");
+    console.log("이전 포인트:", currentData.totalPoints);
+    console.log("추가 포인트:", points);
+    console.log("새 총 포인트:", newTotalPoints);
+    console.log("새 배지:", newBadges);
+    console.groupEnd();
+
+    // 포인트 획득 후 레벨 계산이 필요한지 확인 (비동기로 처리하여 응답 지연 방지)
+    // 큰 포인트 획득 시에만 레벨 계산 트리거
+    if (points >= 50) {
+      // 레벨 계산은 별도로 트리거되므로 여기서는 로그만 남김
+      console.log("💡 큰 포인트 획득 감지. 레벨 계산을 고려해주세요.");
+    }
+
+    return {
+      success: true,
+      newTotalPoints,
+      newBadges,
+    };
+  } catch (error) {
+    console.error("❌ 포인트 추가 중 오류:", error);
+    console.groupEnd();
+    return {
+      success: false,
+      newTotalPoints: 0,
+      newBadges: [],
+      error: error instanceof Error ? error.message : "알 수 없는 오류",
+    };
+  }
+}
+
