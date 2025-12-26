@@ -20,6 +20,9 @@ export interface PetLifecycleEvent {
   description: string;
   recommended_action?: string;
   notification_timing_days_before?: number; // 이벤트 예정일로부터 며칠 전 알림
+  is_recurring?: boolean; // 반복 이벤트 여부
+  recurrence_interval_years?: number; // 반복 주기 (년 단위)
+  recurrence_interval_months?: number; // 반복 주기 (개월 단위)
 }
 
 /**
@@ -47,7 +50,7 @@ const PET_LIFECYCLE_EVENTS: PetLifecycleEvent[] = [
     recommended_action: '수의사와 상담하여 중성화 수술 일정을 계획하세요.',
     notification_timing_days_before: 30,
   },
-  // 치과 검진 (3세 이후)
+  // 치과 검진 (3세 이후, 매년 반복)
   {
     event_code: 'dental_checkup_3years',
     event_name: '정기 치과 검진',
@@ -57,8 +60,10 @@ const PET_LIFECYCLE_EVENTS: PetLifecycleEvent[] = [
     description: '3세 이후부터는 매년 정기적인 치과 검진과 스케일링을 권장합니다.',
     recommended_action: '수의사와 상담하여 치과 검진 일정을 계획하세요.',
     notification_timing_days_before: 14,
+    is_recurring: true, // 매년 반복
+    recurrence_interval_years: 1, // 1년마다
   },
-  // 혈액 검사 (강아지 7세 이상)
+  // 혈액 검사 (강아지 7세 이상, 매년 반복)
   {
     event_code: 'dog_blood_test_7years',
     event_name: '노령견 혈액 검사',
@@ -68,6 +73,8 @@ const PET_LIFECYCLE_EVENTS: PetLifecycleEvent[] = [
     description: '강아지 7세 이상부터는 매년 정기적인 혈액 검사를 권장합니다.',
     recommended_action: '수의사와 상담하여 혈액 검사 일정을 계획하세요.',
     notification_timing_days_before: 14,
+    is_recurring: true,
+    recurrence_interval_years: 1, // 매년
   },
   {
     event_code: 'dog_blood_test_10years',
@@ -78,8 +85,10 @@ const PET_LIFECYCLE_EVENTS: PetLifecycleEvent[] = [
     description: '강아지 10세 이상부터는 반기별(6개월마다) 혈액 검사를 권장합니다.',
     recommended_action: '수의사와 상담하여 혈액 검사 일정을 계획하세요.',
     notification_timing_days_before: 14,
+    is_recurring: true,
+    recurrence_interval_months: 6, // 반기별
   },
-  // 혈액 검사 (고양이 10세 이상)
+  // 혈액 검사 (고양이 10세 이상, 매년 반복)
   {
     event_code: 'cat_blood_test_10years',
     event_name: '노묘 혈액 검사',
@@ -89,6 +98,8 @@ const PET_LIFECYCLE_EVENTS: PetLifecycleEvent[] = [
     description: '고양이 10세 이상부터는 매년 정기적인 혈액 검사를 권장합니다.',
     recommended_action: '수의사와 상담하여 혈액 검사 일정을 계획하세요.',
     notification_timing_days_before: 14,
+    is_recurring: true,
+    recurrence_interval_years: 1, // 매년
   },
   {
     event_code: 'cat_blood_test_15years',
@@ -99,6 +110,8 @@ const PET_LIFECYCLE_EVENTS: PetLifecycleEvent[] = [
     description: '고양이 15세 이상부터는 반기별(6개월마다) 혈액 검사를 권장합니다.',
     recommended_action: '수의사와 상담하여 혈액 검사 일정을 계획하세요.',
     notification_timing_days_before: 14,
+    is_recurring: true,
+    recurrence_interval_months: 6, // 반기별
   },
 ];
 
@@ -109,12 +122,15 @@ const PET_LIFECYCLE_EVENTS: PetLifecycleEvent[] = [
  */
 export function generatePetLifecycleEvents(pet: PetProfile): PetLifecycleEvent[] {
   if (!pet.birth_date || !pet.pet_type) {
+    console.log('[generatePetLifecycleEvents] 생년월일 또는 반려동물 종류가 없습니다.');
     return [];
   }
 
   const lifecycleInfo = calculatePetLifecycle(pet.pet_type, pet.birth_date);
   const ageMonths = lifecycleInfo.age.totalMonths;
   const ageYears = lifecycleInfo.age.years;
+
+  console.log(`[generatePetLifecycleEvents] 반려동물: ${pet.name}, 나이: ${ageYears}세 ${ageMonths % 12}개월 (총 ${ageMonths}개월)`);
 
   // 해당 반려동물 종류와 나이에 맞는 이벤트 필터링
   const applicableEvents = PET_LIFECYCLE_EVENTS.filter((event) => {
@@ -132,17 +148,25 @@ export function generatePetLifecycleEvents(pet: PetProfile): PetLifecycleEvent[]
     
     if (targetMonths !== null) {
       if (ageMonths < targetMonths) {
+        console.log(`[generatePetLifecycleEvents] ${event.event_name}: 아직 시기가 아님 (현재 ${ageMonths}개월 < 목표 ${targetMonths}개월)`);
         return false; // 아직 시기가 아님
       }
-      // 이미 지난 이벤트는 제외 (중성화 수술 등은 한 번만)
+      
+      // 중성화 수술은 한 번만 표시 (3개월 여유를 두고 제외)
       if (event.event_type === 'neutering' && ageMonths > targetMonths + 3) {
+        console.log(`[generatePetLifecycleEvents] ${event.event_name}: 이미 지난 이벤트 (중성화 수술)`);
         return false; // 중성화 수술은 3개월 여유를 두고 제외
       }
+      
+      // 반복 이벤트(치과 검진, 혈액 검사)는 계속 표시
+      // 이미 지난 이벤트도 표시 (매년/반기별 반복)
+      console.log(`[generatePetLifecycleEvents] ${event.event_name}: 적용 가능 (현재 ${ageMonths}개월 >= 목표 ${targetMonths}개월)`);
     }
 
     return true;
   });
 
+  console.log(`[generatePetLifecycleEvents] 적용 가능한 이벤트: ${applicableEvents.length}건`);
   return applicableEvents;
 }
 

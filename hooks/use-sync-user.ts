@@ -133,30 +133,28 @@ export function useSyncUser() {
         if (!response.ok) {
           // 에러 응답 처리
           const errorText = await response.text().catch(() => "응답 본문을 읽을 수 없습니다");
-          console.error("❌ 사용자 동기화 실패:", response.status, errorText);
+          
+          // HTML 응답인 경우 (404 페이지 등) 요약만 표시
+          const isHtmlResponse = errorText.trim().startsWith("<!DOCTYPE") || errorText.trim().startsWith("<html");
+          const errorSummary = isHtmlResponse 
+            ? `HTML 응답 (${errorText.length} bytes) - API 라우트를 찾을 수 없습니다`
+            : errorText.substring(0, 200); // 긴 텍스트는 처음 200자만
+          
+          console.error("❌ 사용자 동기화 실패:", response.status, errorSummary);
 
-          // 404 에러의 경우 (새로운 계정에서 Clerk 정보가 아직 준비되지 않음)
+          // 404 에러의 경우 (API 라우트가 존재하지 않거나 Next.js가 인식하지 못함)
           if (response.status === 404) {
-            if (retryCountRef.current < maxRetries) {
-              retryCountRef.current += 1;
-              const delay = 2000;
-              console.warn(`⚠️ Clerk 사용자 정보가 아직 준비되지 않음 - ${delay}ms 후 재시도 (${retryCountRef.current}/${maxRetries})`);
-              setTimeout(() => {
-                if (!syncedRef.current) {
-                  syncUser(true);
-                }
-              }, delay);
-              console.groupEnd();
-              return;
-            } else {
-              console.error("❌ Clerk 사용자 정보 조회 실패: 최대 재시도 횟수 초과");
-              // 무한 로딩 방지를 위해 동기화 완료로 표시
-              syncedRef.current = true;
-              retryCountRef.current = 0;
-              console.warn("⚠️ Clerk 정보 조회 실패로 재시도를 중단합니다 (무한 로딩 방지)");
-              console.groupEnd();
-              return;
-            }
+            console.error("❌ /api/sync-user 엔드포인트를 찾을 수 없습니다.");
+            console.error("   - 파일이 존재하는지 확인: app/api/sync-user/route.ts");
+            console.error("   - Next.js 개발 서버를 재시작해보세요");
+            console.error("   - .next 폴더를 삭제하고 다시 빌드해보세요");
+            
+            // 404는 API가 존재하지 않는 것이므로 재시도하지 않음
+            syncedRef.current = true;
+            retryCountRef.current = 0;
+            console.warn("⚠️ API 라우트를 찾을 수 없어 동기화를 중단합니다");
+            console.groupEnd();
+            return;
           }
           
           // 5xx 서버 에러인 경우에도 재시도 시도

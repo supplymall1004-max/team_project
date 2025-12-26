@@ -102,26 +102,62 @@ export async function generateLifecycleNotifications(
       member = data;
     } else {
       // 본인 정보 조회
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id, name')
-        .eq('id', userId)
-        .single();
+      // 먼저 family_members에서 본인을 찾아봅니다 (본인도 가족 구성원으로 등록될 수 있음)
+      const { data: selfMember } = await supabase
+        .from('family_members')
+        .select('id, name, birth_date, gender')
+        .eq('user_id', userId)
+        .eq('member_type', 'human')
+        .or('relationship.is.null,relationship.eq.본인,relationship.eq.나')
+        .maybeSingle();
 
-      if (!userData) {
-        console.error('❌ 사용자 조회 실패');
-        console.groupEnd();
-        return [];
+      if (selfMember && selfMember.birth_date) {
+        // family_members에 본인 정보가 있고 생년월일이 있으면 사용
+        console.log('✅ family_members에서 본인 정보 조회 성공');
+        member = selfMember;
+      } else {
+        // family_members에 없으면 users 테이블에서 조회
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id, name')
+          .eq('id', userId)
+          .single();
+
+        if (!userData) {
+          console.error('❌ 사용자 조회 실패');
+          console.groupEnd();
+          return [];
+        }
+
+        // user_health_profiles에서 생년월일 및 성별 정보 가져오기
+        const { data: healthProfile } = await supabase
+          .from('user_health_profiles')
+          .select('gender, age, birth_date')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        // birth_date가 있으면 사용, 없으면 age로 역산
+        let birth_date: string | null = null;
+        if (healthProfile?.birth_date) {
+          // 정확한 생년월일이 있으면 사용
+          birth_date = healthProfile.birth_date;
+          console.log('✅ user_health_profiles에서 생년월일 조회 성공:', birth_date);
+        } else if (healthProfile?.age) {
+          // age가 있으면 역산하여 대략적인 생년월일 계산 (정확하지 않지만 알림 생성은 가능)
+          const today = new Date();
+          const estimatedBirthYear = today.getFullYear() - healthProfile.age;
+          // 생일은 1월 1일로 가정 (정확한 생일은 알 수 없음)
+          birth_date = `${estimatedBirthYear}-01-01`;
+          console.warn(`⚠️ 정확한 생년월일이 없어 나이(${healthProfile.age}세)로부터 역산했습니다: ${birth_date}`);
+        }
+
+        member = {
+          id: userId,
+          name: userData.name || '본인',
+          birth_date,
+          gender: healthProfile?.gender || null,
+        };
       }
-
-      // 본인의 생년월일은 health_profile에서 가져와야 할 수도 있음
-      // 일단 기본 구조만 작성
-      member = {
-        id: userId,
-        name: userData.name || '본인',
-        birth_date: null,
-        gender: null,
-      };
     }
 
     if (!member.birth_date) {

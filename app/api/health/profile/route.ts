@@ -391,6 +391,7 @@ export async function PUT(request: NextRequest) {
       gender: body.gender || null,
       activity_level: body.activity_level || "sedentary",
       premium_features: Array.isArray(body.premium_features) ? body.premium_features : [],
+      birth_date: body.birth_date || null, // 생년월일 추가
     };
 
     console.log("업데이트할 데이터:", JSON.stringify(updateData, null, 2));

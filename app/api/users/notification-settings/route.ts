@@ -64,6 +64,15 @@ export async function GET() {
       kcdcAlerts: false,
       healthPopups: false,
       generalNotifications: false,
+      vaccinationReminders: true,
+      medicationReminders: true,
+      checkupReminders: true,
+      appointmentReminders: true,
+      petHealthReminders: true,
+      petVaccinationReminders: true,
+      petLifecycleReminders: true,
+      smartNotifications: true,
+      smartNotificationSensitivity: 'medium' as const,
     };
 
     const settings = userData?.notification_settings
@@ -140,7 +149,20 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { kcdcAlerts, generalNotifications, healthPopups } = body;
+    const { 
+      kcdcAlerts, 
+      generalNotifications, 
+      healthPopups,
+      vaccinationReminders,
+      medicationReminders,
+      checkupReminders,
+      appointmentReminders,
+      petHealthReminders,
+      petVaccinationReminders,
+      petLifecycleReminders,
+      smartNotifications,
+      smartNotificationSensitivity,
+    } = body;
 
     console.log("업데이트 요청:", {
       kcdcAlerts,
@@ -202,17 +224,22 @@ export async function PUT(request: NextRequest) {
     }
 
     // 기존 설정 가져오기
-    const existingSettings = (existingUser?.notification_settings as {
-      kcdcAlerts?: boolean;
-      generalNotifications?: boolean;
-      healthPopups?: boolean;
-    }) || {};
+    const existingSettings = (existingUser?.notification_settings as any) || {};
 
     // 새로운 설정 객체 생성 (기존 값 유지, 새 값으로 업데이트)
     const newSettings = {
       kcdcAlerts: kcdcAlerts !== undefined ? kcdcAlerts : (existingSettings.kcdcAlerts ?? false),
       generalNotifications: generalNotifications !== undefined ? generalNotifications : (existingSettings.generalNotifications ?? false),
       healthPopups: healthPopups !== undefined ? healthPopups : (existingSettings.healthPopups ?? false),
+      vaccinationReminders: vaccinationReminders !== undefined ? vaccinationReminders : (existingSettings.vaccinationReminders ?? true),
+      medicationReminders: medicationReminders !== undefined ? medicationReminders : (existingSettings.medicationReminders ?? true),
+      checkupReminders: checkupReminders !== undefined ? checkupReminders : (existingSettings.checkupReminders ?? true),
+      appointmentReminders: appointmentReminders !== undefined ? appointmentReminders : (existingSettings.appointmentReminders ?? true),
+      petHealthReminders: petHealthReminders !== undefined ? petHealthReminders : (existingSettings.petHealthReminders ?? true),
+      petVaccinationReminders: petVaccinationReminders !== undefined ? petVaccinationReminders : (existingSettings.petVaccinationReminders ?? true),
+      petLifecycleReminders: petLifecycleReminders !== undefined ? petLifecycleReminders : (existingSettings.petLifecycleReminders ?? true),
+      smartNotifications: smartNotifications !== undefined ? smartNotifications : (existingSettings.smartNotifications ?? true),
+      smartNotificationSensitivity: smartNotificationSensitivity !== undefined ? smartNotificationSensitivity : (existingSettings.smartNotificationSensitivity ?? 'medium'),
     };
 
     // JSONB 저장을 위한 데이터 검증
@@ -257,12 +284,8 @@ export async function PUT(request: NextRequest) {
       
       // Supabase에 전달할 데이터 준비
       // 명시적으로 JSONB 형식으로 변환하여 전달
-      const updateData: { notification_settings: Record<string, boolean> } = {
-        notification_settings: {
-          kcdcAlerts: newSettings.kcdcAlerts,
-          healthPopups: newSettings.healthPopups,
-          generalNotifications: newSettings.generalNotifications,
-        },
+      const updateData: { notification_settings: any } = {
+        notification_settings: newSettings,
       };
       
       console.log("업데이트 데이터:", updateData);
@@ -327,11 +350,7 @@ export async function PUT(request: NextRequest) {
       const insertData = {
         clerk_id: userId,
         name: "사용자",
-        notification_settings: {
-          kcdcAlerts: newSettings.kcdcAlerts,
-          healthPopups: newSettings.healthPopups,
-          generalNotifications: newSettings.generalNotifications,
-        },
+        notification_settings: newSettings,
       };
       
       console.log("삽입 데이터:", insertData);

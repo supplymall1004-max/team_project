@@ -16,24 +16,34 @@ import { getServiceRoleClient } from "@/lib/supabase/service-role";
  */
 export async function ensureSupabaseUser(): Promise<{ id: string; name: string } | null> {
   try {
-    console.group("🔍 ensureSupabaseUser");
+    // 개발 환경에서만 상세 로그 출력
+    const isDev = process.env.NODE_ENV === "development";
+    if (isDev) {
+      console.group("🔍 ensureSupabaseUser");
+    }
     
     // Clerk 인증 확인
     const { userId } = await auth();
     
     if (!userId) {
-      console.error("❌ 인증 실패");
-      console.groupEnd();
+      if (isDev) {
+        console.error("❌ 인증 실패");
+        console.groupEnd();
+      }
       return null;
     }
 
-    console.log("✅ Clerk User ID:", userId);
+    if (isDev) {
+      console.log("✅ Clerk User ID:", userId);
+    }
 
     // Service Role 클라이언트 사용 (RLS 우회)
     const supabase = getServiceRoleClient();
 
     // 1. 먼저 사용자가 이미 존재하는지 확인
-    console.log("🔍 기존 사용자 조회 중...");
+    if (isDev) {
+      console.log("🔍 기존 사용자 조회 중...");
+    }
     const { data: existingUser, error: checkError } = await supabase
       .from("users")
       .select("id, name")
@@ -61,26 +71,34 @@ export async function ensureSupabaseUser(): Promise<{ id: string; name: string }
         console.error("     4. 배포 재시도");
       }
       
-      console.groupEnd();
+      if (isDev) {
+        console.groupEnd();
+      }
       return null;
     }
 
     // 2. 이미 존재하면 반환
     if (existingUser) {
-      console.log("✅ 사용자가 이미 존재합니다. ID:", existingUser.id);
-      console.groupEnd();
+      if (isDev) {
+        console.log("✅ 사용자가 이미 존재합니다. ID:", existingUser.id);
+        console.groupEnd();
+      }
       return existingUser;
     }
 
     // 3. 존재하지 않으면 Clerk에서 정보를 가져와서 동기화
-    console.log("📝 사용자가 없어서 동기화 중...");
+    if (isDev) {
+      console.log("📝 사용자가 없어서 동기화 중...");
+    }
     
     const clerk = await clerkClient();
     const clerkUser = await clerk.users.getUser(userId);
 
     if (!clerkUser) {
       console.error("❌ Clerk에서 사용자 정보를 찾을 수 없음");
-      console.groupEnd();
+      if (isDev) {
+        console.groupEnd();
+      }
       return null;
     }
 
@@ -90,14 +108,18 @@ export async function ensureSupabaseUser(): Promise<{ id: string; name: string }
                      clerkUser.emailAddresses[0]?.emailAddress ||
                      "사용자";
 
-    console.log("👤 Clerk 사용자 정보:", {
-      id: clerkUser.id,
-      name: userName,
-      email: clerkUser.emailAddresses[0]?.emailAddress,
-    });
+    if (isDev) {
+      console.log("👤 Clerk 사용자 정보:", {
+        id: clerkUser.id,
+        name: userName,
+        email: clerkUser.emailAddresses[0]?.emailAddress,
+      });
+    }
 
     // 4. Supabase에 사용자 정보 동기화
-    console.log("💾 Supabase에 동기화 중...");
+    if (isDev) {
+      console.log("💾 Supabase에 동기화 중...");
+    }
     
     // 다시 한 번 확인 (동시성 문제 방지)
     const { data: doubleCheckUser, error: doubleCheckError } = await supabase
@@ -117,7 +139,9 @@ export async function ensureSupabaseUser(): Promise<{ id: string; name: string }
 
     if (doubleCheckUser) {
       // 기존 사용자가 있으면 업데이트
-      console.log("📝 기존 사용자 업데이트 중...");
+      if (isDev) {
+        console.log("📝 기존 사용자 업데이트 중...");
+      }
       const { data: updatedUser, error: updateError } = await supabase
         .from("users")
         .update({ name: userName })
@@ -129,7 +153,9 @@ export async function ensureSupabaseUser(): Promise<{ id: string; name: string }
       upsertError = updateError;
     } else {
       // 새 사용자 생성 (id는 자동 생성됨)
-      console.log("➕ 새 사용자 생성 중...");
+      if (isDev) {
+        console.log("➕ 새 사용자 생성 중...");
+      }
       const { data: newUser, error: insertError } = await supabase
         .from("users")
         .insert({
@@ -153,7 +179,9 @@ export async function ensureSupabaseUser(): Promise<{ id: string; name: string }
       
       // 중복 키 에러인 경우 기존 사용자 재조회 시도
       if (upsertError.code === "23505") {
-        console.log("🔄 중복 키 에러 - 기존 사용자 재조회 시도...");
+        if (isDev) {
+          console.log("🔄 중복 키 에러 - 기존 사용자 재조회 시도...");
+        }
         const { data: retryUser, error: retryError } = await supabase
           .from("users")
           .select("id, name")
@@ -161,25 +189,33 @@ export async function ensureSupabaseUser(): Promise<{ id: string; name: string }
           .maybeSingle();
         
         if (!retryError && retryUser) {
-          console.log("✅ 기존 사용자 재조회 성공:", retryUser.id);
-          console.groupEnd();
+          if (isDev) {
+            console.log("✅ 기존 사용자 재조회 성공:", retryUser.id);
+            console.groupEnd();
+          }
           return retryUser;
         }
       }
       
-      console.groupEnd();
+      if (isDev) {
+        console.groupEnd();
+      }
       return null;
     }
 
-    console.log("✅ 사용자 동기화 성공! Supabase User ID:", upserted.id);
-    console.groupEnd();
+    if (isDev) {
+      console.log("✅ 사용자 동기화 성공! Supabase User ID:", upserted.id);
+      console.groupEnd();
+    }
     return upserted;
   } catch (error) {
     console.error("❌ ensureSupabaseUser 예외 발생:", error);
     console.error("  - 에러 타입:", error instanceof Error ? error.constructor.name : typeof error);
     console.error("  - 에러 메시지:", error instanceof Error ? error.message : String(error));
     console.error("  - 에러 스택:", error instanceof Error ? error.stack : "스택 없음");
-    console.groupEnd();
+    if (process.env.NODE_ENV === "development") {
+      console.groupEnd();
+    }
     return null;
   }
 }

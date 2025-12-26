@@ -303,6 +303,7 @@ export async function updateHealthProfile(
     if (profileData.height_cm !== undefined) updateData.height_cm = profileData.height_cm ?? null;
     if (profileData.weight_kg !== undefined) updateData.weight_kg = profileData.weight_kg ?? null;
     if (profileData.age !== undefined) updateData.age = profileData.age ?? null;
+    if (profileData.birth_date !== undefined) updateData.birth_date = profileData.birth_date || null;
     if (profileData.gender !== undefined) updateData.gender = profileData.gender || null;
     if (profileData.activity_level !== undefined)
       updateData.activity_level = profileData.activity_level || "sedentary";

@@ -12,7 +12,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { PostCard } from "./post-card";
 import { listPosts } from "@/actions/community/list-posts";
 import type { PostWithAuthor, ListPostsParams } from "@/types/community";
@@ -28,13 +28,28 @@ export function PostList({ groupId, initialParams = {} }: PostListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // initialParams를 메모이제이션하여 불필요한 재실행 방지
+  const memoizedParams = useMemo(() => {
+    return {
+      post_type: initialParams.post_type,
+      sort: initialParams.sort,
+      page: initialParams.page,
+      limit: initialParams.limit,
+    };
+  }, [
+    initialParams.post_type,
+    initialParams.sort,
+    initialParams.page,
+    initialParams.limit,
+  ]);
+
   useEffect(() => {
     const loadPosts = async () => {
       setLoading(true);
       setError(null);
 
       const result = await listPosts({
-        ...initialParams,
+        ...memoizedParams,
         group_id: groupId,
       });
 
@@ -48,7 +63,7 @@ export function PostList({ groupId, initialParams = {} }: PostListProps) {
     };
 
     loadPosts();
-  }, [groupId, initialParams]);
+  }, [groupId, memoizedParams]);
 
   if (loading) {
     return (

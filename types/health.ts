@@ -77,6 +77,7 @@ export interface UserHealthProfile {
   id: string;
   user_id: string;
   age: number | null;
+  birth_date?: string | null; // 생년월일 (YYYY-MM-DD 형식)
   gender: Gender | null;
   height_cm: number | null;
   weight_kg: number | null;

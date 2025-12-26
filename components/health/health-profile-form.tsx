@@ -40,7 +40,7 @@ export function HealthProfileForm() {
   const router = useRouter();
   const { user } = useUser();
 
-  const [formData, setFormData] = useState<Partial<UserHealthProfile>>({
+  const [formData, setFormData] = useState<Partial<UserHealthProfile & { birth_date?: string | null }>>({
     age: null,
     gender: null,
     height_cm: null,
@@ -52,6 +52,7 @@ export function HealthProfileForm() {
     preferred_ingredients: [],
     disliked_ingredients: [],
     dietary_preferences: [],
+    birth_date: null,
   });
 
   // UI 컴포넌트용 상태 변환
@@ -408,6 +409,18 @@ export function HealthProfileForm() {
           기본 정보
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>생년월일</Label>
+            <Input
+              type="date"
+              value={formData.birth_date || ""}
+              onChange={(e) => setFormData({ ...formData, birth_date: e.target.value || null })}
+              max={new Date().toISOString().split('T')[0]}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              건강 알림을 받으려면 생년월일을 입력해주세요. 생애주기별 예방접종, 건강검진 등 맞춤형 알림을 제공합니다.
+            </p>
+          </div>
           <div>
             <Label>나이</Label>
             <Input

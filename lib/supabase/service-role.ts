@@ -51,9 +51,12 @@ export function getServiceRoleClient() {
     );
   }
 
-  console.log("✅ [ServiceRoleClient] Supabase Service Role 클라이언트 생성 완료");
-  console.log("   - URL:", supabaseUrl);
-  console.log("   - Service Role Key:", supabaseServiceRoleKey.substring(0, 20) + "...");
+  // 개발 환경에서만 상세 로그 출력 (프로덕션 성능 최적화)
+  if (process.env.NODE_ENV === "development") {
+    console.log("✅ [ServiceRoleClient] Supabase Service Role 클라이언트 생성 완료");
+    console.log("   - URL:", supabaseUrl);
+    console.log("   - Service Role Key:", supabaseServiceRoleKey.substring(0, 20) + "...");
+  }
 
   return createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PetProfileCard } from '@/components/health/pets/pet-profile-card';
 import { PetRegistrationForm } from '@/components/health/pets/pet-registration-form';
+import { PetLifecycleEventsSummary } from '@/components/health/pets/pet-lifecycle-events-summary';
 import { PetProfile, PetProfileInput } from '@/types/pet';
 import { Plus, PawPrint, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -137,21 +138,9 @@ export default function PetsPage() {
           </div>
         )}
 
-        {/* 생애주기별 건강 이벤트 요약 (추후 구현) */}
+        {/* 생애주기별 건강 이벤트 요약 */}
         {pets.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>생애주기별 건강 이벤트 요약</CardTitle>
-              <CardDescription>
-                반려동물들의 건강 이벤트를 한눈에 확인하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground">
-                건강 이벤트 요약 기능은 추후 구현 예정입니다.
-              </div>
-            </CardContent>
-          </Card>
+          <PetLifecycleEventsSummary pets={pets} />
         )}
 
         {/* 등록 다이얼로그 */}

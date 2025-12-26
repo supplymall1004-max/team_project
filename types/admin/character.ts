@@ -12,7 +12,7 @@ export interface AdminCharacterStats {
   averageLevel: number;
   activeQuests: number;
   healthScoreDistribution: {
-    range: string; // "0-20", "21-40", "41-60", "61-80", "81-100"
+    range: string;
     count: number;
   }[];
   levelDistribution: {
@@ -99,7 +99,7 @@ export interface AdminHealthScoreHistory {
   history: {
     date: string;
     healthScore: number;
-    reason?: string; // 점수 변경 사유
+    reason?: string;
   }[];
 }
 
@@ -126,4 +126,3 @@ export interface AdminPaginationParams {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }
-
