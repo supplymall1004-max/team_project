@@ -23,7 +23,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Heart, Coins, Play, RefreshCw, Zap, Pause, 
-  Sparkles, Trophy, Skull, Utensils, Send 
+  Sparkles, Trophy, Skull, Utensils, Send,
+  Maximize2, Minimize2
 } from 'lucide-react';
 import { useClerkSupabaseClient } from '@/lib/supabase/clerk-client';
 import { useAuth } from '@clerk/nextjs';
@@ -397,6 +398,10 @@ export default function FridgeDefense() {
   const [showRanking, setShowRanking] = useState(false);
   const [todayDiet] = useState<string[]>(['PROTEIN', 'VITAMIN']); // TODO: Supabase에서 실제 데이터 가져오기
   
+  // 전체화면 상태
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const gameContainerRef = useRef<HTMLDivElement>(null);
+  
   // 게임 오브젝트
   const [towers, setTowers] = useState<Tower[]>([]);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
@@ -425,6 +430,85 @@ export default function FridgeDefense() {
     damageDealt: 0,
     playTime: 0,
   });
+
+  // 전체화면 상태 감지
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+      
+      // 전체화면 모드일 때 가로 모드로 변경
+      if (isCurrentlyFullscreen) {
+        try {
+          // Screen Orientation API 사용 (지원되는 경우)
+          if ('orientation' in screen && 'lock' in (screen as any).orientation) {
+            (screen as any).orientation.lock('landscape').catch((err: any) => {
+              console.warn('가로 모드 잠금 실패:', err);
+            });
+          }
+        } catch (error) {
+          console.warn('가로 모드 설정 실패:', error);
+        }
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
+
+  // 전체화면 진입
+  const enterFullscreen = async () => {
+    const element = gameContainerRef.current;
+    if (!element) return;
+
+    try {
+      if (element.requestFullscreen) {
+        await element.requestFullscreen();
+      } else if ((element as any).webkitRequestFullscreen) {
+        // Safari
+        await (element as any).webkitRequestFullscreen();
+      } else if ((element as any).mozRequestFullScreen) {
+        // Firefox
+        await (element as any).mozRequestFullScreen();
+      } else if ((element as any).msRequestFullscreen) {
+        // IE/Edge
+        await (element as any).msRequestFullscreen();
+      }
+    } catch (error) {
+      console.error('전체화면 진입 실패:', error);
+    }
+  };
+
+  // 전체화면 종료
+  const exitFullscreen = async () => {
+    try {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        await (document as any).webkitExitFullscreen();
+      } else if ((document as any).mozCancelFullScreen) {
+        await (document as any).mozCancelFullScreen();
+      } else if ((document as any).msExitFullscreen) {
+        await (document as any).msExitFullscreen();
+      }
+    } catch (error) {
+      console.error('전체화면 종료 실패:', error);
+    }
+  };
 
   // 게임 보드 크기 동적 계산
   useEffect(() => {
@@ -1001,7 +1085,10 @@ export default function FridgeDefense() {
   };
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] overflow-hidden">
+    <div 
+      ref={gameContainerRef}
+      className={`flex flex-col w-full min-h-screen bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] overflow-hidden relative ${isFullscreen ? 'h-screen' : ''}`}
+    >
       {/* 상단 UI 바 - 이미지 스타일 적용 */}
       <div className="w-full bg-gradient-to-r from-[#2d3748] to-[#1a202c] border-b-4 border-[#4a5568] px-4 py-3 flex items-center justify-between flex-wrap gap-3 z-50">
         {/* 왼쪽: 골드 및 체력 */}
@@ -1834,6 +1921,28 @@ export default function FridgeDefense() {
             />
           );
         })}
+        
+        {/* 전체화면 버튼 - 오른쪽 아래 */}
+        {!isFullscreen && (
+          <button
+            onClick={enterFullscreen}
+            className="absolute bottom-4 right-4 z-50 bg-black/80 hover:bg-black/90 backdrop-blur-md text-white border border-white/30 shadow-xl rounded-lg p-3 transition-all hover:scale-110 active:scale-95"
+            title="전체화면"
+          >
+            <Maximize2 className="w-5 h-5" />
+          </button>
+        )}
+        
+        {/* 축소 버튼 - 전체화면 모드일 때 */}
+        {isFullscreen && (
+          <button
+            onClick={exitFullscreen}
+            className="absolute bottom-4 right-4 z-50 bg-black/80 hover:bg-black/90 backdrop-blur-md text-white border border-white/30 shadow-xl rounded-lg p-3 transition-all hover:scale-110 active:scale-95"
+            title="축소"
+          >
+            <Minimize2 className="w-5 h-5" />
+          </button>
+        )}
       </main>
       </div>
 

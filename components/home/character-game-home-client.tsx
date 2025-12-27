@@ -73,6 +73,20 @@ export function CharacterGameHomeClient({
         (document as any).msFullscreenElement
       );
       setIsFullscreen(isCurrentlyFullscreen);
+      
+      // 전체화면 모드일 때 가로 모드로 변경
+      if (isCurrentlyFullscreen) {
+        try {
+          // Screen Orientation API 사용 (지원되는 경우)
+          if ('orientation' in screen && 'lock' in (screen as any).orientation) {
+            (screen as any).orientation.lock('landscape').catch((err: any) => {
+              console.warn('가로 모드 잠금 실패:', err);
+            });
+          }
+        } catch (error) {
+          console.warn('가로 모드 설정 실패:', error);
+        }
+      }
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
@@ -105,6 +119,18 @@ export function CharacterGameHomeClient({
       } else if ((element as any).msRequestFullscreen) {
         // IE/Edge
         await (element as any).msRequestFullscreen();
+      }
+      
+      // 전체화면 모드일 때 가로 모드로 변경
+      try {
+        // Screen Orientation API 사용 (지원되는 경우)
+        if ('orientation' in screen && 'lock' in (screen as any).orientation) {
+          (screen as any).orientation.lock('landscape').catch((err: any) => {
+            console.warn('가로 모드 잠금 실패:', err);
+          });
+        }
+      } catch (error) {
+        console.warn('가로 모드 설정 실패:', error);
       }
     } catch (error) {
       console.error("전체화면 진입 실패:", error);
