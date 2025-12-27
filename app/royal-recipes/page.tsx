@@ -183,6 +183,9 @@ export const metadata = {
   description: "잊혀져 가는 시대별 궁중 레시피를 만나보세요",
 };
 
+// 동적 데이터를 사용하므로 빌드 시 정적 생성 건너뛰기
+export const dynamic = 'force-dynamic';
+
 export default function RoyalRecipesPage() {
   return (
     <div className="min-h-screen bg-gray-50">

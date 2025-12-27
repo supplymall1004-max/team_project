@@ -41,12 +41,18 @@ export function ApartmentUIOverlay({
   onNotificationClick,
 }: ApartmentUIOverlayProps) {
   return (
-    <div className="absolute inset-0 pointer-events-none z-50">
-      {/* 카메라 리셋 버튼 (우측 상단) */}
-      <div className="absolute top-4 right-4 pointer-events-auto">
+    <div 
+      className="absolute inset-0 pointer-events-none" 
+      style={{ zIndex: 1000 }}
+    >
+      {/* 카메라 리셋 버튼 (우측 상단) - 3D 뷰어 위에 표시 */}
+      <div 
+        className="absolute top-4 right-4 pointer-events-auto"
+        style={{ zIndex: 1001 }}
+      >
         <Button
           onClick={onCameraReset}
-          className="bg-white/90 hover:bg-white backdrop-blur-sm shadow-lg"
+          className="bg-black/80 hover:bg-black/90 backdrop-blur-md text-white border border-white/30 shadow-xl"
           size="icon"
           title="초기 뷰로 돌아가기"
         >
@@ -54,7 +60,7 @@ export function ApartmentUIOverlay({
         </Button>
       </div>
 
-      {/* 알림 패널 (좌측) */}
+      {/* 알림 패널 (좌측/우측) - 3D 뷰어 위에 표시 */}
       <FamilyNotificationPanel
         characterData={characterData}
         familyMembers={familyMembers}

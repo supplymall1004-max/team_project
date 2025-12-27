@@ -148,13 +148,20 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
             )}
           </div>
 
-            {/* 요리 시작 버튼 */}
+            {/* 요리 시작 버튼 - GDWEB 스타일 */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.5 }}
             >
-              <Button size="lg" onClick={handleStartCooking} className="mt-4">
+              <Button
+                size="lg"
+                onClick={handleStartCooking}
+                className="mt-4 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 hover:from-orange-600 hover:via-orange-700 hover:to-orange-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                style={{
+                  boxShadow: "0 8px 32px rgba(255, 107, 53, 0.3)",
+                }}
+              >
                 <Play className="h-5 w-5 mr-2" />
                 요리 시작하기
               </Button>
@@ -163,9 +170,9 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
         </div>
       </MotionWrapper>
 
-      {/* 별점 평가 */}
+      {/* 별점 평가 - GDWEB 카드 스타일 */}
       <MotionWrapper>
-        <div className="rounded-2xl border border-border/60 bg-white p-6">
+        <div className="rounded-2xl bg-white/95 backdrop-blur-md border-2 border-orange-200/50 p-6 gdweb-card shadow-lg">
           <RecipeRating
             recipeId={recipe.id}
             currentRating={recipe.user_rating}
@@ -175,7 +182,7 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
         </div>
       </MotionWrapper>
 
-      {/* 영양 정보 (식약처 API 데이터) */}
+      {/* 영양 정보 (식약처 API 데이터) - GDWEB 카드 스타일 */}
       {(recipe.foodsafety_info_eng ||
         recipe.foodsafety_info_car ||
         recipe.foodsafety_info_pro ||
@@ -183,59 +190,61 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
         recipe.foodsafety_info_na ||
         recipe.foodsafety_info_fiber) && (
         <MotionWrapper>
-          <div className="rounded-2xl border border-border/60 bg-white p-6">
-          <h2 className="text-2xl font-bold mb-4">영양 정보</h2>
+          <div className="rounded-2xl bg-gradient-to-br from-white via-orange-50/30 to-white backdrop-blur-md border-2 border-orange-200/50 p-6 gdweb-card shadow-lg">
+          <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent">
+            영양 정보
+          </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {recipe.foodsafety_info_eng !== null &&
               recipe.foodsafety_info_eng !== undefined && (
-                <div>
-                  <div className="text-sm text-muted-foreground">칼로리</div>
-                  <div className="text-lg font-semibold">
+                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                  <div className="text-sm text-gray-600 font-medium mb-1">칼로리</div>
+                  <div className="text-xl font-bold text-orange-600">
                     {recipe.foodsafety_info_eng.toFixed(0)} kcal
                   </div>
                 </div>
               )}
             {recipe.foodsafety_info_car !== null &&
               recipe.foodsafety_info_car !== undefined && (
-                <div>
-                  <div className="text-sm text-muted-foreground">탄수화물</div>
-                  <div className="text-lg font-semibold">
+                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                  <div className="text-sm text-gray-600 font-medium mb-1">탄수화물</div>
+                  <div className="text-xl font-bold text-orange-600">
                     {recipe.foodsafety_info_car.toFixed(1)} g
                   </div>
                 </div>
               )}
             {recipe.foodsafety_info_pro !== null &&
               recipe.foodsafety_info_pro !== undefined && (
-                <div>
-                  <div className="text-sm text-muted-foreground">단백질</div>
-                  <div className="text-lg font-semibold">
+                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                  <div className="text-sm text-gray-600 font-medium mb-1">단백질</div>
+                  <div className="text-xl font-bold text-orange-600">
                     {recipe.foodsafety_info_pro.toFixed(1)} g
                   </div>
                 </div>
               )}
             {recipe.foodsafety_info_fat !== null &&
               recipe.foodsafety_info_fat !== undefined && (
-                <div>
-                  <div className="text-sm text-muted-foreground">지방</div>
-                  <div className="text-lg font-semibold">
+                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                  <div className="text-sm text-gray-600 font-medium mb-1">지방</div>
+                  <div className="text-xl font-bold text-orange-600">
                     {recipe.foodsafety_info_fat.toFixed(1)} g
                   </div>
                 </div>
               )}
             {recipe.foodsafety_info_na !== null &&
               recipe.foodsafety_info_na !== undefined && (
-                <div>
-                  <div className="text-sm text-muted-foreground">나트륨</div>
-                  <div className="text-lg font-semibold">
+                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                  <div className="text-sm text-gray-600 font-medium mb-1">나트륨</div>
+                  <div className="text-xl font-bold text-orange-600">
                     {recipe.foodsafety_info_na.toFixed(0)} mg
                   </div>
                 </div>
               )}
             {recipe.foodsafety_info_fiber !== null &&
               recipe.foodsafety_info_fiber !== undefined && (
-                <div>
-                  <div className="text-sm text-muted-foreground">식이섬유</div>
-                  <div className="text-lg font-semibold">
+                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                  <div className="text-sm text-gray-600 font-medium mb-1">식이섬유</div>
+                  <div className="text-xl font-bold text-orange-600">
                     {recipe.foodsafety_info_fiber.toFixed(1)} g
                   </div>
                 </div>
@@ -245,28 +254,36 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
         </MotionWrapper>
       )}
 
-      {/* 재료 목록 */}
+      {/* 재료 목록 - GDWEB 카드 스타일 */}
       <MotionWrapper>
-        <div className="rounded-2xl border border-border/60 bg-white p-6">
-        <h2 className="text-2xl font-bold mb-4">재료</h2>
+        <div className="rounded-2xl bg-gradient-to-br from-white via-orange-50/30 to-white backdrop-blur-md border-2 border-orange-200/50 p-6 gdweb-card shadow-lg">
+        <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent">
+          재료
+        </h2>
         <ul className="space-y-3">
           {recipe.ingredients.map((ingredient) => {
             const isChecked = checkedIngredients.has(ingredient.id);
             return (
-              <li
+              <motion.li
                 key={ingredient.id}
-                className="flex items-center gap-3 cursor-pointer"
+                className="flex items-center gap-3 cursor-pointer bg-white/80 rounded-xl p-3 border border-orange-100 hover:shadow-md hover:bg-white transition-all duration-300"
                 onClick={() => handleIngredientToggle(ingredient.id)}
+                whileHover={{ scale: 1.02, x: 4 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <CheckCircle2
-                  className={`h-5 w-5 flex-shrink-0 ${
+                  className={`h-6 w-6 flex-shrink-0 transition-all duration-300 ${
                     isChecked
-                      ? "text-green-600 fill-green-600"
-                      : "text-gray-300"
+                      ? "text-green-600 fill-green-600 scale-110"
+                      : "text-gray-300 hover:text-orange-400"
                   }`}
                 />
                 <span
-                  className={isChecked ? "line-through text-muted-foreground" : ""}
+                  className={`flex-1 font-medium ${
+                    isChecked 
+                      ? "line-through text-gray-400" 
+                      : "text-gray-700"
+                  }`}
                 >
                   {/* 하위 호환성: ingredient_name 또는 name 사용 */}
                   {ingredient.ingredient_name || ingredient.name}
@@ -287,7 +304,7 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
                     <span className="ml-2 text-xs text-blue-600">[{ingredient.category}]</span>
                   )}
                 </span>
-              </li>
+              </motion.li>
             );
           })}
         </ul>
@@ -316,13 +333,21 @@ function RecipeHeroImage({ recipe }: RecipeHeroImageProps) {
     "/images/food/default.svg";
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-gray-100">
+    <motion.div
+      className="relative aspect-video w-full overflow-hidden rounded-2xl bg-gray-100 shadow-2xl"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.6, delay: 0.1 }}
+      style={{
+        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.15)",
+      }}
+    >
       {!imageError ? (
         <Image
           src={imageUrl}
           alt={recipe.title}
           fill
-          className="object-cover"
+          className="object-cover transition-transform duration-500 hover:scale-105"
           sizes="100vw"
           priority
           quality={85}
@@ -331,13 +356,15 @@ function RecipeHeroImage({ recipe }: RecipeHeroImageProps) {
           onError={() => setImageError(true)}
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-50 via-orange-100 to-orange-200">
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">이미지를 불러올 수 없습니다</p>
+            <p className="text-sm text-gray-600">이미지를 불러올 수 없습니다</p>
           </div>
         </div>
       )}
-    </div>
+      {/* 그라데이션 오버레이 */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+    </motion.div>
   );
 }
 

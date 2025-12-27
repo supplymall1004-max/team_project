@@ -125,35 +125,30 @@ export default function BreakfastDetailPage() {
   const [familyDietData, setFamilyDietData] = useState<Record<string, any> | null>(null);
   const [activeTab, setActiveTab] = useState<string>('self');
 
-  // 데이터 로드 함수 - useCallback으로 최적화
+  // 데이터 로드 함수 - 필수 데이터 우선, 선택적 데이터는 백그라운드 로드
   const loadPageData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      console.group('[BreakfastDetailPage] 데이터 로드 시작');
+      console.group('[BreakfastDetailPage] 데이터 로드 시작 (최적화)');
       console.log('📅 날짜:', date);
       console.log('👤 사용자:', user?.id, '로드됨:', isLoaded);
 
-      // 병렬로 데이터 로드 및 JSON 파싱까지 병렬 처리
-      const [mealRes, healthRes, metricsRes, membersRes, familyDietRes] = await Promise.all([
+      // 1단계: 필수 데이터만 먼저 로드 (식단 + 건강 프로필)
+      console.log('[BreakfastDetailPage] 1단계: 필수 데이터 로드');
+      const [mealRes, healthRes] = await Promise.all([
         fetch(`/api/diet/meal/breakfast/${date}`),
         fetch('/api/health/profile'),
-        fetch('/api/health/metrics'),
-        fetch('/api/family/members').catch(() => ({ ok: false, json: () => Promise.resolve({ members: [] }) })),
-        fetch(`/api/family/diet/${date}`).catch(() => ({ ok: false, status: 404, json: () => Promise.resolve(null) })),
       ]);
 
-      console.log('[BreakfastDetailPage] API 응답 상태:', {
+      console.log('[BreakfastDetailPage] 필수 API 응답 상태:', {
         meal: mealRes.status,
         health: healthRes.status,
-        metrics: metricsRes.status,
-        members: membersRes.ok ? 'ok' : 'error',
-        familyDiet: familyDietRes.ok ? 'ok' : 'error',
       });
 
-      // JSON 파싱도 병렬로 처리
-      const [mealResult, healthResult, currentHealthResult, membersData, dietData] = await Promise.all([
+      // 필수 데이터 파싱
+      const [mealResult, healthResult] = await Promise.all([
         mealRes.json().then(data => ({ ok: mealRes.ok, data: data as DietMealApiResponse })).catch(err => {
           console.error('[BreakfastDetailPage] 식단 API JSON 파싱 실패:', err);
           return { ok: false, data: { success: false, error: '식단 데이터 파싱 실패' } };
@@ -162,30 +157,15 @@ export default function BreakfastDetailPage() {
           console.error('[BreakfastDetailPage] 건강 프로필 API JSON 파싱 실패:', err);
           return { ok: false, data: { profile: null, error: '건강 프로필 파싱 실패' } };
         }),
-        metricsRes.json().then(data => ({ ok: metricsRes.ok, data: data as HealthMetricsApiResponse })).catch(err => {
-          console.error('[BreakfastDetailPage] 건강 메트릭스 API JSON 파싱 실패:', err);
-          return { ok: false, data: { error: '건강 메트릭스 파싱 실패' } };
-        }),
-        membersRes.ok ? membersRes.json().catch(() => ({ members: [] })) : Promise.resolve({ members: [] }),
-        familyDietRes.ok ? familyDietRes.json().catch(() => null) : Promise.resolve(null),
       ]);
 
-      console.log('[BreakfastDetailPage] 파싱된 데이터:', {
-        mealSuccess: mealResult.data.success,
-        mealExists: !!(mealResult.data.success && 'meal' in mealResult.data && mealResult.data.meal),
-        healthProfileExists: !!('profile' in healthResult.data && healthResult.data.profile),
-        metricsExists: !!('metrics' in currentHealthResult.data && currentHealthResult.data.metrics),
-        membersCount: Array.isArray(membersData.members) ? membersData.members.length : 0,
-      });
-
-      // 오류 처리 (식단) - 필수
+      // 필수 데이터 오류 처리
       if (!mealResult.ok || !mealResult.data.success || !('meal' in mealResult.data) || !mealResult.data.meal) {
         const errorMessage = ('error' in mealResult.data ? mealResult.data.error : undefined) || '식단 데이터를 불러올 수 없습니다.';
         console.error('[BreakfastDetailPage] 식단 데이터 오류:', errorMessage);
         throw new Error(errorMessage);
       }
 
-      // 오류 처리 (건강 프로필) - 필수
       if (!healthResult.ok) {
         const errorMsg = ('error' in healthResult.data ? healthResult.data.error : undefined) || 
                         ('message' in healthResult.data ? healthResult.data.message : undefined) || 
@@ -193,12 +173,7 @@ export default function BreakfastDetailPage() {
         throw new Error(errorMsg);
       }
 
-      // 건강 메트릭스는 선택적 (에러가 있어도 기본값 사용)
-      const healthMetrics = currentHealthResult.ok && ('metrics' in currentHealthResult.data) && currentHealthResult.data.metrics 
-        ? currentHealthResult.data.metrics 
-        : null;
-
-      // 상태 업데이트를 한 번에 배치 처리 (React 18의 자동 배칭 활용)
+      // 필수 데이터 상태 업데이트 (즉시 표시)
       if ('meal' in mealResult.data && mealResult.data.meal) {
         setMealData(mealResult.data.meal);
       }
@@ -208,28 +183,65 @@ export default function BreakfastDetailPage() {
       if ('healthProfile' in mealResult.data) {
         setApiHealthProfile(mealResult.data.healthProfile);
       }
-      setCurrentHealth(healthMetrics);
 
-      // 가족 구성원 데이터 처리 (선택적)
-      const members = Array.isArray(membersData.members) ? membersData.members : [];
-      console.log(`👥 가족 구성원 ${members.length}명 조회됨`);
-      setFamilyMembers(members);
+      // 로딩 완료 (필수 데이터만으로도 페이지 표시 가능)
+      setIsLoading(false);
+      console.log('[BreakfastDetailPage] 필수 데이터 로드 완료 - 페이지 표시');
 
-      // 가족 식단 데이터 처리 (선택적)
-      const plans = dietData?.plans || null;
-      if (plans) {
-        console.log('📋 가족 식단 데이터 조회됨:', Object.keys(plans));
-      } else {
-        console.log('⚠️ 가족 식단 데이터 없음 (무시)');
-      }
-      setFamilyDietData(plans);
+      // 2단계: 선택적 데이터 백그라운드 로드 (건강 메트릭스, 가족 데이터)
+      console.log('[BreakfastDetailPage] 2단계: 선택적 데이터 백그라운드 로드');
+      Promise.all([
+        // 건강 메트릭스 (선택적)
+        fetch('/api/health/metrics')
+          .then(res => res.json())
+          .then(data => {
+            const metrics = ('metrics' in data) && data.metrics ? data.metrics : null;
+            if (metrics) {
+              console.log('[BreakfastDetailPage] 건강 메트릭스 로드 완료');
+              setCurrentHealth(metrics);
+            }
+          })
+          .catch(err => {
+            console.warn('[BreakfastDetailPage] 건강 메트릭스 로드 실패 (무시):', err);
+          }),
+        
+        // 가족 구성원 데이터 (선택적)
+        fetch('/api/family/members')
+          .then(res => res.ok ? res.json() : { members: [] })
+          .then(data => {
+            const members = Array.isArray(data.members) ? data.members : [];
+            if (members.length > 0) {
+              console.log(`[BreakfastDetailPage] 가족 구성원 ${members.length}명 로드 완료`);
+              setFamilyMembers(members);
+              
+              // 가족 구성원이 있으면 가족 식단도 로드
+              fetch(`/api/family/diet/${date}`)
+                .then(res => res.ok ? res.json() : null)
+                .then(dietData => {
+                  const plans = dietData?.plans || null;
+                  if (plans) {
+                    console.log('[BreakfastDetailPage] 가족 식단 데이터 로드 완료:', Object.keys(plans));
+                    setFamilyDietData(plans);
+                  }
+                })
+                .catch(err => {
+                  console.warn('[BreakfastDetailPage] 가족 식단 로드 실패 (무시):', err);
+                });
+            }
+          })
+          .catch(err => {
+            console.warn('[BreakfastDetailPage] 가족 구성원 로드 실패 (무시):', err);
+            setFamilyMembers([]);
+          }),
+      ]).then(() => {
+        console.log('[BreakfastDetailPage] 선택적 데이터 로드 완료');
+      });
 
       console.groupEnd();
 
     } catch (err) {
       console.error('[BreakfastDetailPage] 데이터 로드 실패:', err);
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
-    } finally {
       setIsLoading(false);
     }
   }, [date, user?.id, isLoaded]);

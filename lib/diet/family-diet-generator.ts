@@ -257,7 +257,9 @@ async function generateUnifiedDiet(
     if (age < 18) childCount++;
   }
 
-  const averageCalories = totalCalories / (familyMembers.length + 1);
+  // 사용자 본인 포함 총 구성원 수
+  const memberCount = includedMembers.length + 1;
+  const averageCalories = memberCount > 0 ? totalCalories / memberCount : totalCalories;
   const diseases = Array.from(allDiseases);
   const allergies = Array.from(allAllergies).map(a => a.code);
 
@@ -438,8 +440,21 @@ async function generateUnifiedDietWithWeeklyContext(
   totalCalories += await calculateUserGoalCalories(userProfile);
   memberCount++;
 
-  // 가족 구성원
-  for (const member of familyMembers) {
+  // 가족 구성원 (통합 식단에 포함된 구성원만)
+  // 반려동물 제외
+  const humanMembers = familyMembers.filter(member => {
+    const isPet = (member as any).member_type === 'pet';
+    return !isPet;
+  });
+  
+  // 통합 식단에 포함된 구성원만 필터링
+  const includedMembers = humanMembers.filter(
+    member => member.include_in_unified_diet !== false // null/undefined도 true로 처리
+  );
+  
+  console.log(`통합 식단 포함 구성원: ${includedMembers.length}명 (전체: ${humanMembers.length}명)`);
+  
+  for (const member of includedMembers) {
     const memberExcluded = await getExcludedFoods(member.diseases || []);
     allExcludedFoods.push(...memberExcluded);
     allAllergies.push(...(member.allergies || []));

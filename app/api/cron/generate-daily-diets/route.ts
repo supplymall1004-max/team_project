@@ -559,6 +559,7 @@ async function saveWeeklyDietToDatabase(
               fat: meal.nutrition?.fat || meal.recipe.fat || 0,
               sodium: meal.nutrition?.sodium || meal.recipe.sodium || 0,
               is_unified: false,
+              weekly_diet_plan_id: weeklyPlanId, // 주간 식단 ID 연결
             });
           } else if (meal.totalNutrition) {
             // MealComposition 처리
@@ -586,6 +587,7 @@ async function saveWeeklyDietToDatabase(
                 soup: meal.soup?.title ? [meal.soup.title] : [],
               }),
               is_unified: false,
+              weekly_diet_plan_id: weeklyPlanId, // 주간 식단 ID 연결
             });
           }
         }

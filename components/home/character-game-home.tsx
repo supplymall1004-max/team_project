@@ -43,17 +43,13 @@ export async function CharacterGameHome({ className }: { className?: string }) {
   return (
     <section
       id="3d-viewer"
-      className="w-screen min-h-[800px] bg-gradient-to-b from-gray-900 to-black"
-      style={{ 
-        padding: 0,
-        marginLeft: 'calc(-50vw + 50%)',
-        marginRight: 'calc(-50vw + 50%)',
-        width: '100vw'
-      }}
+      className="w-full min-h-[800px] bg-gradient-to-b from-gray-900 to-black"
     >
-      <Suspense fallback={<CharacterGameHomeSkeleton />}>
-        <CharacterGameHomeClient />
-      </Suspense>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
+        <Suspense fallback={<CharacterGameHomeSkeleton />}>
+          <CharacterGameHomeClient />
+        </Suspense>
+      </div>
     </section>
   );
 }

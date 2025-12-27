@@ -35,6 +35,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/auth/login-modal";
 import { NotificationBadge } from "@/components/health/notification-badge";
+import { motion, AnimatePresence } from "framer-motion";
 
 const navLinks = [
   { label: "레시피", href: "/archive/recipes", icon: BookOpen },
@@ -132,12 +133,14 @@ const Navbar = () => {
     <nav
       className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm"
       style={{ height: "64px" }}
+      suppressHydrationWarning
     >
-      <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 gap-4">
+      <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 gap-4" suppressHydrationWarning>
         {/* 왼쪽: 로고 + 앱제목 (클릭 시 메인으로 이동) */}
         <Link
           href="/"
           className="flex items-center gap-3 shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
+          suppressHydrationWarning
           onClick={(e) => {
             handleNavClick("홈");
             console.log("[Navbar] 홈 링크 클릭", { pathname, timestamp: Date.now() });
@@ -195,8 +198,9 @@ const Navbar = () => {
         <form
           onSubmit={handleSearch}
           className="flex-1 max-w-2xl mx-4"
+          suppressHydrationWarning
         >
-          <div className="relative">
+          <div className="relative" suppressHydrationWarning>
             <Input
               type="text"
               placeholder="레시피 검색..."
@@ -208,6 +212,7 @@ const Navbar = () => {
                 "w-full pr-10 transition-all",
                 "hidden sm:block", // 모바일에서는 숨김
               )}
+              suppressHydrationWarning
             />
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 hidden sm:block" />
           </div>
@@ -278,79 +283,187 @@ const Navbar = () => {
 
           {isMounted && isLoaded && !isSignedIn && <LoginModal />}
 
-          {/* 햄버거 메뉴 (모바일/태블릿) */}
+          {/* 햄버거 메뉴 (모바일/태블릿) - GDWEB 스타일 */}
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="lg:hidden relative overflow-hidden group"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="메뉴 열기/닫기"
+            style={{
+              background: menuOpen 
+                ? 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)'
+                : 'transparent',
+            }}
           >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              style={{ zIndex: 0 }}
+            />
+            <motion.div
+              className="relative z-10"
+              animate={menuOpen ? { rotate: 180 } : { rotate: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {menuOpen ? (
+                <X className="h-5 w-5 text-white" />
+              ) : (
+                <Menu className="h-5 w-5 text-gray-700 group-hover:text-white transition-colors" />
+              )}
+            </motion.div>
           </Button>
         </div>
       </div>
 
-      {/* 모바일 메뉴 */}
-      {menuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200 shadow-lg">
-          <div className="px-4 py-4 space-y-2">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              const isHealthLink = link.href === "/health";
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    "relative flex items-center gap-3 px-4 py-2 text-base font-medium rounded-md transition-colors",
-                    pathname === link.href || pathname?.startsWith(link.href + "/")
-                      ? "bg-orange-50 text-orange-600"
-                      : "text-gray-700 hover:bg-gray-50",
-                  )}
-                  onClick={() => handleNavClick(link.label)}
+      {/* 모바일 메뉴 - GDWEB 스타일 */}
+      <AnimatePresence>
+        {menuOpen && (
+          <>
+            {/* 배경 오버레이 */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-[55]"
+              onClick={() => setMenuOpen(false)}
+              style={{ top: "64px" }}
+            />
+            {/* 모바일 메뉴 */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="md:hidden fixed top-[64px] left-0 right-0 bg-gradient-to-br from-white via-orange-50/30 to-white border-b border-orange-200/50 shadow-2xl backdrop-blur-md z-[60] max-h-[calc(100vh-64px)] overflow-y-auto"
+              style={{
+                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.15)",
+              }}
+            >
+            <div className="px-2 py-3 space-y-1.5">
+              {navLinks.map((link, index) => {
+                const Icon = link.icon;
+                const isHealthLink = link.href === "/health";
+                const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
+                return (
+                  <motion.div
+                    key={link.href}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1, duration: 0.3 }}
+                  >
+                    <Link
+                      href={link.href}
+                      className={cn(
+                        "relative flex items-center gap-2 px-2.5 py-2 text-sm font-semibold rounded-xl transition-all duration-300 gdweb-card",
+                        isActive
+                          ? "bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white shadow-lg"
+                          : "bg-white/90 text-gray-700 hover:bg-gradient-to-br hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:-translate-y-1",
+                      )}
+                      onClick={() => handleNavClick(link.label)}
+                      style={{
+                        boxShadow: isActive
+                          ? "0 4px 16px rgba(255, 107, 53, 0.3)"
+                          : "0 2px 10px rgba(0, 0, 0, 0.08)",
+                      }}
+                    >
+                      <div className={cn(
+                        "relative flex items-center justify-center w-5 h-5 rounded-lg transition-all",
+                        isActive
+                          ? "bg-white/20"
+                          : "bg-gradient-to-br from-orange-100 to-orange-200"
+                      )}>
+                        <Icon className={cn(
+                          "h-4 w-4 transition-colors",
+                          isActive ? "text-white" : "text-orange-600"
+                        )} />
+                        {isHealthLink && (
+                          <NotificationBadge className="absolute -top-0.5 -right-1 scale-75" />
+                        )}
+                      </div>
+                      <span className="flex-1">{link.label}</span>
+                      {isActive && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="w-1.5 h-1.5 rounded-full bg-white"
+                        />
+                      )}
+                    </Link>
+                  </motion.div>
+                );
+              })}
+              {isMounted && isLoaded && isSignedIn && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: navLinks.length * 0.1, duration: 0.3 }}
                 >
-                  <div className="relative">
-                    <Icon className="h-5 w-5" />
-                    {isHealthLink && <NotificationBadge className="absolute -top-1 -right-2" />}
-                  </div>
-                  <span>{link.label}</span>
-                </Link>
-              );
-            })}
-            {isMounted && isLoaded && isSignedIn && (
-              <Link
-                href="/settings"
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 text-base font-medium rounded-md transition-colors",
-                  pathname === "/settings" || pathname?.startsWith("/settings/")
-                    ? "bg-orange-50 text-orange-600"
-                    : "text-gray-700 hover:bg-gray-50",
-                )}
-                onClick={() => handleNavClick("설정")}
-              >
-                <Settings className="h-5 w-5" />
-                <span>설정</span>
-              </Link>
-            )}
-            {isMounted && isLoaded && !isSignedIn && (
-              <div className="pt-4 border-t border-gray-200">
-                <LoginModal />
-              </div>
-            )}
-            {isMounted && isLoaded && isSignedIn && (
-              <div className="pt-4 border-t border-gray-200">
-                <SignOutButton>
-                  <Button variant="outline" className="w-full flex items-center gap-2">
-                    <LogOut className="h-5 w-5" />
-                    <span>로그아웃</span>
-                  </Button>
-                </SignOutButton>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+                  <Link
+                    href="/settings"
+                    className={cn(
+                      "flex items-center gap-2 px-2.5 py-2 text-sm font-semibold rounded-xl transition-all duration-300 gdweb-card",
+                      pathname === "/settings" || pathname?.startsWith("/settings/")
+                        ? "bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white shadow-lg"
+                        : "bg-white/90 text-gray-700 hover:bg-gradient-to-br hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:-translate-y-1",
+                    )}
+                    onClick={() => handleNavClick("설정")}
+                    style={{
+                      boxShadow: pathname === "/settings" || pathname?.startsWith("/settings/")
+                        ? "0 4px 16px rgba(255, 107, 53, 0.3)"
+                        : "0 2px 10px rgba(0, 0, 0, 0.08)",
+                    }}
+                  >
+                    <div className={cn(
+                      "flex items-center justify-center w-5 h-5 rounded-lg transition-all",
+                      pathname === "/settings" || pathname?.startsWith("/settings/")
+                        ? "bg-white/20"
+                        : "bg-gradient-to-br from-orange-100 to-orange-200"
+                    )}>
+                      <Settings className={cn(
+                        "h-4 w-4 transition-colors",
+                        pathname === "/settings" || pathname?.startsWith("/settings/")
+                          ? "text-white"
+                          : "text-orange-600"
+                      )} />
+                    </div>
+                    <span className="flex-1">설정</span>
+                  </Link>
+                </motion.div>
+              )}
+              {isMounted && isLoaded && !isSignedIn && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: (navLinks.length + (isSignedIn ? 1 : 0)) * 0.1, duration: 0.3 }}
+                  className="pt-2 border-t border-orange-200/50"
+                >
+                  <LoginModal />
+                </motion.div>
+              )}
+              {isMounted && isLoaded && isSignedIn && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: (navLinks.length + 1) * 0.1, duration: 0.3 }}
+                  className="pt-2 border-t border-orange-200/50"
+                >
+                  <SignOutButton>
+                    <Button
+                      variant="outline"
+                      className="w-full flex items-center gap-2 py-2 text-sm font-semibold rounded-xl border-2 border-gray-300 hover:border-orange-500 hover:bg-orange-50 transition-all duration-300"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>로그아웃</span>
+                    </Button>
+                  </SignOutButton>
+                </motion.div>
+              )}
+            </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </nav>
   );
 };

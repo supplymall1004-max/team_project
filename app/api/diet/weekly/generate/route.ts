@@ -452,6 +452,7 @@ export async function POST(request: NextRequest) {
             mealType,
             meal: meal as MealComposition | RecipeDetailForDiet | undefined,
             userId,
+            weeklyDietPlanId: weeklyPlanId, // 주간 식단 ID 전달
           });
           dietPlanRecords.push(...mealRecords);
         }
@@ -487,10 +488,16 @@ export async function POST(request: NextRequest) {
           console.log("✅ 기존 식단 삭제 완료");
         }
 
+        // weekly_diet_plan_id를 모든 레코드에 추가
+        const dietPlanRecordsWithWeeklyId = dietPlanRecords.map(record => ({
+          ...record,
+          weekly_diet_plan_id: weeklyPlanId, // 주간 식단 ID 연결
+        }));
+
         const { error: dietPlanError, data: insertedData } =
           await serviceSupabase
             .from("diet_plans")
-            .insert(dietPlanRecords)
+            .insert(dietPlanRecordsWithWeeklyId)
             .select("id, plan_date, meal_type");
 
         if (dietPlanError) {
@@ -654,7 +661,8 @@ function buildDietPlanRecords({
   mealType,
   meal,
   userId,
-}: BuildDietPlanRecordParams): Array<{
+  weeklyDietPlanId, // 새로 추가된 파라미터
+}: BuildDietPlanRecordParams & { weeklyDietPlanId?: string }): Array<{
   user_id: string;
   plan_date: string;
   meal_type: string;
@@ -673,6 +681,7 @@ function buildDietPlanRecords({
   composition_summary: Record<string, string[]> | null;
   is_unified: boolean;
   family_member_id: string | null;
+  weekly_diet_plan_id: string | null; // 새로 추가된 필드
 }> {
   if (!meal) {
     return [];
@@ -684,6 +693,7 @@ function buildDietPlanRecords({
       mealType,
       meal,
       userId,
+      weeklyDietPlanId, // 주간 식단 ID 전달
     });
     return record ? [record] : [];
   }
@@ -694,6 +704,7 @@ function buildDietPlanRecords({
     recipe: meal as RecipeDetailForDiet,
     userId,
     summaryKey: mealType === "snack" ? "snack" : "items",
+    weeklyDietPlanId, // 주간 식단 ID 전달
   });
   return record ? [record] : [];
 }
@@ -703,11 +714,13 @@ function buildCompositionMealRecord({
   mealType,
   meal,
   userId,
+  weeklyDietPlanId,
 }: {
   date: string;
   mealType: MealType;
   meal: MealComposition;
   userId: string;
+  weeklyDietPlanId?: string;
 }) {
   const summaryItems = getMealCompositionSummaryItems(meal);
   const nutrition = meal.totalNutrition || {};
@@ -741,6 +754,7 @@ function buildCompositionMealRecord({
     composition_summary: summaryPayload,
     is_unified: false,
     family_member_id: null,
+    weekly_diet_plan_id: weeklyDietPlanId || null,
   };
 }
 
@@ -750,12 +764,14 @@ function buildSingleRecipeRecord({
   recipe,
   userId,
   summaryKey,
+  weeklyDietPlanId,
 }: {
   date: string;
   mealType: MealType;
   recipe: RecipeDetailForDiet;
   userId: string;
   summaryKey: string;
+  weeklyDietPlanId?: string;
 }) {
   if (!recipe) {
     return null;
@@ -788,6 +804,7 @@ function buildSingleRecipeRecord({
     composition_summary: summaryPayload,
     is_unified: false,
     family_member_id: null,
+    weekly_diet_plan_id: weeklyDietPlanId || null,
   };
 }
 

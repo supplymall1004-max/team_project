@@ -158,8 +158,8 @@ async function fetchWithRetry(
         headers: {
           "Content-Type": "application/json",
         },
-        // 타임아웃 설정 (30초)
-        signal: AbortSignal.timeout(30000),
+        // 타임아웃 설정 (10초로 단축)
+        signal: AbortSignal.timeout(10000),
       });
       
       console.log("응답 상태:", response.status);

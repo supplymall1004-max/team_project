@@ -66,7 +66,7 @@ export default async function Home() {
   return (
     <GameMenuProvider>
       <main
-        className="space-y-4"
+        className="space-y-0"
         style={{
           // 스크롤 성능 최적화
           contain: 'layout style paint',
@@ -80,8 +80,8 @@ export default async function Home() {
 
       {/* 동화 스타일 네비게이션 - 메인 페이지에서 제거 (상세 페이지에서는 유지) */}
 
-      {/* 카드 섹션 (응급조치 안내, 예방접종 안내, 주변 의료기관 찾기, 날씨 정보 등) */}
-      <div className="px-4 pt-2 space-y-2">
+      {/* 카드 섹션 (응급조치 안내, 예방접종 안내, 주변 의료기관 찾기, 날씨 정보 등) - GDWEB 스타일 간격 */}
+      <div className="px-4 pt-6 pb-4 space-y-4 bg-gradient-to-b from-white to-gray-50/30">
         <EmergencyQuickAccess />
         
         <ErrorBoundary>
@@ -89,9 +89,9 @@ export default async function Home() {
         </ErrorBoundary>
       </div>
 
-      {/* 히어로 섹션 (아래에서 진입 + 패럴랙스 효과) */}
+      {/* 히어로 섹션 (아래에서 진입 + 패럴랙스 효과) - GDWEB 스타일 */}
       <ParallaxSection speed={0.3} scaleRange={[0.98, 1]}>
-        <DirectionalEntrance direction="up" delay={1.2}>
+        <DirectionalEntrance direction="up" delay={0.5}>
           <ErrorBoundary>
             <Suspense fallback={<HomeLoadingSkeleton />}>
               <HomeLanding />
@@ -120,17 +120,17 @@ export default async function Home() {
         </Suspense>
       </ErrorBoundary> */}
 
-      {/* 커뮤니티 미리보기 - 맨 아래 섹션 */}
-      <ErrorBoundary>
-        <Suspense fallback={<SectionSkeleton />}>
-          <CommunityPreview />
-        </Suspense>
-      </ErrorBoundary>
-
       {/* 건강 관리 게임 - 게임 스타일 캐릭터창 (3D 뷰어) */}
       <ErrorBoundary>
         <Suspense fallback={<SectionSkeleton />}>
           <CharacterGameHome />
+        </Suspense>
+      </ErrorBoundary>
+
+      {/* 커뮤니티 미리보기 - 맨 아래 섹션 */}
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <CommunityPreview />
         </Suspense>
       </ErrorBoundary>
 

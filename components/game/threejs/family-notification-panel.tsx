@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CharacterData } from "@/types/character";
+import { EventNotificationOverlay } from "./event-notification-overlay";
 
 interface FamilyNotificationPanelProps {
   characterData: CharacterData;
@@ -36,24 +37,66 @@ interface NotificationItem {
 }
 
 /**
- * 말풍선 스타일 알림 카드 컴포넌트
+ * 말풍선 스타일 알림 카드 컴포넌트 (네온 효과 포함)
  */
 function SpeechBubbleCard({
   notification,
   onClick,
   onClose,
+  side = "left", // "left" 또는 "right"
 }: {
   notification: NotificationItem;
   onClick: () => void;
   onClose: () => void;
+  side?: "left" | "right";
 }) {
-  const priorityColors = {
-    urgent: "border-red-400/50 text-red-100",
-    high: "border-orange-400/50 text-orange-100",
-    normal: "border-yellow-400/50 text-yellow-100",
-    low: "border-blue-400/50 text-blue-100",
+  // 우선순위별 네온 색상
+  const getNeonColor = () => {
+    switch (notification.priority) {
+      case "urgent":
+        return {
+          primary: "#ff6b6b",
+          secondary: "#ff8c8c",
+          glow: "rgba(255, 107, 107, 0.8)",
+          border: "border-red-400/50",
+          text: "text-red-100",
+        };
+      case "high":
+        return {
+          primary: "#ff6b35",
+          secondary: "#ff8c42",
+          glow: "rgba(255, 107, 53, 0.8)",
+          border: "border-orange-400/50",
+          text: "text-orange-100",
+        };
+      case "normal":
+        return {
+          primary: "#ffe66d",
+          secondary: "#ffed8a",
+          glow: "rgba(255, 230, 109, 0.8)",
+          border: "border-yellow-400/50",
+          text: "text-yellow-100",
+        };
+      case "low":
+        return {
+          primary: "#4ecdc4",
+          secondary: "#6eddd6",
+          glow: "rgba(78, 205, 196, 0.8)",
+          border: "border-blue-400/50",
+          text: "text-blue-100",
+        };
+      default:
+        return {
+          primary: "#ff6b35",
+          secondary: "#ff8c42",
+          glow: "rgba(255, 107, 53, 0.8)",
+          border: "border-orange-400/50",
+          text: "text-orange-100",
+        };
+    }
   };
 
+  const neonColor = getNeonColor();
   const priorityIcons = {
     urgent: "🔴",
     high: "🟠",
@@ -63,17 +106,59 @@ function SpeechBubbleCard({
 
   return (
     <motion.div
-      className={`relative bg-white/10 backdrop-blur-md border-2 ${priorityColors[notification.priority]} rounded-2xl p-4 shadow-xl cursor-pointer hover:bg-white/15 transition-all`}
+      className={`relative bg-black/40 backdrop-blur-md border-2 ${neonColor.border} rounded-2xl p-4 shadow-xl cursor-pointer hover:bg-black/50 transition-all`}
       onClick={onClick}
-      initial={{ opacity: 0, y: -20, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -20, scale: 0.9 }}
+      initial={{ 
+        opacity: 0, 
+        x: side === "left" ? -20 : 20, 
+        scale: 0.9 
+      }}
+      animate={{ 
+        opacity: 1, 
+        x: 0, 
+        scale: 1 
+      }}
+      exit={{ 
+        opacity: 0, 
+        x: side === "left" ? -20 : 20, 
+        scale: 0.9 
+      }}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
+      style={{
+        boxShadow: `0 0 10px ${neonColor.glow}, 0 0 20px ${neonColor.glow}, 0 0 30px ${neonColor.glow}`,
+      }}
     >
-      {/* 말풍선 꼬리 */}
+      {/* 네온 효과 애니메이션 */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl pointer-events-none"
+        animate={{
+          boxShadow: [
+            `0 0 10px ${neonColor.glow}, 0 0 20px ${neonColor.glow}, 0 0 30px ${neonColor.glow}`,
+            `0 0 15px ${neonColor.glow}, 0 0 25px ${neonColor.glow}, 0 0 35px ${neonColor.glow}`,
+            `0 0 10px ${neonColor.glow}, 0 0 20px ${neonColor.glow}, 0 0 30px ${neonColor.glow}`,
+          ],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        style={{
+          border: `1px solid ${neonColor.secondary}`,
+          boxShadow: `inset 0 0 10px ${neonColor.glow}`,
+        }}
+      />
+
+      {/* 말풍선 꼬리 - 좌측/우측에 따라 방향 변경 */}
       <div
-        className={`absolute -bottom-3 right-8 w-0 h-0 border-l-[12px] border-r-[12px] border-t-[12px] border-l-transparent border-r-transparent border-t-white/10`}
+        className={`absolute -bottom-3 w-0 h-0 border-l-[12px] border-r-[12px] border-t-[12px] border-l-transparent border-r-transparent ${
+          side === "left" ? "left-8" : "right-8"
+        }`}
+        style={{
+          borderTopColor: neonColor.primary,
+          filter: `drop-shadow(0 0 8px ${neonColor.glow})`,
+        }}
       />
 
       {/* 닫기 버튼 */}
@@ -82,21 +167,40 @@ function SpeechBubbleCard({
           e.stopPropagation();
           onClose();
         }}
-        className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
+        className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors z-10"
       >
         <X className="w-4 h-4" />
       </button>
 
       {/* 알림 내용 */}
-      <div className="pr-6">
+      <div className="pr-6 relative z-10">
         <div className="flex items-start gap-2 mb-2">
           <span className="text-lg">{priorityIcons[notification.priority]}</span>
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-sm mb-1 truncate">{notification.title}</h4>
-            <p className="text-xs opacity-90 line-clamp-2">{notification.message}</p>
+            <h4 
+              className={`font-semibold text-sm mb-1 truncate ${neonColor.text}`}
+              style={{
+                textShadow: `0 0 5px ${neonColor.glow}`,
+              }}
+            >
+              {notification.title}
+            </h4>
+            <p 
+              className="text-xs opacity-90 line-clamp-2"
+              style={{
+                textShadow: `0 0 3px ${neonColor.glow}`,
+              }}
+            >
+              {notification.message}
+            </p>
           </div>
         </div>
-        <div className="text-xs opacity-75 mt-2">
+        <div 
+          className="text-xs opacity-75 mt-2"
+          style={{
+            textShadow: `0 0 3px ${neonColor.glow}`,
+          }}
+        >
           {notification.memberName}
         </div>
       </div>
@@ -238,46 +342,75 @@ export function FamilyNotificationPanel({
     setDismissedNotifications((prev) => new Set([...prev, notificationId]));
   };
 
-  // 최대 3개까지만 표시
-  const visibleNotifications = allNotifications.slice(0, 3);
+  // 알림을 좌우로 분배 (최대 3개씩)
+  const leftNotifications = allNotifications.filter((_, index) => index % 2 === 0).slice(0, 3);
+  const rightNotifications = allNotifications.filter((_, index) => index % 2 === 1).slice(0, 3);
 
   return (
-    <div className="absolute top-20 right-4 z-50 pointer-events-auto">
-      <div className="flex flex-col gap-3 max-w-sm">
-        <AnimatePresence>
-          {visibleNotifications.length === 0 ? (
+    <>
+      {/* 좌측 알림 패널 - Canvas 왼쪽 위에 위치 (3D 뷰어 위에 표시) */}
+      <div 
+        className="absolute top-4 left-4 pointer-events-auto"
+        style={{ zIndex: 1000 }}
+      >
+        <div className="flex flex-col gap-3 max-w-sm">
+          <AnimatePresence>
+            {leftNotifications.length === 0 ? null : (
+              leftNotifications.map((notification) => (
+                <SpeechBubbleCard
+                  key={notification.id}
+                  notification={notification}
+                  onClick={() => onNotificationClick(notification.id)}
+                  onClose={() => handleDismiss(notification.id)}
+                  side="left"
+                />
+              ))
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* 우측 알림 패널 - Canvas 왼쪽 위에 위치 (좌측 알림 패널 아래에 배치) */}
+      <div 
+        className="absolute top-4 left-4 pointer-events-auto"
+        style={{ 
+          zIndex: 1000,
+          marginTop: leftNotifications.length > 0 ? `${leftNotifications.length * 120}px` : '0px',
+        }}
+      >
+        <div className="flex flex-col gap-3 max-w-sm">
+          <AnimatePresence>
+            {rightNotifications.length > 0 && (
+              rightNotifications.map((notification) => (
+                <SpeechBubbleCard
+                  key={notification.id}
+                  notification={notification}
+                  onClick={() => onNotificationClick(notification.id)}
+                  onClose={() => handleDismiss(notification.id)}
+                  side="left"
+                />
+              ))
+            )}
+          </AnimatePresence>
+
+          {/* 알림이 더 많은 경우 표시 */}
+          {allNotifications.length > 6 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="bg-white/10 backdrop-blur-md border-2 border-white/20 rounded-2xl p-4 text-white/70 text-sm text-center"
+              className="bg-black/40 backdrop-blur-md border-2 border-white/20 rounded-2xl p-3 text-white/70 text-xs text-center"
+              style={{
+                boxShadow: "0 0 10px rgba(255, 255, 255, 0.2)",
+              }}
             >
-              <Bell className="w-5 h-5 mx-auto mb-2 opacity-50" />
-              <p>현재 알림이 없습니다</p>
+              +{allNotifications.length - 6}개의 알림이 더 있습니다
             </motion.div>
-          ) : (
-            visibleNotifications.map((notification, index) => (
-              <SpeechBubbleCard
-                key={notification.id}
-                notification={notification}
-                onClick={() => onNotificationClick(notification.id)}
-                onClose={() => handleDismiss(notification.id)}
-              />
-            ))
           )}
-        </AnimatePresence>
-
-        {/* 알림이 더 많은 경우 표시 */}
-        {allNotifications.length > 3 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-white/10 backdrop-blur-md border-2 border-white/20 rounded-2xl p-3 text-white/70 text-xs text-center"
-          >
-            +{allNotifications.length - 3}개의 알림이 더 있습니다
-          </motion.div>
-        )}
+        </div>
       </div>
-    </div>
+
+      {/* 네온 효과 이벤트 알림 (우측 알림 패널 아래에 위치) */}
+      <EventNotificationOverlay />
+    </>
   );
 }

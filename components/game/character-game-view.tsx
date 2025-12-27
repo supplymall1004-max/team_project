@@ -75,17 +75,24 @@ export function CharacterGameView({
         }}
         camera={{ position: [0, 0, 0], fov: 60, near: 0.01, far: 5000 }}
         dpr={[1, 2]}
-        style={{ width: '100vw', height: '100%', display: 'block', minHeight: '800px' }}
+        style={{ 
+          width: '100%', 
+          height: '100%', 
+          display: 'block', 
+          minHeight: '800px', 
+          position: 'relative', 
+          zIndex: 0 
+        }}
         onCreated={(state) => {
           // 그림자 맵 활성화
           state.gl.shadowMap.enabled = true;
           state.gl.shadowMap.type = 1; // PCFSoftShadowMap
           
-          // Canvas 크기 강제 업데이트 - 전체 화면 너비 사용
+          // Canvas 크기 강제 업데이트 - 컨테이너 너비 사용
           const container = state.gl.domElement.parentElement;
           if (container) {
             const rect = container.getBoundingClientRect();
-            const width = window.innerWidth; // 전체 화면 너비
+            const width = rect.width; // 컨테이너 너비
             const height = Math.max(rect.height, 800); // 최소 800px 높이
             state.gl.setSize(width, height);
           }

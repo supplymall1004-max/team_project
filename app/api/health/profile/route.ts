@@ -61,29 +61,7 @@ export async function GET() {
       );
     }
 
-    // 데이터베이스 연결 및 테이블 존재 테스트
-    try {
-      // users 테이블 테스트
-      const { data: usersTest, error: usersError } = await supabase
-        .from("users")
-        .select("id")
-        .limit(1);
-
-      console.log("🧪 users 테이블 테스트:", { usersTest, usersError });
-
-      // user_health_profiles 테이블 존재 확인
-      const { data: healthTest, error: healthError } = await supabase
-        .from("user_health_profiles")
-        .select("id")
-        .limit(1);
-
-      console.log("🧪 user_health_profiles 테이블 테스트:", { healthTest, healthError });
-
-    } catch (testErr) {
-      console.warn("⚠️ 데이터베이스 테스트 실패:", testErr);
-    }
-
-    // 사용자의 Supabase user_id 조회
+    // 사용자의 Supabase user_id 조회 (불필요한 테스트 쿼리 제거)
     console.log("👤 사용자 조회 시작");
     console.log("Clerk User ID:", userId);
 

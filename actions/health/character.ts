@@ -166,38 +166,64 @@ export async function getCharacterData(memberId: string): Promise<CharacterData>
       const user = userResult.data;
       const profile = profileResult.data;
 
+      // 사용자 정보가 없으면 기본 사용자 정보 생성
       if (!user) {
-        throw new Error("사용자 정보를 찾을 수 없습니다.");
+        console.warn("⚠️ 사용자 정보가 없어 기본 정보를 생성합니다.");
+        // 기본 사용자 정보 반환
+        const defaultUser = {
+          id: userId,
+          name: "사용자",
+        };
+        member = {
+          id: defaultUser.id,
+          user_id: userId,
+          name: defaultUser.name,
+          birth_date: null,
+          gender: null,
+          relationship: null,
+          diseases: [],
+          allergies: [],
+          height_cm: null,
+          weight_kg: null,
+          activity_level: null,
+          dietary_preferences: [],
+          photo_url: null,
+          avatar_type: "icon" as const,
+          health_score: null,
+          health_score_updated_at: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        // 타입 안전성을 위해 profile 데이터를 명시적으로 처리
+        // Supabase의 타입 추론이 제대로 작동하지 않을 수 있으므로 UserHealthProfile 타입으로 캐스팅
+        const profileData = profile as Partial<UserHealthProfile> | null;
+
+        member = {
+          id: user.id,
+          user_id: userId,
+          name: user.name || "본인",
+          birth_date: null,
+          gender: profileData?.gender || null,
+          relationship: null,
+          diseases: Array.isArray(profileData?.diseases) 
+            ? profileData.diseases.map((d: any) => typeof d === 'string' ? d : (d?.code || String(d)))
+            : [],
+          allergies: Array.isArray(profileData?.allergies) 
+            ? profileData.allergies.map((a: any) => typeof a === 'string' ? a : (a?.code || String(a)))
+            : [],
+          height_cm: profileData?.height_cm || null,
+          weight_kg: profileData?.weight_kg || null,
+          activity_level: profileData?.activity_level || null,
+          dietary_preferences: Array.isArray(profileData?.dietary_preferences) ? profileData.dietary_preferences : [],
+          photo_url: null,
+          avatar_type: "icon" as const,
+          health_score: null,
+          health_score_updated_at: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
       }
-
-      // 타입 안전성을 위해 profile 데이터를 명시적으로 처리
-      // Supabase의 타입 추론이 제대로 작동하지 않을 수 있으므로 UserHealthProfile 타입으로 캐스팅
-      const profileData = profile as Partial<UserHealthProfile> | null;
-
-      member = {
-        id: user.id,
-        user_id: userId,
-        name: user.name || "본인",
-        birth_date: null,
-        gender: profileData?.gender || null,
-        relationship: null,
-        diseases: Array.isArray(profileData?.diseases) 
-          ? profileData.diseases.map((d: any) => typeof d === 'string' ? d : (d?.code || String(d)))
-          : [],
-        allergies: Array.isArray(profileData?.allergies) 
-          ? profileData.allergies.map((a: any) => typeof a === 'string' ? a : (a?.code || String(a)))
-          : [],
-        height_cm: profileData?.height_cm || null,
-        weight_kg: profileData?.weight_kg || null,
-        activity_level: profileData?.activity_level || null,
-        dietary_preferences: Array.isArray(profileData?.dietary_preferences) ? profileData.dietary_preferences : [],
-        photo_url: null,
-        avatar_type: "icon" as const,
-        health_score: null,
-        health_score_updated_at: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
     } else {
       // 가족 구성원인 경우
       const { data: familyMember, error } = await supabase
@@ -208,13 +234,34 @@ export async function getCharacterData(memberId: string): Promise<CharacterData>
         .single();
 
       if (error || !familyMember) {
-        throw new Error("가족 구성원 정보를 찾을 수 없습니다.");
+        console.warn("⚠️ 가족 구성원 정보를 찾을 수 없어 기본 정보를 생성합니다:", { memberId, userId, error });
+        // 가족 구성원 정보가 없으면 기본 정보 생성
+        member = {
+          id: memberId,
+          user_id: userId,
+          name: "가족 구성원",
+          birth_date: null,
+          gender: null,
+          relationship: null,
+          diseases: [],
+          allergies: [],
+          height_cm: null,
+          weight_kg: null,
+          activity_level: null,
+          dietary_preferences: [],
+          photo_url: null,
+          avatar_type: "icon" as const,
+          health_score: null,
+          health_score_updated_at: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        member = {
+          ...familyMember,
+          avatar_type: familyMember.avatar_type || "icon",
+        };
       }
-
-      member = {
-        ...familyMember,
-        avatar_type: familyMember.avatar_type || "icon",
-      };
     }
 
     console.log("✅ 가족 구성원 정보 조회 완료:", member.name);

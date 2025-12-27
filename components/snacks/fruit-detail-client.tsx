@@ -13,6 +13,7 @@
 import Image from "next/image";
 import { ArrowLeft, ShoppingCart, AlertCircle, Heart, Calendar, CheckCircle2, Info } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,19 +58,37 @@ export function FruitDetailClient({ fruit }: FruitDetailClientProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-amber-50">
       <div className="container mx-auto px-4 py-8 max-w-5xl">
-        {/* 뒤로가기 버튼 */}
-        <Link href="/diet">
-          <Button variant="ghost" className="mb-6">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            건강식단으로 돌아가기
-          </Button>
-        </Link>
+        {/* 뒤로가기 버튼 - GDWEB 스타일 */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Link href="/diet">
+            <Button
+              variant="ghost"
+              className="mb-6 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 transition-all duration-300"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              건강식단으로 돌아가기
+            </Button>
+          </Link>
+        </motion.div>
 
-        {/* 메인 카드 */}
-        <Card className="mb-6 shadow-lg border-0 overflow-hidden">
-          <div className="grid md:grid-cols-2 gap-0">
-            {/* 이미지 섹션 */}
-            <div className="relative aspect-square bg-gradient-to-br from-emerald-100 to-amber-100">
+        {/* 메인 카드 - GDWEB 스타일 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="mb-6 shadow-2xl border-2 border-orange-200/50 overflow-hidden gdweb-card bg-gradient-to-br from-white via-orange-50/30 to-white backdrop-blur-md">
+            <div className="grid md:grid-cols-2 gap-0">
+              {/* 이미지 섹션 */}
+              <motion.div
+                className="relative aspect-square bg-gradient-to-br from-emerald-100 to-amber-100"
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.3 }}
+              >
               {fruit.imageUrl ? (
                 <Image
                   src={fruit.imageUrl}
@@ -93,17 +112,24 @@ export function FruitDetailClient({ fruit }: FruitDetailClientProps) {
                   </Badge>
                 </div>
               )}
-            </div>
+              </motion.div>
 
-            {/* 정보 섹션 */}
-            <div className="p-8 flex flex-col justify-center">
-              <div className="mb-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-5xl">{fruit.emoji}</span>
-                  <h1 className="text-4xl font-bold text-gray-900">{fruit.name}</h1>
-                </div>
-                <p className="text-gray-600 text-lg">제철과일 상세 정보</p>
-              </div>
+              {/* 정보 섹션 */}
+              <div className="p-8 flex flex-col justify-center">
+                <motion.div
+                  className="mb-4"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-5xl">{fruit.emoji}</span>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent">
+                      {fruit.name}
+                    </h1>
+                  </div>
+                  <p className="text-gray-600 text-lg">제철과일 상세 정보</p>
+                </motion.div>
 
               {/* 제철 시기 */}
               <div className="mb-6">
@@ -135,38 +161,56 @@ export function FruitDetailClient({ fruit }: FruitDetailClientProps) {
                   <p className="text-gray-700 ml-7 text-sm">{fruit.kidsBenefits}</p>
                 </div>
               )}
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </motion.div>
 
-        {/* 영양 정보 카드 */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-              영양 정보
-            </CardTitle>
-            <CardDescription>{fruit.nutrition.servingSize} 기준</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-emerald-50 rounded-lg">
-                <div className="text-2xl font-bold text-emerald-700">{fruit.nutrition.calories}</div>
-                <div className="text-sm text-gray-600">칼로리 (kcal)</div>
+        {/* 영양 정보 카드 - GDWEB 스타일 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
+          <Card className="mb-6 gdweb-card bg-gradient-to-br from-white via-orange-50/30 to-white backdrop-blur-md border-2 border-orange-200/50 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent">
+                <CheckCircle2 className="h-5 w-5 text-orange-600" />
+                영양 정보
+              </CardTitle>
+              <CardDescription>{fruit.nutrition.servingSize} 기준</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <motion.div
+                  className="text-center p-4 bg-white/80 rounded-xl border border-orange-100 hover:shadow-md transition-all duration-300"
+                  whileHover={{ scale: 1.05, y: -4 }}
+                >
+                  <div className="text-2xl font-bold text-orange-600">{fruit.nutrition.calories}</div>
+                  <div className="text-sm text-gray-600">칼로리 (kcal)</div>
+                </motion.div>
+                <motion.div
+                  className="text-center p-4 bg-white/80 rounded-xl border border-orange-100 hover:shadow-md transition-all duration-300"
+                  whileHover={{ scale: 1.05, y: -4 }}
+                >
+                  <div className="text-2xl font-bold text-orange-600">{fruit.nutrition.protein}g</div>
+                  <div className="text-sm text-gray-600">단백질</div>
+                </motion.div>
+                <motion.div
+                  className="text-center p-4 bg-white/80 rounded-xl border border-orange-100 hover:shadow-md transition-all duration-300"
+                  whileHover={{ scale: 1.05, y: -4 }}
+                >
+                  <div className="text-2xl font-bold text-orange-600">{fruit.nutrition.carbs}g</div>
+                  <div className="text-sm text-gray-600">탄수화물</div>
+                </motion.div>
+                <motion.div
+                  className="text-center p-4 bg-white/80 rounded-xl border border-orange-100 hover:shadow-md transition-all duration-300"
+                  whileHover={{ scale: 1.05, y: -4 }}
+                >
+                  <div className="text-2xl font-bold text-orange-600">{fruit.nutrition.fat}g</div>
+                  <div className="text-sm text-gray-600">지방</div>
+                </motion.div>
               </div>
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-700">{fruit.nutrition.protein}g</div>
-                <div className="text-sm text-gray-600">단백질</div>
-              </div>
-              <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <div className="text-2xl font-bold text-orange-700">{fruit.nutrition.carbs}g</div>
-                <div className="text-sm text-gray-600">탄수화물</div>
-              </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-700">{fruit.nutrition.fat}g</div>
-                <div className="text-sm text-gray-600">지방</div>
-              </div>
-            </div>
             
             {/* 추가 영양소 */}
             {(fruit.nutrition.vitaminC || fruit.nutrition.calcium || fruit.nutrition.iron || fruit.nutrition.potassium) && (
@@ -201,25 +245,42 @@ export function FruitDetailClient({ fruit }: FruitDetailClientProps) {
             )}
           </CardContent>
         </Card>
+        </motion.div>
 
-        {/* 건강 효능 카드 */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-pink-500" />
-              건강 효능
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {fruit.benefits.map((benefit, index) => (
-                <Badge key={index} variant="secondary" className="text-sm py-1.5 px-3">
-                  {benefit}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* 건강 효능 카드 - GDWEB 스타일 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <Card className="mb-6 gdweb-card bg-gradient-to-br from-white via-orange-50/30 to-white backdrop-blur-md border-2 border-orange-200/50 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent">
+                <Heart className="h-5 w-5 text-orange-600 fill-orange-600" />
+                건강 효능
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                {fruit.benefits.map((benefit, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.5 + index * 0.1 }}
+                  >
+                    <Badge
+                      variant="secondary"
+                      className="text-sm py-2 px-4 bg-gradient-to-br from-orange-100 to-orange-200 text-orange-800 border border-orange-300 hover:shadow-md transition-all duration-300"
+                    >
+                      {benefit}
+                    </Badge>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* 질병 주의사항 */}
         {fruit.avoidForDiseases && fruit.avoidForDiseases.length > 0 && (
@@ -252,33 +313,40 @@ export function FruitDetailClient({ fruit }: FruitDetailClientProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Button
-                asChild
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                <a
-                  href={`https://www.coupang.com/np/search?q=${encodeURIComponent(fruit.name)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  asChild
+                  className="w-full bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 hover:from-orange-600 hover:via-orange-700 hover:to-orange-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                  style={{
+                    boxShadow: "0 8px 32px rgba(255, 107, 53, 0.3)",
+                  }}
                 >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  쿠팡에서 구매하기
-                </a>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="w-full border-emerald-300 text-emerald-700 hover:bg-emerald-100"
-              >
-                <a
-                  href={`https://search.shopping.naver.com/search/all?query=${encodeURIComponent(fruit.name)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  <a
+                    href={`https://www.coupang.com/np/search?q=${encodeURIComponent(fruit.name)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    쿠팡에서 구매하기
+                  </a>
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full border-2 border-orange-300 text-orange-700 hover:bg-gradient-to-br hover:from-orange-50 hover:to-orange-100 font-semibold transition-all duration-300"
                 >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  네이버 쇼핑에서 구매하기
-                </a>
-              </Button>
+                  <a
+                    href={`https://search.shopping.naver.com/search/all?query=${encodeURIComponent(fruit.name)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    네이버 쇼핑에서 구매하기
+                  </a>
+                </Button>
+              </motion.div>
             </div>
             <Alert className="border-blue-200 bg-blue-50 mt-4">
               <Info className="h-4 w-4 text-blue-600" />

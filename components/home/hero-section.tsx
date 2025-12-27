@@ -134,14 +134,30 @@ export function HeroSection({
   const titleLines = title.split("\n");
 
   return (
-    <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
-      {/* 배경 이미지/비디오 */}
+    <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
+      {/* 배경 이미지/비디오 - GDWEB 스타일 그라데이션 */}
       <div className="absolute inset-0 z-0">
-        {/* 배경 그라데이션 (기본) */}
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-emerald-50" />
+        {/* GDWEB 스타일 그라데이션 배경 */}
+        <div 
+          className="absolute inset-0 gdweb-gradient-hero"
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+          }}
+        />
+        {/* 패턴 오버레이 */}
+        <div 
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: `
+              radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 0%, transparent 50%),
+              radial-gradient(circle at 75% 75%, rgba(255,255,255,0.1) 0%, transparent 50%)
+            `,
+            backgroundSize: '100px 100px',
+          }}
+        />
         {/* 배경 이미지 (기본 이미지 또는 그라데이션) */}
         {backgroundImageUrl && (
-          <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 opacity-15">
             <Image
               src={backgroundImageUrl}
               alt=""
@@ -161,34 +177,86 @@ export function HeroSection({
             />
           </div>
         )}
-        {/* 오버레이 */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/60 to-white/80" />
+        {/* 오버레이 - 더 부드러운 그라데이션 */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/20" />
       </div>
 
       {/* 콘텐츠 - 모바일 앱 아이콘 그리드 */}
-      <div className="relative z-10 w-full max-w-4xl mx-auto px-4 py-12 sm:px-6 sm:py-20">
-        {/* 베타 배지 (위에서 진입) */}
+      <div className="relative z-10 w-full max-w-5xl mx-auto px-4 py-12 sm:px-6 sm:py-20">
+        {/* 타이틀 섹션 - GDWEB 스타일 */}
         <motion.div
-          className="text-center mb-8"
-          initial={{ opacity: 0, y: -50, scale: 0.8 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="text-center mb-12"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ 
             type: "spring",
-            stiffness: 150,
-            damping: 25,
-            mass: 1.2,
-            delay: 1.4,
-            duration: 1.0,
+            stiffness: 100,
+            damping: 20,
+            delay: 0.2,
           }}
         >
-          <div className="inline-flex items-center rounded-full bg-orange-100 px-3 py-1 text-xs sm:px-4 sm:text-sm font-semibold text-orange-700">
-            {badgeText}
-          </div>
+          {/* 베타 배지 */}
+          <motion.div
+            className="mb-6"
+            initial={{ opacity: 0, y: -50, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ 
+              type: "spring",
+              stiffness: 150,
+              damping: 25,
+              mass: 1.2,
+              delay: 0.4,
+            }}
+          >
+            <div className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm px-4 py-2 text-sm font-semibold text-white border border-white/30 shadow-lg">
+              {badgeText}
+            </div>
+          </motion.div>
+
+          {/* 메인 타이틀 */}
+          {title && (
+            <motion.h1
+              className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4 leading-tight"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              {titleLines.map((line, index) => (
+                <span key={index} className="block">
+                  {line}
+                </span>
+              ))}
+            </motion.h1>
+          )}
+
+          {/* 서브타이틀 */}
+          {subtitle && (
+            <motion.p
+              className="text-xl sm:text-2xl text-white/90 mb-4 font-medium"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+            >
+              {subtitle}
+            </motion.p>
+          )}
+
+          {/* 설명 */}
+          {description && (
+            <motion.p
+              className="text-base sm:text-lg text-white/80 max-w-2xl mx-auto leading-relaxed"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.0 }}
+            >
+              {description}
+            </motion.p>
+          )}
         </motion.div>
 
-        {/* 앱 아이콘 그리드 */}
+        {/* 앱 아이콘 그리드 - GDWEB 카드 스타일 (카드 크기 통일) */}
         <motion.div
-          className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 sm:gap-6 max-w-2xl mx-auto"
+          className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-6 max-w-4xl mx-auto items-stretch"
           variants={staggerContainer}
           initial="initial"
           animate="animate"
@@ -237,12 +305,12 @@ export function HeroSection({
                   stiffness: 150,
                   damping: 25,
                   mass: 1.2,
-                  delay: index * 0.12 + 1.6,
+                  delay: index * 0.08 + 1.2,
                   duration: 1.0,
                 }}
                 whileHover={{ 
                   scale: 1.1, 
-                  y: -5,
+                  y: -8,
                   transition: { duration: 0.2 }
                 }}
                 whileTap={{ scale: 0.95 }}
@@ -250,27 +318,39 @@ export function HeroSection({
                 <Link
                   href={card.href}
                   onClick={() => handleQuickStartClick(card.href)}
-                  className="group flex flex-col items-center space-y-2 p-3 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-sm border border-gray-200/80 shadow-md transition-all"
+                  className="group flex flex-col items-center justify-between h-full min-h-[140px] sm:min-h-[160px] p-4 sm:p-5 rounded-2xl bg-white/95 backdrop-blur-md border border-white/30 shadow-lg hover:shadow-2xl transition-all gdweb-card"
+                  style={{
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+                  }}
                 >
+                  {/* 아이콘 영역 - 고정 크기 */}
                   <motion.div
-                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition-all relative"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shadow-xl group-hover:shadow-2xl transition-all relative flex-shrink-0"
+                    style={{
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+                    }}
                   >
+                    {card.gradient ? (
+                      <div className={`absolute inset-0 ${card.gradient} opacity-90`} />
+                    ) : (
+                      <div className={`absolute inset-0 ${card.color} opacity-90`} />
+                    )}
                     <Image
                       src={card.iconSrc}
-                      alt=""
+                      alt={card.title}
                       fill
-                      className="object-cover"
-                      sizes="64px"
+                      className="object-cover relative z-10"
+                      sizes="80px"
                       priority={index < 6}
                     />
                   </motion.div>
 
-                  {/* 텍스트 */}
-                  <div className="text-center">
-                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 leading-tight">
+                  {/* 텍스트 영역 - 고정 높이 */}
+                  <div className="text-center w-full flex-1 flex flex-col justify-center min-h-[48px] sm:min-h-[52px]">
+                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 leading-tight group-hover:text-primary transition-colors mb-1">
                       {card.title}
                     </h3>
-                    <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5 leading-tight">
+                    <p className="text-[10px] sm:text-xs text-gray-600 leading-tight line-clamp-2">
                       {card.description}
                     </p>
                   </div>

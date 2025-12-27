@@ -140,21 +140,24 @@ export function ApartmentViewer() {
       camera.updateProjectionMatrix();
     }
 
-    // 카메라 위치 자동 조정 - 아파트 내부 중앙으로 설정
+    // 카메라 위치 자동 조정 - 아파트 내부 시점으로 설정
     // 모델이 원점으로 이동했으므로, 내부 중앙은 바운딩 박스의 중심 근처
-    // 바닥과 천장 사이의 적절한 높이에 배치
+    // 사람 눈높이 정도의 높이에 배치 (약 1.5-1.7m)
     const floorY = min.y; // 바닥 높이
     const ceilingY = max.y; // 천장 높이
     const roomHeight = ceilingY - floorY; // 방 높이
     
-    // 카메라를 아파트 내부 중앙에 배치 (바닥에서 방 높이의 60% 위치)
-    const cameraHeight = floorY + roomHeight * 0.6; // 바닥에서 방 높이의 60% 위치
+    // 카메라를 아파트 내부 중앙에 배치 (사람 눈높이: 바닥에서 약 1.6m 또는 방 높이의 50-60%)
+    // 일반적인 아파트 천장 높이가 2.4-2.6m이므로, 눈높이는 약 1.5-1.7m
+    const eyeHeight = Math.max(1.5, roomHeight * 0.55); // 최소 1.5m 또는 방 높이의 55%
+    const cameraHeight = floorY + eyeHeight; // 바닥에서 눈높이만큼 올린 위치
     const cameraX = (min.x + max.x) * 0.5; // X축 중앙
     const cameraZ = (min.z + max.z) * 0.5; // Z축 중앙 (내부 중앙)
     
-    // 카메라를 아파트 내부 중앙에 배치
-    const initialPosition = new Vector3(cameraX, cameraHeight, cameraZ); // 내부 중앙
-    const initialTarget = new Vector3(cameraX, cameraHeight * 0.9, cameraZ + 1); // 약간 앞쪽을 바라보도록
+    // 카메라를 아파트 내부 중앙에 배치하고 수평으로 앞을 바라보도록 설정
+    const initialPosition = new Vector3(cameraX, cameraHeight, cameraZ); // 내부 중앙, 눈높이
+    // 카메라가 수평으로 앞을 바라보도록 (같은 높이, 앞쪽 방향)
+    const initialTarget = new Vector3(cameraX, cameraHeight, cameraZ + 2); // 같은 높이, 앞쪽 2m 지점
     
     camera.position.copy(initialPosition);
     camera.lookAt(initialTarget);
@@ -164,9 +167,9 @@ export function ApartmentViewer() {
     initialCameraPositionRef.current = initialPosition.clone();
     initialCameraTargetRef.current = initialTarget.clone();
 
-    // OrbitControls 타겟 설정 - 아파트 내부 중앙을 타겟으로
+    // OrbitControls 타겟 설정 - 카메라가 바라보는 지점 (수평 앞쪽)
     if (controlsRef.current) {
-      controlsRef.current.target.set(cameraX, cameraHeight * 0.9, cameraZ); // 내부 중앙을 타겟으로
+      controlsRef.current.target.set(cameraX, cameraHeight, cameraZ + 2); // 카메라 앞쪽 수평 지점
       controlsRef.current.update();
     }
 
@@ -399,55 +402,21 @@ export function ApartmentViewer() {
 
   return (
     <>
-      {/* 카메라 리셋 버튼 */}
-      <Html
-        position={[0, 0, 0]}
-        center
-        portal={{ current: document.body }}
-        style={{ pointerEvents: 'auto' }}
-      >
-        <button
-          onClick={resetCamera}
-          disabled={isResetting}
-          className="fixed top-4 left-4 z-50 w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg shadow-lg transition-colors duration-200 flex items-center justify-center"
-          style={{
-            pointerEvents: 'auto',
-          }}
-          title="초기 시점으로"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-white"
-          >
-            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-            <circle cx="12" cy="13" r="3" />
-          </svg>
-        </button>
-      </Html>
-
-      {/* OrbitControls: 마우스 드래그/휠 줌 */}
+      {/* OrbitControls: 마우스 드래그/휠 줌 - 아파트 내부 시점 최적화 */}
       <OrbitControls
         ref={controlsRef}
         enableDamping={true} // 부드러운 움직임
-        dampingFactor={0.1} // 더 부드러운 감쇠 (0.05 -> 0.1)
-        minDistance={0.1} // 최소 줌 (적절한 거리로 조정) - 검정 화면 방지
-        maxDistance={2000} // 최대 줌 대폭 증가 (500 -> 2000) - 매우 멀리서도 볼 수 있게
+        dampingFactor={0.1} // 더 부드러운 감쇠
+        minDistance={0.3} // 최소 줌 (너무 가까이 가면 벽을 통과하지 않도록)
+        maxDistance={15} // 최대 줌 (아파트 내부에서 적절한 거리로 제한)
         enablePan={true} // 마우스 오른쪽 클릭으로 화면 이동
-        panSpeed={1.5} // 팬 속도 조정 (2.0 -> 1.5) - 더 부드럽게
+        panSpeed={1.0} // 팬 속도 조정 (내부 이동에 적합하게)
         enableRotate={true} // 마우스 드래그로 회전
-        rotateSpeed={0.8} // 회전 속도 조정 (1.0 -> 0.8) - 더 부드럽게
+        rotateSpeed={0.6} // 회전 속도 조정 (부드러운 회전)
         enableZoom={true} // 휠로 확대/축소
-        zoomSpeed={0.5} // 줌 속도 조정 (500.0 -> 0.5) - 스무스한 줌
-        minPolarAngle={0} // 수직 각도 최소값 (위에서 내려다볼 수 있게)
-        maxPolarAngle={Math.PI} // 수직 각도 최대값 (아래에서 올려볼 수 있게)
+        zoomSpeed={0.8} // 줌 속도 조정
+        minPolarAngle={Math.PI / 6} // 수직 각도 최소값 (30도 - 위에서 너무 많이 내려다보지 않도록)
+        maxPolarAngle={Math.PI * 5 / 6} // 수직 각도 최대값 (150도 - 아래에서 너무 많이 올려보지 않도록)
         screenSpacePanning={false} // 화면 공간 팬 비활성화 (월드 공간 팬 사용)
       />
 

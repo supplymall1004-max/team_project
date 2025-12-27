@@ -22,6 +22,11 @@ import {
 import { PremiumGate } from "@/components/premium/premium-gate";
 import { getCurrentSubscription } from "@/actions/payments/get-subscription";
 import { checkHealthProfile } from "@/actions/health/check";
+import {
+  getCachedDietPlan,
+  setCachedDietPlan,
+  clearDietPlanCache,
+} from "@/lib/cache/diet-plan-cache";
 
 interface FamilyDietSummary {
   memberTabs: FamilyMemberTabPayload[];
@@ -185,22 +190,54 @@ export function DietSectionClient() {
     checkPremium();
   }, [user, isLoaded]);
 
-  // 건강 정보와 식단 데이터를 순차적으로 로드 (병렬 → 순차 변경)
+  // 건강 정보와 식단 데이터를 병렬로 로드 (성능 최적화)
   useEffect(() => {
     if (!isLoaded || !user) {
       setIsLoading(false);
       return;
     }
 
-    const loadDataSequentially = async () => {
+    const loadDataOptimized = async () => {
       try {
-        // 1. 건강 정보 확인 (가장 먼저)
-        console.group("[DietSection] 건강 정보 확인 시작");
+        const today = new Date();
+        const todayStr = today.toISOString().split("T")[0];
+        setSummaryDate(todayStr);
+
+        console.group("[DietSection] 데이터 로드 시작 (최적화)");
         console.log("사용자 ID:", user.id);
-        
-        const healthCheck = await checkHealthProfile();
+        console.log("📅 조회 날짜:", todayStr);
+
+        // 1. 캐시 확인 (가장 먼저)
+        const cached = getCachedDietPlan(user.id, todayStr);
+        if (cached) {
+          console.log("✅ 캐시 적중 - 즉시 표시");
+          setDietPlan(cached.dietPlan);
+          setHasHealthProfile(true);
+          setIsLoading(false);
+          
+          // 캐시된 데이터가 있으면 가족 요약도 병렬로 로드
+          loadFamilySummary(todayStr).catch((err) => {
+            console.warn("[DietSection] 가족 요약 로드 실패 (무시):", err);
+          });
+          console.groupEnd();
+          return;
+        }
+
+        console.log("⚠️ 캐시 미적중 - API 호출");
+
+        // 2. 건강 정보 확인과 식단 조회를 병렬로 처리
+        const [healthCheck, dietRes] = await Promise.all([
+          checkHealthProfile(),
+          fetch(`/api/diet/plan?date=${todayStr}`).catch((err) => {
+            console.warn("⚠️ 식단 API 호출 실패:", err);
+            return { ok: false, status: 500, json: () => Promise.resolve({ error: "API 호출 실패" }) };
+          }),
+        ]);
+
         console.log("✅ 건강 정보 확인 결과:", healthCheck);
-        
+        console.log("📡 식단 API 응답 상태:", dietRes.status, dietRes.statusText);
+
+        // 건강 정보 확인
         if (!healthCheck.hasProfile) {
           console.warn("⚠️ 건강 정보가 없습니다");
           setHasHealthProfile(false);
@@ -209,20 +246,9 @@ export function DietSectionClient() {
           return;
         }
 
-        console.log("✅ 건강 정보 확인됨");
         setHasHealthProfile(true);
-        console.groupEnd();
 
-        // 2. 오늘 식단 조회 (건강 정보 확인 후)
-        const today = new Date();
-        const todayStr = today.toISOString().split("T")[0];
-        setSummaryDate(todayStr);
-
-        console.group("[DietSection] 식단 조회 시작");
-        console.log("📅 조회 날짜:", todayStr);
-        const dietRes = await fetch(`/api/diet/plan?date=${todayStr}`);
-        console.log("📡 식단 API 응답 상태:", dietRes.status, dietRes.statusText);
-
+        // 식단 데이터 처리
         if (dietRes.ok) {
           const dietData = await dietRes.json();
           console.log("✅ 식단 데이터 수신:", dietData);
@@ -236,20 +262,28 @@ export function DietSectionClient() {
               hasSnack: !!dietData.dietPlan.snack,
             });
             setDietPlan(dietData.dietPlan);
+            
+            // 캐시에 저장 (AI 생성으로 간주)
+            setCachedDietPlan(user.id, todayStr, dietData.dietPlan, undefined, true);
           } else {
             console.warn("⚠️ dietPlan이 응답에 없습니다");
           }
+        } else if (dietRes.status === 404) {
+          console.log("⚠️ 식단이 아직 생성되지 않음 (404) - 정상 상황");
+          clearDietPlanCache(user.id, todayStr);
         } else {
           const errorText = await dietRes.text().catch(() => "응답 본문을 읽을 수 없습니다");
           console.warn("⚠️ 식단 조회 실패:", dietRes.status, errorText);
-          // 404는 정상 상황 (식단이 아직 생성되지 않음)
         }
+
+        // 3. 가족 요약 데이터는 식단이 있을 때만 로드 (병렬 처리)
+        if (dietRes.ok) {
+          loadFamilySummary(todayStr).catch((err) => {
+            console.warn("[DietSection] 가족 요약 로드 실패 (무시):", err);
+          });
+        }
+
         console.groupEnd();
-
-        // 3. 가족 요약 데이터 (식단 조회 후)
-        console.log("[DietSection] 가족 요약 조회 시작");
-        await loadFamilySummary(todayStr);
-
       } catch (err) {
         console.error("❌ 데이터 로드 오류:", err);
         setError(err instanceof Error ? err.message : "데이터 로드 실패");
@@ -258,8 +292,8 @@ export function DietSectionClient() {
       }
     };
 
-    loadDataSequentially();
-  }, [user, isLoaded]); // loadFamilySummary 의존성 제거
+    loadDataOptimized();
+  }, [user, isLoaded, loadFamilySummary]);
 
   const scaledSummaryTotals = useMemo(() => {
     // 우선 통합 식단 영양소 사용
@@ -358,7 +392,14 @@ export function DietSectionClient() {
 
       if (data.dietPlan) {
         setDietPlan(data.dietPlan);
-        await loadFamilySummary(todayStr);
+        
+        // 캐시에 저장 (AI 생성으로 간주)
+        setCachedDietPlan(user.id, todayStr, data.dietPlan, undefined, true);
+        
+        // 가족 요약도 병렬로 로드
+        loadFamilySummary(todayStr).catch((err) => {
+          console.warn("[DietSection] 가족 요약 로드 실패 (무시):", err);
+        });
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "알 수 없는 오류";

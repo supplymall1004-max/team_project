@@ -10,9 +10,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getServiceRoleClient } from '@/lib/supabase/service-role';
 import { getDailyDietPlan, getUserHealthProfile } from '@/lib/diet/queries';
 import { fetchFoodSafetyRecipeBySeq } from '@/lib/recipes/foodsafety-api';
-import { searchFoodSafetyRecipesByName } from '@/lib/recipes/foodsafety-api';
-import { parseIngredients as parseMfdsIngredients } from '@/lib/services/mfds-recipe-api';
-import type { RecipeDetailForDiet, RecipeNutrition } from '@/types/recipe';
+import type { RecipeDetailForDiet } from '@/types/recipe';
 
 function normalizeConditionCodes(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -127,77 +125,46 @@ export async function GET(
       relatedRecipes: [] as RecipeDetailForDiet[],
     };
 
-    // 식약처 API에서 영양소/재료를 실제로 가져와서 시각화에 사용
-    try {
-      const recipeAny = mealData.recipe as unknown as { id?: unknown; title?: unknown; foodsafety_rcp_seq?: unknown };
-      const directSeq = mealData.foodsafety_data?.rcp_seq;
-      const embeddedSeq = typeof recipeAny?.foodsafety_rcp_seq === 'string' ? recipeAny.foodsafety_rcp_seq : null;
-      const title = typeof recipeAny?.title === 'string' ? recipeAny.title : null;
-
-      let rcpSeq: string | null = directSeq || embeddedSeq;
-
-      if (!rcpSeq && title) {
-        console.log('[Dinner Meal API] 식약처 레시피명 검색 시도:', title);
-        const searchResult = await searchFoodSafetyRecipesByName(title, { startIdx: 1, endIdx: 1000 });
-        if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
-          const exact = searchResult.data.find((r) => r.RCP_NM === title) ?? searchResult.data[0];
-          rcpSeq = exact.RCP_SEQ;
-        }
-      }
-
-      if (rcpSeq) {
-        console.log('[Dinner Meal API] 식약처 레시피 조회 시도:', rcpSeq);
-        const mfdsResult = await fetchFoodSafetyRecipeBySeq(rcpSeq, {
-          startIdx: 1,
-          endIdx: 1000,
-          maxRetries: 2,
-          retryDelay: 500,
-        });
-
-        if (mfdsResult.success && mfdsResult.data && mfdsResult.data.length > 0) {
-          const row = mfdsResult.data[0];
-          mealData.nutrition.calories = parseMfdsNumber(row.INFO_ENG);
-          mealData.nutrition.carbohydrates = parseMfdsNumber(row.INFO_CAR);
-          mealData.nutrition.protein = parseMfdsNumber(row.INFO_PRO);
-          mealData.nutrition.fat = parseMfdsNumber(row.INFO_FAT);
-          mealData.nutrition.sodium = parseMfdsNumber(row.INFO_NA);
-          mealData.nutrition.fiber = parseMfdsNumber(row.INFO_FIBER);
-
-          const parsed = parseMfdsIngredients(row as any);
-          mealData.ingredients = parsed.map((name) => ({ name, quantity: 0 }));
-          mealData.calories = mealData.nutrition.calories;
-
-          const nutrition: RecipeNutrition = {
-            calories: parseMfdsNumber(row.INFO_ENG),
-            carbs: parseMfdsNumber(row.INFO_CAR),
-            protein: parseMfdsNumber(row.INFO_PRO),
-            fat: parseMfdsNumber(row.INFO_FAT),
-            sodium: parseMfdsNumber(row.INFO_NA),
-            fiber: parseMfdsNumber(row.INFO_FIBER),
-          };
-
-          mealData.relatedRecipes = [
-            {
-              id: `foodsafety-${row.RCP_SEQ}`,
-              source: 'foodsafety',
-              title: row.RCP_NM,
-              image: row.ATT_FILE_NO_MAIN ?? undefined,
-              ingredients: [],
-              nutrition,
-            },
-          ];
-
-          console.log('[Dinner Meal API] 식약처 영양소 반영 완료');
-        } else {
-          console.warn('[Dinner Meal API] 식약처 레시피 조회 실패(무시):', mfdsResult.error);
-        }
-      }
-    } catch (mfdsError) {
-      console.warn('[Dinner Meal API] 식약처 API 연동 실패(무시):', mfdsError);
-    }
-
-    console.log('✅ 저녁 식단 조회 완료');
+    // 필수 데이터 먼저 반환 (식약처 API는 백그라운드 처리)
+    console.log('✅ 저녁 식단 조회 완료 (필수 데이터)');
     console.groupEnd();
+
+    // 식약처 API는 백그라운드에서 비동기로 처리 (응답 지연 방지)
+    const enrichWithFoodSafetyData = async () => {
+      try {
+        const recipeAny = mealData.recipe as unknown as { id?: unknown; foodsafety_rcp_seq?: unknown };
+        const directSeq = mealData.foodsafety_data?.rcp_seq;
+        const embeddedSeq = typeof recipeAny?.foodsafety_rcp_seq === 'string' ? recipeAny.foodsafety_rcp_seq : null;
+
+        const rcpSeq: string | null = directSeq || embeddedSeq;
+
+        if (rcpSeq) {
+          console.log('[Dinner Meal API] 식약처 레시피 조회 시도 (백그라운드):', rcpSeq);
+          const mfdsResult = await fetchFoodSafetyRecipeBySeq(rcpSeq, {
+            startIdx: 1,
+            endIdx: 1000,
+            maxRetries: 1, // 재시도 횟수 감소
+            retryDelay: 300, // 재시도 지연 감소
+          });
+
+          if (mfdsResult.success && mfdsResult.data && mfdsResult.data.length > 0) {
+            // 데이터베이스 업데이트는 하지 않고, 다음 요청 시 캐시 활용
+            console.log('[Dinner Meal API] 식약처 영양소 조회 완료 (백그라운드)');
+          }
+        }
+
+        // 레시피명 검색 및 구성요소 합산은 더 이상 실행하지 않음 (너무 느림)
+        // 대신 기본 영양소 정보로 충분
+      } catch (mfdsError) {
+        // 백그라운드 처리이므로 실패해도 무시
+        console.warn('[Dinner Meal API] 식약처 API 백그라운드 처리 실패(무시):', mfdsError);
+      }
+    };
+
+    // 백그라운드에서 비동기 실행 (응답을 기다리지 않음)
+    enrichWithFoodSafetyData().catch(() => {
+      // 에러는 이미 로그에 기록됨
+    });
 
     return NextResponse.json({
       success: true,

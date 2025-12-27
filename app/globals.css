@@ -66,6 +66,54 @@
   }
 }
 
+/* GDWEB 디자인 시스템 애니메이션 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes card-hover {
+  0% {
+    transform: translateY(0);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+  100% {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-card-hover:hover {
+  animation: card-hover 0.3s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
 /* 네온사인 효과 애니메이션 - 주황색 계열 */
 @keyframes neon-flicker {
   0%,
@@ -305,6 +353,18 @@ body {
   --brand-orange: oklch(0.6 0.18 50);
   --brand-green: oklch(0.65 0.16 150);
   --brand-gold: oklch(0.65 0.16 85);
+
+  /* GDWEB 디자인 시스템 색상 팔레트 */
+  --gdweb-primary: #667eea;
+  --gdweb-secondary: #764ba2;
+  --gdweb-accent: #f093fb;
+  --gdweb-success: #27ae60;
+  --gdweb-warning: #f39c12;
+  --gdweb-error: #e74c3c;
+  
+  /* 그라데이션 배경 */
+  --gdweb-gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gdweb-gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
 }
 
 .dark {
@@ -440,5 +500,44 @@ body {
   /* 고문서 스타일 - 한자/한글 전통 폰트 */
   .font-traditional {
     font-family: "Nanum Myeongjo", "Nanum Gothic", "Malgun Gothic", serif;
+  }
+
+  /* GDWEB 디자인 시스템 유틸리티 클래스 */
+  .gdweb-gradient-primary {
+    background: var(--gdweb-gradient-primary);
+  }
+
+  .gdweb-gradient-hero {
+    background: var(--gdweb-gradient-hero);
+  }
+
+  .gdweb-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+
+  .gdweb-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  .gdweb-btn-primary {
+    background: var(--gdweb-gradient-primary);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .gdweb-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
   }
 }
