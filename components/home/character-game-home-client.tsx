@@ -170,7 +170,7 @@ export function CharacterGameHomeClient({
       diseases: [],
       allergies: [],
       health_score: 100,
-      health_status: "healthy",
+      health_status: "good" as const,
     },
     medications: {
       active: [],
@@ -210,7 +210,11 @@ export function CharacterGameHomeClient({
       nutrition: [],
       healthScore: [],
     },
-    currentEmotion: "happy",
+    currentEmotion: {
+      emotion: "happy",
+      intensity: 80,
+      message: "건강하고 행복해요!",
+    },
   } : null);
 
   return (

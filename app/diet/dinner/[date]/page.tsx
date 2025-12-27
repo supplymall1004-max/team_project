@@ -219,8 +219,10 @@ export default function DinnerDetailPage() {
       }
 
       // 필수 데이터 상태 업데이트 (즉시 표시)
-      if ('meal' in dinnerResult.data && dinnerResult.data.meal) {
-        setMealData(dinnerResult.data.meal);
+      // 타입 가드 후 안전하게 meal 추출
+      const dinnerMeal = ('meal' in dinnerResult.data && dinnerResult.data.meal) ? dinnerResult.data.meal : null;
+      if (dinnerMeal) {
+        setMealData(dinnerMeal);
       }
       if ('profile' in healthResult.data) {
         setHealthProfile(healthResult.data.profile ?? null);
@@ -266,7 +268,7 @@ export default function DinnerDetailPage() {
           setDayMeals({
             breakfast,
             lunch,
-            dinner: dinnerResult.data.meal
+            dinner: dinnerMeal
           });
           return { breakfast, lunch };
         }),
@@ -278,7 +280,7 @@ export default function DinnerDetailPage() {
             {
               breakfast: meals.breakfast,
               lunch: meals.lunch,
-              dinner: dinnerResult.data.meal
+              dinner: dinnerMeal
             },
             healthResult.data.profile ?? {
               age: 0,

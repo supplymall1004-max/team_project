@@ -15,8 +15,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw, ShoppingCart, AlertCircle, Heart } from "lucide-react";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { NutritionInfo, DietPlan } from "@/types/health";
-import { DailyDietPlan, FamilyDietPlan, MealComposition, RecipeDetailForDiet } from "@/types/recipe";
+import { NutritionInfo, DietPlan, DailyDietPlan } from "@/types/health";
+import { FamilyDietPlan, MealComposition, RecipeDetailForDiet } from "@/types/recipe";
 import { DietCard } from "./diet-card";
 import { SafetyWarning } from "@/components/diet/safety-warning";
 import { Button } from "@/components/ui/button";
@@ -358,23 +358,12 @@ export function DietPlanClient() {
     [dietPlan.breakfast, dietPlan.lunch, dietPlan.dinner, dietPlan.snack].forEach(
       (meal) => {
         if (meal) {
-          // MealComposition 타입인지 확인 (rice, sides 속성이 있는지)
-          if ('rice' in meal && 'sides' in meal) {
-            const mealComp = meal as MealComposition;
-            // rice가 있는 경우 추가
-            if (mealComp.rice) {
-              ingredients.push(mealComp.rice.title);
-            }
-            // sides 추가
-            mealComp.sides.forEach(side => ingredients.push(side.title));
-            // soup가 있는 경우 추가
-            if (mealComp.soup) {
-              ingredients.push(mealComp.soup.title);
-            }
-          } else {
-            // RecipeDetailForDiet 타입인 경우
-            const recipeDetail = meal as RecipeDetailForDiet;
-            ingredients.push(recipeDetail.title);
+          // DietPlan 타입인 경우 (types/health)
+          if ('recipe' in meal && meal.recipe) {
+            ingredients.push(meal.recipe.title);
+          } else if ('compositionSummary' in meal && meal.compositionSummary) {
+            // compositionSummary가 있는 경우 사용
+            ingredients.push(...meal.compositionSummary);
           }
         }
       }
@@ -506,12 +495,17 @@ export function DietPlanClient() {
     );
   }
 
-  // RecipeDetailForDiet | MealComposition을 DietPlan 형태로 변환하는 함수
+  // DietPlan | RecipeDetailForDiet | MealComposition을 DietPlan 형태로 변환하는 함수
   const convertToDietPlan = (
-    meal: RecipeDetailForDiet | MealComposition | undefined,
+    meal: DietPlan | RecipeDetailForDiet | MealComposition | null | undefined,
     mealType: "breakfast" | "lunch" | "dinner" | "snack"
   ): DietPlan | null => {
     if (!meal) return null;
+
+    // 이미 DietPlan 타입인 경우 (types/health)
+    if ('user_id' in meal && 'plan_date' in meal && 'meal_type' in meal) {
+      return meal as DietPlan;
+    }
 
     // MealComposition 타입인 경우
     if ('rice' in meal && 'sides' in meal) {
@@ -567,12 +561,14 @@ export function DietPlanClient() {
   };
 
   // 가족 식단 플랜 생성
+  // 주의: FamilyDietPlan은 types/recipe의 DailyDietPlan을 기대하지만,
+  // 현재 types/health의 DailyDietPlan을 사용하므로 타입 단언 필요
   const familyDietPlan: FamilyDietPlan | null = familyDietData ? {
     date: familyDietData.date || today,
     individualPlans: Object.fromEntries(
       Object.entries(familyDietData.plans || {}).filter(([key]) => key !== 'unified')
-    ) as { [memberId: string]: DailyDietPlan },
-    unifiedPlan: familyDietData.plans?.unified as DailyDietPlan | null || null,
+    ) as { [memberId: string]: import("@/types/recipe").DailyDietPlan },
+    unifiedPlan: (familyDietData.plans?.unified as import("@/types/recipe").DailyDietPlan | null) || undefined,
   } : null;
 
   return (
@@ -710,7 +706,7 @@ export function DietPlanClient() {
             <div>
               <p className="text-sm text-muted-foreground">탄수화물</p>
               <p className="text-xl font-bold">
-                {dietPlan.totalNutrition?.carbs?.toFixed(1) || 0}g
+                {dietPlan.totalNutrition?.carbohydrates?.toFixed(1) || 0}g
               </p>
             </div>
             <div>

@@ -9,7 +9,7 @@
  * - 버전 필드를 포함하여 구조 변경 시 자동 무효화
  */
 
-import { DailyDietPlan } from "@/types/recipe";
+import type { DailyDietPlan } from "@/types/health";
 
 const DIET_PLAN_CACHE_PREFIX = "dietPlan";
 const CACHE_VERSION = "v2"; // 캐시 전략 변경으로 버전 업

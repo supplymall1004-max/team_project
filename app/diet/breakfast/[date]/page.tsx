@@ -200,9 +200,11 @@ export default function BreakfastDetailPage() {
               console.log('[BreakfastDetailPage] 건강 메트릭스 로드 완료');
               setCurrentHealth(metrics);
             }
+            return null;
           })
           .catch(err => {
             console.warn('[BreakfastDetailPage] 건강 메트릭스 로드 실패 (무시):', err);
+            return null;
           }),
         
         // 가족 구성원 데이터 (선택적)
@@ -228,13 +230,17 @@ export default function BreakfastDetailPage() {
                   console.warn('[BreakfastDetailPage] 가족 식단 로드 실패 (무시):', err);
                 });
             }
+            return null;
           })
           .catch(err => {
             console.warn('[BreakfastDetailPage] 가족 구성원 로드 실패 (무시):', err);
             setFamilyMembers([]);
+            return null;
           }),
       ]).then(() => {
         console.log('[BreakfastDetailPage] 선택적 데이터 로드 완료');
+      }).catch(() => {
+        // 에러는 이미 로그에 기록됨
       });
 
       console.groupEnd();

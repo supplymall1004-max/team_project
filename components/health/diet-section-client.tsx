@@ -230,12 +230,12 @@ export function DietSectionClient() {
           checkHealthProfile(),
           fetch(`/api/diet/plan?date=${todayStr}`).catch((err) => {
             console.warn("⚠️ 식단 API 호출 실패:", err);
-            return { ok: false, status: 500, json: () => Promise.resolve({ error: "API 호출 실패" }) };
+            return { ok: false, status: 500, statusText: "Internal Server Error", json: () => Promise.resolve({ error: "API 호출 실패" }) } as Response;
           }),
         ]);
 
         console.log("✅ 건강 정보 확인 결과:", healthCheck);
-        console.log("📡 식단 API 응답 상태:", dietRes.status, dietRes.statusText);
+        console.log("📡 식단 API 응답 상태:", dietRes.status, dietRes.statusText || "");
 
         // 건강 정보 확인
         if (!healthCheck.hasProfile) {
