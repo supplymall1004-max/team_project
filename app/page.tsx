@@ -29,8 +29,9 @@ import { WeatherWidget } from "@/components/home/weather-widget";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
 import { DirectionalEntrance } from "@/components/motion/directional-entrance";
 import { ParallaxSection } from "@/components/motion/parallax-section";
-import { CharacterPreview } from "@/components/home/character-preview";
+import { CharacterGameHome } from "@/components/home/character-game-home";
 import { CommunityPreview } from "@/components/home/community-preview";
+import { GameMenuProvider } from "@/components/home/game-menu-context";
 
 function SectionSkeleton() {
   return (
@@ -63,18 +64,19 @@ function HomeLoadingSkeleton() {
 
 export default async function Home() {
   return (
-    <main
-      className="space-y-4"
-      style={{
-        // 스크롤 성능 최적화
-        contain: 'layout style paint',
-      }}
-    >
-      {/* 스크롤 진행 표시기 */}
-      <ScrollProgress />
+    <GameMenuProvider>
+      <main
+        className="space-y-4"
+        style={{
+          // 스크롤 성능 최적화
+          contain: 'layout style paint',
+        }}
+      >
+        {/* 스크롤 진행 표시기 */}
+        <ScrollProgress />
 
-      {/* 고정 헤더 (검색바 + 프리미엄 배너) */}
-      <FixedHeader />
+        {/* 고정 헤더 (검색바 + 프리미엄 배너) */}
+        <FixedHeader />
 
       {/* 동화 스타일 네비게이션 - 메인 페이지에서 제거 (상세 페이지에서는 유지) */}
 
@@ -111,17 +113,24 @@ export default async function Home() {
         <DietManagementPreview />
       </ErrorBoundary> */}
 
-      {/* 건강 관리 미리보기 - 캐릭터창 프리뷰 */}
-      <ErrorBoundary>
+      {/* 건강 관리 게임 - 게임 스타일 캐릭터창 (삭제됨) */}
+      {/* <ErrorBoundary>
         <Suspense fallback={<SectionSkeleton />}>
-          <CharacterPreview />
+          <CharacterGameHome />
         </Suspense>
-      </ErrorBoundary>
+      </ErrorBoundary> */}
 
       {/* 커뮤니티 미리보기 - 맨 아래 섹션 */}
       <ErrorBoundary>
         <Suspense fallback={<SectionSkeleton />}>
           <CommunityPreview />
+        </Suspense>
+      </ErrorBoundary>
+
+      {/* 건강 관리 게임 - 게임 스타일 캐릭터창 (3D 뷰어) */}
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <CharacterGameHome />
         </Suspense>
       </ErrorBoundary>
 
@@ -141,6 +150,7 @@ export default async function Home() {
 
       {/* 하단 네비게이션 높이만큼 패딩 추가 (모바일) */}
       <div className="h-16 md:hidden" aria-hidden="true" />
-    </main>
+      </main>
+    </GameMenuProvider>
   );
 }

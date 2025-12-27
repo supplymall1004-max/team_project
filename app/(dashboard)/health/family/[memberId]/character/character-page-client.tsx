@@ -42,6 +42,8 @@ import { FamilyChallengePanel } from "@/components/games/family-challenge-panel"
 import { HealthQuiz } from "@/components/games/health-quiz";
 import { WeeklyLeaderboard } from "@/components/games/weekly-leaderboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CharacterGameView } from "@/components/game/character-game-view";
+import { BabyFeedingScheduleForm } from "@/components/game/baby-feeding-schedule-form";
 
 interface CharacterPageClientProps {
   characterData: CharacterData;
@@ -173,9 +175,12 @@ export function CharacterPageClient({
           transition={{ delay: 0.6, duration: 0.4 }}
         >
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-gray-800/50">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-gray-800/50">
               <TabsTrigger value="health" className="data-[state=active]:bg-green-600">
                 건강 관리
+              </TabsTrigger>
+              <TabsTrigger value="game" className="data-[state=active]:bg-yellow-600">
+                게임
               </TabsTrigger>
               <TabsTrigger value="quests" className="data-[state=active]:bg-purple-600">
                 퀘스트
@@ -187,6 +192,38 @@ export function CharacterPageClient({
                 커뮤니티
               </TabsTrigger>
             </TabsList>
+
+            {/* 게임 탭 */}
+            <TabsContent value="game" className="mt-6">
+              <motion.div
+                variants={panelContainerVariants}
+                initial="initial"
+                animate="animate"
+                className="space-y-6"
+              >
+                {/* 게임 뷰 */}
+                <motion.div variants={panelStaggerVariants}>
+                  <CharacterGameView
+                    userId={characterData.member.user_id}
+                    familyMemberId={memberId}
+                    characterName={characterData.member.name}
+                  />
+                </motion.div>
+
+                {/* 아기 분유 스케줄 설정 (아기인 경우에만 표시) */}
+                {characterData.member.relationship === "child" && (
+                  <motion.div variants={panelStaggerVariants}>
+                    <BabyFeedingScheduleForm
+                      familyMemberId={memberId}
+                      familyMemberName={characterData.member.name}
+                      onSuccess={() => {
+                        console.log("분유 스케줄 저장 완료");
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </motion.div>
+            </TabsContent>
 
             {/* 건강 관리 탭 */}
             <TabsContent value="health" className="mt-6">

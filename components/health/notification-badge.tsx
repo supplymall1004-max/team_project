@@ -33,6 +33,12 @@ export function NotificationBadge({ className, href }: NotificationBadgeProps) {
       setIsLoading(true);
       const response = await fetch('/api/health/lifecycle-notifications?status=pending&priority=high');
       
+      // 401 (인증 필요) 또는 404 (사용자 없음)는 정상적인 경우이므로 조용히 처리
+      if (response.status === 401 || response.status === 404) {
+        setCount(null);
+        return;
+      }
+      
       if (!response.ok) {
         throw new Error('알림 개수를 불러오는데 실패했습니다.');
       }
@@ -41,7 +47,10 @@ export function NotificationBadge({ className, href }: NotificationBadgeProps) {
       const highCount = data.grouped?.high?.length || 0;
       setCount(highCount);
     } catch (error) {
-      console.error('알림 개수 조회 실패:', error);
+      // 네트워크 오류 등은 조용히 처리 (콘솔에만 기록)
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('알림 개수 조회 실패:', error);
+      }
       setCount(null);
     } finally {
       setIsLoading(false);

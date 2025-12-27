@@ -8,6 +8,11 @@
  * 3. 필터 및 정렬 기능
  */
 
+// 동적 렌더링 설정: 빌드 타임에 정적 생성하지 않고 런타임에 렌더링
+// MFDS API 호출로 인한 빌드 타임아웃 방지
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { Section } from '@/components/section';
 import { RecipeTabsClient } from './recipe-tabs-client';
 import { RecipeSectionServer } from './recipe-section-server';

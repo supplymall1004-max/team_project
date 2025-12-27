@@ -36,7 +36,7 @@ export function ParallaxSection({
   return (
     <motion.div
       ref={ref}
-      style={{ y, opacity, scale }}
+      style={{ y, opacity, scale, position: 'relative' }}
       className={className}
     >
       {children}

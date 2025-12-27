@@ -293,7 +293,8 @@ export function WeatherWidget({ className }: WeatherWidgetProps) {
             : err.code === 2
             ? "위치 정보를 가져올 수 없어 기본 위치(서울)를 사용합니다."
             : "위치 정보 요청 시간이 초과되어 기본 위치(서울)를 사용합니다.";
-        console.warn("⚠️ 위치 정보 오류:", err);
+        // 오류 메시지를 더 명확하게 표시
+        console.log("ℹ️", errorMessage);
         console.log("📍 기본 위치(서울)로 날씨 정보를 조회합니다.");
         console.groupEnd();
         // 위치 정보를 가져올 수 없어도 기본 위치로 날씨 정보 표시

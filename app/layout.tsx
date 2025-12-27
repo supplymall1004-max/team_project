@@ -204,7 +204,7 @@ export default function RootLayout({
 
                 {/* 메인 콘텐츠 영역 (스크롤 가능) */}
                 <main
-                  className="flex-1 bg-gradient-to-b from-white to-orange-50/40 w-full max-w-full overflow-y-auto"
+                  className="flex-1 bg-gradient-to-b from-white to-orange-50/40 w-full max-w-full overflow-y-auto relative"
                   style={{
                     marginTop: "64px", // Navbar 높이(64px)
                     paddingTop: "0.5rem",

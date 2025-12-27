@@ -50,9 +50,13 @@ export function PopupProvider({ children }: { children: React.ReactNode }) {
           const settings = result.settings || {};
           console.log("✅ 사용자 설정 로드 성공:", settings);
           setUserSettings(settings);
-        } else {
-          console.warn("⚠️ 설정 조회 실패:", response.status);
+        } else if (response.status === 404) {
+          // 404는 API 라우트가 없거나 사용자가 없을 때 발생할 수 있으므로 정상 처리
           // 기본값 사용 (healthPopups: false)
+          setUserSettings({ healthPopups: false });
+        } else {
+          // 다른 에러는 로그만 남기고 기본값 사용
+          console.warn("⚠️ 설정 조회 실패:", response.status);
           setUserSettings({ healthPopups: false });
         }
       } catch (error) {

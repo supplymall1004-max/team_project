@@ -127,9 +127,16 @@ export async function getMfdsRecipeList(
   console.log("[MFDS API] 레시피 목록 요청:", { start, end, url });
 
   try {
+    // 타임아웃 설정 (10초)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(url, {
+      signal: controller.signal,
       next: { revalidate: 3600 }, // 1시간마다 재검증 (정적 렌더링 지원)
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.error(
@@ -154,6 +161,11 @@ export async function getMfdsRecipeList(
 
     return data.COOKRCP01.row;
   } catch (error) {
+    // AbortError는 타임아웃을 의미
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error("[MFDS API] 요청 타임아웃 (10초 초과)");
+      throw new Error("API 요청 타임아웃: 서버 응답이 너무 느립니다.");
+    }
     console.error("[MFDS API] 레시피 목록 가져오기 실패:", error);
     throw error;
   }

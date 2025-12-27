@@ -26,6 +26,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
+import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 import { calculateHealthScore } from "@/lib/health/health-score-calculator";
 import { checkPremiumAccess } from "@/lib/kcdc/premium-guard";
 import { detectCharacterEmotion } from "@/lib/health/emotion-detector";
@@ -111,39 +112,59 @@ export async function getCharacterData(memberId: string): Promise<CharacterData>
   console.log("가족 구성원 ID:", memberId);
 
   try {
-    // 1. 프리미엄 체크
-    const premiumCheck = await checkPremiumAccess();
-    if (!premiumCheck.isPremium || !premiumCheck.userId) {
-      console.log("❌ 프리미엄 접근 거부");
+    // 1. 인증 확인 (프리미엄 체크는 선택적)
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      console.log("❌ 인증 실패 - 로그인이 필요합니다");
       console.groupEnd();
-      throw new Error(
-        premiumCheck.error || "이 기능은 프리미엄 전용입니다.",
-      );
+      throw new Error("로그인이 필요합니다.");
+    }
+
+    // 2. Supabase 사용자 확인 (없으면 자동 생성)
+    const supabaseUser = await ensureSupabaseUser();
+    if (!supabaseUser) {
+      console.error("❌ 사용자 조회 실패");
+      console.groupEnd();
+      throw new Error("사용자 정보를 찾을 수 없습니다.");
     }
 
     const supabase = getServiceRoleClient();
-    const userId = premiumCheck.userId;
+    const userId = supabaseUser.id;
     const isSelf = memberId === userId;
     const familyMemberId = isSelf ? null : memberId;
+
+    console.log("✅ 사용자 확인 완료:", userId);
 
     console.log("사용자 ID:", userId);
     console.log("본인 여부:", isSelf);
 
-    // 2. 가족 구성원 기본 정보 조회
+    // 3. 가족 구성원 기본 정보 조회 (병렬 쿼리로 최적화)
     let member: any;
     if (isSelf) {
-      // 본인인 경우
-      const { data: user } = await supabase
-        .from("users")
-        .select("id, name")
-        .eq("id", userId)
-        .single();
+      // 본인인 경우 - users와 user_health_profiles를 병렬로 조회
+      const [userResult, profileResult] = await Promise.all([
+        supabase
+          .from("users")
+          .select("id, name")
+          .eq("id", userId)
+          .maybeSingle(),
+        supabase
+          .from("user_health_profiles")
+          .select("age, gender, height_cm, weight_kg, diseases, allergies, activity_level, dietary_preferences")
+          .eq("user_id", userId)
+          .maybeSingle(),
+      ]);
 
-      const { data: profile } = await supabase
-        .from("user_health_profiles")
-        .select("age, gender, height_cm, weight_kg, diseases, allergies, activity_level, dietary_preferences")
-        .eq("user_id", userId)
-        .single();
+      if (userResult.error) {
+        console.error("❌ 사용자 정보 조회 실패:", userResult.error);
+      }
+
+      if (profileResult.error && profileResult.error.code !== "PGRST116") {
+        console.error("❌ 프로필 조회 실패:", profileResult.error);
+      }
+
+      const user = userResult.data;
+      const profile = profileResult.data;
 
       if (!user) {
         throw new Error("사용자 정보를 찾을 수 없습니다.");
@@ -808,31 +829,52 @@ export async function getCharacterCards(): Promise<
   console.group("[getCharacterCards] 가족 구성원 캐릭터 카드 목록 조회 시작");
 
   try {
-    // 1. 프리미엄 체크
-    const premiumCheck = await checkPremiumAccess();
-    if (!premiumCheck.isPremium || !premiumCheck.userId) {
-      console.log("❌ 프리미엄 접근 거부");
+    // 1. 인증 확인 (로그인하지 않은 사용자도 빈 배열 반환)
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      console.log("ℹ️ 로그인하지 않은 사용자 - 빈 배열 반환");
       console.groupEnd();
-      throw new Error(
-        premiumCheck.error || "이 기능은 프리미엄 전용입니다.",
-      );
+      return []; // 로그인하지 않은 사용자는 빈 배열 반환
+    }
+
+    // 2. Supabase 사용자 확인 (없으면 자동 생성)
+    const supabaseUser = await ensureSupabaseUser();
+    if (!supabaseUser) {
+      console.error("❌ 사용자 조회 실패");
+      console.groupEnd();
+      throw new Error("사용자 정보를 찾을 수 없습니다.");
     }
 
     const supabase = getServiceRoleClient();
-    const userId = premiumCheck.userId;
+    const userId = supabaseUser.id;
 
-    // 2. 본인 정보 조회
-    const { data: user } = await supabase
-      .from("users")
-      .select("id, name")
-      .eq("id", userId)
-      .single();
+    console.log("✅ 사용자 확인 완료:", userId);
 
-    const { data: profile } = await supabase
-      .from("user_health_profiles")
-      .select("age")
-      .eq("user_id", userId)
-      .single();
+    // 3. 본인 정보 및 프로필 조회 (병렬 쿼리로 최적화)
+    const [userResult, profileResult] = await Promise.all([
+      supabase
+        .from("users")
+        .select("id, name")
+        .eq("id", userId)
+        .maybeSingle(),
+      supabase
+        .from("user_health_profiles")
+        .select("age")
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ]);
+
+    if (userResult.error) {
+      console.error("❌ 사용자 정보 조회 실패:", userResult.error);
+    }
+
+    if (profileResult.error && profileResult.error.code !== "PGRST116") {
+      // PGRST116은 "no rows returned" 에러 (프로필이 없는 경우 - 정상)
+      console.error("❌ 프로필 조회 실패:", profileResult.error);
+    }
+
+    const user = userResult.data;
+    const profile = profileResult.data;
 
     const cards: Array<{
       id: string;
@@ -862,12 +904,16 @@ export async function getCharacterCards(): Promise<
       });
     }
 
-    // 3. 가족 구성원 조회
-    const { data: familyMembers } = await supabase
+    // 4. 가족 구성원 조회 (직접 관계 사용)
+    const { data: familyMembers, error: familyError } = await supabase
       .from("family_members")
       .select("id, name, birth_date, relationship, photo_url, avatar_type, health_score, health_score_updated_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: true });
+
+    if (familyError) {
+      console.error("❌ 가족 구성원 조회 실패:", familyError);
+    }
 
     if (familyMembers) {
       for (const member of familyMembers) {

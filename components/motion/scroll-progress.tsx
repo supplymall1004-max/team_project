@@ -7,15 +7,48 @@
 
 'use client';
 
-import { motion, useScroll, useSpring } from 'framer-motion';
+import { motion, useSpring } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
 export function ScrollProgress() {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, {
+  const [isMounted, setIsMounted] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  
+  // 클라이언트 사이드에서만 마운트 확인
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // 직접 스크롤 진행도 계산 (window 스크롤 사용)
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+      const totalScrollableHeight = scrollHeight - clientHeight;
+      if (totalScrollableHeight > 0) {
+        setScrollProgress(scrollTop / totalScrollableHeight);
+      } else {
+        setScrollProgress(0);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial check
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isMounted]);
+  
+  const scaleX = useSpring(scrollProgress, {
     stiffness: 100,
     damping: 30,
     restDelta: 0.001,
   });
+
+  // 서버 사이드에서는 렌더링하지 않음
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <motion.div

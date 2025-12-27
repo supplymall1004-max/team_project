@@ -9,11 +9,16 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Crown, Clock, Settings } from 'lucide-react';
+import { Crown, Clock, Settings, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { getCurrentSubscription, type GetSubscriptionResponse } from '@/actions/payments/get-subscription';
 
-export function PremiumStatusBanner() {
+interface PremiumStatusBannerProps {
+  onMenuToggle?: () => void;
+  isMenuOpen?: boolean;
+}
+
+export function PremiumStatusBanner({ onMenuToggle, isMenuOpen = false }: PremiumStatusBannerProps = {}) {
   const [data, setData] = useState<GetSubscriptionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -128,6 +133,27 @@ export function PremiumStatusBanner() {
                 <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow-md group-hover:rotate-90 transition-transform duration-300" />
               </div>
             </Link>
+
+            {/* 4. 햄버거 메뉴 버튼 (게임 섹션용) */}
+            {onMenuToggle && (
+              <>
+                <div className="h-4 w-px bg-white/30" />
+                <button
+                  onClick={onMenuToggle}
+                  className="relative flex items-center justify-center group transition-all hover:scale-105 active:scale-95"
+                  title="메뉴"
+                  aria-label="메뉴"
+                >
+                  <div className="relative bg-white/25 backdrop-blur-sm p-1.5 rounded-full border border-white/30 shadow-sm group-hover:border-white/50 group-hover:bg-white/30 transition-all duration-200">
+                    {isMenuOpen ? (
+                      <X className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow-md transition-transform duration-300" />
+                    ) : (
+                      <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow-md transition-transform duration-300" />
+                    )}
+                  </div>
+                </button>
+              </>
+            )}
           </div>
         </div>
 

@@ -11,8 +11,6 @@
  */
 
 import {
-  SignedOut,
-  SignedIn,
   UserButton,
   SignOutButton,
   useAuth,
@@ -49,11 +47,17 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const { isLoaded, isSignedIn } = useAuth();
   const prevSignedInRef = useRef<boolean | undefined>(undefined);
   const prevPathnameRef = useRef<string | null>(null);
+
+  // 클라이언트 사이드에서만 마운트 상태 설정 (Hydration 오류 방지)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     // 라우트가 바뀌면(로그인/홈 이동 포함) 모바일 메뉴를 닫아
@@ -244,7 +248,7 @@ const Navbar = () => {
               );
             })}
             {/* 설정 메뉴 (로그인한 사용자만 표시) */}
-            <SignedIn>
+            {isMounted && isLoaded && isSignedIn && (
               <Link
                 href="/settings"
                 className={cn(
@@ -257,11 +261,11 @@ const Navbar = () => {
               >
                 설정
               </Link>
-            </SignedIn>
+            )}
           </div>
 
           {/* 사용자 메뉴 (로그인/사진) */}
-          <SignedIn>
+          {isMounted && isLoaded && isSignedIn && (
             <UserButton
               afterSignOutUrl="/"
               appearance={{
@@ -270,11 +274,9 @@ const Navbar = () => {
                 },
               }}
             />
-          </SignedIn>
+          )}
 
-          <SignedOut>
-            <LoginModal />
-          </SignedOut>
+          {isMounted && isLoaded && !isSignedIn && <LoginModal />}
 
           {/* 햄버거 메뉴 (모바일/태블릿) */}
           <Button
@@ -316,7 +318,7 @@ const Navbar = () => {
                 </Link>
               );
             })}
-            <SignedIn>
+            {isMounted && isLoaded && isSignedIn && (
               <Link
                 href="/settings"
                 className={cn(
@@ -330,13 +332,13 @@ const Navbar = () => {
                 <Settings className="h-5 w-5" />
                 <span>설정</span>
               </Link>
-            </SignedIn>
-            <SignedOut>
+            )}
+            {isMounted && isLoaded && !isSignedIn && (
               <div className="pt-4 border-t border-gray-200">
                 <LoginModal />
               </div>
-            </SignedOut>
-            <SignedIn>
+            )}
+            {isMounted && isLoaded && isSignedIn && (
               <div className="pt-4 border-t border-gray-200">
                 <SignOutButton>
                   <Button variant="outline" className="w-full flex items-center gap-2">
@@ -345,7 +347,7 @@ const Navbar = () => {
                   </Button>
                 </SignOutButton>
               </div>
-            </SignedIn>
+            )}
           </div>
         </div>
       )}

@@ -19,6 +19,7 @@ import { motion } from 'framer-motion';
 import { PremiumBanner } from "./premium-banner";
 import { PremiumStatusBanner } from "./premium-status-banner";
 import { getCurrentSubscription } from '@/actions/payments/get-subscription';
+import { useGameMenu } from "./game-menu-context";
 
 interface FixedHeaderProps {
   premiumBannerText?: string;
@@ -34,6 +35,14 @@ interface FixedHeaderProps {
    * Navbar의 z-index는 50이므로 배너는 그 아래에 위치합니다.
    */
   zIndex?: number;
+  /** 
+   * 햄버거 메뉴 토글 핸들러 (게임 섹션용)
+   */
+  onMenuToggle?: () => void;
+  /** 
+   * 햄버거 메뉴 열림 상태
+   */
+  isMenuOpen?: boolean;
 }
 
 export function FixedHeader({
@@ -41,9 +50,23 @@ export function FixedHeader({
   premiumBannerHref = "/pricing",
   top = 0, // 맨 위에 위치 (Navbar 위)
   zIndex = 50, // Navbar와 동일한 z-index로 설정
+  onMenuToggle: externalOnMenuToggle,
+  isMenuOpen: externalIsMenuOpen,
 }: FixedHeaderProps) {
   const [isPremium, setIsPremium] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Context에서 메뉴 상태 가져오기 (Provider가 있으면 사용)
+  let gameMenuContext: ReturnType<typeof useGameMenu> | undefined;
+  try {
+    gameMenuContext = useGameMenu();
+  } catch {
+    // Context가 없으면 props 사용 (다른 페이지에서 사용할 때)
+    gameMenuContext = undefined;
+  }
+  
+  const onMenuToggle = externalOnMenuToggle || gameMenuContext?.toggleMenu;
+  const isMenuOpen = externalIsMenuOpen !== undefined ? externalIsMenuOpen : (gameMenuContext?.isMenuOpen || false);
 
   useEffect(() => {
     loadSubscription();
@@ -105,7 +128,10 @@ export function FixedHeader({
         <>
           {/* 프리미엄 사용자인 경우: 상태 배너만 표시 */}
           {isPremium ? (
-            <PremiumStatusBanner />
+            <PremiumStatusBanner 
+              onMenuToggle={onMenuToggle}
+              isMenuOpen={isMenuOpen}
+            />
           ) : (
             /* Free 사용자인 경우: 업그레이드 배너만 표시 */
             <PremiumBanner

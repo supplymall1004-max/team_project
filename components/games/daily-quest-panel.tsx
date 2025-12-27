@@ -25,9 +25,10 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Circle, Trophy, RefreshCw } from "lucide-react";
+import { CheckCircle2, Trophy, RefreshCw } from "lucide-react";
 import { DAILY_QUESTS, calculateQuestProgress, type Quest } from "@/lib/game/quest-system";
-import { completeQuest } from "@/actions/game/complete-quest";
+import { refreshAllDailyQuests } from "@/actions/game/auto-update-quests";
+import { useAuth } from "@clerk/nextjs";
 
 interface DailyQuestProgress {
   questId: string;
@@ -42,19 +43,61 @@ interface DailyQuestPanelProps {
 }
 
 export function DailyQuestPanel({ memberId, onQuestComplete }: DailyQuestPanelProps) {
+  const { userId } = useAuth();
   const [questProgresses, setQuestProgresses] = useState<Map<string, DailyQuestProgress>>(new Map());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 퀘스트 진행 상황 로드 (useCallback으로 메모이제이션)
+  // 퀘스트 진행 상황 자동 로드 및 주기적 업데이트
   const loadQuestProgresses = useCallback(async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
     setRefreshing(true);
     try {
-      // TODO: 실제 API 호출로 대체
-      // const response = await fetch(`/api/game/daily-quests?date=${new Date().toISOString().split('T')[0]}`);
-      // const data = await response.json();
+      // 모든 일일 퀘스트 자동 새로고침
+      const result = await refreshAllDailyQuests(memberId || null);
       
-      // 임시 데이터
+      if (result.success) {
+        // 데이터베이스에서 최신 진행 상황 조회
+        const today = new Date().toISOString().split("T")[0];
+        const response = await fetch(
+          `/api/game/daily-quests?date=${today}&memberId=${memberId || ""}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          const progresses = new Map<string, DailyQuestProgress>();
+          
+          DAILY_QUESTS.forEach((quest) => {
+            const questData = data.quests?.find((q: any) => q.quest_id === quest.id);
+            progresses.set(quest.id, {
+              questId: quest.id,
+              progress: questData?.progress || 0,
+              completed: questData?.completed || false,
+              completedAt: questData?.completed_at || undefined,
+            });
+          });
+          
+          setQuestProgresses(progresses);
+        } else {
+          // API가 없으면 기본값 설정
+          const progresses = new Map<string, DailyQuestProgress>();
+          DAILY_QUESTS.forEach((quest) => {
+            progresses.set(quest.id, {
+              questId: quest.id,
+              progress: 0,
+              completed: false,
+            });
+          });
+          setQuestProgresses(progresses);
+        }
+      }
+    } catch (error) {
+      console.error("퀘스트 진행 상황 로드 실패:", error);
+      // 오류 시 기본값 설정
       const progresses = new Map<string, DailyQuestProgress>();
       DAILY_QUESTS.forEach((quest) => {
         progresses.set(quest.id, {
@@ -64,47 +107,21 @@ export function DailyQuestPanel({ memberId, onQuestComplete }: DailyQuestPanelPr
         });
       });
       setQuestProgresses(progresses);
-    } catch (error) {
-      console.error("퀘스트 진행 상황 로드 실패:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [userId, memberId]);
 
+  // 초기 로드 및 주기적 업데이트
   useEffect(() => {
     loadQuestProgresses();
+    
+    // 30초마다 자동으로 업데이트
+    const interval = setInterval(loadQuestProgresses, 30000);
+    
+    return () => clearInterval(interval);
   }, [loadQuestProgresses]);
-
-  // 퀘스트 진행 업데이트 (useCallback으로 메모이제이션)
-  const handleUpdateProgress = useCallback(async (quest: Quest, newProgress: number) => {
-    const result = await completeQuest({
-      questId: quest.id,
-      progress: newProgress,
-    });
-
-    if (result.success) {
-      setQuestProgresses((prev) => {
-        const updated = new Map(prev);
-        const current = updated.get(quest.id) || {
-          questId: quest.id,
-          progress: 0,
-          completed: false,
-        };
-        updated.set(quest.id, {
-          ...current,
-          progress: newProgress,
-          completed: result.completed || false,
-          completedAt: result.completed ? new Date().toISOString() : current.completedAt,
-        });
-        return updated;
-      });
-
-      if (result.completed && result.rewardPoints && onQuestComplete) {
-        onQuestComplete(quest, result.rewardPoints);
-      }
-    }
-  }, [onQuestComplete]);
 
   if (loading) {
     return (
@@ -183,24 +200,11 @@ export function DailyQuestPanel({ memberId, onQuestComplete }: DailyQuestPanelPr
                 className="h-2 mb-2"
               />
 
+              {/* 자동 추적 안내 메시지 */}
               {!progress.completed && (
-                <div className="flex gap-2 mt-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      handleUpdateProgress(quest, Math.min(progress.progress + 1, quest.target))
-                    }
-                  >
-                    진행 업데이트
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => handleUpdateProgress(quest, quest.target)}
-                  >
-                    완료하기
-                  </Button>
-                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  💡 실제 건강 활동이 자동으로 반영됩니다
+                </p>
               )}
             </motion.div>
           );

@@ -9,6 +9,11 @@
  * 4. 탭 네비게이션 (전체, 현대 레시피, 궁중, 식약처, 이유식, 죽, 특수, 비건)
  */
 
+// 동적 렌더링 설정: 빌드 타임에 정적 생성하지 않고 런타임에 렌더링
+// MFDS API 호출로 인한 빌드 타임아웃 방지
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { Section } from '@/components/section';
 import { RecipeTabsClient } from '@/app/archive/recipes/recipe-tabs-client';
 import { RecipeSectionServer } from '@/app/archive/recipes/recipe-section-server';
