@@ -6,6 +6,16 @@ import { Siren, ChevronRight, MapPin, Apple, Sparkles, Syringe } from 'lucide-re
 import { motion, Variants } from 'framer-motion';
 import { slideDownScale, slideRightScale, slideLeftScale, slideUpScale, slowSpringTransition } from '@/lib/animations';
 
+/**
+ * 모바일 기기 감지 함수
+ * 모바일 환경에서 애니메이션 관련 에러를 방지하기 위해 사용
+ */
+function isMobileDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  const userAgent = navigator.userAgent.toLowerCase();
+  return /iphone|ipad|ipod|android|mobile/.test(userAgent);
+}
+
 interface WeatherData {
   location: string;
   temperature: number;
@@ -101,6 +111,17 @@ function getWeatherMessage(weather: WeatherData): string {
 
 export function EmergencyQuickAccess() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // 모바일 환경 감지 (클라이언트 사이드에서만)
+  useEffect(() => {
+    try {
+      setIsMobile(isMobileDevice());
+    } catch (error) {
+      console.warn('[EmergencyQuickAccess] 모바일 감지 실패, 안전 모드로 전환:', error);
+      setIsMobile(true); // 에러 발생 시 안전하게 모바일로 간주
+    }
+  }, []);
 
   useEffect(() => {
     // 날씨 정보 가져오기
@@ -128,91 +149,143 @@ export function EmergencyQuickAccess() {
     fetchWeather();
   }, []);
 
+    // 모바일에서는 애니메이션을 단순화하여 성능 문제 및 호환성 문제 방지
+    const useSimpleAnimation = isMobile;
+
     // 각 카드별 애니메이션 variants 정의
-    const emergencyVariants: Variants = {
-        initial: { opacity: 0, y: -100, scale: 0.8 },
-        animate: { 
-            opacity: 1, 
-            y: 0, 
-            scale: 1,
-            transition: {
-                ...slowSpringTransition,
-                delay: 0.1,
+    // 모바일에서는 단순한 페이드 인만 사용
+    const emergencyVariants: Variants = useSimpleAnimation
+        ? {
+            initial: { opacity: 0 },
+            animate: { 
+                opacity: 1,
+                transition: { duration: 0.3 },
             },
-        },
-    };
+        }
+        : {
+            initial: { opacity: 0, y: -100, scale: 0.8 },
+            animate: { 
+                opacity: 1, 
+                y: 0, 
+                scale: 1,
+                transition: {
+                    ...slowSpringTransition,
+                    delay: 0.1,
+                },
+            },
+        };
 
-    const vaccinationVariants: Variants = {
-        initial: { opacity: 0, x: -100, scale: 0.8 },
-        animate: { 
-            opacity: 1, 
-            x: 0, 
-            scale: 1,
-            transition: {
-                ...slowSpringTransition,
-                delay: 0.2,
+    const vaccinationVariants: Variants = useSimpleAnimation
+        ? {
+            initial: { opacity: 0 },
+            animate: { 
+                opacity: 1,
+                transition: { duration: 0.3 },
             },
-        },
-    };
+        }
+        : {
+            initial: { opacity: 0, x: -100, scale: 0.8 },
+            animate: { 
+                opacity: 1, 
+                x: 0, 
+                scale: 1,
+                transition: {
+                    ...slowSpringTransition,
+                    delay: 0.2,
+                },
+            },
+        };
 
-    const medicalFacilitiesVariants: Variants = {
-        initial: { opacity: 0, x: 100, scale: 0.8 },
-        animate: { 
-            opacity: 1, 
-            x: 0, 
-            scale: 1,
-            transition: {
-                ...slowSpringTransition,
-                delay: 0.3,
+    const medicalFacilitiesVariants: Variants = useSimpleAnimation
+        ? {
+            initial: { opacity: 0 },
+            animate: { 
+                opacity: 1,
+                transition: { duration: 0.3 },
             },
-        },
-    };
+        }
+        : {
+            initial: { opacity: 0, x: 100, scale: 0.8 },
+            animate: { 
+                opacity: 1, 
+                x: 0, 
+                scale: 1,
+                transition: {
+                    ...slowSpringTransition,
+                    delay: 0.3,
+                },
+            },
+        };
 
-    const dietVariants: Variants = {
-        initial: { opacity: 0, y: 100, scale: 0.8 },
-        animate: { 
-            opacity: 1, 
-            y: 0, 
-            scale: 1,
-            transition: {
-                ...slowSpringTransition,
-                delay: 0.4,
+    const dietVariants: Variants = useSimpleAnimation
+        ? {
+            initial: { opacity: 0 },
+            animate: { 
+                opacity: 1,
+                transition: { duration: 0.3 },
             },
-        },
-    };
+        }
+        : {
+            initial: { opacity: 0, y: 100, scale: 0.8 },
+            animate: { 
+                opacity: 1, 
+                y: 0, 
+                scale: 1,
+                transition: {
+                    ...slowSpringTransition,
+                    delay: 0.4,
+                },
+            },
+        };
 
-    const recipeGenieVariants: Variants = {
-        initial: { opacity: 0, x: -100, scale: 0.8 },
-        animate: { 
-            opacity: 1, 
-            x: 0, 
-            scale: 1,
-            transition: {
-                ...slowSpringTransition,
-                delay: 0.5,
+    const recipeGenieVariants: Variants = useSimpleAnimation
+        ? {
+            initial: { opacity: 0 },
+            animate: { 
+                opacity: 1,
+                transition: { duration: 0.3 },
             },
-        },
-    };
+        }
+        : {
+            initial: { opacity: 0, x: -100, scale: 0.8 },
+            animate: { 
+                opacity: 1, 
+                x: 0, 
+                scale: 1,
+                transition: {
+                    ...slowSpringTransition,
+                    delay: 0.5,
+                },
+            },
+        };
 
-    // 강조 효과 애니메이션 (빛나는 효과) - 각 카드 색상별
-    const createGlowVariants = (color: string, delay: number): Variants => ({
-        initial: { 
-            boxShadow: `0 0 0px ${color}00`,
-        },
-        animate: { 
-            boxShadow: [
-                `0 0 0px ${color}00`,
-                `0 0 20px ${color}99`,
-                `0 0 40px ${color}66`,
-                `0 0 0px ${color}00`,
-            ],
-            transition: {
-                duration: 1.5,
-                delay: delay,
-                ease: "easeInOut",
+    // 강조 효과 애니메이션 (빛나는 효과) - 모바일에서는 비활성화
+    const createGlowVariants = (color: string, delay: number): Variants => {
+        if (useSimpleAnimation) {
+            return {
+                initial: {},
+                animate: {},
+            };
+        }
+        return {
+            initial: { 
+                boxShadow: `0 0 0px ${color}00`,
             },
-        },
-    });
+            animate: { 
+                boxShadow: [
+                    `0 0 0px ${color}00`,
+                    `0 0 20px ${color}99`,
+                    `0 0 40px ${color}66`,
+                    `0 0 0px ${color}00`,
+                ],
+                transition: {
+                    duration: 1.5,
+                    delay: delay,
+                    ease: "easeInOut",
+                },
+            },
+        };
+    };
 
     const emergencyGlow = createGlowVariants('rgba(239, 68, 68', 0.9); // red
     const vaccinationGlow = createGlowVariants('rgba(14, 165, 233', 1.0); // sky
@@ -220,18 +293,30 @@ export function EmergencyQuickAccess() {
     const dietGlow = createGlowVariants('rgba(34, 197, 94', 1.2); // green
     const recipeGenieGlow = createGlowVariants('rgba(234, 179, 8', 1.3); // yellow
 
+    // 모바일에서는 일반 div 사용, 데스크톱에서는 motion.div 사용
+    // 모바일 환경에서 framer-motion 관련 에러를 방지하기 위함
+    const MotionWrapper = useSimpleAnimation 
+        ? ({ children, className }: { children: React.ReactNode; className?: string }) => (
+            <div className={className}>{children}</div>
+        )
+        : motion.div;
+
     return (
         <div className="space-y-2">
             {/* 응급조치 안내 - 위에서 아래로 */}
-            <motion.div
-                variants={emergencyVariants}
-                initial="initial"
-                animate="animate"
+            <MotionWrapper
+                {...(useSimpleAnimation ? {} : {
+                    variants: emergencyVariants,
+                    initial: "initial",
+                    animate: "animate",
+                })}
             >
-                <motion.div
-                    variants={emergencyGlow}
-                    initial="initial"
-                    animate="animate"
+                <MotionWrapper
+                    {...(useSimpleAnimation ? {} : {
+                        variants: emergencyGlow,
+                        initial: "initial",
+                        animate: "animate",
+                    })}
                     className="rounded-xl"
                 >
                     <Link
@@ -249,19 +334,23 @@ export function EmergencyQuickAccess() {
                         </div>
                         <ChevronRight className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors" />
                     </Link>
-                </motion.div>
-            </motion.div>
+                </MotionWrapper>
+            </MotionWrapper>
 
             {/* 예방접종 안내 - 왼쪽에서 중앙으로 */}
-            <motion.div
-                variants={vaccinationVariants}
-                initial="initial"
-                animate="animate"
+            <MotionWrapper
+                {...(useSimpleAnimation ? {} : {
+                    variants: vaccinationVariants,
+                    initial: "initial",
+                    animate: "animate",
+                })}
             >
-                <motion.div
-                    variants={vaccinationGlow}
-                    initial="initial"
-                    animate="animate"
+                <MotionWrapper
+                    {...(useSimpleAnimation ? {} : {
+                        variants: vaccinationGlow,
+                        initial: "initial",
+                        animate: "animate",
+                    })}
                     className="rounded-xl"
                 >
                     <Link
@@ -279,19 +368,23 @@ export function EmergencyQuickAccess() {
                         </div>
                         <ChevronRight className="w-4 h-4 text-sky-400 group-hover:text-sky-600 transition-colors" />
                     </Link>
-                </motion.div>
-            </motion.div>
+                </MotionWrapper>
+            </MotionWrapper>
 
             {/* 주변 의료기관 찾기 - 오른쪽에서 중앙으로 */}
-            <motion.div
-                variants={medicalFacilitiesVariants}
-                initial="initial"
-                animate="animate"
+            <MotionWrapper
+                {...(useSimpleAnimation ? {} : {
+                    variants: medicalFacilitiesVariants,
+                    initial: "initial",
+                    animate: "animate",
+                })}
             >
-                <motion.div
-                    variants={medicalGlow}
-                    initial="initial"
-                    animate="animate"
+                <MotionWrapper
+                    {...(useSimpleAnimation ? {} : {
+                        variants: medicalGlow,
+                        initial: "initial",
+                        animate: "animate",
+                    })}
                     className="rounded-xl"
                 >
                     <Link
@@ -309,19 +402,23 @@ export function EmergencyQuickAccess() {
                         </div>
                         <ChevronRight className="w-4 h-4 text-blue-400 group-hover:text-blue-600 transition-colors" />
                     </Link>
-                </motion.div>
-            </motion.div>
+                </MotionWrapper>
+            </MotionWrapper>
 
             {/* 건강 맞춤 식단 - 아래에서 중앙으로 */}
-            <motion.div
-                variants={dietVariants}
-                initial="initial"
-                animate="animate"
+            <MotionWrapper
+                {...(useSimpleAnimation ? {} : {
+                    variants: dietVariants,
+                    initial: "initial",
+                    animate: "animate",
+                })}
             >
-                <motion.div
-                    variants={dietGlow}
-                    initial="initial"
-                    animate="animate"
+                <MotionWrapper
+                    {...(useSimpleAnimation ? {} : {
+                        variants: dietGlow,
+                        initial: "initial",
+                        animate: "animate",
+                    })}
                     className="rounded-xl"
                 >
                     <Link
@@ -359,22 +456,26 @@ export function EmergencyQuickAccess() {
                         </div>
                         <ChevronRight className="w-4 h-4 text-green-400 group-hover:text-green-600 transition-colors" />
                     </Link>
-                </motion.div>
-            </motion.div>
+                </MotionWrapper>
+            </MotionWrapper>
 
             {/* Recipe Genie - 왼쪽에서 중앙으로 */}
-            <motion.div
-                variants={recipeGenieVariants}
-                initial="initial"
-                animate="animate"
+            <MotionWrapper
+                {...(useSimpleAnimation ? {} : {
+                    variants: recipeGenieVariants,
+                    initial: "initial",
+                    animate: "animate",
+                })}
             >
-                <motion.div
-                    variants={recipeGenieGlow}
-                    initial="initial"
-                    animate="animate"
+                <MotionWrapper
+                    {...(useSimpleAnimation ? {} : {
+                        variants: recipeGenieGlow,
+                        initial: "initial",
+                        animate: "animate",
+                    })}
                     className="rounded-xl"
                 >
-                    <motion.button
+                    <button
                         onClick={() => {
                             console.groupCollapsed("[RecipeGenieBanner] 배너 클릭");
                             console.log("url:", "https://gemini.google.com/gem-labs/1wffdEjbZ3E9wChM3O5VcoziuDnKihjDk");
@@ -403,9 +504,9 @@ export function EmergencyQuickAccess() {
                             </div>
                         </div>
                         <ChevronRight className="w-4 h-4 text-yellow-400 group-hover:text-yellow-600 transition-colors" />
-                    </motion.button>
-                </motion.div>
-            </motion.div>
+                    </button>
+                </MotionWrapper>
+            </MotionWrapper>
         </div>
     );
 }

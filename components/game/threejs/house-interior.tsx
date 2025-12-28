@@ -23,9 +23,14 @@ import { Group, Mesh, MeshStandardMaterial, Vector3, Box3 } from "three";
 /**
  * 아파트 내부 컴포넌트
  * apartment-interior.glb 모델을 로드하고 재질을 수정합니다.
+ * 
+ * 주의: 모델 파일이 없을 경우 ErrorBoundary에서 처리됩니다.
+ * 이 컴포넌트는 ErrorBoundary로 감싸서 사용해야 합니다.
  */
 export function HouseInterior() {
   const groupRef = useRef<Group>(null);
+  // useGLTF는 훅이므로 항상 호출되어야 함
+  // 에러는 ErrorBoundary에서 처리됨
   const { scene } = useGLTF("/models/apartment-interior.glb");
   const { camera } = useThree();
 
@@ -219,9 +224,15 @@ export function HouseInterior() {
 
   // 모델 프리로드
   useEffect(() => {
-    useGLTF.preload("/models/apartment-interior.glb");
+    try {
+      useGLTF.preload("/models/apartment-interior.glb");
+    } catch (error) {
+      // 프리로드 실패는 무시 (실제 로드 시 ErrorBoundary에서 처리)
+      console.warn("⚠️ [HouseInterior] 모델 프리로드 실패 (무시됨):", error);
+    }
   }, []);
 
+  // 모델이 없으면 null 반환
   if (!scene) {
     return null;
   }

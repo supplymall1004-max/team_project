@@ -19,6 +19,7 @@ import { Environment, Html } from "@react-three/drei";
 import { ApartmentViewer } from "./apartment-viewer";
 import { FamilyMembers } from "./family-members";
 import { EventNotificationSystem } from "./event-notification-system";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 /**
  * 로딩 오버레이
@@ -84,9 +85,11 @@ export function ApartmentViewerScene() {
       />
 
           {/* 아파트 모델 뷰어 */}
-          <Suspense fallback={<LoadingOverlay />}>
-            <ApartmentViewer />
-          </Suspense>
+          <ErrorBoundary fallback={null}>
+            <Suspense fallback={<LoadingOverlay />}>
+              <ApartmentViewer />
+            </Suspense>
+          </ErrorBoundary>
 
           {/* 가족 구성원 (아빠, 엄마, 나, 강아지) */}
           <Suspense fallback={null}>

@@ -122,28 +122,11 @@ export function FridgeMemoryGame({ memberId, onComplete }: FridgeMemoryGameProps
     setIsMounted(true);
   }, []);
 
-  // 효과음 초기화 (안전한 초기화)
+  // 효과음 초기화
   useEffect(() => {
-    // 클라이언트에서만 실행
-    if (typeof window === 'undefined') return;
-
     const createAudio = (frequency: number, duration: number, type: 'sine' | 'square' = 'sine') => {
       try {
-        // AudioContext 지원 여부 확인
-        if (typeof window === 'undefined' || (!window.AudioContext && !(window as any).webkitAudioContext)) {
-          return;
-        }
-
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        const audioContext = new AudioContextClass();
-        
-        // AudioContext 상태 확인 (일부 브라우저에서 suspended 상태일 수 있음)
-        if (audioContext.state === 'suspended') {
-          audioContext.resume().catch(() => {
-            // resume 실패 시 무시
-          });
-        }
-
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
 
@@ -159,8 +142,7 @@ export function FridgeMemoryGame({ memberId, onComplete }: FridgeMemoryGameProps
         oscillator.start(audioContext.currentTime);
         oscillator.stop(audioContext.currentTime + duration);
       } catch (e) {
-        // 효과음 재생 실패 시 무시 (조용히 실패)
-        console.debug('[FridgeMemoryGame] Audio playback failed:', e);
+        // 효과음 재생 실패 시 무시
       }
     };
 
@@ -173,24 +155,12 @@ export function FridgeMemoryGame({ memberId, onComplete }: FridgeMemoryGameProps
       setTimeout(() => createAudio(784, 0.2, 'sine'), 200);
     };
 
-    // 안전한 오디오 객체 생성 (에러가 발생해도 빈 함수로 대체)
-    try {
-      audioRefs.current = {
-        flip: { play: playFlipSound } as any,
-        match: { play: playMatchSound } as any,
-        fail: { play: playFailSound } as any,
-        win: { play: playWinSound } as any,
-      };
-    } catch (e) {
-      // 초기화 실패 시 빈 함수로 대체
-      const noop = () => {};
-      audioRefs.current = {
-        flip: { play: noop } as any,
-        match: { play: noop } as any,
-        fail: { play: noop } as any,
-        win: { play: noop } as any,
-      };
-    }
+    audioRefs.current = {
+      flip: { play: playFlipSound } as any,
+      match: { play: playMatchSound } as any,
+      fail: { play: playFailSound } as any,
+      win: { play: playWinSound } as any,
+    };
   }, []);
 
   // 스테이지 클리어
@@ -508,20 +478,6 @@ export function FridgeMemoryGame({ memberId, onComplete }: FridgeMemoryGameProps
   // 카드 크기 계산 (스테이지에 따라)
   const cardSize = stageConfig.pairs > 18 ? "55px" : "70px";
   const cardHeight = stageConfig.pairs > 18 ? "75px" : "90px";
-
-  // 초기 로딩 중에는 빈 화면 표시 (Hydration 안전성)
-  if (!isMounted) {
-    return (
-      <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
-        <div className="text-center space-y-2">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            🧊 냉장고 짝맞추기
-          </h2>
-          <p className="text-gray-600">로딩 중...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full max-w-6xl mx-auto p-4 space-y-6">

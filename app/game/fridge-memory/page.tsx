@@ -6,7 +6,6 @@
  */
 
 import { Metadata } from 'next';
-import { Suspense } from 'react';
 import { FridgeMemoryGame } from '@/components/games/fridge-memory-game';
 
 export const metadata: Metadata = {
@@ -14,26 +13,11 @@ export const metadata: Metadata = {
   description: '냉장고 속 식재료 카드를 뒤집어 짝을 맞추는 메모리 게임입니다!',
 };
 
-function GameLoadingFallback() {
-  return (
-    <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          🧊 냉장고 짝맞추기
-        </h2>
-        <p className="text-gray-600">게임을 불러오는 중...</p>
-      </div>
-    </div>
-  );
-}
-
 export default function FridgeMemoryPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-8 px-4">
       <div className="max-w-6xl mx-auto">
-        <Suspense fallback={<GameLoadingFallback />}>
-          <FridgeMemoryGame />
-        </Suspense>
+        <FridgeMemoryGame />
         
         {/* 게임 방법 설명 섹션 */}
         <div className="mt-8 bg-white/90 backdrop-blur-lg rounded-3xl p-6 sm:p-8 shadow-[0_20px_60px_rgba(102,126,234,0.15)] border-2 border-white/50">

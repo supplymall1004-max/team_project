@@ -28,6 +28,8 @@ import { Group, Box3, Vector3, ACESFilmicToneMapping, PerspectiveCamera, DoubleS
 export function ApartmentViewer() {
   const groupRef = useRef<Group>(null);
   const controlsRef = useRef<any>(null);
+  // useGLTF는 훅이므로 항상 호출되어야 함
+  // 에러는 ErrorBoundary에서 처리됨
   const { scene } = useGLTF("/models/apartment-interior.glb");
   const { camera, gl } = useThree();
   const isInitialized = useRef(false);

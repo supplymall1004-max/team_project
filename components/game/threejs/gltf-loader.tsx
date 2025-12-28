@@ -175,6 +175,9 @@ function GLTFModel({
 /**
  * GLTF 모델 로더 (Suspense 포함)
  * 각 모델을 개별 Suspense로 감싸서 하나의 모델 로드 실패가 다른 모델에 영향을 주지 않도록 함
+ * 
+ * 주의: 모델 파일이 없을 경우 ErrorBoundary에서 처리됩니다.
+ * 이 컴포넌트는 ErrorBoundary로 감싸서 사용하는 것을 권장합니다.
  */
 export function GLTFModelLoader(props: GLTFModelProps) {
   return (
