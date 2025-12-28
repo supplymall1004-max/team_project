@@ -11,7 +11,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { EventNotification, NotificationPriority } from "./event-notification-bubble";
 
@@ -71,6 +71,45 @@ export function EventNotificationOverlay() {
   const [notifications, setNotifications] = useState(initialNotifications);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showCompleteButton, setShowCompleteButton] = useState<Set<string>>(new Set());
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  // 전체화면 및 가로 모드 감지
+  useEffect(() => {
+    const checkFullscreen = () => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+    };
+
+    const checkOrientation = () => {
+      const isLandscapeMode = window.innerWidth > window.innerHeight;
+      setIsLandscape(isLandscapeMode);
+    };
+
+    checkFullscreen();
+    checkOrientation();
+
+    document.addEventListener('fullscreenchange', checkFullscreen);
+    document.addEventListener('webkitfullscreenchange', checkFullscreen);
+    document.addEventListener('mozfullscreenchange', checkFullscreen);
+    document.addEventListener('MSFullscreenChange', checkFullscreen);
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', checkFullscreen);
+      document.removeEventListener('webkitfullscreenchange', checkFullscreen);
+      document.removeEventListener('mozfullscreenchange', checkFullscreen);
+      document.removeEventListener('MSFullscreenChange', checkFullscreen);
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
 
   // 알림 완료 처리
   const handleComplete = (id: string) => {
@@ -83,12 +122,15 @@ export function EventNotificationOverlay() {
     return null;
   }
 
+  // 가로 전체 모드일 때는 되돌아가기 버튼과 같은 높이(top-4)에, 일반 모드일 때는 FamilyNotificationPanel 아래에 배치
+  const topPosition = (isFullscreen && isLandscape) ? '0' : '200px';
+
   return (
     <div 
       className="absolute top-4 left-4 pointer-events-auto"
       style={{ 
         zIndex: 1000,
-        marginTop: '200px', // FamilyNotificationPanel 아래에 위치
+        marginTop: topPosition, // 가로 전체 모드일 때는 되돌아가기 버튼과 같은 높이, 일반 모드일 때는 FamilyNotificationPanel 아래에
       }}
     >
       <div className="flex flex-col gap-4 max-w-sm">

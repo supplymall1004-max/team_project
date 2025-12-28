@@ -143,6 +143,14 @@ export async function HomeLanding() {
       gradient: "bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500",
     },
     {
+      title: "냉장고 짝맞추기",
+      description: "메모리 게임",
+      href: "/game/fridge-memory",
+      iconSrc: "/icons/15.png",
+      color: "bg-blue-500",
+      gradient: "bg-gradient-to-br from-blue-400 via-cyan-500 to-blue-600",
+    },
+    {
       title: "유틸리티",
       description: "편리한 도구들",
       href: "/game/fridge-guardian",

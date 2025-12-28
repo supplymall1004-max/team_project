@@ -373,13 +373,13 @@ function RankingBoard({ currentScore, onRestart, onClose }: RankingBoardProps) {
 }
 
 // 통계 표시 컴포넌트
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+function Stat({ icon, label, value, isFullscreen }: { icon: React.ReactNode; label: string; value: string | number; isFullscreen?: boolean }) {
   return (
     <div className="flex justify-between items-center group flex-1 md:flex-none">
-      <div className="flex items-center gap-2 md:gap-3 text-gray-500 group-hover:text-gray-300">
-        {icon} <span className="text-[9px] md:text-[10px] font-black tracking-widest">{label}</span>
+      <div className={`flex items-center text-gray-500 group-hover:text-gray-300 ${isFullscreen ? 'gap-1' : 'gap-2 md:gap-3'}`}>
+        {icon} <span className={`font-black tracking-widest ${isFullscreen ? 'text-[8px]' : 'text-[9px] md:text-[10px]'}`}>{label}</span>
       </div>
-      <span className="text-white font-black text-xs md:text-sm tabular-nums">{value}</span>
+      <span className={`text-white font-black tabular-nums ${isFullscreen ? 'text-[10px]' : 'text-xs md:text-sm'}`}>{value}</span>
     </div>
   );
 }
@@ -520,7 +520,7 @@ export default function FridgeDefense() {
           height: Math.max(300, rect.height), // 최소 높이 300px
         };
         setBoardSize(newSize);
-        console.log('[FridgeDefense] 게임 보드 크기 업데이트:', newSize);
+        console.log('[FridgeDefense] 게임 보드 크기 업데이트:', newSize, '전체화면:', isFullscreen);
       }
     };
 
@@ -541,6 +541,26 @@ export default function FridgeDefense() {
       resizeObserver.disconnect();
     };
   }, []);
+
+  // 전체화면 모드 변경 시 게임 보드 크기 재계산
+  useEffect(() => {
+    if (gameBoardRef.current) {
+      // 전체화면 전환 시 약간의 지연 후 크기 재계산
+      const timer = setTimeout(() => {
+        const rect = gameBoardRef.current?.getBoundingClientRect();
+        if (rect) {
+          const newSize = {
+            width: Math.max(300, rect.width),
+            height: Math.max(300, rect.height),
+          };
+          setBoardSize(newSize);
+          console.log('[FridgeDefense] 전체화면 모드 변경으로 게임 보드 크기 업데이트:', newSize);
+        }
+      }, isFullscreen ? 200 : 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isFullscreen]);
 
   // 게임 오버 감지
   useEffect(() => {
@@ -1087,27 +1107,27 @@ export default function FridgeDefense() {
   return (
     <div 
       ref={gameContainerRef}
-      className={`flex flex-col w-full min-h-screen bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] overflow-hidden relative ${isFullscreen ? 'h-screen' : ''}`}
+      className={`flex flex-col w-full min-h-screen bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] overflow-hidden relative ${isFullscreen ? 'h-screen fixed inset-0' : ''}`}
     >
       {/* 상단 UI 바 - 이미지 스타일 적용 */}
-      <div className="w-full bg-gradient-to-r from-[#2d3748] to-[#1a202c] border-b-4 border-[#4a5568] px-4 py-3 flex items-center justify-between flex-wrap gap-3 z-50">
+      <div className={`w-full bg-gradient-to-r from-[#2d3748] to-[#1a202c] border-b-4 border-[#4a5568] flex items-center justify-between flex-wrap gap-2 z-50 ${isFullscreen ? 'px-2 py-1.5' : 'px-4 py-3'}`}>
         {/* 왼쪽: 골드 및 체력 */}
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* 골드 */}
-          <div className="flex items-center gap-2 bg-[#2d3748] px-4 py-2 rounded-lg border-2 border-[#4a5568] shadow-lg">
-            <Coins className="text-yellow-400 w-5 h-5" />
-            <span className="text-white font-black text-sm md:text-base">Family Treasure:</span>
-            <span className="text-yellow-400 font-black text-base md:text-lg">{gold.toLocaleString()}G</span>
+          <div className={`flex items-center gap-1.5 bg-[#2d3748] rounded-lg border-2 border-[#4a5568] shadow-lg ${isFullscreen ? 'px-2 py-1' : 'px-4 py-2'}`}>
+            <Coins className={`text-yellow-400 ${isFullscreen ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            <span className={`text-white font-black ${isFullscreen ? 'text-xs' : 'text-sm md:text-base'}`}>Family Treasure:</span>
+            <span className={`text-yellow-400 font-black ${isFullscreen ? 'text-sm' : 'text-base md:text-lg'}`}>{gold.toLocaleString()}G</span>
           </div>
           
           {/* 체력 및 웨이브 */}
-          <div className="flex items-center gap-2 bg-[#2d3748] px-4 py-2 rounded-lg border-2 border-[#4a5568] shadow-lg">
-            <Heart className="text-red-500 w-5 h-5" />
-            <span className="text-white font-black text-sm md:text-base">Defense Health:</span>
-            <span className="text-red-400 font-black text-base md:text-lg">{lives}</span>
-            <span className="text-gray-400 mx-2">|</span>
-            <span className="text-white font-black text-sm md:text-base">Wave:</span>
-            <span className="text-blue-400 font-black text-base md:text-lg">{wave}</span>
+          <div className={`flex items-center gap-1.5 bg-[#2d3748] rounded-lg border-2 border-[#4a5568] shadow-lg ${isFullscreen ? 'px-2 py-1' : 'px-4 py-2'}`}>
+            <Heart className={`text-red-500 ${isFullscreen ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            <span className={`text-white font-black ${isFullscreen ? 'text-xs' : 'text-sm md:text-base'}`}>Defense Health:</span>
+            <span className={`text-red-400 font-black ${isFullscreen ? 'text-sm' : 'text-base md:text-lg'}`}>{lives}</span>
+            <span className={`text-gray-400 ${isFullscreen ? 'mx-1' : 'mx-2'}`}>|</span>
+            <span className={`text-white font-black ${isFullscreen ? 'text-xs' : 'text-sm md:text-base'}`}>Wave:</span>
+            <span className={`text-blue-400 font-black ${isFullscreen ? 'text-sm' : 'text-base md:text-lg'}`}>{wave}</span>
           </div>
 
           {/* 버프 상태 (오늘의 식단이 있으면) */}
@@ -1115,13 +1135,13 @@ export default function FridgeDefense() {
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-2 rounded-lg border-2 border-yellow-400 shadow-lg"
+              className={`flex items-center gap-1.5 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg border-2 border-yellow-400 shadow-lg ${isFullscreen ? 'px-2 py-1' : 'px-4 py-2'}`}
             >
-              <Sparkles className="text-yellow-300 w-4 h-4" />
-              <span className="text-white font-black text-xs md:text-sm uppercase">Meal Buff Active!</span>
-              <div className="flex gap-1">
+              <Sparkles className={`text-yellow-300 ${isFullscreen ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              <span className={`text-white font-black uppercase ${isFullscreen ? 'text-[10px]' : 'text-xs md:text-sm'}`}>Meal Buff Active!</span>
+              <div className="flex gap-0.5">
                 {todayDiet.map((type, idx) => (
-                  <span key={idx} className="text-lg">{TOWERS_DATA[type].emoji}</span>
+                  <span key={idx} className={isFullscreen ? 'text-sm' : 'text-lg'}>{TOWERS_DATA[type].emoji}</span>
                 ))}
               </div>
             </motion.div>
@@ -1129,14 +1149,14 @@ export default function FridgeDefense() {
         </div>
 
         {/* 오른쪽: 스테이지 및 컨트롤 */}
-        <div className="flex items-center gap-3">
+        <div className={`flex items-center ${isFullscreen ? 'gap-1.5' : 'gap-3'}`}>
           {/* 스테이지 표시 */}
-          <div className="bg-gradient-to-r from-yellow-500 to-orange-500 px-4 py-2 rounded-lg border-2 border-yellow-300 shadow-lg">
-            <span className="text-black font-black text-sm md:text-base uppercase">Stage {wave}</span>
+          <div className={`bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg border-2 border-yellow-300 shadow-lg ${isFullscreen ? 'px-2 py-1' : 'px-4 py-2'}`}>
+            <span className={`text-black font-black uppercase ${isFullscreen ? 'text-xs' : 'text-sm md:text-base'}`}>Stage {wave}</span>
           </div>
 
           {/* 게임 컨트롤 버튼 */}
-          <div className="flex items-center gap-2 bg-[#2d3748] px-2 py-1 rounded-lg border-2 border-[#4a5568]">
+          <div className={`flex items-center bg-[#2d3748] rounded-lg border-2 border-[#4a5568] ${isFullscreen ? 'px-1 py-0.5' : 'px-2 py-1'}`}>
             <button
               onClick={() => {
                 if (!isPlaying && !isGameOver) {
@@ -1145,14 +1165,14 @@ export default function FridgeDefense() {
                   setIsPlaying(!isPlaying);
                 }
               }}
-              className="w-8 h-8 bg-green-600 hover:bg-green-700 rounded flex items-center justify-center transition-all active:scale-95"
+              className={`bg-green-600 hover:bg-green-700 rounded flex items-center justify-center transition-all active:scale-95 ${isFullscreen ? 'w-6 h-6' : 'w-8 h-8'}`}
             >
               {!isPlaying && !isGameOver ? (
-                <Play className="text-white w-4 h-4 ml-0.5" />
+                <Play className={`text-white ${isFullscreen ? 'w-3 h-3 ml-0.5' : 'w-4 h-4 ml-0.5'}`} />
               ) : isPlaying ? (
-                <Pause className="text-white w-4 h-4" />
+                <Pause className={`text-white ${isFullscreen ? 'w-3 h-3' : 'w-4 h-4'}`} />
               ) : (
-                <Play className="text-white w-4 h-4 ml-0.5" />
+                <Play className={`text-white ${isFullscreen ? 'w-3 h-3 ml-0.5' : 'w-4 h-4 ml-0.5'}`} />
               )}
             </button>
           </div>
@@ -1160,26 +1180,30 @@ export default function FridgeDefense() {
       </div>
 
       {/* 메인 게임 영역 */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+      <div className={`flex-1 flex overflow-hidden ${isFullscreen ? 'flex-row' : 'flex-col md:flex-row'}`}>
         {/* 사이드바 */}
-        <aside className="w-full md:w-72 bg-[#212529] p-3 md:p-8 text-gray-400 flex flex-row md:flex-col gap-3 md:gap-0 overflow-x-auto md:overflow-x-visible flex-shrink-0">
-          <div className="flex-shrink-0 md:flex-shrink flex flex-col md:flex-col min-w-[260px] md:min-w-0">
-          <div className="flex items-center gap-3 mb-4 md:mb-10 text-white font-black italic tracking-tighter text-sm md:text-base">
-            <Utensils size={18} className="md:w-5 md:h-5 text-blue-400" /> FLAVOR_DEFENDER
+        <aside className={`bg-[#212529] text-gray-400 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-x-visible flex-shrink-0 ${isFullscreen ? 'w-48 p-2' : 'w-full md:w-72 p-3 md:p-8 gap-3 md:gap-0'}`}>
+          <div className={`flex-shrink-0 md:flex-shrink flex flex-col md:flex-col ${isFullscreen ? 'min-w-[180px]' : 'min-w-[260px] md:min-w-0'}`}>
+          <div className={`flex items-center gap-2 text-white font-black italic tracking-tighter ${isFullscreen ? 'mb-2 text-xs' : 'mb-4 md:mb-10 text-sm md:text-base gap-3'}`}>
+            <Utensils size={isFullscreen ? 14 : 18} className={`${isFullscreen ? 'w-3 h-3' : 'md:w-5 md:h-5'} text-blue-400`} /> FLAVOR_DEFENDER
           </div>
-          <div className="flex md:flex-col gap-4 md:gap-4 mb-4 md:mb-10">
-            <Stat icon={<Heart className="text-red-500 w-4 h-4 md:w-5 md:h-5" />} label="LIVES" value={lives} />
-            <Stat icon={<Coins className="text-yellow-400 w-4 h-4 md:w-5 md:h-5" />} label="GOLD" value={`${gold}G`} />
-            <Stat icon={<RefreshCw className="text-blue-400 w-4 h-4 md:w-5 md:h-5" />} label="WAVE" value={wave} />
-            <Stat icon={<Utensils className="text-purple-400 w-4 h-4 md:w-5 md:h-5" />} label="TOWERS" value={`${towers.length}/${MAX_TOWERS}`} />
-            <Stat icon={<Zap className="text-orange-400 w-4 h-4 md:w-5 md:h-5" />} label="PATHS" value={gamePaths.length} />
+          <div className={`flex md:flex-col mb-2 md:mb-10 ${isFullscreen ? 'gap-2' : 'gap-4 md:gap-4'}`}>
+            <Stat icon={<Heart className={`text-red-500 ${isFullscreen ? 'w-3 h-3' : 'w-4 h-4 md:w-5 md:h-5'}`} />} label="LIVES" value={lives} isFullscreen={isFullscreen} />
+            <Stat icon={<Coins className={`text-yellow-400 ${isFullscreen ? 'w-3 h-3' : 'w-4 h-4 md:w-5 md:h-5'}`} />} label="GOLD" value={`${gold}G`} isFullscreen={isFullscreen} />
+            <Stat icon={<RefreshCw className={`text-blue-400 ${isFullscreen ? 'w-3 h-3' : 'w-4 h-4 md:w-5 md:h-5'}`} />} label="WAVE" value={wave} isFullscreen={isFullscreen} />
+            <Stat icon={<Utensils className={`text-purple-400 ${isFullscreen ? 'w-3 h-3' : 'w-4 h-4 md:w-5 md:h-5'}`} />} label="TOWERS" value={`${towers.length}/${MAX_TOWERS}`} isFullscreen={isFullscreen} />
+            <Stat icon={<Zap className={`text-orange-400 ${isFullscreen ? 'w-3 h-3' : 'w-4 h-4 md:w-5 md:h-5'}`} />} label="PATHS" value={gamePaths.length} isFullscreen={isFullscreen} />
           </div>
 
           {/* 특수 스킬 */}
           <button 
             onClick={useShockwave} 
             disabled={skillCooldown > 0 || !isPlaying} 
-            className={`w-full py-3 md:py-4 rounded-xl md:rounded-2xl mb-4 md:mb-6 font-black text-[9px] md:text-[10px] tracking-widest transition-all ${
+            className={`w-full rounded-xl md:rounded-2xl font-black tracking-widest transition-all ${
+              isFullscreen 
+                ? 'py-1.5 mb-2 text-[8px]' 
+                : 'py-3 md:py-4 mb-4 md:mb-6 text-[9px] md:text-[10px]'
+            } ${
               skillCooldown > 0 || !isPlaying 
                 ? 'bg-gray-800 text-gray-500' 
                 : 'bg-purple-600 text-white animate-pulse hover:bg-purple-700 active:scale-95'
@@ -1189,7 +1213,7 @@ export default function FridgeDefense() {
           </button>
 
           {/* 타워 선택 */}
-          <div className="flex md:flex-col gap-2 md:gap-2 overflow-x-auto md:overflow-y-auto flex-1 md:flex-1">
+          <div className={`flex md:flex-col overflow-x-auto md:overflow-y-auto flex-1 md:flex-1 ${isFullscreen ? 'gap-1' : 'gap-2 md:gap-2'}`}>
             {Object.values(TOWERS_DATA).map(t => (
               <button 
                 key={t.id} 
@@ -1197,7 +1221,11 @@ export default function FridgeDefense() {
                 setSelectedTowerType(t.id);
               }}
                 disabled={!isPlaying && gold < t.cost}
-                className={`flex-shrink-0 md:flex-shrink flex items-center justify-between p-2 md:p-3 rounded-lg md:rounded-xl transition-all min-w-[120px] md:min-w-0 md:w-full ${
+                className={`flex-shrink-0 md:flex-shrink flex items-center justify-between rounded-lg md:rounded-xl transition-all ${
+                  isFullscreen 
+                    ? 'p-1.5 min-w-[100px]' 
+                    : 'p-2 md:p-3 min-w-[120px] md:min-w-0 md:w-full'
+                } ${
                   selectedTowerType === t.id
                     ? 'bg-blue-600 ring-2 ring-blue-400'
                     : gold >= t.cost
@@ -1205,14 +1233,14 @@ export default function FridgeDefense() {
                     : 'bg-[#343a40] opacity-50 cursor-not-allowed'
                 }`}
               >
-                <div className="flex items-center gap-2 md:gap-3">
-                  <span className="text-xl md:text-2xl">{t.emoji}</span>
+                <div className={`flex items-center ${isFullscreen ? 'gap-1.5' : 'gap-2 md:gap-3'}`}>
+                  <span className={isFullscreen ? 'text-lg' : 'text-xl md:text-2xl'}>{t.emoji}</span>
                   <div className="text-left">
-                    <div className="text-[9px] md:text-[10px] font-black text-white uppercase">{t.name}</div>
-                    <div className="text-[7px] md:text-[8px] text-gray-400 mt-0.5">{t.description}</div>
+                    <div className={`font-black text-white uppercase ${isFullscreen ? 'text-[8px]' : 'text-[9px] md:text-[10px]'}`}>{t.name}</div>
+                    <div className={`text-gray-400 mt-0.5 ${isFullscreen ? 'text-[7px]' : 'text-[7px] md:text-[8px]'}`}>{t.description}</div>
                   </div>
                 </div>
-                <span className="text-[9px] md:text-[10px] font-bold text-gray-300">{t.cost}G</span>
+                <span className={`font-bold text-gray-300 ${isFullscreen ? 'text-[8px]' : 'text-[9px] md:text-[10px]'}`}>{t.cost}G</span>
               </button>
             ))}
           </div>
@@ -1226,7 +1254,11 @@ export default function FridgeDefense() {
                 setIsPlaying(!isPlaying);
               }
             }}
-            className="w-full bg-[#339af0] text-white py-3 md:py-4 rounded-xl font-black text-[9px] md:text-[10px] tracking-widest mt-2 md:mt-4 hover:bg-[#228be6] active:scale-95 transition-all"
+            className={`w-full bg-[#339af0] text-white rounded-xl font-black tracking-widest hover:bg-[#228be6] active:scale-95 transition-all ${
+              isFullscreen 
+                ? 'py-1.5 mt-1.5 text-[8px]' 
+                : 'py-3 md:py-4 mt-2 md:mt-4 text-[9px] md:text-[10px]'
+            }`}
           >
             {!isPlaying && !isGameOver ? '게임 시작' : isPlaying ? '일시정지' : '다시하기'}
           </button>
@@ -1249,8 +1281,12 @@ export default function FridgeDefense() {
           setHoveredTile({ x: gridX, y: gridY });
         }}
         onMouseLeave={() => setHoveredTile(null)}
-        className="flex-1 bg-gradient-to-br from-[#87ceeb] via-[#a5d8ff] to-[#b0e0e6] relative overflow-hidden min-h-[400px] md:min-h-[600px] w-full touch-none"
-        style={{ 
+        className={`flex-1 bg-gradient-to-br from-[#87ceeb] via-[#a5d8ff] to-[#b0e0e6] relative overflow-hidden w-full touch-none ${
+          isFullscreen ? 'h-full' : 'min-h-[400px] md:min-h-[600px]'
+        }`}
+        style={isFullscreen ? { 
+          height: '100%'
+        } : { 
           minHeight: '400px',
           height: '100%'
         }}
@@ -1946,66 +1982,68 @@ export default function FridgeDefense() {
       </main>
       </div>
 
-      {/* 하단 UI: 타워 선택 및 특수 능력 */}
-      <div className="w-full bg-gradient-to-r from-[#2d3748] to-[#1a202c] border-t-4 border-[#4a5568] px-4 py-3 z-50">
-        {/* 타워 선택 카드 */}
-        <div className="flex items-center gap-3 mb-3 overflow-x-auto pb-2">
-          {Object.values(TOWERS_DATA).map(t => (
+      {/* 하단 UI: 타워 선택 및 특수 능력 - 전체화면일 때는 숨김 */}
+      {!isFullscreen && (
+        <div className="w-full bg-gradient-to-r from-[#2d3748] to-[#1a202c] border-t-4 border-[#4a5568] px-4 py-3 z-50">
+          {/* 타워 선택 카드 */}
+          <div className="flex items-center gap-3 mb-3 overflow-x-auto pb-2">
+            {Object.values(TOWERS_DATA).map(t => (
+              <button 
+                key={t.id} 
+                onClick={() => {
+                  setSelectedTowerType(t.id);
+                }}
+                disabled={!isPlaying && gold < t.cost}
+                className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all min-w-[100px] ${
+                  selectedTowerType === t.id
+                    ? 'bg-blue-600 border-blue-400 shadow-lg scale-105'
+                    : gold >= t.cost
+                    ? 'bg-[#343a40] border-[#4a5568] hover:bg-gray-600 hover:border-gray-500 active:scale-95'
+                    : 'bg-[#343a40] border-[#4a5568] opacity-50 cursor-not-allowed'
+                }`}
+              >
+                <span className="text-3xl md:text-4xl">{t.emoji}</span>
+                <div className="text-center">
+                  <div className="text-xs md:text-sm font-black text-white uppercase">{t.name}</div>
+                  <div className="text-[10px] md:text-xs text-gray-300 mt-0.5">{t.cost}G</div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* 특수 능력 버튼 */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* 비타민 충격파 */}
             <button 
-              key={t.id} 
-              onClick={() => {
-                setSelectedTowerType(t.id);
-              }}
-              disabled={!isPlaying && gold < t.cost}
-              className={`flex-shrink-0 flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all min-w-[100px] ${
-                selectedTowerType === t.id
-                  ? 'bg-blue-600 border-blue-400 shadow-lg scale-105'
-                  : gold >= t.cost
-                  ? 'bg-[#343a40] border-[#4a5568] hover:bg-gray-600 hover:border-gray-500 active:scale-95'
-                  : 'bg-[#343a40] border-[#4a5568] opacity-50 cursor-not-allowed'
+              onClick={useShockwave} 
+              disabled={skillCooldown > 0 || !isPlaying} 
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-black text-xs md:text-sm transition-all ${
+                skillCooldown > 0 || !isPlaying 
+                  ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed' 
+                  : 'bg-purple-600 border-purple-400 text-white hover:bg-purple-700 active:scale-95 shadow-lg'
               }`}
             >
-              <span className="text-3xl md:text-4xl">{t.emoji}</span>
-              <div className="text-center">
-                <div className="text-xs md:text-sm font-black text-white uppercase">{t.name}</div>
-                <div className="text-[10px] md:text-xs text-gray-300 mt-0.5">{t.cost}G</div>
-              </div>
+              <Sparkles className="w-4 h-4" />
+              <span className="uppercase">Sterilize</span>
+              {skillCooldown > 0 && (
+                <span className="text-xs">{skillCooldown}s</span>
+              )}
             </button>
-          ))}
-        </div>
 
-        {/* 특수 능력 버튼 */}
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* 비타민 충격파 */}
-          <button 
-            onClick={useShockwave} 
-            disabled={skillCooldown > 0 || !isPlaying} 
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-black text-xs md:text-sm transition-all ${
-              skillCooldown > 0 || !isPlaying 
-                ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed' 
-                : 'bg-purple-600 border-purple-400 text-white hover:bg-purple-700 active:scale-95 shadow-lg'
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span className="uppercase">Sterilize</span>
-            {skillCooldown > 0 && (
-              <span className="text-xs">{skillCooldown}s</span>
-            )}
-          </button>
-
-          {/* 추가 정보 표시 */}
-          <div className="flex items-center gap-4 ml-auto text-xs md:text-sm text-gray-400">
-            <div className="flex items-center gap-1">
-              <Utensils className="w-4 h-4" />
-              <span className="font-bold text-white">{towers.length}/{MAX_TOWERS}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Zap className="w-4 h-4" />
-              <span className="font-bold text-white">{gamePaths.length}</span>
+            {/* 추가 정보 표시 */}
+            <div className="flex items-center gap-4 ml-auto text-xs md:text-sm text-gray-400">
+              <div className="flex items-center gap-1">
+                <Utensils className="w-4 h-4" />
+                <span className="font-bold text-white">{towers.length}/{MAX_TOWERS}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Zap className="w-4 h-4" />
+                <span className="font-bold text-white">{gamePaths.length}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
