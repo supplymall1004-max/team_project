@@ -14,6 +14,9 @@ const isPublicRoute = createRouteMatcher([
   "/api/health/medical-facilities(.*)",
   // KCDC 알림 API는 공개 데이터이므로 인증 불필요
   "/api/health/kcdc/alerts(.*)",
+  // 응급조치 정보는 공개 정보이므로 로그아웃 상태에서도 접근 가능
+  "/health/emergency",
+  "/health/emergency/(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

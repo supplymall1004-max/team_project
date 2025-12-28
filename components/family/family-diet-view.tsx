@@ -19,6 +19,7 @@ import { FamilyDietTabs } from "@/components/diet/family-diet-tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RefreshCw, Calendar, Users } from "lucide-react";
+import { PremiumGuardButton } from "@/components/premium/premium-guard-button";
 import type { FamilyDietPlan } from "@/types/recipe";
 import type { FamilyMember } from "@/types/family";
 
@@ -199,7 +200,8 @@ export function FamilyDietView({
             <p className="text-gray-600 mb-6">
               가족 구성원 모두를 고려한 맞춤 식단을 생성해보세요.
             </p>
-            <Button
+            <PremiumGuardButton
+              featureId="family_diet"
               onClick={generateDiet}
               disabled={generating}
               className="bg-orange-500 hover:bg-orange-600"
@@ -214,7 +216,7 @@ export function FamilyDietView({
                   🍽️ 식단 생성하기
                 </>
               )}
-            </Button>
+            </PremiumGuardButton>
           </div>
         </CardContent>
       </Card>
@@ -228,7 +230,8 @@ export function FamilyDietView({
         <div className="text-sm text-gray-600">
           마지막 업데이트: {new Date().toLocaleTimeString('ko-KR')}
         </div>
-        <Button
+        <PremiumGuardButton
+          featureId="family_diet"
           onClick={generateDiet}
           disabled={generating}
           variant="outline"
@@ -245,7 +248,7 @@ export function FamilyDietView({
               식단 재생성
             </>
           )}
-        </Button>
+        </PremiumGuardButton>
       </div>
 
       {/* 식단 탭 인터페이스 */}

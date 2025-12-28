@@ -42,6 +42,7 @@ export async function createClerkSupabaseClient() {
   return createClient(supabaseUrl, supabaseKey, {
     async accessToken() {
       try {
+        // auth()가 로그아웃 상태에서 에러를 던질 수 있으므로 안전하게 처리
         const authResult = await auth();
         if (!authResult) {
           return null;
@@ -50,8 +51,9 @@ export async function createClerkSupabaseClient() {
         return token ?? null;
       } catch (error) {
         // 인증 오류 시 null 반환 (공개 데이터 접근)
+        // 로그아웃 상태나 인증 실패 시에도 페이지가 정상 작동하도록 함
         if (process.env.NODE_ENV === "development") {
-          console.error("[Supabase] Token retrieval error:", error);
+          console.warn("[Supabase] Token retrieval error (무시됨, 공개 데이터 접근):", error);
         }
         return null;
       }

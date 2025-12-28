@@ -24,6 +24,7 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { FamilyDietTabs } from "@/components/diet/family-diet-tabs";
 import type { FamilyMember } from "@/types/family";
+import { PremiumGuardButton } from "@/components/premium/premium-guard-button";
 import type { UserHealthProfile } from "@/types/health";
 import {
   clearDietPlanCache,
@@ -616,7 +617,8 @@ export function DietPlanClient() {
               >
                 개인 식단
               </Button>
-              <Button
+              <PremiumGuardButton
+                featureId="family_diet"
                 variant={isFamilyMode ? "default" : "outline"}
                 size="sm"
                 onClick={() => {
@@ -628,7 +630,7 @@ export function DietPlanClient() {
                 }}
               >
                 가족 식단 ({familyMembers.length + 1}명)
-              </Button>
+              </PremiumGuardButton>
             </div>
           )}
 

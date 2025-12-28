@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { Siren, ChevronRight, MapPin, Apple, Sparkles, Syringe } from 'lucide-react';
 import { motion, Variants } from 'framer-motion';
 import { slideDownScale, slideRightScale, slideLeftScale, slideUpScale, slowSpringTransition } from '@/lib/animations';
+import { Button } from '@/components/ui/button';
 
 /**
  * 모바일 기기 감지 함수
@@ -112,6 +115,8 @@ function getWeatherMessage(weather: WeatherData): string {
 export function EmergencyQuickAccess() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
 
   // 모바일 환경 감지 (클라이언트 사이드에서만)
   useEffect(() => {
@@ -353,21 +358,50 @@ export function EmergencyQuickAccess() {
                     })}
                     className="rounded-xl"
                 >
-                    <Link
-                        href="/health/vaccinations"
-                        className="flex items-center justify-between py-2.5 px-4 bg-sky-50 border-2 border-sky-200 rounded-xl hover:bg-sky-100 hover:border-sky-300 transition-all group relative overflow-hidden"
+                    <div
+                        onClick={(e) => {
+                            if (!isLoaded) return;
+                            if (!user) {
+                                e.preventDefault();
+                                if (window.confirm('로그인이 필요한 기능입니다. 로그인 페이지로 이동하시겠습니까?')) {
+                                    router.push('/sign-in');
+                                }
+                                return;
+                            }
+                        }}
+                        className="flex items-center justify-between py-2.5 px-4 bg-sky-50 border-2 border-sky-200 rounded-xl hover:bg-sky-100 hover:border-sky-300 transition-all group relative overflow-hidden cursor-pointer"
                     >
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-8 h-8 bg-sky-100 rounded-full group-hover:bg-sky-200 transition-colors">
-                                <Syringe className="w-5 h-5 text-sky-600" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-sky-900 text-sm">예방접종 안내</h3>
-                                <p className="text-xs text-sky-700">나이별 맞춤 예방접종 일정 확인</p>
-                            </div>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-sky-400 group-hover:text-sky-600 transition-colors" />
-                    </Link>
+                        {user ? (
+                            <Link
+                                href="/health/vaccinations"
+                                className="flex items-center justify-between w-full"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-sky-100 rounded-full group-hover:bg-sky-200 transition-colors">
+                                        <Syringe className="w-5 h-5 text-sky-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-sky-900 text-sm">예방접종 안내</h3>
+                                        <p className="text-xs text-sky-700">나이별 맞춤 예방접종 일정 확인</p>
+                                    </div>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-sky-400 group-hover:text-sky-600 transition-colors" />
+                            </Link>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-sky-100 rounded-full group-hover:bg-sky-200 transition-colors">
+                                        <Syringe className="w-5 h-5 text-sky-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-sky-900 text-sm">예방접종 안내</h3>
+                                        <p className="text-xs text-sky-700">나이별 맞춤 예방접종 일정 확인</p>
+                                    </div>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-sky-400 group-hover:text-sky-600 transition-colors" />
+                            </>
+                        )}
+                    </div>
                 </MotionWrapper>
             </MotionWrapper>
 
@@ -421,10 +455,24 @@ export function EmergencyQuickAccess() {
                     })}
                     className="rounded-xl"
                 >
-                    <Link
-                        href="/diet"
-                        className="flex items-center justify-between py-2.5 px-4 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 hover:border-green-300 transition-all group relative overflow-hidden"
+                    <div
+                        onClick={(e) => {
+                            if (!isLoaded) return;
+                            if (!user) {
+                                e.preventDefault();
+                                if (window.confirm('로그인이 필요한 기능입니다. 로그인 페이지로 이동하시겠습니까?')) {
+                                    router.push('/sign-in');
+                                }
+                                return;
+                            }
+                        }}
+                        className="flex items-center justify-between py-2.5 px-4 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 hover:border-green-300 transition-all group relative overflow-hidden cursor-pointer"
                     >
+                        {user ? (
+                            <Link
+                                href="/diet"
+                                className="flex items-center justify-between w-full"
+                            >
                         <div className="flex items-center gap-3">
                             <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full group-hover:bg-green-200 transition-colors">
                                 <Apple className="w-5 h-5 text-green-600" />
@@ -454,8 +502,23 @@ export function EmergencyQuickAccess() {
                                 </p>
                             </div>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-green-400 group-hover:text-green-600 transition-colors" />
-                    </Link>
+                                <ChevronRight className="w-4 h-4 text-green-400 group-hover:text-green-600 transition-colors" />
+                            </Link>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full group-hover:bg-green-200 transition-colors">
+                                        <Apple className="w-5 h-5 text-green-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="font-bold text-green-900 text-sm">건강 맞춤 식단</h3>
+                                        <p className="text-xs text-green-700">개인 맞춤 식단 상세 정보 확인</p>
+                                    </div>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-green-400 group-hover:text-green-600 transition-colors" />
+                            </>
+                        )}
+                    </div>
                 </MotionWrapper>
             </MotionWrapper>
 

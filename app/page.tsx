@@ -29,9 +29,9 @@ import { WeatherWidget } from "@/components/home/weather-widget";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
 import { DirectionalEntrance } from "@/components/motion/directional-entrance";
 import { ParallaxSection } from "@/components/motion/parallax-section";
-import { CharacterGameHome } from "@/components/home/character-game-home";
 import { CommunityPreview } from "@/components/home/community-preview";
 import { GameMenuProvider } from "@/components/home/game-menu-context";
+import { CharacterGameHomeWrapper } from "@/components/home/character-game-home-wrapper";
 
 function SectionSkeleton() {
   return (
@@ -66,7 +66,7 @@ export default async function Home() {
   return (
     <GameMenuProvider>
       <main
-        className="space-y-0"
+        className="space-y-0 relative"
         style={{
           // 스크롤 성능 최적화
           contain: 'layout style paint',
@@ -120,10 +120,10 @@ export default async function Home() {
         </Suspense>
       </ErrorBoundary> */}
 
-      {/* 건강 관리 게임 - 게임 스타일 캐릭터창 (3D 뷰어) */}
+      {/* 건강 관리 게임 - 게임 스타일 캐릭터창 (3D 뷰어) - 로그인 사용자만 표시 */}
       <ErrorBoundary>
         <Suspense fallback={<SectionSkeleton />}>
-          <CharacterGameHome />
+          <CharacterGameHomeWrapper />
         </Suspense>
       </ErrorBoundary>
 

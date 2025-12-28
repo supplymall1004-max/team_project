@@ -13,54 +13,66 @@ import { ErrorBoundary } from '@/components/error-boundary';
 
 export default async function EmergencyPage() {
     try {
-        const supabase = await createClerkSupabaseClient();
+        // 로그아웃 상태에서도 접근 가능하도록 안전하게 처리
+        let safeAllergies: Array<{ code: string; name_ko: string; severity_level: string | null }> = [];
+        
+        try {
+            const supabase = await createClerkSupabaseClient();
 
-        // 응급조치 정보 조회 (사용하지 않지만 향후 확장을 위해 유지)
-        // 에러가 발생해도 페이지는 정상적으로 작동하도록 조용히 처리
-        const { error: proceduresError } = await supabase
-            .from('emergency_procedures')
-            .select('*')
-            .order('allergy_code');
+            // 응급조치 정보 조회 (사용하지 않지만 향후 확장을 위해 유지)
+            // 에러가 발생해도 페이지는 정상적으로 작동하도록 조용히 처리
+            const { error: proceduresError } = await supabase
+                .from('emergency_procedures')
+                .select('*')
+                .order('allergy_code');
 
-        if (proceduresError && process.env.NODE_ENV === 'development') {
-            // 개발 환경에서만 에러 로깅
-            try {
-                const errorInfo = {
-                    message: proceduresError.message || '알 수 없는 오류',
-                    code: proceduresError.code || 'UNKNOWN',
-                    details: proceduresError.details || null,
-                    hint: proceduresError.hint || null,
-                };
-                console.warn('⚠️ 응급조치 정보 조회 실패 (무시됨):', errorInfo);
-            } catch {
-                // 에러 직렬화 실패 시 조용히 넘어감
+            if (proceduresError && process.env.NODE_ENV === 'development') {
+                // 개발 환경에서만 에러 로깅
+                try {
+                    const errorInfo = {
+                        message: proceduresError.message || '알 수 없는 오류',
+                        code: proceduresError.code || 'UNKNOWN',
+                        details: proceduresError.details || null,
+                        hint: proceduresError.hint || null,
+                    };
+                    console.warn('⚠️ 응급조치 정보 조회 실패 (무시됨):', errorInfo);
+                } catch {
+                    // 에러 직렬화 실패 시 조용히 넘어감
+                }
             }
-        }
 
-        // 알레르기 목록 조회
-        const { data: allergies, error: allergiesError } = await supabase
-            .from('allergies')
-            .select('code, name_ko, severity_level')
-            .eq('category', 'major_8')
-            .order('name_ko');
+            // 알레르기 목록 조회
+            const { data: allergies, error: allergiesError } = await supabase
+                .from('allergies')
+                .select('code, name_ko, severity_level')
+                .eq('category', 'major_8')
+                .order('name_ko');
 
-        if (allergiesError && process.env.NODE_ENV === 'development') {
-            // 개발 환경에서만 에러 로깅
-            try {
-                const errorInfo = {
-                    message: allergiesError.message || '알 수 없는 오류',
-                    code: allergiesError.code || 'UNKNOWN',
-                    details: allergiesError.details || null,
-                    hint: allergiesError.hint || null,
-                };
-                console.warn('⚠️ 알레르기 목록 조회 실패 (빈 배열 사용):', errorInfo);
-            } catch {
-                // 에러 직렬화 실패 시 조용히 넘어감
+            if (allergiesError && process.env.NODE_ENV === 'development') {
+                // 개발 환경에서만 에러 로깅
+                try {
+                    const errorInfo = {
+                        message: allergiesError.message || '알 수 없는 오류',
+                        code: allergiesError.code || 'UNKNOWN',
+                        details: allergiesError.details || null,
+                        hint: allergiesError.hint || null,
+                    };
+                    console.warn('⚠️ 알레르기 목록 조회 실패 (빈 배열 사용):', errorInfo);
+                } catch {
+                    // 에러 직렬화 실패 시 조용히 넘어감
+                }
             }
-        }
 
-        // allergies가 없을 경우 빈 배열로 설정
-        const safeAllergies = allergies || [];
+            // allergies가 없을 경우 빈 배열로 설정
+            safeAllergies = allergies || [];
+        } catch (authError) {
+            // 인증 관련 에러 (로그아웃 상태 등)는 조용히 처리
+            // 응급조치 정보는 공개 정보이므로 로그아웃 상태에서도 표시 가능
+            if (process.env.NODE_ENV === 'development') {
+                console.warn('⚠️ 인증 없이 응급조치 페이지 접근 (공개 정보만 표시):', authError);
+            }
+            // safeAllergies는 이미 빈 배열로 초기화되어 있음
+        }
 
     return (
         <ErrorBoundary
