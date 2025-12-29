@@ -13,7 +13,7 @@ interface GameMenuContextType {
   setMenuOpen: (open: boolean) => void;
 }
 
-const GameMenuContext = createContext<GameMenuContextType | undefined>(undefined);
+export const GameMenuContext = createContext<GameMenuContextType | undefined>(undefined);
 
 export function GameMenuProvider({ children }: { children: ReactNode }) {
   const [isMenuOpen, setMenuOpen] = useState(false);

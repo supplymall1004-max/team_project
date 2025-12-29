@@ -250,7 +250,7 @@ export function GroupsTable() {
           <AlertDialogHeader>
             <AlertDialogTitle>그룹 삭제 확인</AlertDialogTitle>
             <AlertDialogDescription>
-              정말로 "{selectedGroup?.name}" 그룹을 삭제하시겠습니까?
+              정말로 &quot;{selectedGroup?.name}&quot; 그룹을 삭제하시겠습니까?
               이 작업은 되돌릴 수 없으며, 그룹의 모든 게시글과 댓글도 함께 삭제됩니다.
             </AlertDialogDescription>
           </AlertDialogHeader>

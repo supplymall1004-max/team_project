@@ -206,7 +206,7 @@ export function PostsTable() {
           <AlertDialogHeader>
             <AlertDialogTitle>게시글 삭제 확인</AlertDialogTitle>
             <AlertDialogDescription>
-              정말로 "{selectedPost?.title}" 게시글을 삭제하시겠습니까?
+              정말로 &quot;{selectedPost?.title}&quot; 게시글을 삭제하시겠습니까?
               이 작업은 되돌릴 수 없으며, 게시글의 모든 댓글과 좋아요도 함께 삭제됩니다.
             </AlertDialogDescription>
           </AlertDialogHeader>

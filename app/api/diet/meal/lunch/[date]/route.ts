@@ -127,8 +127,8 @@ export async function GET(
       console.log('[Lunch Meal API] 구성품 목록:', compositionSummary);
       
       try {
-        const { loadAllStaticRecipes, searchRecipes } = await import("@/lib/mfds/recipe-loader");
-        const allMfdsRecipes = loadAllStaticRecipes();
+        const { loadAllRecipes, searchRecipes } = await import("@/lib/mfds/recipe-loader");
+        const allMfdsRecipes = loadAllRecipes();
         
         // 각 구성품 제목으로 식약처 레시피 찾기
         const foundRecipes: RecipeDetailForDiet[] = [];

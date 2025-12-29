@@ -67,7 +67,7 @@ export function RecipeBlogSteps({ steps }: RecipeBlogStepsProps) {
                 </div>
               </div>
 
-              {/* 이미지 (식약처 API 이미지 우선 사용) */}
+              {/* 이미지 (식약처 레시피 이미지 우선 사용) */}
               {(step.foodsafety_manual_img || step.image_url) && (
                 <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-gray-100 mt-4">
                   <Image

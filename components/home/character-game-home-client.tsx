@@ -326,7 +326,7 @@ export function CharacterGameHomeClient({
               rel="noopener noreferrer"
               className="hover:text-gray-300 underline"
             >
-              "Modern apartment interior"
+              &quot;Modern apartment interior&quot;
             </a>
             {" "}by{" "}
             <a 

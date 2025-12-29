@@ -10,7 +10,7 @@
  */
 
 // 동적 렌더링 설정: 빌드 타임에 정적 생성하지 않고 런타임에 렌더링
-// MFDS API 호출로 인한 빌드 타임아웃 방지
+// 정적 파일 기반 시스템 사용
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 

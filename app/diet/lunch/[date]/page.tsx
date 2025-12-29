@@ -553,7 +553,7 @@ export default function LunchDetailPage() {
                 </Card>
               )}
 
-              {/* 식약처 API 데이터 시각화 (개인 식단만) */}
+              {/* 식약처 레시피 데이터 시각화 (개인 식단만) */}
               {activeTab === 'self' && mealData && (
                 <Card>
                   <CardHeader>

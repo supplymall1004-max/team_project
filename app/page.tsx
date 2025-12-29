@@ -44,7 +44,7 @@ function SectionSkeleton() {
   );
 }
 
-// 동적 렌더링 강제 (MFDS API 등 외부 API 사용으로 인해)
+// 동적 렌더링 강제 (정적 파일 기반 시스템 사용)
 export const dynamic = 'force-dynamic';
 
 // 홈 페이지 로딩 스켈레톤

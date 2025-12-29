@@ -44,7 +44,7 @@ export class CharacterGameBridge {
    */
   private setupMessageListener(): void {
     // Unity에서 JavaScript 함수 호출 시 처리
-    // @ts-ignore
+    // @ts-expect-error - Unity에서 동적으로 주입되는 전역 함수
     window.ReceiveMessageFromUnity = (method: string, data: string) => {
       this.handleUnityMessage(method, data ? JSON.parse(data) : null);
     };
@@ -174,7 +174,7 @@ export class CharacterGameBridge {
     this.unityInstance = null;
     this.messageQueue = [];
     this.eventListeners.clear();
-    // @ts-ignore
+    // @ts-expect-error - Unity 인스턴스 정리
     delete window.ReceiveMessageFromUnity;
   }
 }

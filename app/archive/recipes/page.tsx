@@ -9,7 +9,7 @@
  */
 
 // 동적 렌더링 설정: 빌드 타임에 정적 생성하지 않고 런타임에 렌더링
-// MFDS API 호출로 인한 빌드 타임아웃 방지
+// 정적 파일 기반 시스템 사용
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -22,6 +22,7 @@ import { BabyRecipeList } from '@/components/baby-recipes/baby-recipe-list';
 import { GruelRecipeList } from '@/components/gruel-recipes/gruel-recipe-list';
 import { SpecialRecipeList } from '@/components/special-recipes/special-recipe-list';
 import { VeganRecipeList } from '@/components/vegan-recipes/vegan-recipe-list';
+import { MfdsRecipeSection } from '@/components/mfds-recipes/mfds-recipe-section';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LoadingSpinner } from '@/components/loading-spinner';

@@ -14,12 +14,12 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { motion } from 'framer-motion';
 import { PremiumBanner } from "./premium-banner";
 import { PremiumStatusBanner } from "./premium-status-banner";
 import { getCurrentSubscription } from '@/actions/payments/get-subscription';
-import { useGameMenu } from "./game-menu-context";
+import { GameMenuContext } from "./game-menu-context";
 
 interface FixedHeaderProps {
   premiumBannerText?: string;
@@ -57,13 +57,8 @@ export function FixedHeader({
   const [isLoading, setIsLoading] = useState(true);
   
   // Context에서 메뉴 상태 가져오기 (Provider가 있으면 사용)
-  let gameMenuContext: ReturnType<typeof useGameMenu> | undefined;
-  try {
-    gameMenuContext = useGameMenu();
-  } catch {
-    // Context가 없으면 props 사용 (다른 페이지에서 사용할 때)
-    gameMenuContext = undefined;
-  }
+  // React Hooks 규칙 준수: useContext는 항상 최상위에서 호출
+  const gameMenuContext = useContext(GameMenuContext);
   
   const onMenuToggle = externalOnMenuToggle || gameMenuContext?.toggleMenu;
   const isMenuOpen = externalIsMenuOpen !== undefined ? externalIsMenuOpen : (gameMenuContext?.isMenuOpen || false);

@@ -1,17 +1,20 @@
 /**
  * @file recipe-merger.ts
- * @description DB 레시피와 식약처 정적 파일 레시피 병합 로직
+ * @description DB 레시피와 식약처 정적 파일 레시피 병합 로직 (레거시)
  *
- * 주요 기능:
+ * ⚠️ 주의: 이 파일은 더 이상 사용되지 않습니다.
+ * 모든 레시피 병합은 lib/diet/queries.ts에서 직접 배열 병합([...dbRecipes, ...mfdsRecipes])을 통해 수행됩니다.
+ * 
+ * 주요 기능 (레거시):
  * 1. DB 레시피와 식약처 정적 파일 레시피를 병합
  * 2. 중복 제거 (slug 또는 foodsafety_rcp_seq 기준)
  * 3. 영양 정보 통합 (DB 우선, 없으면 정적 파일 데이터 사용)
  * 4. 재료 정보 통합
- * 
- * 참고: 현재는 사용되지 않으며, lib/diet/queries.ts에서 직접 병합을 수행합니다.
  */
 
 import type { RecipeListItem } from "@/types/recipe";
+// 레거시 타입: 실제로는 사용되지 않지만 타입 정의를 위해 유지
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { MfdsRecipeWithNutrition } from "./mfds-recipe-fetcher";
 
 export interface MergedRecipe extends RecipeListItem {
@@ -29,9 +32,10 @@ export interface MergedRecipe extends RecipeListItem {
 }
 
 /**
- * DB 레시피와 식약처 정적 파일 레시피를 병합합니다.
+ * DB 레시피와 식약처 정적 파일 레시피를 병합합니다 (레거시).
  * 
- * 참고: 현재는 사용되지 않습니다. lib/diet/queries.ts에서 직접 병합을 수행합니다.
+ * ⚠️ 주의: 이 함수는 더 이상 사용되지 않습니다.
+ * lib/diet/queries.ts에서 직접 배열 병합([...dbRecipes, ...mfdsRecipes])을 사용합니다.
  */
 export function mergeRecipes(
   dbRecipes: (RecipeListItem & {

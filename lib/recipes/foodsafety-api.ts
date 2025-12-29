@@ -1,8 +1,13 @@
 /**
  * @file foodsafety-api.ts
- * @description 식약처 레시피 API 통합 서비스
+ * @description 식약처 레시피 API 통합 서비스 (레거시)
  *
- * 주요 기능:
+ * ⚠️ 주의: 이 파일은 더 이상 애플리케이션 코드에서 사용되지 않습니다.
+ * 모든 식단 생성은 정적 파일(@/lib/mfds/recipe-loader)을 통해 수행됩니다.
+ * 
+ * 이 파일은 스크립트(scripts/collect-mfds-recipes.ts, scripts/test-mfds-api.ts)에서만 사용됩니다.
+ * 
+ * 주요 기능 (레거시):
  * 1. 식약처 API 호출 및 데이터 조회
  * 2. API 응답 타입 정의
  * 3. 에러 처리 및 재시도 로직

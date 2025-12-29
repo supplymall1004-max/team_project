@@ -564,6 +564,7 @@ async function calculateStreakQuestProgress(
 export function getQuestsByDataType(
   dataType: "medication" | "activity" | "sleep" | "checkup" | "vaccination"
 ): Quest[] {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { DAILY_QUESTS, WEEKLY_QUESTS } = require("./quest-system");
 
   const allQuests = [...DAILY_QUESTS, ...WEEKLY_QUESTS];

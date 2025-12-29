@@ -189,7 +189,7 @@ export default function FridgeDefensePage() {
               <div className="flex items-start gap-3">
                 <span className="text-xl">🎮</span>
                 <div>
-                  <strong className="text-gray-800">게임 시작</strong> - 왼쪽 사이드바 하단의 "게임 시작" 버튼을 클릭하여 게임을 시작하세요!
+                  <strong className="text-gray-800">게임 시작</strong> - 왼쪽 사이드바 하단의 &quot;게임 시작&quot; 버튼을 클릭하여 게임을 시작하세요!
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -229,7 +229,7 @@ export default function FridgeDefensePage() {
                 <li>경로 근처에 타워를 배치하면 더 많은 적을 공격할 수 있습니다!</li>
                 <li>타워를 업그레이드하면 데미지와 범위가 증가하므로, 효율적인 전략입니다!</li>
                 <li>웨이브가 올라갈수록 경로 수가 증가하므로, 여러 경로를 커버할 수 있도록 타워를 배치하세요!</li>
-                <li>특수 스킬 "비타민 충격파"는 위기 상황에서 사용하면 효과적입니다!</li>
+                <li>특수 스킬 &quot;비타민 충격파&quot;는 위기 상황에서 사용하면 효과적입니다!</li>
                 <li>적이 타워를 공격할 수 있으므로, 타워의 체력을 관리하세요!</li>
                 <li>최대 타워 개수는 15개이므로, 효율적인 배치가 중요합니다!</li>
                 <li>오늘의 식단에 포함된 타워는 공격 속도가 30% 증가하므로, 이를 활용하세요!</li>

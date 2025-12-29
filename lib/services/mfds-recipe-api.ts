@@ -1,15 +1,20 @@
 /**
  * @file mfds-recipe-api.ts
- * @description 식약처 레시피 API 서비스 모듈
+ * @description 식약처 레시피 API 서비스 모듈 (레거시)
  * 
- * 주요 기능:
+ * ⚠️ 주의: 이 파일은 더 이상 애플리케이션 코드에서 사용되지 않습니다.
+ * 모든 식단 생성은 정적 파일(@/lib/mfds/recipe-loader)을 통해 수행됩니다.
+ * 
+ * 이 파일은 스크립트(scripts/collect-mfds-recipes.ts)에서만 사용됩니다.
+ * 
+ * 주요 기능 (레거시):
  * 1. 식약처 API를 통한 레시피 목록 조회
  * 2. 영양 성분 정보 파싱
  * 3. 조리 과정 단계 추출
  * 4. 해시태그 및 재료 정보 파싱
  * 
  * @dependencies
- * - 환경 변수: FOOD_SAFETY_RECIPE_API_KEY (기존 프로젝트와 동일한 환경 변수 사용)
+ * - 환경 변수: FOOD_SAFETY_RECIPE_API_KEY (스크립트 실행 시 필요)
  */
 
 const BASE_URL = "http://openapi.foodsafetykorea.go.kr/api";

@@ -136,7 +136,7 @@ export async function getRecipes(
 
 /**
  * 레시피 상세 조회 (slug 기반)
- * 하이브리드 방식: DB 우선 조회, 없으면 식약처 API 호출 후 저장
+ * DB 우선 조회, 없으면 정적 파일에서 로드 (app/recipes/[slug]/page.tsx에서 처리)
  */
 export async function getRecipeBySlug(slug: string): Promise<RecipeDetail | null> {
   console.groupCollapsed("[RecipeQueries] 레시피 상세 조회");

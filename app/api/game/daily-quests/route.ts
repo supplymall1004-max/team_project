@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const supabase = getServiceRoleClient();
 
     // 일일 퀘스트 진행 상황 조회
-    let query = supabase
+    const query = supabase
       .from("daily_quests")
       .select("quest_id, progress, target, completed, completed_at, quest_date")
       .eq("user_id", user.id)
