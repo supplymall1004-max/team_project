@@ -37,7 +37,16 @@ export async function GET(request: NextRequest) {
     
     console.log("테스트 URL:", testUrl.replace(apiKey, "***KEY***")); // 보안을 위해 키는 숨김
 
-    const response = await fetch(testUrl);
+    // 타임아웃 설정 (60초)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+    const response = await fetch(testUrl, {
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    
     const data = await response.json();
 
     console.log("응답 상태:", response.status);

@@ -151,6 +151,14 @@ export async function HomeLanding() {
       gradient: "bg-gradient-to-br from-blue-400 via-cyan-500 to-blue-600",
     },
     {
+      title: "뇌 훈련 숫자맞추기",
+      description: "코드 브레이커 게임",
+      href: "/game/codebreaker",
+      iconSrc: "/icons/16.png",
+      color: "bg-purple-500",
+      gradient: "bg-gradient-to-br from-purple-500 via-pink-500 to-purple-600",
+    },
+    {
       title: "유틸리티",
       description: "편리한 도구들",
       href: "/game/fridge-guardian",

@@ -17,6 +17,9 @@ const buildRemotePatterns = () => {
     { hostname: "buly.kr" },
     // 유튜브 썸네일 이미지 호스트 (음식 동화 동영상용)
     { hostname: "img.youtube.com" },
+    // 식약처 레시피 이미지 호스트
+    { hostname: "www.foodsafetykorea.go.kr", protocol: "http" },
+    { hostname: "www.foodsafetykorea.go.kr", protocol: "https" },
   ];
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

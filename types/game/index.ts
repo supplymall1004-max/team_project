@@ -4,4 +4,5 @@
  */
 
 export * from "./character-game-events";
+export * from "./codebreaker";
 

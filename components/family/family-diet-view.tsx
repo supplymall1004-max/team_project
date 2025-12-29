@@ -43,10 +43,10 @@ export function FamilyDietView({
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [memberStates, setMemberStates] = useState<FamilyMember[]>(familyMembers);
+  const [memberStates, setMemberStates] = useState<FamilyMember[]>(Array.isArray(familyMembers) ? familyMembers : []);
 
   useEffect(() => {
-    setMemberStates(familyMembers);
+    setMemberStates(Array.isArray(familyMembers) ? familyMembers : []);
   }, [familyMembers]);
 
   const includedCount = useMemo(
@@ -133,13 +133,139 @@ export function FamilyDietView({
     fetchDietData();
   }, [fetchDietData]);
 
+  // API 응답을 DailyDietPlan 형식으로 변환하는 헬퍼 함수
+  const convertApiMealToDailyDietPlan = (apiMeal: any): import("@/types/recipe").MealComposition | import("@/types/recipe").RecipeDetailForDiet | null => {
+    if (!apiMeal) return null;
+    
+    // 배열인 경우 첫 번째 항목 사용 (또는 MealComposition으로 변환)
+    if (Array.isArray(apiMeal)) {
+      if (apiMeal.length === 0) return null;
+      
+      // 여러 항목이 있으면 MealComposition으로 변환
+      if (apiMeal.length > 1) {
+        const rice = apiMeal.find((m: any) => m.title?.includes("밥"));
+        const sides = apiMeal.filter((m: any) => !m.title?.includes("밥") && !m.title?.includes("국") && !m.title?.includes("찌개"));
+        const soup = apiMeal.find((m: any) => m.title?.includes("국") || m.title?.includes("찌개"));
+        
+        const totalNutrition = apiMeal.reduce((acc: any, meal: any) => ({
+          calories: acc.calories + (meal.nutrition?.calories || 0),
+          protein: acc.protein + (meal.nutrition?.protein || 0),
+          carbs: acc.carbs + (meal.nutrition?.carbs || 0),
+          fat: acc.fat + (meal.nutrition?.fat || 0),
+          sodium: acc.sodium + (meal.nutrition?.sodium || 0),
+          fiber: acc.fiber + (meal.nutrition?.fiber || 0),
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, fiber: 0 });
+        
+        return {
+          rice: rice ? {
+            id: rice.recipe_id || undefined,
+            title: rice.title,
+            description: rice.description || "",
+            source: "database",
+            ingredients: Array.isArray(rice.ingredients) ? rice.ingredients : [],
+            instructions: rice.instructions || "",
+            nutrition: rice.nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, fiber: 0 },
+          } : undefined,
+          sides: sides.map((side: any) => ({
+            id: side.recipe_id || undefined,
+            title: side.title,
+            description: side.description || "",
+            source: "database",
+            ingredients: Array.isArray(side.ingredients) ? side.ingredients : [],
+            instructions: side.instructions || "",
+            nutrition: side.nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, fiber: 0 },
+          })),
+          soup: soup ? {
+            id: soup.recipe_id || undefined,
+            title: soup.title,
+            description: soup.description || "",
+            source: "database",
+            ingredients: Array.isArray(soup.ingredients) ? soup.ingredients : [],
+            instructions: soup.instructions || "",
+            nutrition: soup.nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, fiber: 0 },
+          } : undefined,
+          totalNutrition,
+        };
+      }
+      
+      // 단일 항목인 경우 RecipeDetailForDiet로 변환
+      const meal = apiMeal[0];
+      return {
+        id: meal.recipe_id || undefined,
+        title: meal.title,
+        description: meal.description || "",
+        source: "database",
+        ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
+        instructions: meal.instructions || "",
+        nutrition: meal.nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, fiber: 0 },
+      };
+    }
+    
+    // 이미 객체인 경우 그대로 반환 (nutrition이 있는지 확인)
+    if (apiMeal.nutrition) {
+      return apiMeal;
+    }
+    
+    // nutrition이 없는 경우 기본값 추가
+    return {
+      ...apiMeal,
+      nutrition: apiMeal.nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, fiber: 0 },
+    };
+  };
+
+  // API 응답을 DailyDietPlan 형식으로 변환
+  const convertApiPlanToDailyDietPlan = (apiPlan: any, date: string): import("@/types/recipe").DailyDietPlan | null => {
+    if (!apiPlan || typeof apiPlan !== 'object') return null;
+    
+    // 영양소 합산
+    const calculateTotalNutrition = () => {
+      const meals = [apiPlan.breakfast, apiPlan.lunch, apiPlan.dinner, apiPlan.snack].filter(Boolean);
+      const allMeals = meals.flatMap((meal: any) => Array.isArray(meal) ? meal : [meal]);
+      
+      return allMeals.reduce((acc: any, meal: any) => {
+        const nutrition = meal.nutrition || {};
+        return {
+          calories: acc.calories + (nutrition.calories || 0),
+          protein: acc.protein + (nutrition.protein || 0),
+          carbs: acc.carbs + (nutrition.carbs || 0),
+          fat: acc.fat + (nutrition.fat || 0),
+          sodium: acc.sodium + (nutrition.sodium || 0),
+          fiber: acc.fiber + (nutrition.fiber || 0),
+        };
+      }, { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, fiber: 0 });
+    };
+    
+    return {
+      date,
+      breakfast: convertApiMealToDailyDietPlan(apiPlan.breakfast),
+      lunch: convertApiMealToDailyDietPlan(apiPlan.lunch),
+      dinner: convertApiMealToDailyDietPlan(apiPlan.dinner),
+      snack: convertApiMealToDailyDietPlan(apiPlan.snack),
+      totalNutrition: calculateTotalNutrition(),
+    };
+  };
+
   // FamilyDietPlan 형식으로 변환
-  const familyDietPlan: FamilyDietPlan = dietData && dietData.plans ? {
-    date: dietData.date,
+  const familyDietPlan: FamilyDietPlan = dietData && dietData.plans && typeof dietData.plans === 'object' ? {
+    date: dietData.date || targetDate,
     individualPlans: Object.fromEntries(
-      Object.entries(dietData.plans || {}).filter(([key]) => key !== 'unified')
-    ),
-    unifiedPlan: dietData.plans?.unified || null,
+      Object.entries(dietData.plans || {})
+        .filter(([key]) => key !== 'unified')
+        .map(([memberId, plan]: [string, any]) => [
+          memberId,
+          convertApiPlanToDailyDietPlan(plan, dietData.date || targetDate) || {
+            date: dietData.date || targetDate,
+            breakfast: null,
+            lunch: null,
+            dinner: null,
+            snack: null,
+            totalNutrition: { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, fiber: 0 },
+          }
+        ])
+    ) as { [memberId: string]: import("@/types/recipe").DailyDietPlan },
+    unifiedPlan: dietData.plans?.unified 
+      ? convertApiPlanToDailyDietPlan(dietData.plans.unified, dietData.date || targetDate)
+      : null,
   } : {
     date: targetDate,
     individualPlans: {},

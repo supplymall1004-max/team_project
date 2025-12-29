@@ -5,7 +5,6 @@
  */
 
 import { RoyalRecipe } from "@/lib/royal-recipes/parser";
-import { getRecipeImages } from "@/lib/royal-recipes/images";
 import { RoyalRecipeTitle } from "./royal-recipe-title";
 
 /**
@@ -28,16 +27,13 @@ function getTitleFromImage(imagePath: string | null): string | null {
 
 interface RoyalRecipeDetailProps {
   recipe: RoyalRecipe;
+  images: {
+    palace: string | null;
+    modern: string | null;
+  };
 }
 
-export function RoyalRecipeDetail({ recipe }: RoyalRecipeDetailProps) {
-  let images = { palace: null as string | null, modern: null as string | null };
-  try {
-    images = getRecipeImages(recipe);
-  } catch (error) {
-    console.error("[RoyalRecipeDetail] 이미지 로드 실패:", error);
-  }
-  
+export function RoyalRecipeDetail({ recipe, images }: RoyalRecipeDetailProps) {
   const { content } = recipe;
 
   return (

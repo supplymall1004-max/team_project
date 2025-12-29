@@ -70,14 +70,14 @@ export function IndividualDietTabs({
   // 탭 구성원 목록 생성
   const tabMembers = [
     { id: "user", name: userName, isUser: true, age: null, diseases: [], allergies: [] },
-    ...familyMembers.map(member => ({
+    ...(Array.isArray(familyMembers) ? familyMembers.map(member => ({
       id: member.id,
       name: member.name,
       isUser: false,
-      age: calculateAge(member.birth_date).years,
-      diseases: member.diseases || [],
-      allergies: member.allergies || [],
-    }))
+      age: member.birth_date ? calculateAge(member.birth_date).years : null,
+      diseases: Array.isArray(member.diseases) ? member.diseases : [],
+      allergies: Array.isArray(member.allergies) ? member.allergies : [],
+    })) : [])
   ];
 
   // 특정 구성원의 식단 데이터 가져오기
@@ -133,7 +133,7 @@ export function IndividualDietTabs({
                         {member.name}님의 식단
                       </h3>
                       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4">
-                        {member.diseases && member.diseases.length > 0 && (
+                        {Array.isArray(member.diseases) && member.diseases.length > 0 && (
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-base font-bold text-gray-900">질병:</span>
                             {member.diseases.map((disease, index) => (
@@ -143,7 +143,7 @@ export function IndividualDietTabs({
                             ))}
                           </div>
                         )}
-                        {member.allergies && member.allergies.length > 0 && (
+                        {Array.isArray(member.allergies) && member.allergies.length > 0 && (
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-base font-bold text-gray-900">알레르기:</span>
                             {member.allergies.map((allergy, index) => (

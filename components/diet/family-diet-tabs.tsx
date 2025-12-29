@@ -35,7 +35,7 @@ export function FamilyDietTabs({
   onRegenerate,
   regenerating = false,
   onMemberIncludeChange,
-  includedCount = familyMembers.length,
+  includedCount = Array.isArray(familyMembers) ? familyMembers.length : 0,
 }: FamilyDietTabsProps) {
   const [activeTab, setActiveTab] = useState<string>("individual");
 
@@ -62,7 +62,7 @@ export function FamilyDietTabs({
             <User className="h-4 w-4" />
             개인별 식단
             <Badge variant="secondary" className="ml-1">
-              {familyMembers.length + 1}명
+              {(Array.isArray(familyMembers) ? familyMembers.length : 0) + 1}명
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="unified" className="flex items-center gap-2">

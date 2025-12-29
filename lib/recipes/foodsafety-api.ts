@@ -125,7 +125,9 @@ function buildApiUrl(
   endIdx: number,
   rcpSeq?: string
 ): string {
-  const baseUrl = "http://openapi.foodsafetykorea.go.kr/api";
+  // HTTP와 HTTPS 모두 시도 가능하도록 설정
+  // 일부 환경에서는 HTTPS가 더 안정적일 수 있음
+  const baseUrl = process.env.MFDS_API_BASE_URL || "http://openapi.foodsafetykorea.go.kr/api";
   
   if (rcpSeq) {
     // 특정 레시피 조회: RCP_SEQ로 필터링
@@ -153,14 +155,19 @@ async function fetchWithRetry(
       console.groupCollapsed(`[FoodSafetyAPI] API 호출 시도 ${attempt}/${maxRetries}`);
       console.log("URL:", url.replace(process.env.FOOD_SAFETY_RECIPE_API_KEY || "", "***KEY***"));
       
+      // 타임아웃 설정 (작은 배치 크기 사용 시 15초면 충분)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15초 (작은 배치용)
+
       const response = await fetch(url, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
-        // 타임아웃 설정 (10초로 단축)
-        signal: AbortSignal.timeout(10000),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
       
       console.log("응답 상태:", response.status);
       console.groupEnd();
@@ -186,7 +193,16 @@ async function fetchWithRetry(
       lastError = error instanceof Error ? error : new Error(String(error));
       
       // 타임아웃이나 네트워크 에러인 경우 재시도
-      if (attempt < maxRetries && (error instanceof Error && error.name === "TimeoutError" || error instanceof TypeError)) {
+      const isRetryableError = 
+        error instanceof Error && (
+          error.name === "TimeoutError" || 
+          error.name === "AbortError" ||
+          error instanceof TypeError ||
+          error.message.includes("fetch failed") ||
+          error.message.includes("network")
+        );
+
+      if (attempt < maxRetries && isRetryableError) {
         console.log(`재시도 대기 중... (${retryDelay}ms)`);
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         retryDelay *= 2;
@@ -263,12 +279,24 @@ export async function fetchFoodSafetyRecipes(
       totalCount,
     };
   } catch (error) {
-    console.error("❌ 식약처 API 호출 실패:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("❌ 식약처 API 호출 실패:", errorMessage);
+    
+    // 타임아웃 에러인 경우 더 명확한 메시지
+    if (error instanceof Error && (error.name === "AbortError" || error.message.includes("aborted"))) {
+      console.error("⚠️ API 호출 타임아웃: 식약처 API 서버가 응답하지 않습니다.");
+      console.error("   가능한 원인:");
+      console.error("   1. 네트워크 연결 문제");
+      console.error("   2. 식약처 API 서버 장애");
+      console.error("   3. API 키가 유효하지 않음");
+      console.error("   4. 방화벽/프록시 차단");
+    }
+    
     console.groupEnd();
     
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage,
     };
   }
 }

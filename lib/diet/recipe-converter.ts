@@ -22,7 +22,7 @@ export async function convertRecipeToRecipeDetailForDiet(
     unit: ing.unit || "",
   }));
 
-  // 영양 정보 변환 (식약처 API 필드 사용)
+  // 영양 정보 변환 (DB에 저장된 식약처 레시피 필드 사용)
   const nutrition: RecipeNutrition = {
     calories: recipe.foodsafety_info_eng ?? 0,
     protein: recipe.foodsafety_info_pro ?? 0,

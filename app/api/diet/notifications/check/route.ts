@@ -204,13 +204,156 @@ export async function GET(request: NextRequest) {
 
     // 모든 조건 만족 - 알림 표시
     console.log("✅ 알림 표시 조건 만족");
-    console.groupEnd();
+    
+    // 오늘 식단 데이터 가져오기 (팝업에 표시하기 위해)
+    console.log("📋 오늘 식단 데이터 조회 중...");
+    try {
+      const { getDailyDietPlan } = await import("@/lib/diet/queries");
+      const dailyDietPlan = await getDailyDietPlan(supabaseUserId, today);
+      
+      // 가족 식단도 확인 (통합 식단 포함)
+      const { data: familyPlans, error: familyError } = await supabase
+        .from("diet_plans")
+        .select("*")
+        .eq("user_id", supabaseUserId)
+        .eq("plan_date", today)
+        .order("created_at", { ascending: true });
 
-    return NextResponse.json({
-      shouldShow: true,
-      today,
-      dietsCount: todaysDiets.length,
-    });
+      // plans 형식으로 변환 (FamilyDietPlan 형식)
+      const plans: Record<string, any> = {};
+      
+      if (dailyDietPlan) {
+        // 개인 식단 추가
+        plans.user = {
+          breakfast: dailyDietPlan.breakfast ? [{
+            recipe_id: dailyDietPlan.breakfast.recipe_id,
+            title: dailyDietPlan.breakfast.recipe?.title || dailyDietPlan.breakfast.compositionSummary?.[0] || '아침 식사',
+            description: '',
+            ingredients: [],
+            instructions: [],
+            nutrition: {
+              calories: dailyDietPlan.breakfast.calories || 0,
+              protein: dailyDietPlan.breakfast.protein || 0,
+              carbs: dailyDietPlan.breakfast.carbohydrates || 0,
+              fat: dailyDietPlan.breakfast.fat || 0,
+              sodium: dailyDietPlan.breakfast.sodium || 0,
+              fiber: 0,
+            },
+          }] : null,
+          lunch: dailyDietPlan.lunch ? [{
+            recipe_id: dailyDietPlan.lunch.recipe_id,
+            title: dailyDietPlan.lunch.recipe?.title || dailyDietPlan.lunch.compositionSummary?.[0] || '점심 식사',
+            description: '',
+            ingredients: [],
+            instructions: [],
+            nutrition: {
+              calories: dailyDietPlan.lunch.calories || 0,
+              protein: dailyDietPlan.lunch.protein || 0,
+              carbs: dailyDietPlan.lunch.carbohydrates || 0,
+              fat: dailyDietPlan.lunch.fat || 0,
+              sodium: dailyDietPlan.lunch.sodium || 0,
+              fiber: 0,
+            },
+          }] : null,
+          dinner: dailyDietPlan.dinner ? [{
+            recipe_id: dailyDietPlan.dinner.recipe_id,
+            title: dailyDietPlan.dinner.recipe?.title || dailyDietPlan.dinner.compositionSummary?.[0] || '저녁 식사',
+            description: '',
+            ingredients: [],
+            instructions: [],
+            nutrition: {
+              calories: dailyDietPlan.dinner.calories || 0,
+              protein: dailyDietPlan.dinner.protein || 0,
+              carbs: dailyDietPlan.dinner.carbohydrates || 0,
+              fat: dailyDietPlan.dinner.fat || 0,
+              sodium: dailyDietPlan.dinner.sodium || 0,
+              fiber: 0,
+            },
+          }] : null,
+          snack: dailyDietPlan.snack ? [{
+            recipe_id: dailyDietPlan.snack.recipe_id,
+            title: dailyDietPlan.snack.recipe?.title || dailyDietPlan.snack.compositionSummary?.[0] || '간식',
+            description: '',
+            ingredients: [],
+            instructions: [],
+            nutrition: {
+              calories: dailyDietPlan.snack.calories || 0,
+              protein: dailyDietPlan.snack.protein || 0,
+              carbs: dailyDietPlan.snack.carbohydrates || 0,
+              fat: dailyDietPlan.snack.fat || 0,
+              sodium: dailyDietPlan.snack.sodium || 0,
+              fiber: 0,
+            },
+          }] : null,
+        };
+      }
+
+      // 통합 식단 확인
+      if (familyPlans && familyPlans.length > 0) {
+        const unifiedPlans = familyPlans.filter(p => p.is_unified === true);
+        if (unifiedPlans.length > 0) {
+          const unifiedMeals: Record<string, any[]> = {
+            breakfast: [],
+            lunch: [],
+            dinner: [],
+            snack: [],
+          };
+          
+          unifiedPlans.forEach(plan => {
+            const mealType = plan.meal_type;
+            if (mealType && unifiedMeals[mealType]) {
+              unifiedMeals[mealType].push({
+                recipe_id: plan.recipe_id,
+                title: plan.recipe_title || `${mealType} 식사`,
+                description: plan.recipe_description || '',
+                ingredients: plan.ingredients || [],
+                instructions: plan.instructions || [],
+                nutrition: {
+                  calories: plan.calories || 0,
+                  protein: plan.protein_g || plan.protein || 0,
+                  carbs: plan.carbs_g || plan.carbohydrates || 0,
+                  fat: plan.fat_g || plan.fat || 0,
+                  sodium: plan.sodium_mg || plan.sodium || 0,
+                  fiber: plan.fiber_g || 0,
+                },
+              });
+            }
+          });
+          
+          plans.unified = {
+            breakfast: unifiedMeals.breakfast.length > 0 ? unifiedMeals.breakfast : null,
+            lunch: unifiedMeals.lunch.length > 0 ? unifiedMeals.lunch : null,
+            dinner: unifiedMeals.dinner.length > 0 ? unifiedMeals.dinner : null,
+            snack: unifiedMeals.snack.length > 0 ? unifiedMeals.snack : null,
+          };
+        }
+      }
+
+      console.log("✅ 식단 데이터 조회 완료:", {
+        hasUserPlan: !!plans.user,
+        hasUnifiedPlan: !!plans.unified,
+      });
+
+      console.groupEnd();
+      return NextResponse.json({
+        shouldShow: true,
+        today,
+        date: today,
+        dietsCount: todaysDiets.length,
+        plans,
+      });
+    } catch (dietDataError) {
+      console.error("❌ 식단 데이터 조회 실패:", dietDataError);
+      // 식단 데이터 조회 실패해도 알림은 표시 (데이터 없이)
+      console.groupEnd();
+      return NextResponse.json({
+        shouldShow: true,
+        today,
+        date: today,
+        dietsCount: todaysDiets.length,
+        plans: {},
+      });
+    }
 
   } catch (error) {
     console.error("❌ 알림 확인 오류:", error);

@@ -114,7 +114,8 @@ export async function generateFamilyDietWithWeeklyContext(
     familyMembers,
     targetDate,
     usedByCategory,
-    preferredRiceType
+    preferredRiceType,
+    availableRecipes // 레시피 목록 전달 (정적 파일 포함)
   );
 
   console.log("\n✅ 가족 식단 생성 완료");
@@ -153,9 +154,22 @@ export async function generateFamilyDiet(
 
   const individualPlans: { [memberId: string]: DailyDietPlan } = {};
 
+  // 레시피 목록 조회 (가족 식단 생성 전에 한 번만 조회 - 정적 파일 우선)
+  console.log("📚 가족 식단용 레시피 목록 조회 시작...");
+  const { getRecipesWithNutrition } = await import("./queries");
+  const recipes = await getRecipesWithNutrition();
+  console.log(`✅ 가족 식단용 레시피 목록 조회 완료: ${recipes.length}개`);
+  
+  const availableRecipes = recipes.length > 0 ? recipes : undefined;
+
   // 1. 사용자 본인 식단
   console.log("\n📋 사용자 본인 식단 생성...");
-  const userPlan = await generatePersonalDiet(userId, userProfile, targetDate);
+  const userPlan = await generatePersonalDiet(
+    userId, 
+    userProfile, 
+    targetDate,
+    availableRecipes // 레시피 목록 전달 (정적 파일 포함)
+  );
   individualPlans["user"] = userPlan;
 
   // 2. 가족 구성원별 식단 (반려동물 제외)
@@ -186,7 +200,8 @@ export async function generateFamilyDiet(
     const memberPlan = await generatePersonalDiet(
       userId,  // 사용자 ID (레시피 이력용)
       memberProfile,
-      targetDate
+      targetDate,
+      availableRecipes // 레시피 목록 전달 (정적 파일 포함)
     );
     
     individualPlans[member.id] = memberPlan;
@@ -201,7 +216,8 @@ export async function generateFamilyDiet(
       userId,
       userProfile,
       humanMembers,
-      targetDate
+      targetDate,
+      availableRecipes // 레시피 목록 전달 (정적 파일 포함)
     );
   }
 
@@ -222,7 +238,16 @@ async function generateUnifiedDiet(
   userId: string,
   userProfile: UserHealthProfile,
   familyMembers: FamilyMember[],
-  targetDate: string
+  targetDate: string,
+  availableRecipes?: Array<{
+    id: string;
+    title: string;
+    calories: number | null;
+    carbohydrates: number | null;
+    protein: number | null;
+    fat: number | null;
+    sodium: number | null;
+  }>
 ): Promise<DailyDietPlan> {
   console.group("🍽️ 통합 식단 생성");
 
@@ -302,7 +327,12 @@ async function generateUnifiedDiet(
     excludedFoods,
     allergies,
     recentlyUsed,
-    childCount > 0 // 어린이 식단 여부 전달
+    childCount > 0, // 어린이 식단 여부 전달
+    undefined, // usedByCategory
+    undefined, // preferredRiceType
+    undefined, // unifiedHealthProfile
+    undefined, // dailyNutrition
+    availableRecipes // 레시피 목록 전달 (정적 파일 포함)
   );
 
   const lunch = await selectUnifiedMealComposition(
@@ -311,7 +341,12 @@ async function generateUnifiedDiet(
     excludedFoods,
     allergies,
     recentlyUsed,
-    childCount > 0
+    childCount > 0,
+    undefined, // usedByCategory
+    undefined, // preferredRiceType
+    undefined, // unifiedHealthProfile
+    undefined, // dailyNutrition
+    availableRecipes // 레시피 목록 전달 (정적 파일 포함)
   );
 
   const dinner = await selectUnifiedMealComposition(
@@ -320,7 +355,12 @@ async function generateUnifiedDiet(
     excludedFoods,
     allergies,
     recentlyUsed,
-    childCount > 0
+    childCount > 0,
+    undefined, // usedByCategory
+    undefined, // preferredRiceType
+    undefined, // unifiedHealthProfile
+    undefined, // dailyNutrition
+    availableRecipes // 레시피 목록 전달 (정적 파일 포함)
   );
 
   // 6. 간식 (어린이가 있으면 어린이 우선, 없으면 일반)
@@ -420,7 +460,16 @@ async function generateUnifiedDietWithWeeklyContext(
     soup: Set<string>;
     snack: Set<string>;
   },
-  preferredRiceType?: string
+  preferredRiceType?: string,
+  availableRecipes?: Array<{
+    id: string;
+    title: string;
+    calories: number | null;
+    carbohydrates: number | null;
+    protein: number | null;
+    fat: number | null;
+    sodium: number | null;
+  }>
 ): Promise<DailyDietPlan> {
   // 통합 식단 생성 로직 (주간 컨텍스트 적용)
   console.group("🍽️ 가족 통합 식단 생성 (주간 컨텍스트)");
@@ -521,7 +570,8 @@ async function generateUnifiedDietWithWeeklyContext(
     usedByCategory, // 주간 컨텍스트
     preferredRiceType, // 밥 종류 다양화
     unifiedHealthProfile, // 통합 건강 프로필 (통합 필터링용)
-    dailyNutrition // 일일 영양소 추적기
+    dailyNutrition, // 일일 영양소 추적기
+    availableRecipes // 레시피 목록 전달 (정적 파일 포함)
   );
 
   // 아침 식사 레시피를 일일 추적기에 추가
@@ -542,7 +592,8 @@ async function generateUnifiedDietWithWeeklyContext(
     usedByCategory, // 주간 컨텍스트
     preferredRiceType, // 밥 종류 다양화
     unifiedHealthProfile, // 통합 건강 프로필 (통합 필터링용)
-    dailyNutrition // 일일 영양소 추적기
+    dailyNutrition, // 일일 영양소 추적기
+    availableRecipes // 레시피 목록 전달 (정적 파일 포함)
   );
 
   // 점심 식사 레시피를 일일 추적기에 추가
@@ -563,7 +614,8 @@ async function generateUnifiedDietWithWeeklyContext(
     usedByCategory, // 주간 컨텍스트
     preferredRiceType, // 밥 종류 다양화
     unifiedHealthProfile, // 통합 건강 프로필 (통합 필터링용)
-    dailyNutrition // 일일 영양소 추적기
+    dailyNutrition, // 일일 영양소 추적기
+    availableRecipes // 레시피 목록 전달 (정적 파일 포함)
   );
 
   // 저녁 식사 레시피를 일일 추적기에 추가
@@ -665,7 +717,16 @@ async function selectUnifiedMealComposition(
   },
   preferredRiceType?: string,
   unifiedHealthProfile?: UserHealthProfile, // 통합 건강 프로필 (통합 필터링용)
-  dailyNutrition?: DailyNutritionTracker // 일일 영양소 추적기
+  dailyNutrition?: DailyNutritionTracker, // 일일 영양소 추적기
+  availableRecipes?: Array<{
+    id: string;
+    title: string;
+    calories: number | null;
+    carbohydrates: number | null;
+    protein: number | null;
+    fat: number | null;
+    sodium: number | null;
+  }>
 ): Promise<MealComposition> {
   console.group(`🍽️ ${mealType.toUpperCase()} 통합 식사 구성`);
   console.log(`목표 칼로리: ${Math.round(targetCalories)}kcal`);
@@ -694,7 +755,8 @@ async function selectUnifiedMealComposition(
     excludedByCategory.rice, // 카테고리별 제외 목록
     preferredRiceType, // 선호 밥 종류
     unifiedHealthProfile, // 통합 건강 프로필 (통합 필터링용)
-    dailyNutrition // 일일 영양소 추적기
+    dailyNutrition, // 일일 영양소 추적기
+    availableRecipes // 레시피 목록 전달 (정적 파일 포함)
   );
 
   // 2. 반찬 3개 선택 (주간 컨텍스트 고려)
@@ -713,7 +775,8 @@ async function selectUnifiedMealComposition(
       excludedByCategory.side, // 카테고리별 제외 목록
       undefined, // preferredRiceType (반찬에는 해당 없음)
       unifiedHealthProfile, // 통합 건강 프로필 (통합 필터링용)
-      dailyNutrition // 일일 영양소 추적기
+      dailyNutrition, // 일일 영양소 추적기
+      availableRecipes // 레시피 목록 전달 (정적 파일 포함)
     );
     if (side) sides.push(side);
   }
@@ -730,7 +793,8 @@ async function selectUnifiedMealComposition(
     excludedByCategory.soup, // 카테고리별 제외 목록
     undefined, // preferredRiceType (국에는 해당 없음)
     unifiedHealthProfile, // 통합 건강 프로필 (통합 필터링용)
-    dailyNutrition // 일일 영양소 추적기
+    dailyNutrition, // 일일 영양소 추적기
+    availableRecipes // 레시피 목록 전달 (정적 파일 포함)
   );
 
   // 총 영양 정보
@@ -773,7 +837,16 @@ async function selectUnifiedDish(
   weeklyExcludedByCategory?: string[], // 주간 카테고리별 제외 목록
   preferredRiceType?: string, // 선호 밥 종류
   unifiedHealthProfile?: UserHealthProfile, // 통합 건강 프로필 (통합 필터링용)
-  dailyNutrition?: DailyNutritionTracker // 일일 영양소 추적기
+  dailyNutrition?: DailyNutritionTracker, // 일일 영양소 추적기
+  availableRecipes?: Array<{
+    id: string;
+    title: string;
+    calories: number | null;
+    carbohydrates: number | null;
+    protein: number | null;
+    fat: number | null;
+    sodium: number | null;
+  }>
 ): Promise<RecipeDetailForDiet | undefined> {
   console.log(`  - ${dishType} 선택 중 (목표: ${Math.round(targetCalories)}kcal)`);
   if (weeklyExcludedByCategory && weeklyExcludedByCategory.length > 0) {
@@ -783,11 +856,16 @@ async function selectUnifiedDish(
     console.log(`    선호 밥 종류: ${preferredRiceType}`);
   }
 
-  // 레시피 목록 조회 (데이터베이스 + 식약처 API)
-  console.log(`    📚 레시피 목록 조회 중...`);
-  const { getRecipesWithNutrition } = await import("./queries");
-  const recipes = await getRecipesWithNutrition();
-  console.log(`    ✅ 레시피 목록 조회 완료: ${recipes.length}개`);
+  // 레시피 목록 조회 (전달받은 레시피 목록 우선 사용, 없으면 조회)
+  let recipes = availableRecipes;
+  if (!recipes || recipes.length === 0) {
+    console.log(`    📚 레시피 목록이 없어 조회 중...`);
+    const { getRecipesWithNutrition } = await import("./queries");
+    recipes = await getRecipesWithNutrition();
+    console.log(`    ✅ 레시피 목록 조회 완료: ${recipes.length}개`);
+  } else {
+    console.log(`    ✅ 전달받은 레시피 목록 사용: ${recipes.length}개`);
+  }
   
   const excludeAll = [...excludeNames, ...(weeklyExcludedByCategory || [])];
   let candidates: RecipeDetailForDiet[] = [];
@@ -813,24 +891,32 @@ async function selectUnifiedDish(
             return true;
         }
       })
-      .map(recipe => ({
-        title: recipe.title,
-        description: "",
-        source: "database",
-        ingredients: [],
-        instructions: "",
-        nutrition: {
-          calories: recipe.calories || 0,
-          protein: recipe.protein || 0,
-          carbs: recipe.carbohydrates || 0,
-          fat: recipe.fat || 0,
-          fiber: 0,
-          sodium: recipe.sodium || 0,
-        },
-        dishType: [dishType],
-        mealType: [mealType],
-        emoji: dishType === "rice" ? "🍚" : dishType === "soup" ? "🍲" : "🍽️",
-      }))
+      .map(recipe => {
+        // 정적 파일 레시피인지 확인 (id가 foodsafety-로 시작하는 경우)
+        const isFoodsafetyRecipe = recipe.id && typeof recipe.id === 'string' && recipe.id.startsWith('foodsafety-');
+        const source = isFoodsafetyRecipe ? 'foodsafety' : 'database';
+        
+        return {
+          id: recipe.id || undefined,
+          title: recipe.title,
+          description: "",
+          source: source,
+          ingredients: [],
+          instructions: "",
+          nutrition: {
+            calories: recipe.calories || 0,
+            protein: recipe.protein || 0,
+            carbs: recipe.carbohydrates || 0,
+            fat: recipe.fat || 0,
+            fiber: recipe.fiber || 0, // 정적 파일 레시피에는 fiber 정보가 있을 수 있음
+            sodium: recipe.sodium || 0,
+          },
+          dishType: [dishType],
+          mealType: [mealType],
+          emoji: dishType === "rice" ? "🍚" : dishType === "soup" ? "🍲" : "🍽️",
+          imageUrl: recipe.thumbnail_url || undefined, // 정적 파일 레시피 이미지 URL
+        };
+      })
       .filter(recipe => {
         if (excludeAll.includes(recipe.title)) return false;
         return true;

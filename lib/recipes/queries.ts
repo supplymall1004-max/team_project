@@ -10,8 +10,8 @@
 
 import { createPublicSupabaseServerClient } from "@/lib/supabase/public-server";
 import { RecipeListItem, RecipeDetail, RecipeFilterState } from "@/types/recipe";
-import { fetchFoodSafetyRecipeBySeq } from "./foodsafety-api";
-import { saveFoodSafetyRecipeToDb } from "./foodsafety-service";
+// 식약처 레시피는 정적 파일 기반 시스템 사용 (로컬 파일에서 직접 로드)
+// API 호출 및 DB 저장 로직은 제거됨
 
 /**
  * 레시피 목록 조회 (필터링 및 정렬 지원)
@@ -228,31 +228,18 @@ export async function getRecipeBySlug(slug: string): Promise<RecipeDetail | null
       return result;
     }
 
-    // 3. DB에 없으면 식약처 API 호출 시도
-    // slug가 foodsafety-{RCP_SEQ} 형식인지 확인
-    if (slug.startsWith("foodsafety-")) {
-      const rcpSeq = slug.replace("foodsafety-", "");
-      console.log("식약처 API에서 레시피 조회 시도:", rcpSeq);
+    // 3. DB에 없으면 정적 파일에서 로드 시도
+    // 숫자 slug는 app/recipes/[slug]/page.tsx에서 정적 파일로 로드됨
+    // slug가 foodsafety-{RCP_SEQ} 형식인 경우도 정적 파일 시스템 사용
+    // API 호출 및 DB 저장 로직은 제거됨
 
-      const apiResult = await fetchFoodSafetyRecipeBySeq(rcpSeq);
-
-      if (apiResult.success && apiResult.data && apiResult.data.length > 0) {
-        const recipeRow = apiResult.data[0];
-        
-        // 식약처 레시피를 DB에 저장 (기본 사용자 ID 사용)
-        const defaultUserId = "00000000-0000-0000-0000-000000000000"; // 시스템 사용자
-        const savedRecipe = await saveFoodSafetyRecipeToDb(recipeRow, defaultUserId);
-
-        if (savedRecipe) {
-          console.log("식약처 레시피 저장 완료, 다시 조회");
-          console.groupEnd();
-          // 저장 후 다시 조회
-          return getRecipeBySlug(slug);
-        }
-      }
+    // 레시피를 찾지 못한 경우 (정상적인 상황일 수 있음 - 예: 경로 slug)
+    // 에러 대신 조용한 로깅
+    if (recipeError) {
+      console.warn("[RecipeQueries] 레시피 조회 실패:", recipeError.message || recipeError);
+    } else {
+      console.log("[RecipeQueries] 레시피를 찾을 수 없음 (slug:", slug, ")");
     }
-
-    console.error("recipe not found in DB or API", recipeError);
     console.groupEnd();
     return null;
   } catch (error) {

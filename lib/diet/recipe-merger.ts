@@ -1,12 +1,14 @@
 /**
  * @file recipe-merger.ts
- * @description DB 레시피와 식약처 API 레시피 병합 로직
+ * @description DB 레시피와 식약처 정적 파일 레시피 병합 로직
  *
  * 주요 기능:
- * 1. DB 레시피와 식약처 API 레시피를 병합
+ * 1. DB 레시피와 식약처 정적 파일 레시피를 병합
  * 2. 중복 제거 (slug 또는 foodsafety_rcp_seq 기준)
- * 3. 영양 정보 통합 (DB 우선, 없으면 API 데이터 사용)
+ * 3. 영양 정보 통합 (DB 우선, 없으면 정적 파일 데이터 사용)
  * 4. 재료 정보 통합
+ * 
+ * 참고: 현재는 사용되지 않으며, lib/diet/queries.ts에서 직접 병합을 수행합니다.
  */
 
 import type { RecipeListItem } from "@/types/recipe";
@@ -18,6 +20,7 @@ export interface MergedRecipe extends RecipeListItem {
   protein: number | null;
   fat: number | null;
   sodium: number | null;
+  fiber?: number | null; // 식이섬유
   potassium?: number | null; // 칼륨
   phosphorus?: number | null; // 인
   gi?: number | null; // GI 지수
@@ -26,7 +29,9 @@ export interface MergedRecipe extends RecipeListItem {
 }
 
 /**
- * DB 레시피와 식약처 API 레시피를 병합합니다.
+ * DB 레시피와 식약처 정적 파일 레시피를 병합합니다.
+ * 
+ * 참고: 현재는 사용되지 않습니다. lib/diet/queries.ts에서 직접 병합을 수행합니다.
  */
 export function mergeRecipes(
   dbRecipes: (RecipeListItem & {
@@ -40,12 +45,12 @@ export function mergeRecipes(
 ): MergedRecipe[] {
   console.group("[Recipe Merger] 레시피 병합 시작");
   console.log(`DB 레시피: ${dbRecipes.length}개`);
-  console.log(`식약처 API 레시피: ${mfdsRecipes.length}개`);
+  console.log(`식약처 정적 파일 레시피: ${mfdsRecipes.length}개`);
 
   const mergedMap = new Map<string, MergedRecipe>();
   const mfdsRcpSeqMap = new Map<string, MfdsRecipeWithNutrition>();
 
-  // 1. 식약처 API 레시피를 RCP_SEQ로 인덱싱
+  // 1. 식약처 정적 파일 레시피를 RCP_SEQ로 인덱싱
   for (const mfdsRecipe of mfdsRecipes) {
     mfdsRcpSeqMap.set(mfdsRecipe.RCP_SEQ, mfdsRecipe);
   }
@@ -58,6 +63,7 @@ export function mergeRecipes(
     // DB 레시피를 기본으로 추가
     mergedMap.set(key, {
       ...dbRecipe,
+      fiber: null,
       potassium: null,
       phosphorus: null,
       gi: null,
@@ -72,7 +78,7 @@ export function mergeRecipes(
       const mfdsRecipe = mfdsRcpSeqMap.get(mfdsRcpSeq)!;
       const merged = mergedMap.get(key)!;
 
-      // DB에 없는 영양 정보는 API 데이터로 채움
+      // DB에 없는 영양 정보는 정적 파일 데이터로 채움
       if (merged.calories === null && mfdsRecipe.nutrition.calories > 0) {
         merged.calories = mfdsRecipe.nutrition.calories;
       }
@@ -87,6 +93,11 @@ export function mergeRecipes(
       }
       if (merged.sodium === null && mfdsRecipe.nutrition.sodium > 0) {
         merged.sodium = mfdsRecipe.nutrition.sodium;
+      }
+
+      // 식이섬유 추가
+      if (mfdsRecipe.nutrition.fiber !== undefined && mfdsRecipe.nutrition.fiber > 0) {
+        merged.fiber = mfdsRecipe.nutrition.fiber;
       }
 
       // 칼륨, 인, GI 지수 추가
@@ -104,7 +115,7 @@ export function mergeRecipes(
     }
   }
 
-  // 3. DB에 없는 식약처 API 레시피 추가
+  // 3. DB에 없는 식약처 정적 파일 레시피 추가
   for (const mfdsRecipe of mfdsRecipes) {
     // 이미 DB에 있는 레시피는 건너뛰기
     let alreadyExists = false;
@@ -120,7 +131,7 @@ export function mergeRecipes(
       continue;
     }
 
-    // 식약처 API 레시피를 MergedRecipe 형식으로 변환
+    // 식약처 정적 파일 레시피를 MergedRecipe 형식으로 변환
     const slug = `foodsafety-${mfdsRecipe.RCP_SEQ}`;
     const key = slug;
 
@@ -140,6 +151,7 @@ export function mergeRecipes(
         protein: mfdsRecipe.nutrition.protein || null,
         fat: mfdsRecipe.nutrition.fat || null,
         sodium: mfdsRecipe.nutrition.sodium || null,
+        fiber: mfdsRecipe.nutrition.fiber || null,
         potassium: mfdsRecipe.nutrition.potassium || null,
         phosphorus: mfdsRecipe.nutrition.phosphorus || null,
         gi: mfdsRecipe.nutrition.gi || null,
@@ -154,7 +166,7 @@ export function mergeRecipes(
 
   console.log(`✅ 병합 완료: 총 ${mergedRecipes.length}개 레시피`);
   console.log(`  - DB 레시피: ${dbRecipes.length}개`);
-  console.log(`  - 식약처 API 레시피: ${mfdsRecipes.length}개`);
+  console.log(`  - 식약처 정적 파일 레시피: ${mfdsRecipes.length}개`);
   console.log(`  - 병합된 레시피: ${mergedRecipes.filter(r => r.source === "merged").length}개`);
   console.log(`  - 새로 추가된 식약처 레시피: ${mergedRecipes.filter(r => r.source === "mfds").length}개`);
   console.groupEnd();

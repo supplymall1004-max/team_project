@@ -133,7 +133,7 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
             <div>
               <span>{recipe.servings}인분</span>
             </div>
-            {/* 식약처 API 조리 방법 및 요리 종류 */}
+            {/* 식약처 레시피 조리 방법 및 요리 종류 (DB에 저장된 필드) */}
             {recipe.foodsafety_rcp_way2 && (
               <div>
                 <span className="text-xs text-muted-foreground">조리방법: </span>
@@ -182,7 +182,7 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
         </div>
       </MotionWrapper>
 
-      {/* 영양 정보 (식약처 API 데이터) - GDWEB 카드 스타일 */}
+      {/* 영양 정보 (식약처 레시피 데이터) - GDWEB 카드 스타일 */}
       {(recipe.foodsafety_info_eng ||
         recipe.foodsafety_info_car ||
         recipe.foodsafety_info_pro ||
@@ -326,7 +326,7 @@ interface RecipeHeroImageProps {
 function RecipeHeroImage({ recipe }: RecipeHeroImageProps) {
   const [imageError, setImageError] = useState(false);
 
-  // 식약처 API 이미지 우선 사용, 없으면 thumbnail_url, 둘 다 없으면 기본 이미지
+  // 식약처 레시피 이미지 우선 사용, 없으면 thumbnail_url, 둘 다 없으면 기본 이미지
   const imageUrl =
     recipe.foodsafety_att_file_no_main ||
     recipe.thumbnail_url ||

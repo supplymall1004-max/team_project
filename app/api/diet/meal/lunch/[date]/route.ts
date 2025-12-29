@@ -9,9 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getServiceRoleClient } from '@/lib/supabase/service-role';
 import { getDailyDietPlan, getUserHealthProfile } from '@/lib/diet/queries';
-import { fetchFoodSafetyRecipes, fetchFoodSafetyRecipeBySeq } from '@/lib/recipes/foodsafety-api';
-import { parseIngredients as parseMfdsIngredients } from '@/lib/services/mfds-recipe-api';
-import type { RecipeDetailForDiet, RecipeNutrition } from '@/types/recipe';
+import type { RecipeDetailForDiet } from '@/types/recipe';
 
 function normalizeConditionCodes(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -27,11 +25,6 @@ function normalizeConditionCodes(value: unknown): string[] {
     .filter((code): code is string => typeof code === 'string' && code.length > 0);
 }
 
-function parseMfdsNumber(value: string | null | undefined): number {
-  if (!value || value.trim() === '') return 0;
-  const num = parseFloat(value.replace(/[^0-9.]/g, ''));
-  return Number.isFinite(num) ? num : 0;
-}
 
 export async function GET(
   request: NextRequest,
@@ -102,15 +95,15 @@ export async function GET(
         protein: lunchData.protein || 0,
         carbohydrates: lunchData.carbohydrates || 0,
         fat: lunchData.fat || 0,
-        fiber: 0, // foodsafety API 연동 시 채워짐
-        sugar: 0, // foodsafety API에 필드 없음(현재)
+        fiber: 0, // 정적 파일에서 채워짐
+        sugar: 0, // 정적 파일에 필드 없음
         sodium: lunchData.sodium || 0,
-        cholesterol: 0, // foodsafety API에 필드 없음(현재)
+        cholesterol: 0, // 정적 파일에 필드 없음
         potassium: null, // DietPlan 타입에 없음
         phosphorus: null, // DietPlan 타입에 없음
         gi_index: null, // DietPlan 타입에 없음
       },
-      ingredients: [], // foodsafety API 연동 시 채워짐
+      ingredients: [], // 정적 파일에서 채워짐
       recipe: lunchData.recipe,
       recipe_id: lunchData.recipe_id,
       recipe_title: lunchData.recipe?.title,
@@ -126,143 +119,147 @@ export async function GET(
       relatedRecipes: [] as RecipeDetailForDiet[],
     };
 
-    // 식약처 API에서 영양소/재료를 실제로 가져와서 시각화에 사용
+    // composition_summary에서 식약처 레시피 정보 가져오기 (정적 파일 우선)
+    console.log('[Lunch Meal API] composition_summary 파싱 시작...');
+    const compositionSummary = lunchData.compositionSummary || [];
+    
+    if (Array.isArray(compositionSummary) && compositionSummary.length > 0) {
+      console.log('[Lunch Meal API] 구성품 목록:', compositionSummary);
+      
+      try {
+        const { loadAllStaticRecipes, searchRecipes } = await import("@/lib/mfds/recipe-loader");
+        const allMfdsRecipes = loadAllStaticRecipes();
+        
+        // 각 구성품 제목으로 식약처 레시피 찾기
+        const foundRecipes: RecipeDetailForDiet[] = [];
+        const processedTitles = new Set<string>(); // 중복 제거
+        
+        for (const title of compositionSummary) {
+          if (!title || processedTitles.has(title)) continue;
+          processedTitles.add(title);
+          
+          // 정확한 제목 매칭 시도
+          let mfdsRecipe = allMfdsRecipes.find(r => r.title === title);
+          
+          // 정확한 매칭이 없으면 부분 매칭 시도
+          if (!mfdsRecipe) {
+            const searchResults = searchRecipes(title);
+            if (searchResults.length > 0) {
+              // 가장 관련성 높은 레시피 선택 (제목이 정확히 일치하는 것 우선)
+              mfdsRecipe = searchResults.find(r => r.title === title) || searchResults[0];
+            }
+          }
+          
+          if (mfdsRecipe) {
+            console.log(`✅ 식약처 레시피 찾음: ${title} → ${mfdsRecipe.title}`);
+            
+            // MfdsRecipe를 RecipeDetailForDiet 형식으로 변환
+            const recipeDetail: RecipeDetailForDiet = {
+              id: `foodsafety-${mfdsRecipe.frontmatter.rcp_seq}`,
+              title: mfdsRecipe.title,
+              description: mfdsRecipe.description || '',
+              source: 'foodsafety',
+              ingredients: mfdsRecipe.ingredients.map(ing => ({
+                name: ing.name,
+                amount: '',
+                unit: '',
+              })),
+              instructions: mfdsRecipe.steps.map(step => step.description).join('\n'),
+              nutrition: {
+                calories: mfdsRecipe.nutrition.calories || 0,
+                protein: mfdsRecipe.nutrition.protein || 0,
+                carbs: mfdsRecipe.nutrition.carbohydrates || 0,
+                fat: mfdsRecipe.nutrition.fat || 0,
+                fiber: mfdsRecipe.nutrition.fiber || 0,
+                sodium: mfdsRecipe.nutrition.sodium || 0,
+              },
+              imageUrl: mfdsRecipe.images.mainImageUrl || null,
+              emoji: null,
+            };
+            
+            foundRecipes.push(recipeDetail);
+          } else {
+            console.log(`⚠️ 식약처 레시피를 찾을 수 없음: ${title}`);
+          }
+        }
+        
+        mealData.relatedRecipes = foundRecipes;
+        console.log(`✅ 식약처 레시피 ${foundRecipes.length}개 찾음`);
+      } catch (mfdsError) {
+        console.warn('[Lunch Meal API] 식약처 레시피 조회 실패(무시):', mfdsError);
+      }
+    } else {
+      console.log('[Lunch Meal API] composition_summary가 비어있거나 배열이 아님');
+    }
+
+    // 식약처 레시피 데이터는 정적 파일에서만 가져오기 (RCP_SEQ가 있는 경우)
     try {
-      const recipeAny = mealData.recipe as unknown as { id?: unknown; title?: unknown; foodsafety_rcp_seq?: unknown };
+      const recipeAny = mealData.recipe as unknown as { id?: unknown; foodsafety_rcp_seq?: unknown };
       const directSeq = mealData.foodsafety_data?.rcp_seq;
       const embeddedSeq = typeof recipeAny?.foodsafety_rcp_seq === 'string' ? recipeAny.foodsafety_rcp_seq : null;
-      const title = typeof recipeAny?.title === 'string' ? recipeAny.title : null;
-
-      let rcpSeq: string | null = directSeq || embeddedSeq;
+      const rcpSeq: string | null = directSeq || embeddedSeq;
 
       if (rcpSeq) {
-        console.log('[Lunch Meal API] 식약처 레시피 조회 시도:', rcpSeq);
-        const mfdsResult = await fetchFoodSafetyRecipeBySeq(rcpSeq, {
-          startIdx: 1,
-          endIdx: 1000,
-          maxRetries: 2,
-          retryDelay: 500,
-        });
+        console.log('[Lunch Meal API] 식약처 레시피 조회 시도 (정적 파일):', rcpSeq);
+        const { loadRecipeBySeq } = await import("@/lib/mfds/recipe-loader");
+        const mfdsRecipe = loadRecipeBySeq(rcpSeq);
 
-        if (mfdsResult.success && mfdsResult.data && mfdsResult.data.length > 0) {
-          const row = mfdsResult.data[0];
-          mealData.nutrition.calories = parseMfdsNumber(row.INFO_ENG);
-          mealData.nutrition.carbohydrates = parseMfdsNumber(row.INFO_CAR);
-          mealData.nutrition.protein = parseMfdsNumber(row.INFO_PRO);
-          mealData.nutrition.fat = parseMfdsNumber(row.INFO_FAT);
-          mealData.nutrition.sodium = parseMfdsNumber(row.INFO_NA);
-          mealData.nutrition.fiber = parseMfdsNumber(row.INFO_FIBER);
-
-          const parsed = parseMfdsIngredients(row as any);
-          mealData.ingredients = parsed.map((name) => ({ name, quantity: 0 }));
+        if (mfdsRecipe) {
+          // 정적 파일에서 찾은 레시피 정보로 영양소 업데이트
+          mealData.nutrition.calories = mfdsRecipe.nutrition.calories || mealData.nutrition.calories;
+          mealData.nutrition.carbohydrates = mfdsRecipe.nutrition.carbohydrates || mealData.nutrition.carbohydrates;
+          mealData.nutrition.protein = mfdsRecipe.nutrition.protein || mealData.nutrition.protein;
+          mealData.nutrition.fat = mfdsRecipe.nutrition.fat || mealData.nutrition.fat;
+          mealData.nutrition.sodium = mfdsRecipe.nutrition.sodium || mealData.nutrition.sodium;
+          mealData.nutrition.fiber = mfdsRecipe.nutrition.fiber || mealData.nutrition.fiber;
           mealData.calories = mealData.nutrition.calories;
+          mealData.ingredients = mfdsRecipe.ingredients.map(ing => ({ name: ing.name, quantity: 0 }));
 
-          const nutrition: RecipeNutrition = {
-            calories: parseMfdsNumber(row.INFO_ENG),
-            carbs: parseMfdsNumber(row.INFO_CAR),
-            protein: parseMfdsNumber(row.INFO_PRO),
-            fat: parseMfdsNumber(row.INFO_FAT),
-            sodium: parseMfdsNumber(row.INFO_NA),
-            fiber: parseMfdsNumber(row.INFO_FIBER),
-          };
-
-          mealData.relatedRecipes = [
-            {
-              id: `foodsafety-${row.RCP_SEQ}`,
-              source: 'foodsafety',
-              title: row.RCP_NM,
-              image: row.ATT_FILE_NO_MAIN ?? undefined,
-              ingredients: [],
-              nutrition,
-            },
-          ];
-
-          console.log('[Lunch Meal API] 식약처 영양소 반영 완료');
-        } else {
-          console.warn('[Lunch Meal API] 식약처 레시피 조회 실패(무시):', mfdsResult.error);
-        }
-        rcpSeq = 'handled';
-      }
-
-      const compositionCandidates =
-        Array.isArray(mealData.composition_summary) && mealData.composition_summary.length > 0
-          ? mealData.composition_summary
-          : title
-            ? title.split(/[·,]/g).map((part) => part.trim()).filter(Boolean)
-            : [];
-
-      if (rcpSeq !== 'handled' && compositionCandidates.length > 0) {
-        console.log('[Lunch Meal API] 식약처 구성요소 합산 시도:', compositionCandidates);
-        const listResult = await fetchFoodSafetyRecipes({ startIdx: 1, endIdx: 1000 });
-        if (listResult.success && listResult.data && listResult.data.length > 0) {
-          const rows = listResult.data;
-          const ingredientSet = new Set<string>();
-          const matchedRecipes: RecipeDetailForDiet[] = [];
-          const summed = {
-            calories: 0,
-            carbohydrates: 0,
-            protein: 0,
-            fat: 0,
-            sodium: 0,
-            fiber: 0,
-          };
-          let matchedCount = 0;
-
-          for (const dishName of compositionCandidates) {
-            const exact = rows.find((r) => r.RCP_NM === dishName);
-            const partial = exact ?? rows.find((r) => r.RCP_NM.includes(dishName) || dishName.includes(r.RCP_NM));
-            if (!partial) continue;
-
-            matchedCount += 1;
-            summed.calories += parseMfdsNumber(partial.INFO_ENG);
-            summed.carbohydrates += parseMfdsNumber(partial.INFO_CAR);
-            summed.protein += parseMfdsNumber(partial.INFO_PRO);
-            summed.fat += parseMfdsNumber(partial.INFO_FAT);
-            summed.sodium += parseMfdsNumber(partial.INFO_NA);
-            summed.fiber += parseMfdsNumber(partial.INFO_FIBER);
-
-            const parsed = parseMfdsIngredients(partial as any);
-            for (const ing of parsed) ingredientSet.add(ing);
-
-            // 레시피 바로가기 카드 후보 추가
-            const nutrition: RecipeNutrition = {
-              calories: parseMfdsNumber(partial.INFO_ENG),
-              carbs: parseMfdsNumber(partial.INFO_CAR),
-              protein: parseMfdsNumber(partial.INFO_PRO),
-              fat: parseMfdsNumber(partial.INFO_FAT),
-              sodium: parseMfdsNumber(partial.INFO_NA),
-              fiber: parseMfdsNumber(partial.INFO_FIBER),
+          // relatedRecipes에 추가 (기존 항목과 병합)
+          const existingRecipeIndex = mealData.relatedRecipes.findIndex(r => r.id === `foodsafety-${mfdsRecipe.frontmatter.rcp_seq}`);
+          if (existingRecipeIndex >= 0) {
+            // 기존 항목 업데이트
+            mealData.relatedRecipes[existingRecipeIndex] = {
+              ...mealData.relatedRecipes[existingRecipeIndex],
+              nutrition: {
+                calories: mfdsRecipe.nutrition.calories || 0,
+                protein: mfdsRecipe.nutrition.protein || 0,
+                carbs: mfdsRecipe.nutrition.carbohydrates || 0,
+                fat: mfdsRecipe.nutrition.fat || 0,
+                fiber: mfdsRecipe.nutrition.fiber || 0,
+                sodium: mfdsRecipe.nutrition.sodium || 0,
+              },
+              imageUrl: mfdsRecipe.images.mainImageUrl || mealData.relatedRecipes[existingRecipeIndex].imageUrl,
             };
-            matchedRecipes.push({
-              id: `foodsafety-${partial.RCP_SEQ}`,
+          } else {
+            // 새 항목 추가
+            mealData.relatedRecipes.push({
+              id: `foodsafety-${mfdsRecipe.frontmatter.rcp_seq}`,
               source: 'foodsafety',
-              title: partial.RCP_NM,
-              image: partial.ATT_FILE_NO_MAIN ?? undefined,
-              ingredients: [],
-              nutrition,
+              title: mfdsRecipe.title,
+              description: mfdsRecipe.description || '',
+              ingredients: mfdsRecipe.ingredients.map(ing => ({ name: ing.name, amount: '', unit: '' })),
+              instructions: mfdsRecipe.steps.map(step => step.description).join('\n'),
+              nutrition: {
+                calories: mfdsRecipe.nutrition.calories || 0,
+                protein: mfdsRecipe.nutrition.protein || 0,
+                carbs: mfdsRecipe.nutrition.carbohydrates || 0,
+                fat: mfdsRecipe.nutrition.fat || 0,
+                fiber: mfdsRecipe.nutrition.fiber || 0,
+                sodium: mfdsRecipe.nutrition.sodium || 0,
+              },
+              imageUrl: mfdsRecipe.images.mainImageUrl || null,
+              emoji: null,
             });
           }
 
-          if (matchedCount > 0) {
-            mealData.nutrition.calories = Math.round(summed.calories);
-            mealData.nutrition.carbohydrates = Math.round(summed.carbohydrates * 10) / 10;
-            mealData.nutrition.protein = Math.round(summed.protein * 10) / 10;
-            mealData.nutrition.fat = Math.round(summed.fat * 10) / 10;
-            mealData.nutrition.sodium = Math.round(summed.sodium);
-            mealData.nutrition.fiber = Math.round(summed.fiber * 10) / 10;
-            mealData.calories = mealData.nutrition.calories;
-            mealData.ingredients = Array.from(ingredientSet).map((name) => ({ name, quantity: 0 }));
-            mealData.relatedRecipes = matchedRecipes;
-            console.log('[Lunch Meal API] 식약처 구성요소 합산 완료:', { matchedCount });
-          } else {
-            console.warn('[Lunch Meal API] 식약처 구성요소 매칭 실패(무시)');
-          }
+          console.log('[Lunch Meal API] 정적 파일에서 식약처 레시피 로드 완료');
         } else {
-          console.warn('[Lunch Meal API] 식약처 레시피 목록 조회 실패(무시):', listResult.error);
+          console.log('[Lunch Meal API] 정적 파일에서 레시피를 찾을 수 없음:', rcpSeq);
         }
       }
     } catch (mfdsError) {
-      console.warn('[Lunch Meal API] 식약처 API 연동 실패(무시):', mfdsError);
+      console.warn('[Lunch Meal API] 식약처 레시피 조회 실패(무시):', mfdsError);
     }
 
     console.log('✅ 점심 식단 조회 완료');

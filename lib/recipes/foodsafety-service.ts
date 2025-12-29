@@ -1,8 +1,13 @@
 /**
  * @file foodsafety-service.ts
- * @description 식약처 API 데이터를 DB 형식으로 변환하는 서비스
+ * @description 식약처 API 데이터를 DB 형식으로 변환하는 서비스 (레거시)
  *
- * 주요 기능:
+ * ⚠️ 주의: 이 파일은 더 이상 애플리케이션 코드에서 사용되지 않습니다.
+ * 모든 식단 생성은 정적 파일(@/lib/mfds/recipe-loader)을 통해 수행됩니다.
+ * 
+ * 이 파일은 스크립트(scripts/collect-mfds-recipes.ts)에서만 사용됩니다.
+ * 
+ * 주요 기능 (레거시):
  * 1. 식약처 API 데이터를 RecipeDetail 형식으로 변환
  * 2. 재료 정보 파싱 (RCP_PARTS_DTLS → RecipeIngredient[])
  * 3. 조리 방법 파싱 (MANUAL01~20 → RecipeStep[])

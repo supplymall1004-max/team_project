@@ -37,8 +37,9 @@ interface DietNotificationPopupProps {
 const getMealInfo = (meal: any) => {
   if (!meal || typeof meal !== 'object') return { title: '준비된 식사', calories: '정보 없음' };
 
-  const title = meal.recipe?.title || '준비된 식사';
-  const calories = meal.nutrition?.calories ? `${meal.nutrition.calories}kcal` : '정보 없음';
+  // DailyDietPlan의 DietPlan 형식 (recipe와 calories가 직접 속성)
+  const title = meal.recipe?.title || meal.title || '준비된 식사';
+  const calories = meal.calories ? `${meal.calories}kcal` : (meal.nutrition?.calories ? `${meal.nutrition.calories}kcal` : '정보 없음');
 
   return { title, calories };
 };
@@ -56,31 +57,150 @@ export function DietNotificationPopup({
   loading = false,
 }: DietNotificationPopupProps) {
 
-  // FamilyDietPlan 형식으로 변환
-  // dietData가 없거나 plans가 없으면 null 반환 (에러 방지)
-  const familyDietPlan: FamilyDietPlan | null = (() => {
-    if (!dietData) return null;
-    if (!dietData.plans) return null;
-    if (typeof dietData.plans !== 'object') return null;
+  // API 응답 형식을 DailyDietPlan으로 변환하는 헬퍼 함수
+  const convertApiPlanToDailyDietPlan = (apiPlan: any, date: string): DailyDietPlan | null => {
+    if (!apiPlan || typeof apiPlan !== 'object') return null;
     
     try {
+      const totalNutrition = {
+        calories: 0,
+        carbohydrates: 0,
+        protein: 0,
+        fat: 0,
+        sodium: 0,
+      };
+
+      const breakfast = apiPlan.breakfast?.[0] ? {
+        id: apiPlan.breakfast[0].recipe_id || 'breakfast',
+        user_id: '',
+        plan_date: date,
+        meal_type: 'breakfast' as const,
+        recipe_id: apiPlan.breakfast[0].recipe_id || null,
+        calories: apiPlan.breakfast[0].nutrition?.calories || 0,
+        carbohydrates: apiPlan.breakfast[0].nutrition?.carbs || 0,
+        protein: apiPlan.breakfast[0].nutrition?.protein || 0,
+        fat: apiPlan.breakfast[0].nutrition?.fat || 0,
+        sodium: apiPlan.breakfast[0].nutrition?.sodium || 0,
+        created_at: new Date().toISOString(),
+        recipe: {
+          id: apiPlan.breakfast[0].recipe_id || '',
+          title: apiPlan.breakfast[0].title || '아침 식사',
+          thumbnail_url: null,
+          slug: '',
+        },
+      } : null;
+
+      const lunch = apiPlan.lunch?.[0] ? {
+        id: apiPlan.lunch[0].recipe_id || 'lunch',
+        user_id: '',
+        plan_date: date,
+        meal_type: 'lunch' as const,
+        recipe_id: apiPlan.lunch[0].recipe_id || null,
+        calories: apiPlan.lunch[0].nutrition?.calories || 0,
+        carbohydrates: apiPlan.lunch[0].nutrition?.carbs || 0,
+        protein: apiPlan.lunch[0].nutrition?.protein || 0,
+        fat: apiPlan.lunch[0].nutrition?.fat || 0,
+        sodium: apiPlan.lunch[0].nutrition?.sodium || 0,
+        created_at: new Date().toISOString(),
+        recipe: {
+          id: apiPlan.lunch[0].recipe_id || '',
+          title: apiPlan.lunch[0].title || '점심 식사',
+          thumbnail_url: null,
+          slug: '',
+        },
+      } : null;
+
+      const dinner = apiPlan.dinner?.[0] ? {
+        id: apiPlan.dinner[0].recipe_id || 'dinner',
+        user_id: '',
+        plan_date: date,
+        meal_type: 'dinner' as const,
+        recipe_id: apiPlan.dinner[0].recipe_id || null,
+        calories: apiPlan.dinner[0].nutrition?.calories || 0,
+        carbohydrates: apiPlan.dinner[0].nutrition?.carbs || 0,
+        protein: apiPlan.dinner[0].nutrition?.protein || 0,
+        fat: apiPlan.dinner[0].nutrition?.fat || 0,
+        sodium: apiPlan.dinner[0].nutrition?.sodium || 0,
+        created_at: new Date().toISOString(),
+        recipe: {
+          id: apiPlan.dinner[0].recipe_id || '',
+          title: apiPlan.dinner[0].title || '저녁 식사',
+          thumbnail_url: null,
+          slug: '',
+        },
+      } : null;
+
+      const snack = apiPlan.snack?.[0] ? {
+        id: apiPlan.snack[0].recipe_id || 'snack',
+        user_id: '',
+        plan_date: date,
+        meal_type: 'snack' as const,
+        recipe_id: apiPlan.snack[0].recipe_id || null,
+        calories: apiPlan.snack[0].nutrition?.calories || 0,
+        carbohydrates: apiPlan.snack[0].nutrition?.carbs || 0,
+        protein: apiPlan.snack[0].nutrition?.protein || 0,
+        fat: apiPlan.snack[0].nutrition?.fat || 0,
+        sodium: apiPlan.snack[0].nutrition?.sodium || 0,
+        created_at: new Date().toISOString(),
+        recipe: {
+          id: apiPlan.snack[0].recipe_id || '',
+          title: apiPlan.snack[0].title || '간식',
+          thumbnail_url: null,
+          slug: '',
+        },
+      } : null;
+
+      // 영양소 합산
+      [breakfast, lunch, dinner, snack].forEach(meal => {
+        if (meal) {
+          totalNutrition.calories += meal.calories || 0;
+          totalNutrition.carbohydrates += meal.carbohydrates || 0;
+          totalNutrition.protein += meal.protein || 0;
+          totalNutrition.fat += meal.fat || 0;
+          totalNutrition.sodium += meal.sodium || 0;
+        }
+      });
+
       return {
-        date: dietData.date || new Date().toISOString().split("T")[0],
-        individualPlans: Object.fromEntries(
-          Object.entries(dietData.plans).filter(([key]) => key !== 'unified')
-        ),
-        unifiedPlan: dietData.plans?.unified || null,
+        date,
+        breakfast,
+        lunch,
+        dinner,
+        snack,
+        totalNutrition,
       };
     } catch (error) {
-      console.error("❌ [DietNotificationPopup] familyDietPlan 변환 실패:", error);
+      console.error("❌ [DietNotificationPopup] API 형식 변환 실패:", error);
       return null;
     }
-  })();
+  };
 
-  // 표시할 식단 결정 (통합 식단 우선, 없으면 첫 번째 개인 식단)
-  const displayDiet: DailyDietPlan | null = familyDietPlan?.unifiedPlan ||
-    (familyDietPlan && Object.values(familyDietPlan.individualPlans).find(plan => plan !== null)) ||
-    null;
+  // 표시할 식단 결정 (통합 식단 우선, 없으면 개인 식단)
+  const displayDiet: DailyDietPlan | null = (() => {
+    if (!dietData || !dietData.plans) return null;
+    
+    const date = dietData.date || dietData.today || new Date().toISOString().split("T")[0];
+    
+    // 통합 식단 우선
+    if (dietData.plans.unified) {
+      const unified = convertApiPlanToDailyDietPlan(dietData.plans.unified, date);
+      if (unified) return unified;
+    }
+    
+    // 개인 식단 (user)
+    if (dietData.plans.user) {
+      const user = convertApiPlanToDailyDietPlan(dietData.plans.user, date);
+      if (user) return user;
+    }
+    
+    // 다른 가족 구성원 식단
+    const otherPlans = Object.entries(dietData.plans)
+      .filter(([key]) => key !== 'unified' && key !== 'user')
+      .map(([, plan]) => convertApiPlanToDailyDietPlan(plan, date))
+      .find(plan => plan !== null);
+    
+    return otherPlans || null;
+  })();
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>

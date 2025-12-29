@@ -87,6 +87,7 @@ export interface RecipeItem {
   INFO_PRO: string; // 단백질
   INFO_FAT: string; // 지방
   INFO_NA: string; // 나트륨
+  INFO_FIBER?: string; // 식이섬유 (옵셔널)
   INFO_K?: string; // 칼륨 (옵셔널)
   INFO_P?: string; // 인 (옵셔널)
   INFO_GI?: string; // GI 지수 (옵셔널)
@@ -106,6 +107,7 @@ export interface NutritionInfo {
   protein: number;
   fat: number;
   sodium: number;
+  fiber?: number; // 식이섬유 (옵셔널)
   potassium?: number; // 칼륨 (옵셔널)
   phosphorus?: number; // 인 (옵셔널)
   gi?: number; // GI 지수 (옵셔널)
@@ -127,9 +129,9 @@ export async function getMfdsRecipeList(
   console.log("[MFDS API] 레시피 목록 요청:", { start, end, url });
 
   try {
-    // 타임아웃 설정 (10초)
+    // 타임아웃 설정 (60초로 증가 - 식약처 API는 느릴 수 있음)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     const response = await fetch(url, {
       signal: controller.signal,
@@ -163,8 +165,8 @@ export async function getMfdsRecipeList(
   } catch (error) {
     // AbortError는 타임아웃을 의미
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error("[MFDS API] 요청 타임아웃 (10초 초과)");
-      throw new Error("API 요청 타임아웃: 서버 응답이 너무 느립니다.");
+      console.error("[MFDS API] 요청 타임아웃 (60초 초과)");
+      throw new Error("API 요청 타임아웃: 서버 응답이 너무 느립니다. 네트워크 연결을 확인해주세요.");
     }
     console.error("[MFDS API] 레시피 목록 가져오기 실패:", error);
     throw error;
@@ -177,8 +179,6 @@ export async function getMfdsRecipeList(
  * @returns 영양 성분 정보 객체
  */
 export function parseNutritionInfo(recipe: RecipeItem): NutritionInfo {
-  console.log("[영양 성분 파싱] 레시피:", recipe.RCP_NM);
-
   const parseNumber = (value: string | undefined): number => {
     if (!value || value.trim() === "") return 0;
     const num = parseFloat(value.replace(/[^0-9.]/g, ""));
@@ -191,12 +191,11 @@ export function parseNutritionInfo(recipe: RecipeItem): NutritionInfo {
     protein: parseNumber(recipe.INFO_PRO),
     fat: parseNumber(recipe.INFO_FAT),
     sodium: parseNumber(recipe.INFO_NA),
+    fiber: recipe.INFO_FIBER ? parseNumber(recipe.INFO_FIBER) : undefined,
     potassium: recipe.INFO_K ? parseNumber(recipe.INFO_K) : undefined,
     phosphorus: recipe.INFO_P ? parseNumber(recipe.INFO_P) : undefined,
     gi: recipe.INFO_GI ? parseNumber(recipe.INFO_GI) : undefined,
   };
-
-  console.log("[영양 성분 파싱] 결과:", nutrition);
 
   return nutrition;
 }
@@ -236,7 +235,6 @@ export function getCookingSteps(recipe: RecipeItem): Array<{
     }
   }
 
-  console.log("[조리 과정] 단계 수:", steps.length);
   return steps;
 }
 
@@ -250,20 +248,12 @@ export function parseHashTags(recipe: RecipeItem): string[] {
     return [];
   }
 
-  console.log(
-    "[해시태그 파싱] 레시피:",
-    recipe.RCP_NM,
-    "해시태그 원본:",
-    recipe.HASH_TAG
-  );
-
   // 해시태그를 쉼표, 공백, #으로 분리하고 정리
   const tags = recipe.HASH_TAG.split(/[,\s#]+/)
     .map((tag) => tag.trim())
     .filter((tag) => tag.length > 0)
     .map((tag) => (tag.startsWith("#") ? tag : `#${tag}`)); // #이 없으면 추가
 
-  console.log("[해시태그 파싱] 결과:", tags);
   return tags;
 }
 
@@ -276,13 +266,6 @@ export function parseIngredients(recipe: RecipeItem): string[] {
   if (!recipe.RCP_PARTS_DTLS || recipe.RCP_PARTS_DTLS.trim() === "") {
     return [];
   }
-
-  console.log(
-    "[재료 파싱] 레시피:",
-    recipe.RCP_NM,
-    "재료 원본:",
-    recipe.RCP_PARTS_DTLS
-  );
 
   // 재료를 쉼표, 줄바꿈으로 분리
   const rawIngredients = recipe.RCP_PARTS_DTLS.split(/[,\n\r]+/)
@@ -303,7 +286,6 @@ export function parseIngredients(recipe: RecipeItem): string[] {
     return normalized;
   }).filter((ingredient) => ingredient.length > 0);
 
-  console.log("[재료 파싱] 결과:", ingredients.length, "개");
   return ingredients;
 }
 

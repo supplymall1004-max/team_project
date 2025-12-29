@@ -593,7 +593,7 @@ export default function BreakfastDetailPage() {
                   <CardHeader>
                     <CardTitle>영양소 시각화</CardTitle>
                     <CardDescription>
-                      식약처 API 데이터 기반 영양 성분 분석
+                      식약처 레시피 데이터 기반 영양 성분 분석
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

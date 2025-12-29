@@ -32,6 +32,9 @@ export interface Recipe {
   foodsafety_info_fat?: number | null; // 지방
   foodsafety_info_na?: number | null; // 나트륨
   foodsafety_info_fiber?: number | null; // 식이섬유
+  foodsafety_info_k?: number | null; // 칼륨
+  foodsafety_info_p?: number | null; // 인
+  foodsafety_info_gi?: number | null; // GI 지수
   foodsafety_rcp_parts_dtls?: string | null; // 재료 정보
   foodsafety_att_file_no_main?: string | null; // 대표 이미지 URL
   foodsafety_att_file_no_mk?: string | null; // 만드는 법 이미지 URL

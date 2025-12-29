@@ -112,15 +112,16 @@ export async function getUserSubscription(
 
 /**
  * 레시피 목록 조회 (영양소 정보 포함)
- * DB 레시피와 식약처 API 레시피를 병합하여 반환합니다.
+ * DB 레시피와 식약처 정적 파일 레시피를 병합하여 반환합니다.
  */
 /**
  * 영양소 정보가 포함된 레시피 목록 조회 (개선됨)
  *
  * 개선 사항:
  * - 기본 limitPerCategory를 50으로 감소 (메모리 효율성 개선)
- * - 식약처 API 호출 시 필요한 만큼만 가져오기 (최대 150개)
+ * - 식약처 정적 파일에서 필요한 만큼만 가져오기 (최대 150개)
  * - DB 레시피 우선 사용 정책 강화
+ * - 정적 파일 우선 사용 (API 호출 제거)
  */
 export async function getRecipesWithNutrition(
   limitPerCategory: number = 50,
@@ -131,6 +132,7 @@ export async function getRecipesWithNutrition(
     protein: number | null;
     fat: number | null;
     sodium: number | null;
+    fiber?: number | null;
     potassium?: number | null;
     phosphorus?: number | null;
     gi?: number | null;
@@ -208,51 +210,71 @@ export async function getRecipesWithNutrition(
       `데이터베이스에서 ${dbRecipes.length}개 레시피 조회됨 (${categories.length}개 카테고리)`,
     );
 
-    // 식약처 API는 필요한 경우에만 호출 (DB 레시피 우선 정책, 개선됨)
+    // 식약처 정적 파일 레시피는 필요한 경우에만 로드 (DB 레시피 우선 정책)
     const minRequiredRecipes = limitPerCategory * 2; // 최소 요구량
     if (dbRecipes.length >= minRequiredRecipes) {
       console.log(
-        `✅ DB 레시피가 충분 (${dbRecipes.length} >= ${minRequiredRecipes}), 식약처 API 생략`,
+        `✅ DB 레시피가 충분 (${dbRecipes.length} >= ${minRequiredRecipes}), 식약처 정적 파일 생략`,
       );
       console.groupEnd();
       return dbRecipes;
     }
 
-    // 식약처 API 레시피 가져오기 (필요한 만큼만, 개선됨)
+      // 식약처 레시피 가져오기 (정적 파일만 사용)
     try {
-      const { fetchMfdsRecipesQuick } = await import("./mfds-recipe-fetcher");
-      const { mergeRecipes } = await import("./recipe-merger");
+      const { loadAllRecipes } = await import("@/lib/mfds/recipe-loader");
 
-      // 필요한 개수만 계산하여 호출 (최대 150개로 제한)
+      // 필요한 개수만 계산
       const neededRecipes = Math.min(
         minRequiredRecipes - dbRecipes.length,
-        150, // 최대 150개로 제한 (개선)
+        150, // 최대 150개로 제한
       );
 
-      console.log(`📥 식약처 API에서 ${neededRecipes}개 레시피 조회 중...`);
-      const mfdsRecipes = await fetchMfdsRecipesQuick(neededRecipes);
-      console.log(`✅ 식약처 API에서 ${mfdsRecipes.length}개 레시피 조회됨`);
+      console.log(`📥 식약처 레시피 ${neededRecipes}개 조회 중 (정적 파일)...`);
+      
+      // 정적 파일에서 레시피 로드
+      const allStaticRecipes = loadAllRecipes();
+      const staticRecipes = allStaticRecipes.slice(0, neededRecipes);
+      
+      if (staticRecipes.length > 0) {
+        console.log(`✅ 정적 파일에서 ${staticRecipes.length}개 레시피 로드 성공`);
+        const mfdsRecipes = staticRecipes.map(convertMfdsRecipeToRecipeListItem);
 
-      // 병합
-      const mergedRecipes = mergeRecipes(dbRecipes, mfdsRecipes);
-      console.log(`✅ 병합 완료: 총 ${mergedRecipes.length}개 레시피`);
-      console.groupEnd();
-      return mergedRecipes;
+        // DB 레시피와 병합
+        const allRecipes = [...dbRecipes, ...mfdsRecipes];
+        console.log(`✅ 병합 완료: 총 ${allRecipes.length}개 레시피 (DB ${dbRecipes.length}개 + 식약처 ${mfdsRecipes.length}개)`);
+        console.groupEnd();
+        return allRecipes;
+      } else {
+        console.warn("⚠️ 정적 파일 레시피 없음, DB 레시피만 사용");
+        console.groupEnd();
+        return dbRecipes;
+      }
     } catch (mfdsError) {
-      console.warn("식약처 API 조회 실패, DB 레시피만 사용:", mfdsError);
+      console.warn("식약처 레시피 조회 실패, DB 레시피만 사용:", mfdsError);
       console.groupEnd();
       return dbRecipes;
     }
   } catch (error) {
     console.error("getRecipesWithNutrition error", error);
     console.groupEnd();
-    // 전체 실패 시 식약처 API만 시도
-    return await getMfdsRecipesOnly();
+    // 전체 실패 시 정적 파일만 시도
+    try {
+      const { loadAllRecipes } = await import("@/lib/mfds/recipe-loader");
+      const staticRecipes = loadAllRecipes();
+      if (staticRecipes.length > 0) {
+        console.log(`✅ 정적 파일에서 ${staticRecipes.length}개 레시피 로드 성공 (폴백)`);
+        return staticRecipes.map(convertMfdsRecipeToRecipeListItem);
+      }
+    } catch (fallbackError) {
+      console.error("정적 파일 로드도 실패:", fallbackError);
+    }
+    return [];
   }
 }
 
 /**
- * 식약처 API 레시피만 가져옵니다 (폴백용).
+ * 식약처 레시피만 가져옵니다 (정적 파일만 사용)
  */
 async function getMfdsRecipesOnly(): Promise<
   (RecipeListItem & {
@@ -261,39 +283,70 @@ async function getMfdsRecipesOnly(): Promise<
     protein: number | null;
     fat: number | null;
     sodium: number | null;
+    fiber?: number | null;
     potassium?: number | null;
     phosphorus?: number | null;
     gi?: number | null;
   })[]
 > {
   try {
-    const { fetchMfdsRecipesQuick } = await import("./mfds-recipe-fetcher");
-    const mfdsRecipes = await fetchMfdsRecipesQuick(200);
+    // 정적 파일에서 레시피 로드 (모든 레시피)
+    const { loadAllRecipes } = await import("@/lib/mfds/recipe-loader");
+    const staticRecipes = loadAllRecipes();
 
-    return mfdsRecipes.map((recipe) => ({
-      id: `foodsafety-${recipe.RCP_SEQ}`,
-      slug: `foodsafety-${recipe.RCP_SEQ}`,
-      title: recipe.RCP_NM,
-      thumbnail_url: recipe.ATT_FILE_NO_MAIN || null,
-      difficulty: 2,
-      cooking_time_minutes: 30,
-      rating_count: 0,
-      average_rating: 0,
-      user: { name: "식약처" },
-      calories: recipe.nutrition.calories || null,
-      carbohydrates: recipe.nutrition.carbohydrate || null,
-      protein: recipe.nutrition.protein || null,
-      fat: recipe.nutrition.fat || null,
-      sodium: recipe.nutrition.sodium || null,
-      potassium: recipe.nutrition.potassium || null,
-      phosphorus: recipe.nutrition.phosphorus || null,
-      gi: recipe.nutrition.gi || null,
-      created_at: new Date().toISOString(),
-    }));
+    if (staticRecipes.length > 0) {
+      console.log(`✅ 정적 파일에서 ${staticRecipes.length}개 레시피 로드 성공`);
+      return staticRecipes.map(convertMfdsRecipeToRecipeListItem);
+    }
+
+    console.warn("⚠️ 정적 파일 레시피 없음");
+    return [];
   } catch (error) {
-    console.error("식약처 API 조회도 실패:", error);
+    console.error("식약처 레시피 조회 실패:", error);
     return [];
   }
+}
+
+/**
+ * MfdsRecipe를 RecipeListItem 형식으로 변환하는 헬퍼 함수
+ */
+function convertMfdsRecipeToRecipeListItem(mfdsRecipe: any): RecipeListItem & {
+  calories: number | null;
+  carbohydrates: number | null;
+  protein: number | null;
+  fat: number | null;
+  sodium: number | null;
+  fiber?: number | null;
+  potassium?: number | null;
+  phosphorus?: number | null;
+  gi?: number | null;
+} {
+  const parseNumber = (value: number | null | undefined): number | null => {
+    if (value === null || value === undefined) return null;
+    return Number.isFinite(value) ? value : null;
+  };
+
+  return {
+    id: `foodsafety-${mfdsRecipe.frontmatter.rcp_seq}`,
+    slug: `foodsafety-${mfdsRecipe.frontmatter.rcp_seq}`,
+    title: mfdsRecipe.title,
+    thumbnail_url: mfdsRecipe.images.mainImageUrl || null,
+    difficulty: 2, // Default difficulty
+    cooking_time_minutes: 30, // Default cooking time
+    rating_count: 0,
+    average_rating: 0,
+    user: { name: "식약처" },
+    calories: parseNumber(mfdsRecipe.nutrition.calories),
+    carbohydrates: parseNumber(mfdsRecipe.nutrition.carbohydrates),
+    protein: parseNumber(mfdsRecipe.nutrition.protein),
+    fat: parseNumber(mfdsRecipe.nutrition.fat),
+    sodium: parseNumber(mfdsRecipe.nutrition.sodium),
+    fiber: parseNumber(mfdsRecipe.nutrition.fiber),
+    potassium: null, // Not available in MfdsRecipe type
+    phosphorus: null, // Not available in MfdsRecipe type
+    gi: null, // Not available in MfdsRecipe type
+    created_at: new Date().toISOString(),
+  };
 }
 
 /**

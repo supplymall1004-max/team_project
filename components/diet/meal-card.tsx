@@ -38,6 +38,16 @@ interface MealCardProps {
 }
 
 export function MealCard({ recipe, mealType = null }: MealCardProps) {
+  // nutrition이 없는 경우 기본값 설정
+  const nutrition = recipe.nutrition || {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    sodium: 0,
+    fiber: 0,
+  };
+  
   // 음식 이름으로 직접 이미지 URL 가져오기
   const foodImageUrl = FOOD_IMAGE_URLS[recipe.title] || null;
 
@@ -51,10 +61,10 @@ export function MealCard({ recipe, mealType = null }: MealCardProps) {
             recipeTitle={recipe.title}
             mealType={mealType}
             nutrition={{
-              calories: recipe.nutrition.calories,
-              protein: recipe.nutrition.protein,
-              carbs: recipe.nutrition.carbs,
-              fat: recipe.nutrition.fat,
+              calories: nutrition.calories,
+              protein: nutrition.protein,
+              carbs: nutrition.carbs,
+              fat: nutrition.fat,
             }}
             size="sm"
             variant="ghost"
@@ -113,27 +123,27 @@ export function MealCard({ recipe, mealType = null }: MealCardProps) {
       <div className="grid grid-cols-4 gap-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
         <div className="text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">칼로리</p>
-          <p className="text-lg font-bold">{recipe.nutrition.calories}</p>
+          <p className="text-lg font-bold">{nutrition.calories}</p>
           <p className="text-xs text-gray-500">kcal</p>
         </div>
         <div className="text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">단백질</p>
           <p className="text-lg font-bold">
-            {Math.round(recipe.nutrition.protein)}
+            {Math.round(nutrition.protein)}
           </p>
           <p className="text-xs text-gray-500">g</p>
         </div>
         <div className="text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">탄수화물</p>
           <p className="text-lg font-bold">
-            {Math.round(recipe.nutrition.carbs)}
+            {Math.round(nutrition.carbs)}
           </p>
           <p className="text-xs text-gray-500">g</p>
         </div>
         <div className="text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">식이섬유</p>
           <p className="text-lg font-bold">
-            {Math.round(recipe.nutrition.fiber || 0)}
+            {Math.round(nutrition.fiber || 0)}
           </p>
           <p className="text-xs text-gray-500">g</p>
         </div>

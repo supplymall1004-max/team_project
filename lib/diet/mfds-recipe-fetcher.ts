@@ -1,18 +1,18 @@
 /**
  * @file mfds-recipe-fetcher.ts
- * @description 식약처 API에서 레시피 대량 조회 및 관리 (개선됨)
+ * @description 식약처 API에서 레시피 대량 조회 및 관리 (사용 중단)
  *
- * 주요 기능:
+ * ⚠️ 주의: 이 파일은 더 이상 사용되지 않습니다.
+ * 모든 식단 생성은 정적 파일(@/lib/mfds/recipe-loader)을 통해 수행됩니다.
+ * 
+ * 이 파일은 레거시 코드이며, 타입 정의(MfdsRecipeWithNutrition)만 recipe-merger.ts에서 참조됩니다.
+ * 
+ * 주요 기능 (레거시):
  * 1. 식약처 API에서 레시피 목록을 대량으로 가져오기
- * 2. 페이지네이션 처리 (개선: 필요한 만큼만 가져오기)
+ * 2. 페이지네이션 처리
  * 3. API 호출 실패 시 재시도 로직
  * 4. 레시피 중복 제거 (RCP_SEQ 기준)
- * 5. 기본 필터링 (영양소 데이터 없는 레시피 제외) - 새로 추가
- * 
- * 개선 사항:
- * - 한번에 가져오는 레시피 수 제한 (기본 100개 -> 필요시 더 가져오기)
- * - 영양소 정보가 없는 레시피 필터링
- * - 메모리 효율성 개선
+ * 5. 기본 필터링 (영양소 데이터 없는 레시피 제외)
  */
 
 import { fetchFoodSafetyRecipes, type FoodSafetyRecipeRow } from "@/lib/recipes/foodsafety-api";
@@ -26,6 +26,7 @@ export interface MfdsRecipeWithNutrition extends FoodSafetyRecipeRow {
     protein: number;
     fat: number;
     sodium: number;
+    fiber?: number; // 식이섬유
     potassium?: number;
     phosphorus?: number;
     gi?: number;
@@ -128,6 +129,7 @@ export async function fetchMfdsRecipesInBatches(
           protein: parseNumber(recipe.INFO_PRO),
           fat: parseNumber(recipe.INFO_FAT),
           sodium: parseNumber(recipe.INFO_NA),
+          fiber: (recipe as any).INFO_FIBER ? parseNumber((recipe as any).INFO_FIBER) : undefined,
           potassium: (recipe as any).INFO_K ? parseNumber((recipe as any).INFO_K) : undefined,
           phosphorus: (recipe as any).INFO_P ? parseNumber((recipe as any).INFO_P) : undefined,
           gi: (recipe as any).INFO_GI ? parseNumber((recipe as any).INFO_GI) : undefined,

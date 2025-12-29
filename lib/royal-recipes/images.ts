@@ -18,7 +18,7 @@ const IMAGE_DIRS: Record<RecipeEra, { palace: string; modern?: string }> = {
   },
   joseon: {
     palace: "조선시대 궁중 레시피 사진",
-    // modern: "조선시대 레시피 현대 이미지", // 나중에 추가 예정
+    modern: "조선시대 레시피 현대 이미지",
   },
 };
 
@@ -191,8 +191,21 @@ export function findModernImage(recipe: RoyalRecipe): string | null {
       (file) => file.toLowerCase().endsWith(".png") || file.toLowerCase().endsWith(".jpg") || file.toLowerCase().endsWith(".jpeg")
     );
     
-    console.log(`[findModernImage] ${recipe.era} - ${recipe.title}`);
+    console.log(`[findModernImage] ${recipe.era} - ${recipe.title} (번호: ${recipe.number})`);
     console.log(`[findModernImage] 찾은 현대 이미지 파일 수: ${imageFiles.length}`);
+    
+    // 번호로 먼저 매칭 시도 (궁중 이미지와 동일한 로직)
+    const numberedFile = imageFiles.find((file) => {
+      const match = file.match(/^(\d+)\./);
+      return match && parseInt(match[1], 10) === recipe.number;
+    });
+    
+    if (numberedFile) {
+      // public/images/royalrecipe 폴더는 /images/royalrecipe/ URL로 접근 가능
+      const imageUrl = `/images/royalrecipe/${encodeURIComponent(imageDir)}/${encodeURIComponent(numberedFile)}`;
+      console.log(`[findModernImage] 번호로 매칭 성공: ${numberedFile} -> ${imageUrl}`);
+      return imageUrl;
+    }
     
     // 제목으로 매칭 시도
     const titleMatchedFile = imageFiles.find((file) =>
@@ -207,7 +220,7 @@ export function findModernImage(recipe: RoyalRecipe): string | null {
     }
     
     console.warn(
-      `[findModernImage] ${recipe.era} - ${recipe.title}에 해당하는 현대 이미지를 찾을 수 없습니다.`
+      `[findModernImage] ${recipe.era} - ${recipe.title} (번호: ${recipe.number})에 해당하는 현대 이미지를 찾을 수 없습니다.`
     );
     console.log(`[findModernImage] 사용 가능한 파일 목록:`, imageFiles.slice(0, 5));
     return null;

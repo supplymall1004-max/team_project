@@ -18,12 +18,12 @@ import { Section } from '@/components/section';
 import { RecipeTabsClient } from '@/app/archive/recipes/recipe-tabs-client';
 import { RecipeSectionServer } from '@/app/archive/recipes/recipe-section-server';
 import { RoyalRecipesQuickAccess } from '@/components/royal-recipes/royal-recipes-quick-access';
-import { MfdsRecipeSection } from '@/components/home/mfds-recipe-section';
 import { BabyRecipeNotice } from '@/components/baby-recipes/baby-recipe-notice';
 import { BabyRecipeList } from '@/components/baby-recipes/baby-recipe-list';
 import { GruelRecipeList } from '@/components/gruel-recipes/gruel-recipe-list';
 import { SpecialRecipeList } from '@/components/special-recipes/special-recipe-list';
 import { VeganRecipeList } from '@/components/vegan-recipes/vegan-recipe-list';
+import { MfdsRecipeSection } from '@/components/mfds-recipes/mfds-recipe-section';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LoadingSpinner } from '@/components/loading-spinner';
@@ -48,11 +48,6 @@ function AllTabContent() {
       <ErrorBoundary>
         <Suspense fallback={<SectionSkeleton />}>
           <RoyalRecipesQuickAccess id="royal-recipes" />
-        </Suspense>
-      </ErrorBoundary>
-      <ErrorBoundary>
-        <Suspense fallback={<SectionSkeleton />}>
-          <MfdsRecipeSection />
         </Suspense>
       </ErrorBoundary>
       <ErrorBoundary>
