@@ -333,6 +333,9 @@ export function EmergencyQuickAccess() {
                     <Link
                         href="/health/emergency"
                         className="flex items-center justify-between py-2.5 px-4 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 hover:border-red-300 transition-all group relative overflow-hidden"
+                        style={{
+                            animation: 'neon-glow-red 2s ease-in-out infinite',
+                        }}
                     >
                         <div className="flex items-center gap-3">
                             <div className="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full group-hover:bg-red-200 transition-colors">

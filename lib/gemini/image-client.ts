@@ -28,9 +28,12 @@ const DEFAULT_MODEL = "gemini-1.5-flash";
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export async function generateGeminiImage(request: GeminiImageRequest): Promise<GeminiImageResponse> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  // 하이브리드 방식: 사용자 API 키 우선, 없으면 환경 변수
+  const { getHybridApiKey } = await import("@/lib/api-keys/get-user-api-key");
+  const apiKey = await getHybridApiKey("gemini", "GEMINI_API_KEY");
+  
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not set. Please add it to your environment before generating images.");
+    throw new Error("GEMINI_API_KEY is not set. Please add it to your environment or user settings before generating images.");
   }
 
   const url = `${BASE_URL}/${DEFAULT_MODEL}:generateContent?key=${apiKey}`;

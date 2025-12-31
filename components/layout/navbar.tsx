@@ -161,12 +161,12 @@ const Navbar = () => {
               console.log("[Navbar] 다른 경로에서 홈으로 이동");
             }
           }}
-          aria-label="Flavor Archive 홈으로 이동"
+          aria-label="Django Care 홈으로 이동"
         >
           <div className="relative w-[50px] h-[60px] flex-shrink-0">
             <Image
-              src="/icons/maca2.JPG"
-              alt="Flavor Archive 로고"
+              src="/refrigerator-logo.png"
+              alt="Django Care 로고"
               width={50}
               height={60}
               className="rounded-lg object-contain"
@@ -190,7 +190,7 @@ const Navbar = () => {
             />
           </div>
           <span className="text-lg sm:text-2xl font-bold text-orange-600 whitespace-nowrap">
-            Flavor Archive
+            Django Care
           </span>
         </Link>
 

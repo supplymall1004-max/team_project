@@ -239,6 +239,10 @@ export function PricingSection() {
               </li>
               <li className="flex items-start gap-3">
                 <Check className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <span>예방접종 안내 및 맞춤 일정</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <span>북마크 무제한</span>
               </li>
               <li className="flex items-start gap-3">

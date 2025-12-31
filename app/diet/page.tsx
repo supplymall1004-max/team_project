@@ -18,10 +18,13 @@ import { LazyWeeklyDietSummary } from '@/components/home/lazy-sections';
 import { HealthVisualizationPreview } from '@/components/home/health-visualization-preview';
 import { HealthInfoTabs } from '@/components/diet/health-info-tabs';
 import { PremiumDietSummary } from '@/components/diet/premium-diet-summary';
+import { PremiumRequiredMessage } from '@/components/premium/premium-required-message';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { getCurrentSubscription } from '@/actions/payments/get-subscription';
 import type { UserHealthProfile } from '@/types/health';
+import { MealRecordsTab } from '@/components/health/diet/meal-records-tab';
 
 function SectionSkeleton() {
   return (
@@ -36,6 +39,25 @@ function DietManagementContent() {
   const initialTab = searchParams.get('tab') || 'today';
   const [healthProfile, setHealthProfile] = useState<UserHealthProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isPremium, setIsPremium] = useState<boolean | null>(null);
+  const [isLoadingPremium, setIsLoadingPremium] = useState(true);
+
+  // 프리미엄 체크
+  useEffect(() => {
+    const checkPremium = async () => {
+      try {
+        const result = await getCurrentSubscription();
+        setIsPremium(result.isPremium || false);
+      } catch (error) {
+        console.error('[DietManagement] 프리미엄 체크 실패:', error);
+        setIsPremium(false);
+      } finally {
+        setIsLoadingPremium(false);
+      }
+    };
+
+    checkPremium();
+  }, []);
 
   // 건강 정보 로드
   useEffect(() => {
@@ -58,12 +80,34 @@ function DietManagementContent() {
     loadHealthProfile();
   }, []);
 
+  // 프리미엄 체크 중이면 로딩 표시
+  if (isLoadingPremium) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  // 프리미엄이 아니면 안내 메시지 표시
+  if (!isPremium) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <PremiumRequiredMessage
+          title="건강맞춤식단은 프리미엄 회원 전용입니다"
+          message="AI 기반 개인 맞춤 식단을 이용하시려면 프리미엄 구독이 필요합니다."
+          featureName="건강맞춤식단"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-black">
       <Section className="pt-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">🍽️ 식단 관리</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-4xl font-bold mb-2 dark:text-foreground">🍽️ 식단 관리</h1>
+          <p className="text-muted-foreground dark:text-muted-foreground">
             AI 기반 개인 맞춤 식단으로 건강한 식생활을 시작하세요
           </p>
         </div>
@@ -74,7 +118,7 @@ function DietManagementContent() {
             <TabsTrigger value="weekly" className="text-xs sm:text-sm">주간 식단</TabsTrigger>
             <TabsTrigger value="health-guide" className="text-xs sm:text-sm">건강 맞춤 가이드</TabsTrigger>
             <TabsTrigger value="visualization" className="text-xs sm:text-sm">건강 시각화</TabsTrigger>
-            <TabsTrigger value="records" className="text-xs sm:text-sm col-span-2">식단 기록</TabsTrigger>
+            <TabsTrigger value="records" className="text-xs sm:text-sm col-span-2">📸 식사 기록 & 분석</TabsTrigger>
           </TabsList>
 
           <TabsContent value="today" className="space-y-6">
@@ -114,15 +158,9 @@ function DietManagementContent() {
           </TabsContent>
 
           <TabsContent value="records" className="space-y-6">
-            <div className="rounded-xl border border-purple-200 bg-white p-6">
-              <h2 className="text-xl font-bold mb-4">📝 식단 기록</h2>
-              <p className="text-muted-foreground">
-                과거 식단 기록을 확인하고 분석할 수 있습니다
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                (기능 개발 예정)
-              </p>
-            </div>
+            <ErrorBoundary>
+              <MealRecordsTab />
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </Section>

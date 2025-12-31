@@ -11,7 +11,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, Bell, Heart, Users, ChevronRight, CreditCard } from "lucide-react";
+import { User, Bell, Heart, Users, ChevronRight, CreditCard, Key, Palette } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -60,6 +60,20 @@ const SETTINGS_ITEMS: SettingsItem[] = [
     href: "/settings/billing",
     icon: CreditCard,
   },
+  {
+    id: "api-keys",
+    title: "API 키 관리",
+    description: "외부 서비스 API 키를 발급받아 입력하고 관리하세요",
+    href: "/settings/api-keys",
+    icon: Key,
+  },
+  {
+    id: "customization",
+    title: "홈페이지 커스터마이징",
+    description: "테마, 배경 이미지, 섹션 순서 등을 커스터마이징하세요",
+    href: "/settings/customization",
+    icon: Palette,
+  },
 ];
 
 export function SettingsNavigation() {
@@ -72,6 +86,8 @@ export function SettingsNavigation() {
     family: { color: "text-blue-500", bg: "bg-blue-50" },
     billing: { color: "text-green-500", bg: "bg-green-50" },
     profile: { color: "text-gray-500", bg: "bg-gray-50" },
+    "api-keys": { color: "text-purple-500", bg: "bg-purple-50" },
+    customization: { color: "text-pink-500", bg: "bg-pink-50" },
   };
 
   return (

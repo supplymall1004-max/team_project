@@ -283,56 +283,78 @@ function parseImageUrls(
 
   const referenceText = referenceMatch[1];
 
-  // 대표 이미지 URL 추출 (원본 URL은 완전히 무시하고 로컬 파일만 사용)
-  // 원본 URL은 파싱하지 않음 (외부 링크 사용 안 함)
-
-  const mainImageLocalMatch = referenceText.match(
-    /\*\*대표\s+이미지\s+\(ATT_FILE_NO_MAIN\)\*\*:\s*(.+?)\s*\n/
+  // 대표 이미지 URL 추출 (기존 형식과 새 형식 모두 지원)
+  // 새 형식: **대표 이미지 (ATT_FILE_NO_MAIN) 원본 URL**: http://...
+  // 기존 형식: **대표 이미지 원본 URL**: http://...
+  let mainImageUrlMatch = referenceText.match(
+    /\*\*대표\s+이미지\s+\(ATT_FILE_NO_MAIN\)\s+원본\s+URL\*\*:\s*(.+?)\s*\n/
   );
-  if (mainImageLocalMatch) {
-    images.mainImageLocalPath = mainImageLocalMatch[1].trim();
-    // 로컬 경로를 API 경로로 변환 (외부 링크 무시)
+  if (!mainImageUrlMatch) {
+    // 기존 형식 지원
+    mainImageUrlMatch = referenceText.match(
+      /\*\*대표\s+이미지\s+원본\s+URL\*\*:\s*(.+?)\s*\n/
+    );
+  }
+  if (mainImageUrlMatch) {
+    images.mainImageOriginalUrl = mainImageUrlMatch[1].trim();
+    // API 경로 사용 (로컬 파일이 없으면 식약처 API에서 가져옴)
     images.mainImageUrl = `/api/mfds-recipes/images/${rcpSeq}_main.jpg`;
   } else {
-    // 로컬 경로가 없어도 기본 패턴으로 생성
+    // 원본 URL이 없어도 기본 패턴으로 생성
     images.mainImageUrl = `/api/mfds-recipes/images/${rcpSeq}_main.jpg`;
   }
 
-  // 만드는 법 이미지 URL 추출 (원본 URL은 완전히 무시하고 로컬 파일만 사용)
-  // 원본 URL은 파싱하지 않음 (외부 링크 사용 안 함)
-
-  const mkImageLocalMatch = referenceText.match(
-    /\*\*만드는\s+법\s+이미지\s+\(ATT_FILE_NO_MK\)\*\*:\s*(.+?)\s*\n/
+  // 만드는 법 이미지 URL 추출 (기존 형식과 새 형식 모두 지원)
+  // 새 형식: **만드는 법 이미지 (ATT_FILE_NO_MK) 원본 URL**: http://...
+  // 기존 형식: **만드는 법 이미지 원본 URL**: http://...
+  let mkImageUrlMatch = referenceText.match(
+    /\*\*만드는\s+법\s+이미지\s+\(ATT_FILE_NO_MK\)\s+원본\s+URL\*\*:\s*(.+?)\s*\n/
   );
-  if (mkImageLocalMatch) {
-    images.mkImageLocalPath = mkImageLocalMatch[1].trim();
-    // 로컬 경로를 API 경로로 변환 (외부 링크 무시)
+  if (!mkImageUrlMatch) {
+    // 기존 형식 지원
+    mkImageUrlMatch = referenceText.match(
+      /\*\*만드는\s+법\s+이미지\s+원본\s+URL\*\*:\s*(.+?)\s*\n/
+    );
+  }
+  if (mkImageUrlMatch) {
+    images.mkImageOriginalUrl = mkImageUrlMatch[1].trim();
+    // API 경로 사용 (로컬 파일이 없으면 식약처 API에서 가져옴)
     images.mkImageUrl = `/api/mfds-recipes/images/${rcpSeq}_mk.jpg`;
   } else {
-    // 로컬 경로가 없어도 기본 패턴으로 생성
+    // 원본 URL이 없어도 기본 패턴으로 생성
     images.mkImageUrl = `/api/mfds-recipes/images/${rcpSeq}_mk.jpg`;
   }
 
-  // 조리 단계별 이미지 URL 추출 (로컬 파일만 사용, 외부 링크 완전히 무시)
+  // 조리 단계별 이미지 URL 추출 (기존 형식과 새 형식 모두 지원)
+  // 새 형식: **조리법 이미지 1 (MANUAL_IMG01) 원본 URL**: http://...
+  // 기존 형식: **조리법 이미지 1 원본 URL**: http://...
   for (let i = 1; i <= 20; i++) {
     const stepNum = i.toString().padStart(2, "0");
-    const imageLocalMatch = referenceText.match(
+    let imageUrlMatch = referenceText.match(
       new RegExp(
-        `\\*\\*조리법\\s+이미지\\s+${i}\\s+\\(MANUAL_IMG${stepNum}\\)\\*\\*:\\s*(.+?)\\s*\\n`
+        `\\*\\*조리법\\s+이미지\\s+${i}\\s+\\(MANUAL_IMG${stepNum}\\)\\s+원본\\s+URL\\*\\*:\\s*(.+?)\\s*\\n`
       )
     );
-    // 원본 URL은 파싱하지 않음 (외부 링크 사용 안 함)
+    
+    if (!imageUrlMatch) {
+      // 기존 형식 지원
+      imageUrlMatch = referenceText.match(
+        new RegExp(
+          `\\*\\*조리법\\s+이미지\\s+${i}\\s+원본\\s+URL\\*\\*:\\s*(.+?)\\s*\\n`
+        )
+      );
+    }
 
-    if (imageLocalMatch) {
-      const localPath = imageLocalMatch[1].trim();
+    if (imageUrlMatch) {
+      const originalUrl = imageUrlMatch[1].trim();
 
       steps.push({
         step: i,
         description: "", // 조리법 설명은 parseCookingSteps에서 추출
-        // 로컬 경로를 API 경로로 변환 (외부 링크 완전히 무시)
+        // API 경로 사용 (로컬 파일이 없으면 식약처 API에서 가져옴)
         imageUrl: `/api/mfds-recipes/images/${rcpSeq}_manual_${stepNum}.jpg`,
-        originalImageUrl: null, // 외부 링크 사용 안 함
-        localImagePath: localPath,
+        originalImageUrl: originalUrl,
+        localImagePath: null,
       });
     }
   }

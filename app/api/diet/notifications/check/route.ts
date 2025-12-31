@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
+import { checkPremiumAccess } from "@/lib/kcdc/premium-guard";
 
 /**
  * GET /api/diet/notifications/check
@@ -105,6 +106,17 @@ export async function GET(request: NextRequest) {
     }
 
     const supabaseUserId = userData.id;
+
+    // 프리미엄 체크 - 프리미엄이 아니면 팝업 표시하지 않음
+    const premiumCheck = await checkPremiumAccess();
+    if (!premiumCheck.isPremium) {
+      console.log("❌ 프리미엄 사용자가 아님 - 팝업 표시 차단");
+      console.groupEnd();
+      return NextResponse.json({
+        shouldShow: false,
+        reason: "premium_required"
+      });
+    }
 
     // 알림 설정 조회
     const { data: notificationSettings, error: settingsError } = await supabase

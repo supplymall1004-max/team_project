@@ -239,23 +239,17 @@ function DietCardContent({
 /**
  * 식단 카드 대표 이미지 결정 규칙 (사용자 요청 반영)
  *
- * - **식약처(MFDS) 이미지 우선**: foodsafety 레시피(foodsafety-*)의 thumbnail_url이 있으면 우선 사용
- * - **아침/점심/저녁 대표사진은 국/찌개/탕**: compositionSummary에서 국/찌개/탕 항목을 찾아 그 제목 기반 이미지 사용
+ * 우선순위:
+ * 1순위 - 국 또는 찌개 음식사진
+ * 2순위 - 반찬사진 1,2,3
+ * 3순위 - 밥 사진
+ *
  * - **간식(제철 과일)**: fruit-mapper의 imageUrl 사용 (사과 이미지 오류 방지)
  */
 function getRepresentativeImageUrl(mealType: MealType, dietPlan: DietPlan): string {
   const recipe = dietPlan.recipe;
 
-  const recipeId = recipe?.id ?? "";
-  const thumbnailUrl = recipe?.thumbnail_url ?? null;
-  const isFoodsafety = recipeId.startsWith("foodsafety-");
-
-  // 1) 식약처 레시피 썸네일이 있으면 우선 (요청: 식약처 API 우선 적용)
-  if (isFoodsafety && thumbnailUrl && thumbnailUrl.trim().length > 0) {
-    return thumbnailUrl;
-  }
-
-  // 2) 간식은 제철과일 이미지 우선
+  // 간식은 제철과일 이미지 우선
   if (mealType === "snack") {
     const title =
       Array.isArray(dietPlan.compositionSummary) && dietPlan.compositionSummary.length > 0
@@ -268,16 +262,27 @@ function getRepresentativeImageUrl(mealType: MealType, dietPlan: DietPlan): stri
       return getRecipeImageUrlEnhanced(title, null);
     }
     // 폴백: 관련성 기반 이미지 생성
-    return getRecipeImageUrlEnhanced(title, thumbnailUrl);
+    return getRecipeImageUrlEnhanced(title, recipe?.thumbnail_url ?? null);
   }
 
-  // 3) 아침/점심/저녁은 “국/찌개/탕”을 대표 이미지로 사용
+  // 아침/점심/저녁: compositionSummary에서 우선순위에 따라 이미지 찾기
   const safeSummary = dietPlan.compositionSummary?.map((item) => item.trim()).filter(Boolean) ?? [];
+  
+  if (safeSummary.length === 0) {
+    // compositionSummary가 없으면 레시피 제목 기반
+    const fallback = getRecipeImageUrlEnhanced(recipe?.title ?? "", recipe?.thumbnail_url ?? null);
+    if (fallback === "/images/food/soup.svg") {
+      return DEFAULT_SOUP_IMAGE;
+    }
+    return fallback;
+  }
+
+  // 1순위: 국 또는 찌개 음식사진 찾기
   const soupFocusedItem =
     safeSummary.find((item) => SOUP_KEYWORDS.some((keyword) => item.includes(keyword))) ?? null;
 
   if (soupFocusedItem) {
-    // 제목 기반 이미지 (카테고리/매칭 규칙 적용)
+    console.log(`[DietCard] 1순위: 국/찌개 이미지 사용 - ${soupFocusedItem}`);
     const candidate = getRecipeImageUrlEnhanced(soupFocusedItem);
     // 카테고리 SVG(아이콘)로 떨어지면, 실사 국/찌개 이미지로 강제 폴백
     if (candidate === "/images/food/soup.svg") {
@@ -286,8 +291,58 @@ function getRepresentativeImageUrl(mealType: MealType, dietPlan: DietPlan): stri
     return candidate;
   }
 
-  // 4) 그래도 없으면 레시피 제목 기반 (식약처 아닌 경우도 thumbnail은 관련성 점수로 판단)
-  const fallback = getRecipeImageUrlEnhanced(recipe?.title ?? "", thumbnailUrl);
+  // 2순위: 반찬사진 찾기 (밥이 아닌 항목들 중에서)
+  // 밥 키워드: "밥", "rice", "현미", "흰쌀", "잡곡"
+  const riceKeywords = ["밥", "rice", "현미", "흰쌀", "잡곡"];
+  const sideItems = safeSummary.filter(
+    (item) => !riceKeywords.some((keyword) => item.toLowerCase().includes(keyword.toLowerCase()))
+  );
+
+  // 반찬이 있으면 첫 번째 반찬 이미지 사용
+  if (sideItems.length > 0) {
+    const firstSideItem = sideItems[0];
+    console.log(`[DietCard] 2순위: 반찬 이미지 사용 - ${firstSideItem}`);
+    const candidate = getRecipeImageUrlEnhanced(firstSideItem);
+    // SVG 아이콘이면 다음 반찬 시도
+    if (candidate !== "/images/food/soup.svg" && candidate !== "/images/food/side.svg") {
+      return candidate;
+    }
+    // 여러 반찬이 있으면 다음 반찬 시도
+    if (sideItems.length > 1) {
+      const secondSideItem = sideItems[1];
+      console.log(`[DietCard] 2순위: 두 번째 반찬 이미지 시도 - ${secondSideItem}`);
+      const secondCandidate = getRecipeImageUrlEnhanced(secondSideItem);
+      if (secondCandidate !== "/images/food/soup.svg" && secondCandidate !== "/images/food/side.svg") {
+        return secondCandidate;
+      }
+      // 세 번째 반찬 시도
+      if (sideItems.length > 2) {
+        const thirdSideItem = sideItems[2];
+        console.log(`[DietCard] 2순위: 세 번째 반찬 이미지 시도 - ${thirdSideItem}`);
+        const thirdCandidate = getRecipeImageUrlEnhanced(thirdSideItem);
+        if (thirdCandidate !== "/images/food/soup.svg" && thirdCandidate !== "/images/food/side.svg") {
+          return thirdCandidate;
+        }
+      }
+    }
+  }
+
+  // 3순위: 밥 사진 찾기
+  const riceItem = safeSummary.find((item) =>
+    riceKeywords.some((keyword) => item.toLowerCase().includes(keyword.toLowerCase()))
+  );
+
+  if (riceItem) {
+    console.log(`[DietCard] 3순위: 밥 이미지 사용 - ${riceItem}`);
+    const candidate = getRecipeImageUrlEnhanced(riceItem);
+    if (candidate !== "/images/food/soup.svg") {
+      return candidate;
+    }
+  }
+
+  // 최종 폴백: 레시피 제목 기반
+  console.log(`[DietCard] 폴백: 레시피 제목 기반 이미지 사용 - ${recipe?.title ?? "없음"}`);
+  const fallback = getRecipeImageUrlEnhanced(recipe?.title ?? "", recipe?.thumbnail_url ?? null);
   if (fallback === "/images/food/soup.svg") {
     return DEFAULT_SOUP_IMAGE;
   }

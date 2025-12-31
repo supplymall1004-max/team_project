@@ -123,15 +123,17 @@ export async function GET(request: NextRequest) {
     console.group("[API] GET /api/weather (기상청 API)");
     console.log("📥 요청 URL:", request.url);
 
-    // 1. API 키 확인
-    const apiKey = process.env.NEXT_PUBLIC_KMA_WEATHER_API_KEY;
+    // 1. API 키 확인 (하이브리드 방식: 사용자 키 우선, 없으면 환경 변수)
+    const { getHybridApiKey } = await import("@/lib/api-keys/get-user-api-key");
+    const apiKey = await getHybridApiKey("weather", "NEXT_PUBLIC_KMA_WEATHER_API_KEY");
+    
     if (!apiKey) {
       console.log("⚠️ 기상청 API 키가 설정되지 않았습니다.");
       console.groupEnd();
       return NextResponse.json<WeatherResponse>(
         {
           success: false,
-          error: "기상청 API 키가 설정되지 않았습니다. .env 파일에 NEXT_PUBLIC_KMA_WEATHER_API_KEY를 추가해주세요.",
+          error: "기상청 API 키가 설정되지 않았습니다. 설정 페이지에서 API 키를 입력하거나 .env 파일에 NEXT_PUBLIC_KMA_WEATHER_API_KEY를 추가해주세요.",
         },
         { status: 500 }
       );

@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { ErrorBoundary } from '@/components/error-boundary';
 import Link from 'next/link';
-import { ArrowRight, Activity, Heart, Bell, Target, FileText } from 'lucide-react';
+import { ArrowRight, Activity, Heart, Bell, Target, FileText, Camera } from 'lucide-react';
 
 function SectionSkeleton() {
   return (
@@ -159,23 +159,71 @@ function HealthManagementContent() {
           </TabsContent>
 
           <TabsContent value="records" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  📝 건강 기록
-                </CardTitle>
-                <CardDescription>건강검진, 약물, 활동량, 영양 기록 관리</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  건강 기록을 추가하고 관리할 수 있습니다
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  (기능 개발 예정)
-                </p>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    📝 건강 기록
+                  </CardTitle>
+                  <CardDescription>건강검진, 약물, 활동량 기록 관리</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <Button asChild variant="outline" className="w-full justify-start">
+                      <Link href="/health/medication-records">
+                        <FileText className="mr-2 h-4 w-4" />
+                        약물 복용 기록
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="w-full justify-start">
+                      <Link href="/health/hospital-records">
+                        <FileText className="mr-2 h-4 w-4" />
+                        병원 기록
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="w-full justify-start">
+                      <Link href="/health/disease-records">
+                        <FileText className="mr-2 h-4 w-4" />
+                        질병 기록
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-green-200 bg-green-50/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-green-700">
+                    <Camera className="h-5 w-5" />
+                    📸 식사 사진 분석
+                  </CardTitle>
+                  <CardDescription>AI로 식사 사진을 분석하고 영양소를 추적하세요</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      식사 사진을 업로드하면 AI가 자동으로 음식을 인식하고 영양소를 계산합니다.
+                    </p>
+                    <Button asChild className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700">
+                      <Link href="/diet?tab=records">
+                        <Camera className="mr-2 h-4 w-4" />
+                        식사 사진 분석하기
+                      </Link>
+                    </Button>
+                    <div className="pt-2 border-t border-green-200">
+                      <p className="text-xs text-green-700 font-medium mb-2">주요 기능:</p>
+                      <ul className="text-xs text-green-600 space-y-1">
+                        <li>• AI 기반 음식 인식</li>
+                        <li>• 자동 영양소 계산</li>
+                        <li>• 건강 식단과 비교</li>
+                        <li>• 일주일간 영양소 분석</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="pets" className="space-y-6">

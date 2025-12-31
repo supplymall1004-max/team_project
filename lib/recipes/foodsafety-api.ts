@@ -109,13 +109,16 @@ export interface FoodSafetyApiResult {
 }
 
 /**
- * 식약처 API 키 가져오기
+ * 식약처 API 키 가져오기 (하이브리드 방식)
  */
-function getApiKey(): string {
-  const apiKey = process.env.FOOD_SAFETY_RECIPE_API_KEY;
+async function getApiKey(): Promise<string> {
+  // 하이브리드 방식: 사용자 API 키 우선, 없으면 환경 변수
+  const { getHybridApiKey } = await import("@/lib/api-keys/get-user-api-key");
+  const apiKey = await getHybridApiKey("food_safety", "FOOD_SAFETY_RECIPE_API_KEY");
+  
   if (!apiKey) {
     throw new Error(
-      "FOOD_SAFETY_RECIPE_API_KEY가 환경 변수에 설정되지 않았습니다."
+      "FOOD_SAFETY_RECIPE_API_KEY가 환경 변수에 설정되지 않았습니다. 설정 페이지에서 API 키를 입력하거나 .env 파일을 확인해주세요."
     );
   }
   return apiKey;
@@ -239,7 +242,7 @@ export async function fetchFoodSafetyRecipes(
   console.log("options", { startIdx, endIdx, rcpSeq });
 
   try {
-    const apiKey = getApiKey();
+    const apiKey = await getApiKey();
     const url = buildApiUrl(apiKey, startIdx, endIdx, rcpSeq);
     
     const response = await fetchWithRetry(url, maxRetries, retryDelay);

@@ -10,6 +10,7 @@ import {
   generateAndSaveDietPlan,
 } from "@/lib/diet/queries";
 import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
+import { checkPremiumAccess } from "@/lib/kcdc/premium-guard";
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,6 +31,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: "사용자 정보를 찾을 수 없습니다" },
         { status: 404 }
+      );
+    }
+
+    // 프리미엄 체크
+    const premiumCheck = await checkPremiumAccess();
+    if (!premiumCheck.isPremium) {
+      console.log("❌ 프리미엄 사용자가 아님 - 식단 조회 차단");
+      return NextResponse.json(
+        { 
+          error: "식단 조회는 프리미엄 회원만 이용할 수 있습니다.",
+          details: "프리미엄 구독을 통해 건강식단 기능을 이용하실 수 있습니다."
+        },
+        { status: 403 }
       );
     }
 
@@ -114,6 +128,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "로그인이 필요합니다" },
         { status: 401 }
+      );
+    }
+
+    // 프리미엄 체크
+    const premiumCheck = await checkPremiumAccess();
+    if (!premiumCheck.isPremium) {
+      console.log("❌ 프리미엄 사용자가 아님 - 식단 생성 차단");
+      return NextResponse.json(
+        { 
+          error: "건강식단 생성은 프리미엄 회원만 이용할 수 있습니다.",
+          details: "프리미엄 구독을 통해 건강식단 생성 기능을 이용하실 수 있습니다."
+        },
+        { status: 403 }
       );
     }
 

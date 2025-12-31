@@ -455,9 +455,14 @@ export function DietSectionClient() {
               매일 오후 6시에 자동 생성되는 개인 맞춤/가족 식단입니다
             </p>
           </div>
-          <Button variant="outline" size="sm" asChild className="text-xs sm:text-sm">
-            <Link href="/health/profile">건강 정보 관리</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild className="text-xs sm:text-sm">
+              <Link href="/health/profile">건강 정보 관리</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild className="text-xs sm:text-sm border-green-300 text-green-700 hover:bg-green-50">
+              <Link href="/diet?tab=records">📸 식사 기록</Link>
+            </Button>
+          </div>
         </div>
 
         {familySummary && (

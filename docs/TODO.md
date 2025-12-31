@@ -1,10 +1,10 @@
-# 맛의 아카이브 (Flavor Archive) 개발 현황 & TODO
+# Django Care (냉씨가문 집사장고) 개발 현황 & TODO
 
-> **최종 업데이트: 2025-12-24**  
+> **최종 업데이트: 2025-01-28**  
 > PRD/Design 문서와 실제 구현을 교차 검토하여 **구현 완료 기능**과 **남은 우선순위 작업**을 정리했습니다.  
 > Supabase MCP를 통해 데이터베이스 스키마를 직접 확인하여 실제 구현 상태를 반영했습니다.  
 > 프로젝트 파일 정리 작업 완료 (레거시 파일 삭제, 중복 파일 통합).  
-> **최신 추가 기능**: 캐릭터창 인터페이스 (게임 HUD 스타일) Phase 0-2 완료, 가족 구성원 예방접종 안내 팝업, 의료기관/약국 찾기, 건강정보 자동 연동, 신원확인 기능, 동의 기록 관리 등 반영 완료.
+> **최신 추가 기능**: 캐릭터창 인터페이스 (게임 HUD 스타일) Phase 0-6 완료, 가족 구성원 예방접종 안내 팝업, 의료기관/약국 찾기, 건강정보 자동 연동, 신원확인 기능, 동의 기록 관리, 프리미엄 건강 드로어 (냉장고 테마) 등 반영 완료.
 
 ---
 
@@ -367,6 +367,33 @@
   - [x] 챕터 페이지용 전체 버전
 
 ### 16. 🎮 캐릭터창 인터페이스 (게임 HUD 스타일)
+
+### 17. 🧊 프리미엄 건강 드로어 (냉장고 테마)
+
+- [x] **프리미엄 건강 드로어 구현**
+  - [x] 냉장고 이미지 배경 드로어 컴포넌트 (`components/home/premium-health-drawer.tsx`)
+  - [x] 오른쪽에서 슬라이드되는 애니메이션 (Framer Motion)
+  - [x] ESC 키로 닫기 기능
+  - [x] 스크롤 가능한 콘텐츠 영역
+  - [x] 냉장고 선반 위치에 맞춘 섹션 배치 (상단/중간/하단 선반, 서랍, 문 선반)
+- [x] **건강 상태 섹션**
+  - [x] 건강 점수, 복용 중인 약물, 예정된 예방접종, 최근 건강검진 표시 (`components/home/premium-health-status-section.tsx`)
+- [x] **중요 알림 섹션**
+  - [x] 긴급 알림, 약물 복용 리마인더, 예방접종 알림, 건강검진 알림 표시 (`components/home/premium-health-notifications.tsx`)
+  - [x] 약물 복용 확인 기능 (`actions/health/confirm-medication-reminder.ts`)
+- [x] **일정 섹션**
+  - [x] 오늘 일정 및 다가오는 일정 표시 (`components/home/premium-health-schedule.tsx`)
+- [x] **가족 소통 섹션**
+  - [x] 가족 공지사항, 건강 정보 공유 표시 (`components/home/premium-family-communication.tsx`)
+- [x] **시스템 공지 섹션**
+  - [x] 시스템 공지 및 건강 팁 표시 (`components/home/premium-system-announcements.tsx`)
+- [x] **데이터 조회 Server Action**
+  - [x] 프리미엄 드로어 데이터 통합 조회 (`actions/health/premium-drawer.ts`)
+  - [x] 타입 정의 (`types/premium-drawer.ts`)
+- [x] **프리미엄 상태 배너 통합**
+  - [x] 프리미엄 상태 배너의 햄버거 버튼 클릭 시 드로어 열기 (`components/home/premium-status-banner.tsx`)
+
+### 18. 🎮 캐릭터창 인터페이스 (게임 HUD 스타일)
 
 - [x] **Phase 0: 데이터베이스 마이그레이션**
   - [x] `family_members` 테이블 확장 (`avatar_type`, `health_score`, `health_score_updated_at` 컬럼 추가)

@@ -31,6 +31,7 @@ import { ToastProvider } from "./toast-provider";
 import { DietNotificationProvider } from "./diet-notification-provider";
 import { KcdcAlertsProvider } from "./kcdc-alerts-provider";
 import { PopupProvider } from "./popup-provider";
+import { ThemeProvider } from "./theme-provider";
 
 interface AppProvidersProps {
   children: React.ReactNode;
@@ -58,16 +59,18 @@ export function AppProviders({ children }: AppProvidersProps) {
         damping: 30,
       }}
     >
-      <SyncUserProvider>
-        <QueryProvider>
-          <ToastProvider />
-          <DietNotificationProvider>
-            <KcdcAlertsProvider>
-              <PopupProvider>{children}</PopupProvider>
-            </KcdcAlertsProvider>
-          </DietNotificationProvider>
-        </QueryProvider>
-      </SyncUserProvider>
+      <ThemeProvider>
+        <SyncUserProvider>
+          <QueryProvider>
+            <ToastProvider />
+            <DietNotificationProvider>
+              <KcdcAlertsProvider>
+                <PopupProvider>{children}</PopupProvider>
+              </KcdcAlertsProvider>
+            </DietNotificationProvider>
+          </QueryProvider>
+        </SyncUserProvider>
+      </ThemeProvider>
     </MotionConfig>
   );
 }

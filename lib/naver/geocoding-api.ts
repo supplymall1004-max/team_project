@@ -23,27 +23,33 @@ export async function geocodeAddress(address: string): Promise<{
   console.group("[Naver Geocoding API] 주소 → 좌표 변환");
   console.log(`📍 주소: ${address}`);
 
-  const clientId = process.env.NAVER_CLIENT_ID;
-  const clientSecret = process.env.NAVER_CLIENT_SECRET;
+  // 하이브리드 방식: 사용자 API 키 우선, 없으면 환경 변수
+  const { getHybridNaverCredentials } = await import("@/lib/api-keys/get-user-api-key");
+  const { clientId, clientSecret } = await getHybridNaverCredentials(
+    "naver_geocoding",
+    "NAVER_CLIENT_ID",
+    "NAVER_CLIENT_SECRET"
+  );
 
   // 환경변수 확인 및 상세 에러 메시지
   if (!clientId || clientId.trim() === "") {
-    console.error("❌ NAVER_CLIENT_ID 환경변수가 설정되지 않았습니다.");
-    console.error("💡 .env.local 파일에 다음을 추가해주세요:");
+    console.error("❌ 네이버 지오코딩 API 키가 설정되지 않았습니다.");
+    console.error("💡 설정 페이지에서 API 키를 입력하거나 .env.local 파일에 다음을 추가해주세요:");
     console.error("   NAVER_CLIENT_ID=your_client_id_here");
+    console.error("   NAVER_CLIENT_SECRET=your_client_secret_here");
     console.groupEnd();
     throw new Error(
-      "NAVER_CLIENT_ID 환경변수가 설정되지 않았습니다. .env.local 파일을 확인해주세요."
+      "네이버 지오코딩 API 키가 설정되지 않았습니다. 설정 페이지에서 API 키를 입력하거나 .env.local 파일을 확인해주세요."
     );
   }
 
   if (!clientSecret || clientSecret.trim() === "") {
-    console.error("❌ NAVER_CLIENT_SECRET 환경변수가 설정되지 않았습니다.");
-    console.error("💡 .env.local 파일에 다음을 추가해주세요:");
+    console.error("❌ 네이버 지오코딩 API Secret이 설정되지 않았습니다.");
+    console.error("💡 설정 페이지에서 API 키를 입력하거나 .env.local 파일에 다음을 추가해주세요:");
     console.error("   NAVER_CLIENT_SECRET=your_client_secret_here");
     console.groupEnd();
     throw new Error(
-      "NAVER_CLIENT_SECRET 환경변수가 설정되지 않았습니다. .env.local 파일을 확인해주세요."
+      "네이버 지오코딩 API Secret이 설정되지 않았습니다. 설정 페이지에서 API 키를 입력하거나 .env.local 파일을 확인해주세요."
     );
   }
 
@@ -378,27 +384,33 @@ export async function reverseGeocode(
   console.group("[Naver Geocoding API] 좌표 → 주소 변환");
   console.log(`📍 좌표: ${lat}, ${lon}`);
 
-  const clientId = process.env.NAVER_CLIENT_ID;
-  const clientSecret = process.env.NAVER_CLIENT_SECRET;
+  // 하이브리드 방식: 사용자 API 키 우선, 없으면 환경 변수
+  const { getHybridNaverCredentials } = await import("@/lib/api-keys/get-user-api-key");
+  const { clientId, clientSecret } = await getHybridNaverCredentials(
+    "naver_geocoding",
+    "NAVER_CLIENT_ID",
+    "NAVER_CLIENT_SECRET"
+  );
 
   // 환경변수 확인 및 상세 에러 메시지
   if (!clientId || clientId.trim() === "") {
-    console.error("❌ NAVER_CLIENT_ID 환경변수가 설정되지 않았습니다.");
-    console.error("💡 .env.local 파일에 다음을 추가해주세요:");
+    console.error("❌ 네이버 지오코딩 API 키가 설정되지 않았습니다.");
+    console.error("💡 설정 페이지에서 API 키를 입력하거나 .env.local 파일에 다음을 추가해주세요:");
     console.error("   NAVER_CLIENT_ID=your_client_id_here");
+    console.error("   NAVER_CLIENT_SECRET=your_client_secret_here");
     console.groupEnd();
     throw new Error(
-      "NAVER_CLIENT_ID 환경변수가 설정되지 않았습니다. .env.local 파일을 확인해주세요."
+      "네이버 지오코딩 API 키가 설정되지 않았습니다. 설정 페이지에서 API 키를 입력하거나 .env.local 파일을 확인해주세요."
     );
   }
 
   if (!clientSecret || clientSecret.trim() === "") {
-    console.error("❌ NAVER_CLIENT_SECRET 환경변수가 설정되지 않았습니다.");
-    console.error("💡 .env.local 파일에 다음을 추가해주세요:");
+    console.error("❌ 네이버 지오코딩 API Secret이 설정되지 않았습니다.");
+    console.error("💡 설정 페이지에서 API 키를 입력하거나 .env.local 파일에 다음을 추가해주세요:");
     console.error("   NAVER_CLIENT_SECRET=your_client_secret_here");
     console.groupEnd();
     throw new Error(
-      "NAVER_CLIENT_SECRET 환경변수가 설정되지 않았습니다. .env.local 파일을 확인해주세요."
+      "네이버 지오코딩 API Secret이 설정되지 않았습니다. 설정 페이지에서 API 키를 입력하거나 .env.local 파일을 확인해주세요."
     );
   }
 

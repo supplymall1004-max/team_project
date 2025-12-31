@@ -152,9 +152,9 @@ export function HealthVisualizationPreview({
 
   if (error || !healthMetrics) {
     return (
-      <Card className={cn('border-orange-200 bg-orange-50/50', className)}>
+      <Card className={cn('border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20', className)}>
         <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground text-center">
+          <p className="text-sm text-muted-foreground dark:text-muted-foreground text-center">
             {error || '건강 데이터를 불러올 수 없습니다.'}
           </p>
           <Button asChild variant="outline" className="w-full mt-4">
@@ -184,18 +184,18 @@ export function HealthVisualizationPreview({
     // 컴팩트 모드 (메인페이지용)
     return (
       <div className={cn('space-y-4', className)}>
-        <Card className="border-orange-200 bg-orange-50/50 hover:shadow-lg transition-all">
+        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20 hover:shadow-lg transition-all">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Heart className="h-5 w-5 text-orange-600" />
+            <CardTitle className="flex items-center gap-2 text-lg dark:text-card-foreground">
+              <Heart className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               현재 건강 상태
             </CardTitle>
-            <CardDescription>오늘의 건강 메트릭스 요약</CardDescription>
+            <CardDescription className="dark:text-muted-foreground">오늘의 건강 메트릭스 요약</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-orange-600">
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                   {healthMetrics.overallHealthScore}
                   <span className="text-sm font-normal text-muted-foreground ml-1">점</span>
                 </p>

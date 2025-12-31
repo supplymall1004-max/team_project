@@ -10,9 +10,11 @@ import { Section } from '@/components/section';
 import { VaccinationTabsClient } from '@/components/health/vaccination-tabs-client';
 import { VaccinationApiData } from '@/components/health/vaccination-api-data';
 import { VaccinationFamilyAlert } from '@/components/health/vaccination-family-alert';
+import { PremiumRequiredMessage } from '@/components/premium/premium-required-message';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LoadingSpinner } from '@/components/loading-spinner';
+import { checkPremiumAccess } from '@/lib/kcdc/premium-guard';
 
 function SectionSkeleton() {
   return (
@@ -603,7 +605,25 @@ export const metadata = {
   description: "생애주기별, 상황별, 계절별 예방접종 정보를 확인하세요",
 };
 
-export default function VaccinationsPage() {
+// 동적 렌더링 강제 (프리미엄 체크를 위해 headers 사용)
+export const dynamic = 'force-dynamic';
+
+export default async function VaccinationsPage() {
+  // 프리미엄 체크
+  const premiumCheck = await checkPremiumAccess();
+  
+  if (!premiumCheck.isPremium) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <PremiumRequiredMessage
+          title="예방접종 안내는 프리미엄 회원 전용입니다"
+          message="생애주기별, 상황별, 계절별 예방접종 정보를 확인하시려면 프리미엄 구독이 필요합니다."
+          featureName="예방접종 안내"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 가족 구성원 예방접종 안내 팝업 */}

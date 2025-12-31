@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { X, Bell, Calendar, ChefHat, Eye, EyeOff } from "lucide-react";
 import { DailyDietView } from "./daily-diet-view";
-import type { FamilyDietPlan, DailyDietPlan } from "@/types/recipe";
+import type { FamilyDietPlan, DailyDietPlan, RecipeNutrition } from "@/types/recipe";
 
 interface DietNotificationPopupProps {
   isOpen: boolean;
@@ -62,9 +62,9 @@ export function DietNotificationPopup({
     if (!apiPlan || typeof apiPlan !== 'object') return null;
     
     try {
-      const totalNutrition = {
+      const totalNutrition: RecipeNutrition = {
         calories: 0,
-        carbohydrates: 0,
+        carbs: 0,
         protein: 0,
         fat: 0,
         sodium: 0,
@@ -72,92 +72,68 @@ export function DietNotificationPopup({
 
       const breakfast = apiPlan.breakfast?.[0] ? {
         id: apiPlan.breakfast[0].recipe_id || 'breakfast',
-        user_id: '',
-        plan_date: date,
-        meal_type: 'breakfast' as const,
-        recipe_id: apiPlan.breakfast[0].recipe_id || null,
-        calories: apiPlan.breakfast[0].nutrition?.calories || 0,
-        carbohydrates: apiPlan.breakfast[0].nutrition?.carbs || 0,
-        protein: apiPlan.breakfast[0].nutrition?.protein || 0,
-        fat: apiPlan.breakfast[0].nutrition?.fat || 0,
-        sodium: apiPlan.breakfast[0].nutrition?.sodium || 0,
-        created_at: new Date().toISOString(),
-        recipe: {
-          id: apiPlan.breakfast[0].recipe_id || '',
-          title: apiPlan.breakfast[0].title || '아침 식사',
-          thumbnail_url: null,
-          slug: '',
+        title: apiPlan.breakfast[0].title || '아침 식사',
+        ingredients: [],
+        nutrition: {
+          calories: apiPlan.breakfast[0].nutrition?.calories || 0,
+          carbs: apiPlan.breakfast[0].nutrition?.carbs || 0,
+          protein: apiPlan.breakfast[0].nutrition?.protein || 0,
+          fat: apiPlan.breakfast[0].nutrition?.fat || 0,
+          sodium: apiPlan.breakfast[0].nutrition?.sodium || 0,
         },
+        image: apiPlan.breakfast[0].image || null,
       } : null;
 
       const lunch = apiPlan.lunch?.[0] ? {
         id: apiPlan.lunch[0].recipe_id || 'lunch',
-        user_id: '',
-        plan_date: date,
-        meal_type: 'lunch' as const,
-        recipe_id: apiPlan.lunch[0].recipe_id || null,
-        calories: apiPlan.lunch[0].nutrition?.calories || 0,
-        carbohydrates: apiPlan.lunch[0].nutrition?.carbs || 0,
-        protein: apiPlan.lunch[0].nutrition?.protein || 0,
-        fat: apiPlan.lunch[0].nutrition?.fat || 0,
-        sodium: apiPlan.lunch[0].nutrition?.sodium || 0,
-        created_at: new Date().toISOString(),
-        recipe: {
-          id: apiPlan.lunch[0].recipe_id || '',
-          title: apiPlan.lunch[0].title || '점심 식사',
-          thumbnail_url: null,
-          slug: '',
+        title: apiPlan.lunch[0].title || '점심 식사',
+        ingredients: [],
+        nutrition: {
+          calories: apiPlan.lunch[0].nutrition?.calories || 0,
+          carbs: apiPlan.lunch[0].nutrition?.carbs || 0,
+          protein: apiPlan.lunch[0].nutrition?.protein || 0,
+          fat: apiPlan.lunch[0].nutrition?.fat || 0,
+          sodium: apiPlan.lunch[0].nutrition?.sodium || 0,
         },
+        image: apiPlan.lunch[0].image || null,
       } : null;
 
       const dinner = apiPlan.dinner?.[0] ? {
         id: apiPlan.dinner[0].recipe_id || 'dinner',
-        user_id: '',
-        plan_date: date,
-        meal_type: 'dinner' as const,
-        recipe_id: apiPlan.dinner[0].recipe_id || null,
-        calories: apiPlan.dinner[0].nutrition?.calories || 0,
-        carbohydrates: apiPlan.dinner[0].nutrition?.carbs || 0,
-        protein: apiPlan.dinner[0].nutrition?.protein || 0,
-        fat: apiPlan.dinner[0].nutrition?.fat || 0,
-        sodium: apiPlan.dinner[0].nutrition?.sodium || 0,
-        created_at: new Date().toISOString(),
-        recipe: {
-          id: apiPlan.dinner[0].recipe_id || '',
-          title: apiPlan.dinner[0].title || '저녁 식사',
-          thumbnail_url: null,
-          slug: '',
+        title: apiPlan.dinner[0].title || '저녁 식사',
+        ingredients: [],
+        nutrition: {
+          calories: apiPlan.dinner[0].nutrition?.calories || 0,
+          carbs: apiPlan.dinner[0].nutrition?.carbs || 0,
+          protein: apiPlan.dinner[0].nutrition?.protein || 0,
+          fat: apiPlan.dinner[0].nutrition?.fat || 0,
+          sodium: apiPlan.dinner[0].nutrition?.sodium || 0,
         },
+        image: apiPlan.dinner[0].image || null,
       } : null;
 
       const snack = apiPlan.snack?.[0] ? {
         id: apiPlan.snack[0].recipe_id || 'snack',
-        user_id: '',
-        plan_date: date,
-        meal_type: 'snack' as const,
-        recipe_id: apiPlan.snack[0].recipe_id || null,
-        calories: apiPlan.snack[0].nutrition?.calories || 0,
-        carbohydrates: apiPlan.snack[0].nutrition?.carbs || 0,
-        protein: apiPlan.snack[0].nutrition?.protein || 0,
-        fat: apiPlan.snack[0].nutrition?.fat || 0,
-        sodium: apiPlan.snack[0].nutrition?.sodium || 0,
-        created_at: new Date().toISOString(),
-        recipe: {
-          id: apiPlan.snack[0].recipe_id || '',
-          title: apiPlan.snack[0].title || '간식',
-          thumbnail_url: null,
-          slug: '',
+        title: apiPlan.snack[0].title || '간식',
+        ingredients: [],
+        nutrition: {
+          calories: apiPlan.snack[0].nutrition?.calories || 0,
+          carbs: apiPlan.snack[0].nutrition?.carbs || 0,
+          protein: apiPlan.snack[0].nutrition?.protein || 0,
+          fat: apiPlan.snack[0].nutrition?.fat || 0,
+          sodium: apiPlan.snack[0].nutrition?.sodium || 0,
         },
+        image: apiPlan.snack[0].image || null,
       } : null;
 
       // 영양소 합산
       [breakfast, lunch, dinner, snack].forEach(meal => {
         if (meal) {
-          totalNutrition.calories += meal.calories || 0;
-          totalNutrition.carbohydrates += meal.carbohydrates || 0;
-          totalNutrition.protein += meal.protein || 0;
-          totalNutrition.fat += meal.fat || 0;
-          totalNutrition.sodium += meal.sodium || 0;
+          totalNutrition.calories += meal.nutrition.calories || 0;
+          totalNutrition.carbs += meal.nutrition.carbs || 0;
+          totalNutrition.protein += meal.nutrition.protein || 0;
+          totalNutrition.fat += meal.nutrition.fat || 0;
+          totalNutrition.sodium += meal.nutrition.sodium || 0;
         }
       });
 
@@ -261,7 +237,7 @@ export function DietNotificationPopup({
                   <div className="flex items-center gap-2">
                     <ChefHat className="h-4 w-4 text-orange-500" />
                     <span className="font-medium">오늘의 식단</span>
-                    {familyDietPlan?.unifiedPlan && (
+                    {dietData?.plans?.unified && (
                       <Badge variant="outline" className="text-xs">
                         가족 통합 식단
                       </Badge>
@@ -344,9 +320,9 @@ export function DietNotificationPopup({
                         총 {displayDiet.totalNutrition.calories}kcal
                       </p>
                       <p className="text-sm text-gray-600">
-                        탄수화물 {displayDiet.totalNutrition.carbs}g •
-                        단백질 {displayDiet.totalNutrition.protein}g •
-                        지방 {displayDiet.totalNutrition.fat}g
+                        탄수화물 {(displayDiet.totalNutrition.carbs || 0).toFixed(1)}g •
+                        단백질 {(displayDiet.totalNutrition.protein || 0).toFixed(1)}g •
+                        지방 {(displayDiet.totalNutrition.fat || 0).toFixed(1)}g
                       </p>
                     </div>
                   </div>

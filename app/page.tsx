@@ -21,50 +21,20 @@
  */
 
 import { Suspense } from "react";
-import { HomeLanding } from "@/components/home/home-landing";
 import { FixedHeader } from "@/components/home/fixed-header";
-import { ErrorBoundary } from "@/components/error-boundary";
-import { EmergencyQuickAccess } from "@/components/home/emergency-quick-access";
-import { WeatherWidget } from "@/components/home/weather-widget";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
-import { DirectionalEntrance } from "@/components/motion/directional-entrance";
-import { ParallaxSection } from "@/components/motion/parallax-section";
-import { CommunityPreview } from "@/components/home/community-preview";
+import { HomeSectionsWrapper } from "@/components/home/home-sections-wrapper";
 import { GameMenuProvider } from "@/components/home/game-menu-context";
-import { CharacterGameHomeWrapper } from "@/components/home/character-game-home-wrapper";
+import { HomeBackNavigationHandler } from "@/components/home/home-back-navigation-handler";
 
-function SectionSkeleton() {
-  return (
-    <div className="py-12 text-center">
-      <div className="animate-pulse space-y-4">
-        <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto"></div>
-        <div className="h-64 bg-gray-200 rounded"></div>
-      </div>
-    </div>
-  );
-}
-
-// 동적 렌더링 강제 (정적 파일 기반 시스템 사용)
-export const dynamic = 'force-dynamic';
-
-// 홈 페이지 로딩 스켈레톤
-function HomeLoadingSkeleton() {
-  return (
-    <div className="space-y-4 animate-pulse">
-      <div className="px-4 pt-2 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 h-24 bg-gray-200 rounded-lg" />
-        <div className="flex-1 h-24 bg-gray-200 rounded-lg" />
-      </div>
-      <div className="px-4">
-        <div className="h-96 bg-gray-200 rounded-lg" />
-      </div>
-    </div>
-  );
-}
+// 동적 렌더링 설정 (뒤로가기 시 캐시 문제 방지를 위해 제거)
+// export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   return (
     <GameMenuProvider>
+      {/* 뒤로가기 네비게이션 핸들러 */}
+      <HomeBackNavigationHandler />
       <main
         className="space-y-0 relative"
         style={{
@@ -80,73 +50,8 @@ export default async function Home() {
 
       {/* 동화 스타일 네비게이션 - 메인 페이지에서 제거 (상세 페이지에서는 유지) */}
 
-      {/* 카드 섹션 (응급조치 안내, 예방접종 안내, 주변 의료기관 찾기, 날씨 정보 등) - GDWEB 스타일 간격 */}
-      <div className="px-4 pt-6 pb-4 space-y-4 bg-gradient-to-b from-white to-gray-50/30">
-        <EmergencyQuickAccess />
-        
-        <ErrorBoundary>
-          <WeatherWidget />
-        </ErrorBoundary>
-      </div>
-
-      {/* 히어로 섹션 (아래에서 진입 + 패럴랙스 효과) - GDWEB 스타일 */}
-      <ParallaxSection speed={0.3} scaleRange={[0.98, 1]}>
-        <DirectionalEntrance direction="up" delay={0.5}>
-          <ErrorBoundary>
-            <Suspense fallback={<HomeLoadingSkeleton />}>
-              <HomeLanding />
-            </Suspense>
-          </ErrorBoundary>
-        </DirectionalEntrance>
-      </ParallaxSection>
-
-      {/* 카테고리별 미리보기 섹션들 */}
-      {/* 레시피 아카이브 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}
-      {/* <ErrorBoundary>
-        <Suspense fallback={<SectionSkeleton />}>
-          <RecipeArchivePreview />
-        </Suspense>
-      </ErrorBoundary> */}
-
-      {/* 식단 관리 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}
-      {/* <ErrorBoundary>
-        <DietManagementPreview />
-      </ErrorBoundary> */}
-
-      {/* 건강 관리 게임 - 게임 스타일 캐릭터창 (삭제됨) */}
-      {/* <ErrorBoundary>
-        <Suspense fallback={<SectionSkeleton />}>
-          <CharacterGameHome />
-        </Suspense>
-      </ErrorBoundary> */}
-
-      {/* 건강 관리 게임 - 게임 스타일 캐릭터창 (3D 뷰어) - 로그인 사용자만 표시 */}
-      <ErrorBoundary>
-        <Suspense fallback={<SectionSkeleton />}>
-          <CharacterGameHomeWrapper />
-        </Suspense>
-      </ErrorBoundary>
-
-      {/* 커뮤니티 미리보기 - 맨 아래 섹션 */}
-      <ErrorBoundary>
-        <Suspense fallback={<SectionSkeleton />}>
-          <CommunityPreview />
-        </Suspense>
-      </ErrorBoundary>
-
-      {/* 스토리 & 학습 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}
-      {/* <ErrorBoundary>
-        <Suspense fallback={<SectionSkeleton />}>
-          <StoriesLearningPreview />
-        </Suspense>
-      </ErrorBoundary> */}
-
-      {/* 유틸리티 미리보기 - 메인 화면 바로가기로 접근 가능하므로 숨김 */}
-      {/* <ErrorBoundary>
-        <Suspense fallback={<SectionSkeleton />}>
-          <UtilitiesPreview />
-        </Suspense>
-      </ErrorBoundary> */}
+      {/* 커스텀 순서에 따라 섹션 렌더링 */}
+      <HomeSectionsWrapper />
 
       {/* 하단 네비게이션 높이만큼 패딩 추가 (모바일) */}
       <div className="h-16 md:hidden" aria-hidden="true" />

@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
+import { checkPremiumAccess } from "@/lib/kcdc/premium-guard";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NutritionInfo } from "@/types/health";
 import { DISEASE_LABELS, ALLERGY_LABELS } from "@/types/family";
@@ -58,6 +59,20 @@ export async function GET(
 
     console.log("✅ 사용자 정보 확인 완료:", userRow.id);
     const supabaseUserId = userRow.id;
+
+    // 프리미엄 체크
+    const premiumCheck = await checkPremiumAccess();
+    if (!premiumCheck.isPremium) {
+      console.log("❌ 프리미엄 사용자가 아님 - 가족 식단 조회 차단");
+      console.groupEnd();
+      return NextResponse.json(
+        { 
+          error: "가족 식단 조회는 프리미엄 회원만 이용할 수 있습니다.",
+          details: "프리미엄 구독을 통해 건강식단 기능을 이용하실 수 있습니다."
+        },
+        { status: 403 }
+      );
+    }
 
     // diet_plans는 조회/저장 시 권한 이슈(PGRST301: No suitable key)가 자주 발생할 수 있어
     // 서버 API에서는 Service Role 클라이언트를 사용해 안정적으로 조회합니다.

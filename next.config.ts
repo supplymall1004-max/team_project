@@ -6,7 +6,7 @@ import type { NextConfig } from "next";
  * 현대 레시피 북/건강 맞춤 식단 섹션 이미지가 차단되지 않도록 한다.
  */
 const buildRemotePatterns = () => {
-  const remotePatterns = [
+  const remotePatterns: Array<{ hostname: string; protocol?: "http" | "https" }> = [
     { hostname: "img.clerk.com" },
     // 로컬 이미지 호스트 (public 폴더 이미지)
     { hostname: "localhost" },

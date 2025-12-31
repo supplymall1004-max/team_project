@@ -50,11 +50,12 @@ export const metadata: Metadata = {
       ? `https://${process.env.VERCEL_URL}`
       : "http://localhost:3000",
   ),
-  title: "맛카 | Flavor Archive, Flavor Eureka!",
+  title: "Django Care | 냉씨가문 집사장고",
   description:
     "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, 건강 맞춤 식단 추천을 한 곳에서 확인하세요.",
   keywords: [
-    "맛카",
+    "Django Care",
+    "냉씨가문 집사장고",
     "레시피",
     "요리",
     "전통 음식",
@@ -63,46 +64,46 @@ export const metadata: Metadata = {
     "요리 아카이브",
     "Flavor Archive",
   ],
-  authors: [{ name: "맛카" }],
+  authors: [{ name: "Django Care" }],
   // manifest는 app/manifest.ts에서 자동으로 처리됩니다
   icons: {
     icon: [
-      { url: "/icon.jpg", sizes: "512x512", type: "image/jpeg" },
-      { url: "/icons/maca2.JPG", sizes: "192x192", type: "image/jpeg" },
+      { url: "/refrigerator-logo.png", sizes: "512x512", type: "image/png" },
+      { url: "/refrigerator-logo.png", sizes: "192x192", type: "image/png" },
     ],
-    apple: [{ url: "/icon.jpg", sizes: "512x512", type: "image/jpeg" }],
-    shortcut: [{ url: "/favicon.ico", type: "image/x-icon" }],
+    apple: [{ url: "/refrigerator-logo.png", sizes: "512x512", type: "image/png" }],
+    shortcut: [{ url: "/refrigerator-logo.png", type: "image/png" }],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "맛카",
+    title: "Django Care",
   },
   formatDetection: {
     telephone: false,
   },
   openGraph: {
-    title: "맛카 | Flavor Archive, Flavor Eureka!",
+    title: "Django Care | 냉씨가문 집사장고",
     description:
       "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, 건강 맞춤 식단 추천을 한 곳에서 확인하세요.",
     type: "website",
     locale: "ko_KR",
-    siteName: "맛카",
+    siteName: "Django Care",
     images: [
       {
-        url: "/icons/maca2.JPG",
+        url: "/refrigerator-logo.png",
         width: 1200,
         height: 630,
-        alt: "맛카 로고 - Flavor Archive, Flavor Eureka!",
+        alt: "Django Care 로고 - 냉씨가문 집사장고",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "맛카 | Flavor Archive, Flavor Eureka!",
+    title: "Django Care | 냉씨가문 집사장고",
     description:
       "잊혀진 손맛을 연결하는 디지털 식탁. 전통과 현대를 잇는 레시피 아카이브. 명인 인터뷰, 현대 레시피, 건강 맞춤 식단 추천을 한 곳에서 확인하세요.",
-    images: ["/icons/maca2.JPG"],
+    images: ["/refrigerator-logo.png"],
   },
   robots: {
     index: true,
@@ -204,7 +205,7 @@ export default function RootLayout({
 
                 {/* 메인 콘텐츠 영역 (스크롤 가능) */}
                 <main
-                  className="flex-1 bg-gradient-to-b from-white to-orange-50/40 w-full max-w-full overflow-y-auto relative"
+                  className="flex-1 bg-gradient-to-b from-white to-orange-50/40 dark:bg-black dark:from-black dark:to-black w-full max-w-full overflow-y-auto relative"
                   style={{
                     marginTop: "64px", // Navbar 높이(64px)
                     paddingTop: "0.5rem",

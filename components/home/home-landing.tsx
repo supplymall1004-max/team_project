@@ -1,19 +1,24 @@
 /**
  * @file home-landing.tsx
- * @description 홈 빠른 시작 섹션 서버 컴포넌트.
+ * @description 홈 빠른 시작 섹션 클라이언트 컴포넌트.
  * 히어로 섹션은 별도 컴포넌트로 분리됨.
  *
  * 주요 기능:
- * 1. 데이터베이스에서 히어로 섹션 콘텐츠 조회
+ * 1. API에서 히어로 섹션 콘텐츠 조회
  * 2. HeroSection에 props로 전달
  */
 
-import { HeroSection, QuickStartCard } from "./hero-section";
-import { getMultipleCopyContent } from "@/lib/admin/copy-reader";
+"use client";
 
-export async function HomeLanding() {
-  // 히어로 섹션 관련 콘텐츠 조회 (한 번에 조회)
-  const allContent = await getMultipleCopyContent([
+import { useState, useEffect, useMemo } from "react";
+import { HeroSection, QuickStartCard } from "./hero-section";
+import type { CopyContentResult } from "@/lib/admin/copy-reader";
+
+export function HomeLanding() {
+  // 콘텐츠를 API에서 로드하도록 변경 (클라이언트에서 API로 로드)
+  const [allContent, setAllContent] = useState<Record<string, CopyContentResult>>({});
+  
+  const slugs = useMemo(() => [
     "hero-badge",
     "hero-title",
     "hero-description",
@@ -25,11 +30,34 @@ export async function HomeLanding() {
     "quick-start-weekly",
     "quick-start-storybook",
     "hero-background-image",
-  ]);
+  ], []);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchContent = async () => {
+      try {
+        const res = await fetch("/api/copy-content/multi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slugs, locale: "ko" }),
+        });
+        if (!res.ok) throw new Error("copy content fetch failed");
+        const data = await res.json();
+        if (mounted) setAllContent(data?.content ?? {});
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[HomeLanding] 콘텐츠 조회 실패:", error);
+        }
+        if (mounted) setAllContent({});
+      }
+    };
+    fetchContent();
+    return () => { mounted = false; };
+  }, [slugs]);
 
   // 빠른 시작 카드 데이터 구성 (앱 아이콘 스타일 - 세련된 그라데이션 적용)
   // 아이콘 중복 제거 및 각 기능에 맞는 아이콘으로 재배치
-  const quickStartCards: QuickStartCard[] = [
+  const quickStartCards: QuickStartCard[] = useMemo(() => [
     {
       title: "레시피",
       description: "최신 레시피 모음",
@@ -166,23 +194,23 @@ export async function HomeLanding() {
       color: "bg-gray-500",
       gradient: "bg-gradient-to-br from-slate-500 via-gray-600 to-slate-700",
     },
-  ];
+  ], []);
 
   // 배경 이미지 URL
   const backgroundImageUrl =
-    allContent["hero-background-image"]?.content.imageUrl || null;
+    allContent["hero-background-image"]?.content.imageUrl ?? null;
 
   return (
     <div className="space-y-4">
       {/* 히어로 섹션 (콘텐츠 전달) */}
       <HeroSection
         backgroundImageUrl={backgroundImageUrl}
-        badgeText={allContent["hero-badge"]?.content.text || "Flavor Archive Beta"}
-        title={allContent["hero-title"]?.content.title || "잊혀진 손맛을 연결하는\n디지털 식탁"}
+        badgeText={allContent["hero-badge"]?.content.text ?? "Flavor Archive Beta"}
+        title={allContent["hero-title"]?.content.title ?? "잊혀진 손맛을 연결하는\n디지털 식탁"}
         subtitle={allContent["hero-title"]?.content.subtitle}
-        description={allContent["hero-description"]?.content.text || "궁중 레시피부터 건강 맞춤 식단까지, 세대와 세대를 넘나드는 요리 지식을 한 곳에서 경험하세요."}
-        searchPlaceholder={allContent["hero-search-placeholder"]?.content.text || "레시피를 검색해보세요"}
-        searchButtonText={allContent["hero-search-button"]?.content.text || "검색"}
+        description={allContent["hero-description"]?.content.text ?? "궁중 레시피부터 건강 맞춤 식단까지, 세대와 세대를 넘나드는 요리 지식을 한 곳에서 경험하세요."}
+        searchPlaceholder={allContent["hero-search-placeholder"]?.content.text ?? "레시피를 검색해보세요"}
+        searchButtonText={allContent["hero-search-button"]?.content.text ?? "검색"}
         quickStartCards={quickStartCards}
       />
     </div>

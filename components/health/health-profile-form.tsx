@@ -35,6 +35,8 @@ import { IngredientPreferences } from './ingredient-preferences';
 import { DietTypeSelector } from './diet-type-selector';
 import { CalorieCalculatorDisplay } from './calorie-calculator-display';
 import { SafetyWarning } from './safety-warning';
+import { checkDietConflicts, isDietTypeBlocked } from '@/lib/health/diet-conflict-manager';
+import { DietConflictWarning } from './diet-conflict-warning';
 
 export function HealthProfileForm() {
   const router = useRouter();
@@ -576,11 +578,88 @@ export function HealthProfileForm() {
       {/* 프리미엄 식단 타입 */}
       <div className="rounded-2xl border border-border/60 bg-white p-6 space-y-4">
         <h2 className="text-xl font-bold">프리미엄 식단 타입</h2>
-        <DietTypeSelector
-          selectedTypes={formData.dietary_preferences as string[] || []}
-          onChange={(types) => setFormData({ ...formData, dietary_preferences: types as any })}
-          isPremium={isPremium}
-        />
+        {/* 현재 폼 데이터를 UserHealthProfile 형식으로 변환 */}
+        {(() => {
+          const currentHealthProfile: UserHealthProfile = {
+            id: formData.id || "",
+            user_id: formData.user_id || "",
+            age: formData.age || null,
+            birth_date: formData.birth_date || null,
+            gender: formData.gender || null,
+            height_cm: formData.height_cm || null,
+            weight_kg: formData.weight_kg || null,
+            activity_level: formData.activity_level || null,
+            daily_calorie_goal: formData.daily_calorie_goal || 2000,
+            diseases: selectedDiseases,
+            allergies: selectedAllergies,
+            preferred_ingredients: formData.preferred_ingredients || [],
+            disliked_ingredients: formData.disliked_ingredients || [],
+            dietary_preferences: formData.dietary_preferences as any || [],
+            premium_features: formData.premium_features || [],
+            created_at: formData.created_at || new Date().toISOString(),
+            updated_at: formData.updated_at || new Date().toISOString(),
+          };
+
+          // 다이어트 모드 충돌 검사
+          const dietModeConflict = checkDietConflicts({
+            ...currentHealthProfile,
+            premium_features: [...(currentHealthProfile.premium_features || []), "diet"],
+          });
+
+          const isDietModeBlocked = isDietTypeBlocked(dietModeConflict, "diet_mode");
+
+          return (
+            <div className="space-y-4">
+              {/* 다이어트 모드 토글 (프리미엄 전용) */}
+              {isPremium && (
+                <div className="p-4 border-2 border-border rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base font-semibold">다이어트 모드</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        칼로리를 15% 감소시켜 체중 감량을 돕는 모드입니다.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.premium_features?.includes("diet") || false}
+                        onChange={(e) => {
+                          if (e.target.checked && isDietModeBlocked) {
+                            // 차단된 경우 토글하지 않음
+                            return;
+                          }
+                          const currentFeatures = formData.premium_features || [];
+                          const newFeatures = e.target.checked
+                            ? [...currentFeatures, "diet"]
+                            : currentFeatures.filter((f) => f !== "diet");
+                          setFormData({ ...formData, premium_features: newFeatures });
+                        }}
+                        disabled={isDietModeBlocked}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary disabled:opacity-50 disabled:cursor-not-allowed" />
+                    </label>
+                  </div>
+                  {isDietModeBlocked && (
+                    <DietConflictWarning
+                      conflictResult={dietModeConflict}
+                      compact
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* 특수 식단 타입 선택 */}
+              <DietTypeSelector
+                selectedTypes={formData.dietary_preferences as string[] || []}
+                onChange={(types) => setFormData({ ...formData, dietary_preferences: types as any })}
+                isPremium={isPremium}
+                healthProfile={currentHealthProfile}
+              />
+            </div>
+          );
+        })()}
       </div>
 
       {/* 식재료 선호도 */}

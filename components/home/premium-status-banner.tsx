@@ -9,18 +9,33 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Crown, Clock, Settings, Menu, X } from 'lucide-react';
+import { Crown, Clock, Settings, Menu, X, Palette } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getCurrentSubscription, type GetSubscriptionResponse } from '@/actions/payments/get-subscription';
+import { PremiumHealthDrawer } from './premium-health-drawer';
 
 interface PremiumStatusBannerProps {
   onMenuToggle?: () => void;
   isMenuOpen?: boolean;
 }
 
-export function PremiumStatusBanner({ onMenuToggle, isMenuOpen = false }: PremiumStatusBannerProps = {}) {
+export function PremiumStatusBanner({ onMenuToggle, isMenuOpen = false }: PremiumStatusBannerProps) {
+  const router = useRouter();
   const [data, setData] = useState<GetSubscriptionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const loadSubscription = async () => {
+    try {
+      const result = await getCurrentSubscription();
+      setData(result);
+    } catch (error) {
+      console.error('❌ 구독 정보 로드 실패:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadSubscription();
@@ -37,18 +52,8 @@ export function PremiumStatusBanner({ onMenuToggle, isMenuOpen = false }: Premiu
     return () => {
       window.removeEventListener('premium-activated', handlePremiumActivated);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const loadSubscription = async () => {
-    try {
-      const result = await getCurrentSubscription();
-      setData(result);
-    } catch (error) {
-      console.error('❌ 구독 정보 로드 실패:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   if (isLoading) {
     return null; // 로딩 중에는 표시하지 않음
@@ -123,7 +128,25 @@ export function PremiumStatusBanner({ onMenuToggle, isMenuOpen = false }: Premiu
             {/* 구분선 */}
             <div className="h-4 w-px bg-white/30" />
 
-            {/* 3. 구독 관리 (톱니바퀴 아이콘) */}
+            {/* 3. 커스터마이징 버튼 */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push("/settings/customization");
+              }}
+              className="relative flex items-center justify-center group transition-all hover:scale-105 active:scale-95"
+              title="홈페이지 커스터마이징"
+              aria-label="홈페이지 커스터마이징 설정"
+            >
+              <div className="relative bg-white/25 backdrop-blur-sm p-1.5 rounded-full border border-white/30 shadow-sm group-hover:border-white/50 group-hover:bg-white/30 transition-all duration-200">
+                <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow-md group-hover:rotate-12 transition-transform duration-300" />
+              </div>
+            </button>
+
+            {/* 구분선 */}
+            <div className="h-4 w-px bg-white/30" />
+
+            {/* 4. 구독 관리 (톱니바퀴 아이콘) */}
             <Link 
               href="/settings/billing"
               className="relative flex items-center justify-center group transition-all hover:scale-105 active:scale-95"
@@ -134,26 +157,20 @@ export function PremiumStatusBanner({ onMenuToggle, isMenuOpen = false }: Premiu
               </div>
             </Link>
 
-            {/* 4. 햄버거 메뉴 버튼 (게임 섹션용) */}
-            {onMenuToggle && (
-              <>
-                <div className="h-4 w-px bg-white/30" />
-                <button
-                  onClick={onMenuToggle}
-                  className="relative flex items-center justify-center group transition-all hover:scale-105 active:scale-95"
-                  title="메뉴"
-                  aria-label="메뉴"
-                >
-                  <div className="relative bg-white/25 backdrop-blur-sm p-1.5 rounded-full border border-white/30 shadow-sm group-hover:border-white/50 group-hover:bg-white/30 transition-all duration-200">
-                    {isMenuOpen ? (
-                      <X className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow-md transition-transform duration-300" />
-                    ) : (
-                      <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow-md transition-transform duration-300" />
-                    )}
-                  </div>
-                </button>
-              </>
-            )}
+            {/* 구분선 */}
+            <div className="h-4 w-px bg-white/30" />
+
+            {/* 5. 햄버거 메뉴 버튼 (건강 냉장고 드로어) */}
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="relative flex items-center justify-center group transition-all hover:scale-105 active:scale-95"
+              title="건강 냉장고"
+              aria-label="건강 냉장고 열기"
+            >
+              <div className="relative bg-white/25 backdrop-blur-sm p-1.5 rounded-full border border-white/30 shadow-sm group-hover:border-white/50 group-hover:bg-white/30 transition-all duration-200">
+                <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow-md transition-transform duration-300" />
+              </div>
+            </button>
           </div>
         </div>
 
@@ -182,6 +199,12 @@ export function PremiumStatusBanner({ onMenuToggle, isMenuOpen = false }: Premiu
             }
           }
         `}</style>
+        
+        {/* 건강 냉장고 드로어 */}
+        <PremiumHealthDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+        />
       </div>
     );
   }

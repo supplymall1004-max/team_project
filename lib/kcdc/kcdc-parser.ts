@@ -17,8 +17,15 @@ import type { KcdcApiResponse, KcdcAlert, FluStage, KcdcSeverity, TargetAgeGroup
 /**
  * KCDC API 설정 (공공데이터포털)
  */
-const KCDC_API_KEY = process.env.KCDC_API_KEY || "";
 const KCDC_API_BASE_URL = "http://apis.data.go.kr/1790387";
+
+/**
+ * KCDC API 키 조회 (하이브리드 방식)
+ */
+async function getKcdcApiKey(): Promise<string | null> {
+  const { getHybridApiKey } = await import("@/lib/api-keys/get-user-api-key");
+  return await getHybridApiKey("kcdc", "KCDC_API_KEY");
+}
 
 const KCDC_API_ENDPOINTS = {
   // 인플루엔자 유행 정보
@@ -162,9 +169,11 @@ async function fetchKcdcDataInternal(): Promise<KcdcApiResponse> {
 
     console.log("ℹ️ 캐시 미스, API 호출 진행");
 
-    // 2. API 키 확인
-    if (!KCDC_API_KEY) {
+    // 2. API 키 확인 (하이브리드 방식)
+    const kcdcApiKey = await getKcdcApiKey();
+    if (!kcdcApiKey) {
       console.warn("⚠️ KCDC_API_KEY 미설정, 더미 데이터 사용 및 캐시");
+      console.warn("💡 설정 페이지에서 API 키를 입력하거나 .env 파일에 KCDC_API_KEY를 설정해주세요.");
       const response = await fetchKcdcDummyData();
       await saveKcdcDataToCache(response);
       console.groupEnd();
@@ -173,7 +182,7 @@ async function fetchKcdcDataInternal(): Promise<KcdcApiResponse> {
 
     // 3. 실제 API 호출
     console.log("📡 실제 KCDC API 호출");
-    const response = await fetchKcdcRealApi();
+    const response = await fetchKcdcRealApi(kcdcApiKey);
 
     // 4. 캐시 저장
     await saveKcdcDataToCache(response);
@@ -253,7 +262,7 @@ async function fetchKcdcDummyData(): Promise<KcdcApiResponse> {
 /**
  * 실제 KCDC API 호출
  */
-async function fetchKcdcRealApi(): Promise<KcdcApiResponse> {
+async function fetchKcdcRealApi(apiKey: string): Promise<KcdcApiResponse> {
   console.log("📡 공공데이터포털 API 호출 시작");
 
   const response: KcdcApiResponse = {
@@ -264,7 +273,7 @@ async function fetchKcdcRealApi(): Promise<KcdcApiResponse> {
 
   try {
     // 1. 인플루엔자 유행 정보 가져오기
-    const fluData = await fetchFluData();
+    const fluData = await fetchFluData(apiKey);
     if (fluData) {
       response.flu = fluData;
     }
@@ -274,7 +283,7 @@ async function fetchKcdcRealApi(): Promise<KcdcApiResponse> {
 
   try {
     // 2. 예방접종 정보 가져오기
-    const vaccinationData = await fetchVaccinationData();
+    const vaccinationData = await fetchVaccinationData(apiKey);
     if (vaccinationData && vaccinationData.length > 0) {
       response.vaccinations = vaccinationData;
     }
@@ -295,9 +304,9 @@ async function fetchKcdcRealApi(): Promise<KcdcApiResponse> {
 /**
  * 독감 데이터 가져오기
  */
-async function fetchFluData(): Promise<KcdcApiResponse["flu"] | undefined> {
+async function fetchFluData(apiKey: string): Promise<KcdcApiResponse["flu"] | undefined> {
   const url = new URL(KCDC_API_ENDPOINTS.flu);
-  url.searchParams.append("serviceKey", KCDC_API_KEY);
+  url.searchParams.append("serviceKey", apiKey);
   url.searchParams.append("numOfRows", "1");
   url.searchParams.append("pageNo", "1");
   url.searchParams.append("type", "json");
@@ -341,9 +350,9 @@ async function fetchFluData(): Promise<KcdcApiResponse["flu"] | undefined> {
 /**
  * 예방접종 데이터 가져오기
  */
-async function fetchVaccinationData(): Promise<KcdcApiResponse["vaccinations"]> {
+async function fetchVaccinationData(apiKey: string): Promise<KcdcApiResponse["vaccinations"]> {
   const url = new URL(KCDC_API_ENDPOINTS.vaccination);
-  url.searchParams.append("serviceKey", KCDC_API_KEY);
+  url.searchParams.append("serviceKey", apiKey);
   url.searchParams.append("numOfRows", "10");
   url.searchParams.append("pageNo", "1");
   url.searchParams.append("type", "json");

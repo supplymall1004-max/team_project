@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
+import { checkPremiumAccess } from "@/lib/kcdc/premium-guard";
 import { getThisMonday, getNextMonday } from "@/lib/diet/weekly-diet-generator";
 
 interface RouteParams {
@@ -81,6 +82,20 @@ export async function GET(
 
     console.log("✅ 사용자 확인 완료:", userData.id);
     const userId = userData.id;
+
+    // 프리미엄 체크
+    const premiumCheck = await checkPremiumAccess();
+    if (!premiumCheck.isPremium) {
+      console.log("❌ 프리미엄 사용자가 아님 - 주간 식단 조회 차단");
+      console.groupEnd();
+      return NextResponse.json(
+        { 
+          error: "주간 식단 조회는 프리미엄 회원만 이용할 수 있습니다.",
+          details: "프리미엄 구독을 통해 건강식단 기능을 이용하실 수 있습니다."
+        },
+        { status: 403 }
+      );
+    }
 
     // Supabase 클라이언트 초기화
     const supabase = getServiceRoleClient();

@@ -27,8 +27,8 @@ export async function DietSectionWrapper({ clientOnly = false }: DietSectionWrap
       <Section id="ai" title={sectionTitle} description={sectionDescription}>
         <div className="space-y-6">
           {/* 건강 시각화 미리보기 */}
-          <div className="rounded-xl border border-orange-200 bg-orange-50/30 p-4">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <div className="rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50/30 dark:bg-orange-950/20 p-4">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 dark:text-foreground">
               💚 건강 시각화 미리보기
             </h3>
             <HealthVisualizationPreview compact={true} />
@@ -57,8 +57,8 @@ export async function DietSectionWrapper({ clientOnly = false }: DietSectionWrap
     <Section id="ai" title={sectionTitle} description={sectionDescription}>
       <div className="space-y-6">
         {/* 건강 시각화 미리보기 */}
-        <div className="rounded-xl border border-orange-200 bg-orange-50/30 p-4">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <div className="rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50/30 dark:bg-orange-950/20 p-4">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 dark:text-foreground">
             💚 건강 시각화 미리보기
           </h3>
           <HealthVisualizationPreview compact={true} />

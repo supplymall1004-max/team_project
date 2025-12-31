@@ -6,8 +6,8 @@ import type { MetadataRoute } from 'next';
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Flavor Archive',
-    short_name: 'Flavor Archive',
+    name: 'Django Care',
+    short_name: 'Django Care',
     description: '잊혀진 손맛을 연결하는 디지털 식탁',
     start_url: '/',
     display: 'standalone',
@@ -16,15 +16,15 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: 'portrait-primary',
     icons: [
       {
-        src: '/icon.jpg',
+        src: '/refrigerator-logo.png',
         sizes: '512x512',
-        type: 'image/jpeg',
+        type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/icons/maca2.JPG',
+        src: '/refrigerator-logo.png',
         sizes: '192x192',
-        type: 'image/jpeg',
+        type: 'image/png',
         purpose: 'any',
       },
     ],

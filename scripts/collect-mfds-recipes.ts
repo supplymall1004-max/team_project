@@ -75,134 +75,17 @@ function parseIngredients(rcpPartsDtls: string): string[] {
 }
 
 /**
- * 이미지를 다운로드하고 저장합니다.
+ * 이미지 다운로드 함수는 제거되었습니다.
+ * 이제 이미지는 필요할 때만 식약처 API에서 직접 가져옵니다.
+ * 마크다운 파일에는 원본 이미지 URL만 저장됩니다.
  */
-async function downloadImage(
-  imageUrl: string,
-  savePath: string,
-  maxRetries: number = 3
-): Promise<boolean> {
-  if (!imageUrl || imageUrl.trim() === "") {
-    return false;
-  }
-
-  // 이미 파일이 존재하면 건너뛰기
-  if (fs.existsSync(savePath)) {
-    return true;
-  }
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      console.log(`  📥 이미지 다운로드 시도 ${attempt + 1}/${maxRetries}: ${imageUrl}`);
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
-
-      const response = await fetch(imageUrl, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.warn(`  ⚠️ 이미지 다운로드 실패: ${response.status} ${response.statusText}`);
-        if (attempt < maxRetries - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
-          continue;
-        }
-        return false;
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      // 디렉토리가 없으면 생성
-      const dir = path.dirname(savePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      fs.writeFileSync(savePath, buffer);
-      console.log(`  ✅ 이미지 저장 완료: ${path.basename(savePath)}`);
-      return true;
-    } catch (error) {
-      console.warn(`  ⚠️ 이미지 다운로드 오류 (시도 ${attempt + 1}/${maxRetries}):`, error instanceof Error ? error.message : error);
-      if (attempt < maxRetries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
-      }
-    }
-  }
-
-  return false;
-}
-
-/**
- * 레시피의 모든 이미지를 다운로드합니다.
- */
-async function downloadRecipeImages(
-  recipe: FoodSafetyRecipeRow
-): Promise<{
-  mainImagePath: string | null;
-  mkImagePath: string | null;
-  manualImagePaths: Record<number, string | null>;
-}> {
-  const rcpSeq = recipe.RCP_SEQ;
-  const result = {
-    mainImagePath: null as string | null,
-    mkImagePath: null as string | null,
-    manualImagePaths: {} as Record<number, string | null>,
-  };
-
-  // 대표 이미지 다운로드
-  if (recipe.ATT_FILE_NO_MAIN) {
-    const mainImagePath = path.join(IMAGES_DIR, `${rcpSeq}_main.jpg`);
-    const success = await downloadImage(recipe.ATT_FILE_NO_MAIN, mainImagePath);
-    if (success) {
-      result.mainImagePath = `/images/${rcpSeq}_main.jpg`;
-    }
-    // 이미지 다운로드 간 짧은 대기 (서버 부하 방지)
-    await new Promise((resolve) => setTimeout(resolve, 300));
-  }
-
-  // 만드는 법 이미지 다운로드
-  if (recipe.ATT_FILE_NO_MK) {
-    const mkImagePath = path.join(IMAGES_DIR, `${rcpSeq}_mk.jpg`);
-    const success = await downloadImage(recipe.ATT_FILE_NO_MK, mkImagePath);
-    if (success) {
-      result.mkImagePath = `/images/${rcpSeq}_mk.jpg`;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 300));
-  }
-
-  // 조리법 이미지 다운로드
-  for (let i = 1; i <= 20; i++) {
-    const manualImg = (recipe as any)[`MANUAL_IMG${String(i).padStart(2, "0")}`];
-    if (manualImg && manualImg.trim() !== "") {
-      const manualImagePath = path.join(IMAGES_DIR, `${rcpSeq}_manual_${String(i).padStart(2, "0")}.jpg`);
-      const success = await downloadImage(manualImg, manualImagePath);
-      if (success) {
-        result.manualImagePaths[i] = `/images/${rcpSeq}_manual_${String(i).padStart(2, "0")}.jpg`;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 300));
-    }
-  }
-
-  return result;
-}
 
 /**
  * 레시피를 마크다운 형식으로 변환합니다.
+ * 이미지 URL만 저장하고, 실제 이미지는 필요할 때만 식약처 API에서 가져옵니다.
  */
 function convertToMarkdown(
-  recipe: FoodSafetyRecipeRow,
-  imagePaths?: {
-    mainImagePath: string | null;
-    mkImagePath: string | null;
-    manualImagePaths: Record<number, string | null>;
-  }
+  recipe: FoodSafetyRecipeRow
 ): string {
   const cookingSteps = generateCookingSteps(recipe);
   const ingredients = parseIngredients(recipe.RCP_PARTS_DTLS || "");
@@ -287,31 +170,20 @@ rcp_pat2: "${recipe.RCP_PAT2 || ""}"
     const manualImg = (recipe as any)[`MANUAL_IMG${String(i).padStart(2, "0")}`];
     if (manual && manual.trim() && manual.trim() !== "") {
       markdown += `- **조리법 ${i} (MANUAL${String(i).padStart(2, "0")})**: ${manual}\n`;
-      if (imagePaths?.manualImagePaths[i]) {
-        markdown += `- **조리법 이미지 ${i} (MANUAL_IMG${String(i).padStart(2, "0")})**: ${imagePaths.manualImagePaths[i]}\n`;
         if (manualImg) {
-          markdown += `- **조리법 이미지 ${i} 원본 URL**: ${manualImg}\n`;
-        }
-      } else if (manualImg) {
-        markdown += `- **조리법 이미지 ${i} (MANUAL_IMG${String(i).padStart(2, "0")})**: ${manualImg}\n`;
+        markdown += `- **조리법 이미지 ${i} (MANUAL_IMG${String(i).padStart(2, "0")}) 원본 URL**: ${manualImg}\n`;
       }
     }
   }
   markdown += `\n`;
 
-  // 이미지
+  // 이미지 (원본 URL만 저장)
   markdown += `### 이미지\n`;
-  if (imagePaths?.mainImagePath) {
-    markdown += `- **대표 이미지 (ATT_FILE_NO_MAIN)**: ${imagePaths.mainImagePath}\n`;
-    markdown += `- **대표 이미지 원본 URL**: ${recipe.ATT_FILE_NO_MAIN}\n`;
-  } else if (recipe.ATT_FILE_NO_MAIN) {
-    markdown += `- **대표 이미지 (ATT_FILE_NO_MAIN)**: ${recipe.ATT_FILE_NO_MAIN}\n`;
+  if (recipe.ATT_FILE_NO_MAIN) {
+    markdown += `- **대표 이미지 (ATT_FILE_NO_MAIN) 원본 URL**: ${recipe.ATT_FILE_NO_MAIN}\n`;
   }
-  if (imagePaths?.mkImagePath) {
-    markdown += `- **만드는 법 이미지 (ATT_FILE_NO_MK)**: ${imagePaths.mkImagePath}\n`;
-    markdown += `- **만드는 법 이미지 원본 URL**: ${recipe.ATT_FILE_NO_MK}\n`;
-  } else if (recipe.ATT_FILE_NO_MK) {
-    markdown += `- **만드는 법 이미지 (ATT_FILE_NO_MK)**: ${recipe.ATT_FILE_NO_MK}\n`;
+  if (recipe.ATT_FILE_NO_MK) {
+    markdown += `- **만드는 법 이미지 (ATT_FILE_NO_MK) 원본 URL**: ${recipe.ATT_FILE_NO_MK}\n`;
   }
 
   return frontmatter + markdown;
@@ -323,8 +195,8 @@ rcp_pat2: "${recipe.RCP_PAT2 || ""}"
 async function main() {
   console.group("📥 식약처 레시피 데이터 수집 시작");
 
-  // 디렉토리 생성
-  [RECIPES_DIR, CATEGORIES_DIR, NUTRITION_DIR, IMAGES_DIR].forEach((dir) => {
+  // 디렉토리 생성 (IMAGES_DIR 제외 - 이미지는 더 이상 로컬에 저장하지 않음)
+  [RECIPES_DIR, CATEGORIES_DIR, NUTRITION_DIR].forEach((dir) => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
       console.log(`✅ 디렉토리 생성: ${dir}`);
@@ -402,13 +274,9 @@ async function main() {
         }
 
         try {
-          // 이미지 다운로드
-          console.log(`  📸 레시피 ${recipe.RCP_SEQ} 이미지 다운로드 시작...`);
-          const imagePaths = await downloadRecipeImages(recipe);
-          console.log(`  ✅ 레시피 ${recipe.RCP_SEQ} 이미지 다운로드 완료`);
-
-          // 레시피를 마크다운 파일로 저장
-          const markdown = convertToMarkdown(recipe, imagePaths);
+          // 레시피를 마크다운 파일로 저장 (이미지 URL만 저장, 다운로드 안 함)
+          console.log(`  📝 레시피 ${recipe.RCP_SEQ} 마크다운 변환 중...`);
+          const markdown = convertToMarkdown(recipe);
           const filePath = path.join(RECIPES_DIR, `${recipe.RCP_SEQ}.md`);
           fs.writeFileSync(filePath, markdown, "utf-8");
 

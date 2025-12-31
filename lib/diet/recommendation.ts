@@ -333,7 +333,26 @@ export async function recommendDailyDiet(
   // 호환되는 레시피만 필터링 (통합 필터링 파이프라인 사용)
   console.log("🔍 레시피 호환성 검사 시작...");
   
-  // RecipeWithNutrition을 RecipeDetailForDiet로 변환
+  // 최적화: 레시피가 없으면 조기 종료
+  if (recipes.length === 0) {
+    console.warn("❌ 레시피가 없습니다!");
+    console.groupEnd();
+    return {
+      breakfast: null,
+      lunch: null,
+      dinner: null,
+      snack: null,
+      totalNutrition: {
+        calories: 0,
+        protein: 0,
+        carbohydrates: 0,
+        fat: 0,
+        sodium: 0,
+      },
+    };
+  }
+  
+  // 최적화: RecipeWithNutrition을 RecipeDetailForDiet로 변환 (한 번만)
   const recipeDetails = recipes.map(recipe => ({
     id: recipe.id,
     title: recipe.title,
@@ -365,23 +384,12 @@ export async function recommendDailyDiet(
     console.log("🔍 특수 식단 필터 적용:", healthProfile.dietary_preferences);
     const { filterRecipesBySpecialDiet } = await import("./special-diet-filters");
     
-    // RecipeWithNutrition을 RecipeDetailForDiet로 변환
-    const recipeDetails: any[] = compatibleRecipes.map((r) => ({
-      id: r.id,
-      title: r.title,
-      description: "",
-      ingredients: [],
-      nutrition: {
-        calories: r.calories || 0,
-        protein: r.protein || 0,
-        carbs: r.carbohydrates || 0,
-        fat: r.fat || 0,
-      },
-    }));
-
-    const filtered = filterRecipesBySpecialDiet(recipeDetails, healthProfile.dietary_preferences);
-    const filteredIds = new Set(filtered.map((r) => r.id));
-    compatibleRecipes = compatibleRecipes.filter((r) => filteredIds.has(r.id));
+    // 최적화: 이미 변환된 recipeDetails 재사용 (필터링된 것만)
+    const filteredRecipeDetailsForSpecialDiet = filteredRecipeDetails.filter(r => filteredIds.has(r.id));
+    
+    const filtered = filterRecipesBySpecialDiet(filteredRecipeDetailsForSpecialDiet, healthProfile.dietary_preferences);
+    const filteredIdsSpecial = new Set(filtered.map((r) => r.id));
+    compatibleRecipes = compatibleRecipes.filter((r) => filteredIdsSpecial.has(r.id));
     console.log("✅ 특수 식단 필터 적용 후:", compatibleRecipes.length, "개");
   }
 

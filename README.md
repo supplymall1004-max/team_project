@@ -10,11 +10,11 @@
     <img src="https://img.shields.io/badge/-Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="supabase" />
   </div>
 
-  <h1 align="center">SaaS 템플릿</h1>
-  <h3 align="center">Next.js 15 + Clerk + Supabase</h3>
+  <h1 align="center">Django Care</h1>
+  <h3 align="center">냉씨가문 집사장고 | Next.js 15 + Clerk + Supabase</h3>
 
   <p align="center">
-    프로덕션 레디 SaaS 애플리케이션을 위한 풀스택 보일러플레이트
+    잊혀진 손맛을 연결하는 디지털 식탁
   </p>
 </div>
 
@@ -29,7 +29,7 @@
 
 ## 소개
 
-Next.js 15, Clerk, Supabase를 활용한 모던 SaaS 애플리케이션 템플릿입니다.
+Django Care (냉씨가문 집사장고)는 전통과 현대를 잇는 레시피 아카이브 및 건강 맞춤 식단 추천 서비스입니다. Next.js 15, Clerk, Supabase를 활용한 풀스택 웹 애플리케이션입니다.
 
 **핵심 특징:**
 - ✨ Next.js 15 + React 19 최신 기능 활용

@@ -23,19 +23,25 @@ export function createPublicSupabaseServerClient() {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     const errorMessage = "[Supabase] 환경 변수가 설정되지 않았습니다. NEXT_PUBLIC_SUPABASE_URL과 NEXT_PUBLIC_SUPABASE_ANON_KEY를 확인해주세요.";
-    console.error(errorMessage);
+    console.error("❌", errorMessage);
+    console.error("   - NEXT_PUBLIC_SUPABASE_URL:", supabaseUrl ? "✅ 설정됨" : "❌ 누락");
+    console.error("   - NEXT_PUBLIC_SUPABASE_ANON_KEY:", supabaseAnonKey ? "✅ 설정됨" : "❌ 누락");
     
     // 개발 환경에서는 더미 클라이언트를 반환하여 페이지가 로드되도록 함
-    // 프로덕션에서는 에러를 던짐
-    if (process.env.NODE_ENV === "development") {
-      // 더미 클라이언트 생성 (실제 쿼리는 실패하지만 페이지는 로드됨)
-      publicClient = createClient(
-        "https://placeholder.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
-      );
-      return publicClient;
-    }
-    throw new Error("Supabase 환경 변수가 누락되었습니다.");
+    // 프로덕션에서도 더미 클라이언트를 반환하여 앱이 크래시하지 않도록 함
+    // (실제 쿼리는 실패하지만, 에러 처리를 통해 기본값 사용 가능)
+    console.warn("⚠️ [Supabase] 더미 클라이언트를 반환합니다. 데이터베이스 쿼리는 실패할 수 있습니다.");
+    publicClient = createClient(
+      "https://placeholder.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0",
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
+    return publicClient;
   }
 
   publicClient = createClient(supabaseUrl, supabaseAnonKey);

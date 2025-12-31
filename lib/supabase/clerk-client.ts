@@ -81,10 +81,18 @@ export function useClerkSupabaseClient() {
           return null;
         }
         const token = await getToken();
-        console.log("[useClerkSupabaseClient] 토큰 조회:", {
-          hasToken: !!token,
-          tokenLength: token?.length || 0,
-        });
+        // 개발 환경에서만 토큰 조회 로그 출력 (너무 자주 실행되므로 조건부로만)
+        if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+          // 첫 번째 토큰 조회 시에만 로그 출력 (콘솔 스팸 방지)
+          const logKey = "__supabase_token_logged__";
+          if (!(window as any)[logKey]) {
+            console.log("[useClerkSupabaseClient] 토큰 조회 성공:", {
+              hasToken: !!token,
+              tokenLength: token?.length || 0,
+            });
+            (window as any)[logKey] = true;
+          }
+        }
         return token ?? null;
       },
     });

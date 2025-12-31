@@ -7,6 +7,7 @@
 import { Phone, Siren } from 'lucide-react';
 import { createClerkSupabaseClient } from '@/lib/supabase/server';
 import { EmergencyTabsClient } from '@/components/health/emergency-tabs-client';
+import { EmergencyBackButton } from '@/components/health/emergency-back-button';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 // EmergencyProcedure와 Allergy 인터페이스는 사용되지 않으므로 제거
@@ -91,6 +92,9 @@ export default async function EmergencyPage() {
         >
             <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
                 <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+                {/* 뒤로가기 버튼 */}
+                <EmergencyBackButton />
+
                 {/* 헤더 */}
                 <div className="text-center space-y-4">
                     <div className="flex items-center justify-center gap-3">

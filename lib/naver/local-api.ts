@@ -38,15 +38,23 @@ export async function searchLocal(
   console.group("[Naver Local API] 장소 검색");
   console.log(`🔍 검색어: ${query}`);
 
+  // 하이브리드 방식: 사용자 API 키 우선, 없으면 환경 변수
+  const { getHybridNaverCredentials } = await import("@/lib/api-keys/get-user-api-key");
+  const userCredentials = await getHybridNaverCredentials(
+    "naver_search",
+    "NAVER_SEARCH_CLIENT_ID",
+    "NAVER_SEARCH_CLIENT_SECRET"
+  );
+
   // 환경변수 읽기 및 공백 제거
   // 로컬 검색 API 전용 환경변수 우선 사용, 없으면 공통 환경변수 사용
-  const rawClientId = process.env.NAVER_SEARCH_CLIENT_ID || process.env.NAVER_CLIENT_ID;
-  const rawClientSecret = process.env.NAVER_SEARCH_CLIENT_SECRET || process.env.NAVER_CLIENT_SECRET;
+  const rawClientId = userCredentials.clientId || process.env.NAVER_SEARCH_CLIENT_ID || process.env.NAVER_CLIENT_ID;
+  const rawClientSecret = userCredentials.clientSecret || process.env.NAVER_SEARCH_CLIENT_SECRET || process.env.NAVER_CLIENT_SECRET;
 
   // 환경변수 확인 및 상세 에러 메시지
   if (!rawClientId || rawClientId.trim() === "") {
     console.error("❌ 네이버 로컬 검색 API 키가 설정되지 않았습니다.");
-    console.error("💡 .env.local 파일에 다음 중 하나를 추가해주세요:");
+    console.error("💡 설정 페이지에서 API 키를 입력하거나 .env.local 파일에 다음 중 하나를 추가해주세요:");
     console.error("   방법 1 (권장): 로컬 검색 API 전용 환경변수");
     console.error("   NAVER_SEARCH_CLIENT_ID=네이버_개발자_센터_Client_ID");
     console.error("   NAVER_SEARCH_CLIENT_SECRET=네이버_개발자_센터_Client_Secret");
@@ -61,13 +69,13 @@ export async function searchLocal(
     console.error("   - 네이버 클라우드 플랫폼(NCP) 키는 사용할 수 없습니다.");
     console.groupEnd();
     throw new Error(
-      "네이버 로컬 검색 API 키가 설정되지 않았습니다. NAVER_SEARCH_CLIENT_ID 또는 NAVER_CLIENT_ID를 .env.local 파일에 설정해주세요."
+      "네이버 로컬 검색 API 키가 설정되지 않았습니다. 설정 페이지에서 API 키를 입력하거나 NAVER_SEARCH_CLIENT_ID 또는 NAVER_CLIENT_ID를 .env.local 파일에 설정해주세요."
     );
   }
 
   if (!rawClientSecret || rawClientSecret.trim() === "") {
     console.error("❌ 네이버 로컬 검색 API Secret이 설정되지 않았습니다.");
-    console.error("💡 .env.local 파일에 다음 중 하나를 추가해주세요:");
+    console.error("💡 설정 페이지에서 API 키를 입력하거나 .env.local 파일에 다음 중 하나를 추가해주세요:");
     console.error("   방법 1 (권장): 로컬 검색 API 전용 환경변수");
     console.error("   NAVER_SEARCH_CLIENT_SECRET=네이버_개발자_센터_Client_Secret");
     console.error("");
@@ -80,7 +88,7 @@ export async function searchLocal(
     console.error("   - 네이버 클라우드 플랫폼(NCP) 키는 사용할 수 없습니다.");
     console.groupEnd();
     throw new Error(
-      "네이버 로컬 검색 API Secret이 설정되지 않았습니다. NAVER_SEARCH_CLIENT_SECRET 또는 NAVER_CLIENT_SECRET을 .env.local 파일에 설정해주세요."
+      "네이버 로컬 검색 API Secret이 설정되지 않았습니다. 설정 페이지에서 API 키를 입력하거나 NAVER_SEARCH_CLIENT_SECRET 또는 NAVER_CLIENT_SECRET을 .env.local 파일에 설정해주세요."
     );
   }
 

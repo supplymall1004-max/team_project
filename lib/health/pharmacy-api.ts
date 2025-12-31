@@ -58,16 +58,17 @@ const API_BASE_URL =
 export async function searchPharmacies(
   params: PharmacySearchParams,
 ): Promise<PharmacySearchResponse> {
-  // 서버 사이드에서만 API 키 사용 (보안)
-  const apiKey = process.env.PHARMACY_API_KEY;
+  // 하이브리드 방식: 사용자 API 키 우선, 없으면 환경 변수
+  const { getHybridApiKey } = await import("@/lib/api-keys/get-user-api-key");
+  const apiKey = await getHybridApiKey("pharmacy", "PHARMACY_API_KEY");
 
   if (!apiKey) {
-    console.error("❌ PHARMACY_API_KEY 환경 변수가 설정되지 않았습니다.");
+    console.error("❌ 약국 정보 API 키가 설정되지 않았습니다.");
     console.error(
-      "💡 해결 방법: .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.",
+      "💡 해결 방법: 설정 페이지에서 API 키를 입력하거나 .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.",
     );
     throw new Error(
-      "약국 정보 API 키가 설정되지 않았습니다. .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.",
+      "약국 정보 API 키가 설정되지 않았습니다. 설정 페이지에서 API 키를 입력하거나 .env.local 파일에 PHARMACY_API_KEY를 추가해주세요.",
     );
   }
 

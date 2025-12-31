@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
+import type { UserHealthProfile } from "@/types/health";
 
 /**
  * GET /api/health/profile
@@ -328,9 +329,76 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    console.log("✅ 사용자 확인 완료:", { id: userData.id, name: userData.name });
-
     const supabaseUserId = userData.id;
+
+    // 충돌 검사 (질병과 특수 식단 간)
+    const { checkDietConflicts } = await import("@/lib/health/diet-conflict-manager");
+
+    // 임시 프로필 생성 (충돌 검사용)
+    const tempProfile: UserHealthProfile = {
+      id: "",
+      user_id: supabaseUserId,
+      age: body.age ?? null,
+      birth_date: body.birth_date || null,
+      gender: body.gender || null,
+      height_cm: body.height_cm ?? null,
+      weight_kg: body.weight_kg ?? null,
+      activity_level: body.activity_level || "sedentary",
+      daily_calorie_goal: body.daily_calorie_goal ?? 2000,
+      diseases: Array.isArray(body.diseases_jsonb)
+        ? body.diseases_jsonb
+        : Array.isArray(body.diseases)
+        ? body.diseases.map((d: string) => ({ code: d, custom_name: null }))
+        : [],
+      allergies: Array.isArray(body.allergies_jsonb)
+        ? body.allergies_jsonb
+        : Array.isArray(body.allergies)
+        ? body.allergies.map((a: string) => ({ code: a, custom_name: null }))
+        : [],
+      preferred_ingredients: Array.isArray(body.preferred_ingredients_jsonb)
+        ? body.preferred_ingredients_jsonb
+        : Array.isArray(body.preferred_ingredients)
+        ? body.preferred_ingredients
+        : [],
+      disliked_ingredients: Array.isArray(body.disliked_ingredients) ? body.disliked_ingredients : [],
+      dietary_preferences: Array.isArray(body.dietary_preferences_jsonb)
+        ? body.dietary_preferences_jsonb
+        : Array.isArray(body.dietary_preferences)
+        ? body.dietary_preferences
+        : [],
+      premium_features: Array.isArray(body.premium_features) ? body.premium_features : [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const conflictResult = checkDietConflicts(tempProfile);
+
+    // 절대 금지 조합이 있으면 거부
+    if (conflictResult.blockedOptions.length > 0) {
+      console.error("❌ 충돌 검사 실패: 절대 금지 조합 발견", {
+        blockedOptions: conflictResult.blockedOptions,
+        conflicts: conflictResult.conflicts,
+      });
+      console.groupEnd();
+      return NextResponse.json(
+        {
+          error: "Diet conflict detected",
+          message: "선택하신 질병과 식단 조합은 의학적으로 권장되지 않습니다.",
+          details: conflictResult.conflicts
+            .filter((c) => c.severity === "absolute")
+            .map((c) => ({
+              disease: c.diseaseCode,
+              dietType: c.dietType,
+              reason: c.reason,
+              medicalSource: c.medicalSource,
+            })),
+          conflicts: conflictResult,
+        },
+        { status: 400 }
+      );
+    }
+
+    console.log("✅ 사용자 확인 완료:", { id: userData.id, name: userData.name });
     const supabase = getServiceRoleClient();
 
     // 프로필 수정 (upsert 사용 - user_id 기준으로 충돌 처리)
@@ -382,6 +450,23 @@ export async function PUT(request: NextRequest) {
       .select()
       .single();
 
+    // 경고가 있는 경우 경고 메시지와 함께 성공 응답
+    const responseData: any = {
+      success: true,
+      profile: updatedProfile,
+    };
+
+    if (conflictResult.warnings.length > 0) {
+      responseData.warnings = conflictResult.warnings.map((w) => ({
+        disease: w.diseaseCode,
+        dietType: w.dietType,
+        reason: w.reason,
+        medicalSource: w.medicalSource,
+        alternativeSuggestion: w.alternativeSuggestion,
+      }));
+      console.log("⚠️ 경고 메시지 포함:", responseData.warnings);
+    }
+
     if (error) {
       console.error("❌ 수정 실패:", error);
       console.error("  - 에러 코드:", error.code);
@@ -411,7 +496,7 @@ export async function PUT(request: NextRequest) {
     console.log("✅ 건강 프로필 수정 성공");
     console.groupEnd();
 
-    return NextResponse.json({ profile: updatedProfile });
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error("❌ 서버 오류:", error);
     console.error("  - 에러 타입:", error instanceof Error ? error.constructor.name : typeof error);

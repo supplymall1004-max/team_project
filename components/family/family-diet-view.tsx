@@ -213,6 +213,37 @@ export function FamilyDietView({
     };
   };
 
+  // snack 전용 변환 함수 (RecipeDetailForDiet만 반환)
+  const convertApiSnackToRecipeDetail = (apiSnack: any): import("@/types/recipe").RecipeDetailForDiet | undefined => {
+    if (!apiSnack) return undefined;
+    
+    // 배열인 경우 첫 번째 항목만 사용
+    if (Array.isArray(apiSnack)) {
+      if (apiSnack.length === 0) return undefined;
+      const snack = apiSnack[0];
+      return {
+        id: snack.recipe_id || undefined,
+        title: snack.title,
+        description: snack.description || "",
+        source: "database",
+        ingredients: Array.isArray(snack.ingredients) ? snack.ingredients : [],
+        instructions: snack.instructions || "",
+        nutrition: snack.nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, fiber: 0 },
+      };
+    }
+    
+    // 이미 객체인 경우 그대로 반환 (nutrition이 있는지 확인)
+    if (apiSnack.nutrition) {
+      return apiSnack;
+    }
+    
+    // nutrition이 없는 경우 기본값 추가
+    return {
+      ...apiSnack,
+      nutrition: apiSnack.nutrition || { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0, fiber: 0 },
+    };
+  };
+
   // API 응답을 DailyDietPlan 형식으로 변환
   const convertApiPlanToDailyDietPlan = (apiPlan: any, date: string): import("@/types/recipe").DailyDietPlan | null => {
     if (!apiPlan || typeof apiPlan !== 'object') return null;
@@ -237,10 +268,10 @@ export function FamilyDietView({
     
     return {
       date,
-      breakfast: convertApiMealToDailyDietPlan(apiPlan.breakfast),
-      lunch: convertApiMealToDailyDietPlan(apiPlan.lunch),
-      dinner: convertApiMealToDailyDietPlan(apiPlan.dinner),
-      snack: convertApiMealToDailyDietPlan(apiPlan.snack),
+      breakfast: convertApiMealToDailyDietPlan(apiPlan.breakfast) || undefined,
+      lunch: convertApiMealToDailyDietPlan(apiPlan.lunch) || undefined,
+      dinner: convertApiMealToDailyDietPlan(apiPlan.dinner) || undefined,
+      snack: convertApiSnackToRecipeDetail(apiPlan.snack),
       totalNutrition: calculateTotalNutrition(),
     };
   };

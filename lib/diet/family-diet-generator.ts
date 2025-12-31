@@ -20,6 +20,7 @@ import { searchFallbackRecipes } from "@/lib/recipes/fallback-recipes";
 import { getRecentlyUsedRecipes } from "@/lib/diet/recipe-history";
 import { recommendFruitSnack } from "@/lib/diet/seasonal-fruits";
 import { DailyNutritionTracker } from "@/lib/diet/daily-nutrition-tracker";
+import { checkAllFamilyConflicts } from "@/lib/health/diet-conflict-manager";
 
 /**
  * 주간 컨텍스트를 고려한 가족 식단 생성
@@ -48,6 +49,23 @@ export async function generateFamilyDietWithWeeklyContext(
   console.log("선호 밥 종류:", preferredRiceType);
 
   const individualPlans: { [memberId: string]: DailyDietPlan } = {};
+
+  // 충돌 검사 (전체 가족)
+  const familyConflicts = checkAllFamilyConflicts(userProfile, familyMembers);
+  for (const memberConflict of familyConflicts) {
+    if (memberConflict.conflicts.blockedOptions.length > 0) {
+      console.warn(
+        `⚠️ ${memberConflict.memberName}의 식단 충돌 감지:`,
+        memberConflict.conflicts.blockedOptions
+      );
+    }
+    if (memberConflict.conflicts.warnings.length > 0) {
+      console.warn(
+        `⚠️ ${memberConflict.memberName}의 식단 경고:`,
+        memberConflict.conflicts.warnings.map((w) => `${w.diseaseCode} + ${w.dietType}`)
+      );
+    }
+  }
 
   // 레시피 목록 조회 (가족 식단 생성 전에 한 번만 조회)
   console.log("📚 가족 식단용 레시피 목록 조회 시작...");
@@ -908,13 +926,13 @@ async function selectUnifiedDish(
             protein: recipe.protein || 0,
             carbs: recipe.carbohydrates || 0,
             fat: recipe.fat || 0,
-            fiber: recipe.fiber || 0, // 정적 파일 레시피에는 fiber 정보가 있을 수 있음
+            fiber: (recipe as any).fiber || 0, // 정적 파일 레시피에는 fiber 정보가 있을 수 있음
             sodium: recipe.sodium || 0,
           },
           dishType: [dishType],
           mealType: [mealType],
           emoji: dishType === "rice" ? "🍚" : dishType === "soup" ? "🍲" : "🍽️",
-          imageUrl: recipe.thumbnail_url || undefined, // 정적 파일 레시피 이미지 URL
+          imageUrl: (recipe as any).thumbnail_url || undefined, // 정적 파일 레시피 이미지 URL
         };
       })
       .filter(recipe => {

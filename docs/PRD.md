@@ -1,4 +1,4 @@
-## 💡 맛의 아카이브 (Flavor Archive) 제품 요구 사항 정의서 (PRD)
+## 💡 Django Care (냉씨가문 집사장고) 제품 요구 사항 정의서 (PRD)
 
 사용자께서 제공하신 사업 계획서를 기반으로, **비개발자 초보자**도 이해하기 쉽도록 핵심 기능과 사용자 경험(UX)에 초점을 맞추어 **제품 요구 사항 정의서(PRD, Product Requirements Document)**를 작성했습니다.
 
@@ -10,7 +10,7 @@
 
 | 항목                     | 내용                                                                                                                                                                 |
 | :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **제품명**               | 맛의 아카이브 (Flavor Archive)                                                                                                                                       |
+| **제품명**               | Django Care (냉씨가문 집사장고)                                                                                                                                      |
 | **슬로건**               | 잊혀진 손맛을 연결하는 디지털 식탁                                                                                                                                   |
 | **버전**                 | V1.0 (MVP)                                                                                                                                                           |
 | **작성일**               | 2025년 1월 (최종 업데이트: 2025-01-28)                                                                                                                               |
@@ -119,6 +119,7 @@
 | **C-46.11.4** | 반려동물 건강 검진 관리 | 구강 관리(치과 검진, 스케일링), 혈액 검사 리마인더, 정기 검진 일정 관리 | `pet_health_checkup_records` 테이블, `components/health/pets/pet-checkup-tab.tsx` |
 | **C-46.11.5** | 반려동물 생애주기별 건강 이벤트 | 중성화 수술 시기 안내, 생애주기별 맞춤 건강 이벤트 자동 매칭 | `lifecycle_event_master` 테이블 (pet_healthcare 카테고리), `components/health/pets/pet-lifecycle-events-tab.tsx` |
 | **C-47**  | 캐릭터창 인터페이스 (게임 HUD 스타일) | 가족 구성원별 캐릭터 아바타 중심 건강 관리 인터페이스. 홈페이지 기능 요약본 역할, 알림 중심, 일정 관리 및 리마인드 시스템 통합. **완료** (Phase 0-6: 데이터베이스 마이그레이션, 기본 구조, 핵심 컴포넌트, 건강 정보 패널, 생애주기별 알림 및 리마인드 통합, 네온 효과 및 모션 디자인, 홈페이지 통합 및 최종 검증). | `components/home/character-preview.tsx`, `app/(dashboard)/health/family/[memberId]/character/page.tsx`, `components/health/character/*`, `actions/health/character.ts`, `app/api/health/medications/[id]/check/route.ts`, `lib/animations/character-animations.ts` |
+| **C-48**  | 프리미엄 건강 드로어 (냉장고 테마) | 프리미엄 사용자 전용 건강 정보 통합 뷰. 냉장고 이미지 배경에 선반 위치에 맞춰 건강 상태, 중요 알림, 일정, 가족 소통, 시스템 공지를 배치한 사이드 드로어. 오른쪽에서 슬라이드되는 애니메이션, ESC 키 닫기, 스크롤 가능한 콘텐츠 영역. | `components/home/premium-health-drawer.tsx`, `components/home/premium-health-status-section.tsx`, `components/home/premium-health-notifications.tsx`, `components/home/premium-health-schedule.tsx`, `components/home/premium-family-communication.tsx`, `components/home/premium-system-announcements.tsx`, `actions/health/premium-drawer.ts`, `types/premium-drawer.ts` |
 
 > **비고:** GI 지수 필터, 영양 리포트, 일일 알림 팝업, 어린이 성장기 식단 등은 현재 제품 범위에서 제외되어 본 문서에서도 제거했습니다. 필요 시 별도 백로그 문서로 관리합니다.
 
@@ -212,6 +213,7 @@
 | **건강정보 관리 시스템**      | C-19, C-20, C-21, C-22, C-23, C-25, C-26, C-27, C-28, C-29, C-30, C-31, C-32, C-33, C-34, C-35, C-36, C-37, C-38, C-39 |
 | **예방접종 및 응급조치**      | C-40, C-41, C-42, C-43                                                                                                 |
 | **건강정보 자동 연동**        | C-44, C-45                                                                                                             |
+| **프리미엄 건강 드로어**       | C-48                                                                                                                   |
 | **결제 및 프리미엄 시스템**   | F-1, F-2, F-3, F-4, F-5                                                                                                |
 | **궁중 레시피 아카이브**      | G-1, G-2, G-3                                                                                                          |
 | **관리자 페이지**             | D-1, D-2, D-3, D-4, D-5, D-6, D-7                                                                                      |

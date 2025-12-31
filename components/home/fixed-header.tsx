@@ -63,6 +63,18 @@ export function FixedHeader({
   const onMenuToggle = externalOnMenuToggle || gameMenuContext?.toggleMenu;
   const isMenuOpen = externalIsMenuOpen !== undefined ? externalIsMenuOpen : (gameMenuContext?.isMenuOpen || false);
 
+  const loadSubscription = async () => {
+    try {
+      const result = await getCurrentSubscription();
+      setIsPremium(result.isPremium || false);
+    } catch (error) {
+      console.error('❌ [FixedHeader] 구독 정보 로드 실패:', error);
+      setIsPremium(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadSubscription();
     
@@ -78,19 +90,8 @@ export function FixedHeader({
     return () => {
       window.removeEventListener('premium-activated', handlePremiumActivated);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const loadSubscription = async () => {
-    try {
-      const result = await getCurrentSubscription();
-      setIsPremium(result.isPremium || false);
-    } catch (error) {
-      console.error('❌ [FixedHeader] 구독 정보 로드 실패:', error);
-      setIsPremium(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // top 값을 문자열로 변환 (px 단위)
   const topValue = typeof top === 'number' ? `${top}px` : top;

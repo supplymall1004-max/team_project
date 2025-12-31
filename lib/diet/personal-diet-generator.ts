@@ -27,6 +27,7 @@ import { recommendFruitSnack } from "@/lib/diet/seasonal-fruits";
 import { calculateAge } from "@/lib/utils/age-calculator";
 import { calculateMacroGoals, calculateMealMacroGoals, isWithinMacroRange } from "@/lib/diet/macro-calculator";
 import { DailyNutritionTracker } from "@/lib/diet/daily-nutrition-tracker";
+import { checkDietConflicts } from "@/lib/health/diet-conflict-manager";
 
 // 식사별 칼로리 비율
 const MEAL_CALORIE_RATIOS = {
@@ -76,8 +77,28 @@ export async function generatePersonalDiet(
   console.log("건강 프로필 칼로리 목표:", profile.daily_calorie_goal);
   
   try {
+  // 0. 충돌 검사 (질병과 특수 식단 간)
+  const conflictResult = checkDietConflicts(profile);
+  if (conflictResult.blockedOptions.length > 0) {
+    const blockedDetails = conflictResult.conflicts
+      .filter((c) => c.severity === "absolute")
+      .map((c) => `${c.diseaseCode} + ${c.dietType}: ${c.reason}`)
+      .join("; ");
+    console.error("❌ 식단 생성 실패: 절대 금지 조합 발견", {
+      blockedOptions: conflictResult.blockedOptions,
+      details: blockedDetails,
+    });
+    throw new Error(
+      `선택하신 질병과 식단 조합은 의학적으로 권장되지 않습니다. ${blockedDetails}`
+    );
+  }
+  if (conflictResult.warnings.length > 0) {
+    console.warn("⚠️ 경고: 식단 생성은 진행되지만 주의가 필요합니다", {
+      warnings: conflictResult.warnings.map((w) => `${w.diseaseCode} + ${w.dietType}: ${w.reason}`),
+    });
+  }
 
-  // 0. 어린이 감지 및 식단 비율 설정
+  // 1. 어린이 감지 및 식단 비율 설정
   const isChild = profile.age && profile.age < 18;
   const mealCalorieRatios = isChild ? {
     breakfast: 0.25,  // 어린이: 아침 25%

@@ -275,10 +275,12 @@ export function SubscriptionManager() {
             {[
               '광고 없는 HD 영상',
               '가족 맞춤 건강 식단',
+              '예방접종 안내 및 맞춤 일정',
               '무제한 북마크',
               '전체 식단 히스토리',
-              '주간 식단 다운로드',
+              '주간 식단 PDF 다운로드',
               '월간 영양 리포트',
+              '우선 고객 지원',
             ].map((benefit, index) => (
               <li key={index} className="flex items-center gap-2 text-gray-700">
                 <Check className="w-4 h-4 text-orange-500 flex-shrink-0" />

@@ -37,7 +37,7 @@ export async function Footer() {
     "의료 면책 조항: 본 서비스는 건강 관리 보조 수단이며 전문적인 진료를 대체하지 않습니다. 자세한 내용은 전문의와 상담해 주세요.";
 
   const copyrightText =
-    footerContent["footer-copyright"]?.content.text || "맛의 아카이브 (Flavor Archive)";
+    footerContent["footer-copyright"]?.content.text || "Django Care (냉씨가문 집사장고)";
 
   return (
     <footer className="border-t border-border/60 bg-white/60 backdrop-blur-sm mt-auto">
