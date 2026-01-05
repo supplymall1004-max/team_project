@@ -236,6 +236,16 @@ export interface DailyDietPlan {
   dinner?: MealComposition | RecipeDetailForDiet;
   snack?: RecipeDetailForDiet;
   totalNutrition: RecipeNutrition;
+  // 칼로리 검증 결과 (선택적)
+  calorieValidation?: {
+    isValid: boolean;
+    severity: "critical" | "warning" | "info" | "none";
+    message: string;
+    recommendedCalories: number;
+    currentCalories: number;
+    minRequiredCalories: number;
+    details: string[];
+  };
 }
 
 // 가족 식단 계획 (개인별 + 통합)

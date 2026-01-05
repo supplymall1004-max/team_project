@@ -419,23 +419,25 @@ export function HeroSection({
             delay: 0.2,
           }}
         >
-          {/* 베타 배지 */}
-          <motion.div
-            className="mb-6"
-            initial={{ opacity: 0, y: -50, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ 
-              type: "spring",
-              stiffness: 150,
-              damping: 25,
-              mass: 1.2,
-              delay: 0.4,
-            }}
-          >
-            <div className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm px-4 py-2 text-sm font-semibold text-white border border-white/30 shadow-lg">
-              {badgeText}
-            </div>
-          </motion.div>
+          {/* 베타 배지 - badgeText가 있을 때만 표시 */}
+          {badgeText && (
+            <motion.div
+              className="mb-6"
+              initial={{ opacity: 0, y: -50, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ 
+                type: "spring",
+                stiffness: 150,
+                damping: 25,
+                mass: 1.2,
+                delay: 0.4,
+              }}
+            >
+              <div className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm px-4 py-2 text-sm font-semibold text-white border border-white/30 shadow-lg">
+                {badgeText}
+              </div>
+            </motion.div>
+          )}
 
           {/* 메인 타이틀 */}
           {title && (
@@ -445,11 +447,27 @@ export function HeroSection({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              {titleLines.map((line, index) => (
-                <span key={index} className="block">
-                  {line}
-                </span>
-              ))}
+              {title.includes('냉씨 가문 집사 장고') || title.includes('냉장고') ? (
+                <div className="space-y-3">
+                  {/* 씨가문집사 - 중간 크기 */}
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <span className="text-2xl sm:text-3xl md:text-4xl text-white/90 font-semibold">씨</span>
+                    <span className="text-2xl sm:text-3xl md:text-4xl text-white/90 font-semibold">가문</span>
+                    <span className="text-2xl sm:text-3xl md:text-4xl text-white/90 font-semibold">집사</span>
+                  </div>
+                  {/* 냉 장고 - 큰 크기 강조 */}
+                  <div className="flex items-center justify-center gap-3 sm:gap-4">
+                    <span className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold text-white drop-shadow-2xl">냉</span>
+                    <span className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold bg-gradient-to-r from-white via-orange-200 to-white bg-clip-text text-transparent drop-shadow-2xl">장고</span>
+                  </div>
+                </div>
+              ) : (
+                titleLines.map((line, index) => (
+                  <span key={index} className="block">
+                    {line}
+                  </span>
+                ))
+              )}
             </motion.h1>
           )}
 

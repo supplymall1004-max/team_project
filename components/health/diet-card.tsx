@@ -21,6 +21,14 @@ import {
   getFruitIdFromRecipeTitle,
 } from "@/lib/utils/fruit-mapper";
 import { getRecipeImageUrlEnhanced } from "@/lib/utils/recipe-image";
+import { DietCardOverlay } from "@/components/health/diet/diet-card-overlay";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { MealPhotoUpload } from "@/components/health/diet/meal-photo-upload";
 
 const SOUP_KEYWORDS = ["국", "찌개", "탕"];
 const DEFAULT_SOUP_IMAGE = getRecipeImageUrlEnhanced("된장찌개");
@@ -80,6 +88,7 @@ function DietCardContent({
   const imageFromPlan = getRepresentativeImageUrl(mealType, dietPlan);
   const [useDefaultImage, setUseDefaultImage] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   useEffect(() => {
     setUseDefaultImage(false);
@@ -132,36 +141,51 @@ function DietCardContent({
     fat: dietPlan.fat ?? null,
   };
 
-  return (
-    <div
-      className={cn(
-        "group relative rounded-2xl border border-border/60 bg-white overflow-hidden shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg",
-        className,
-      )}
-    >
-      {/* 즐겨찾기 버튼 (우측 상단) */}
-      <div
-        className="absolute top-3 right-3 z-20"
-        onClick={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
-        }}
-      >
-        <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg border border-gray-200/50">
-          <FavoriteButton
-            recipeId={recipe.id}
-            recipeTitle={recipeTitle}
-            mealType={mealType}
-            nutrition={nutrition}
-            size="sm"
-            variant="ghost"
-          />
-        </div>
-      </div>
+  // 날짜 기본값 (오늘)
+  const currentDate = date || new Date().toISOString().split("T")[0];
 
-      {/* 썸네일 */}
-      <Link href={href} className="block">
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
+  const handleUploadClick = () => {
+    console.log("[DietCard] 사진 업로드 버튼 클릭:", { mealType, date: currentDate });
+    setIsUploadModalOpen(true);
+  };
+
+  const handleAnalysisComplete = () => {
+    console.log("[DietCard] 사진 분석 완료");
+    // 분석 완료 후 모달 닫기 (선택적)
+    // setIsUploadModalOpen(false);
+  };
+
+  return (
+    <>
+      <div
+        className={cn(
+          "group relative rounded-2xl border border-border/60 bg-white overflow-hidden shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg",
+          className,
+        )}
+      >
+        {/* 즐겨찾기 버튼 (우측 상단) */}
+        <div
+          className="absolute top-3 right-3 z-20"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+        >
+          <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg border border-gray-200/50">
+            <FavoriteButton
+              recipeId={recipe.id}
+              recipeTitle={recipeTitle}
+              mealType={mealType}
+              nutrition={nutrition}
+              size="sm"
+              variant="ghost"
+            />
+          </div>
+        </div>
+
+        {/* 썸네일 */}
+        <Link href={href} className="block">
+          <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
           {!imageError ? (
             <img
               src={displayedImageUrl}
@@ -178,6 +202,12 @@ function DietCardContent({
               </div>
             </div>
           )}
+          {/* 사진 업로드 오버레이 */}
+          <DietCardOverlay
+            mealType={mealType}
+            date={currentDate}
+            onUploadClick={handleUploadClick}
+          />
         </div>
       </Link>
 
@@ -232,7 +262,26 @@ function DietCardContent({
           </div>
         </div>
       </Link>
+
+      {/* 사진 업로드 모달 */}
+      <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {MEAL_TYPE_LABELS[mealType]} 식사 사진 업로드
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <MealPhotoUpload
+              date={currentDate}
+              mealType={mealType}
+              onAnalysisComplete={handleAnalysisComplete}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+    </>
   );
 }
 

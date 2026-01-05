@@ -108,7 +108,8 @@ export async function generateWeeklyDiet(
 
   for (let dayIndex = 0; dayIndex < dates.length; dayIndex++) {
     const date = dates[dayIndex];
-    console.log(`\n📆 ${date} 식단 생성 중... (${dayIndex + 1}/7)`);
+    const dayOfWeek = ["월", "화", "수", "목", "금", "토", "일"][dayIndex];
+    console.log(`\n📆 ${date} (${dayOfWeek}요일) 식단 생성 중... (${dayIndex + 1}/7)`);
 
     let dailyPlan: WeeklyDailyPlan | null = null;
 
@@ -160,75 +161,133 @@ export async function generateWeeklyDiet(
         },
       ] as const;
 
+      let lastResult: any = null;
+      let lastError: any = null;
+      
       for (let i = 0; i < attempts.length; i++) {
         console.log(`🧪 개인 식단 생성 시도 ${i + 1}/${attempts.length}`, {
           date,
           preferredRice,
         });
 
-        const result = await generatePersonalDiet(
-          options.userId,
-          options.profile,
-          date,
-          weeklyAvailableRecipes,
-          attempts[i].usedByCategory,
-          preferredRice,
-          undefined, // premiumFeatures
-          false, // includeFavorites
-        );
+        try {
+          const result = await generatePersonalDiet(
+            options.userId,
+            options.profile,
+            date,
+            weeklyAvailableRecipes,
+            attempts[i].usedByCategory,
+            preferredRice,
+            undefined, // premiumFeatures
+            false, // includeFavorites
+          );
 
-        const breakfast = result.breakfast ?? null;
-        const lunch = result.lunch ?? null;
-        const dinner = result.dinner ?? null;
+          lastResult = result; // 마지막 결과 저장 (실패 시에도 사용)
+          lastError = null; // 성공 시 에러 초기화
 
-        const isValidMeal = (meal: MealComposition | null) => {
-          if (!meal) return false;
-          const riceOk = Boolean(meal.rice?.title);
-          const soupOk = Boolean(meal.soup?.title);
-          const sidesOk = Array.isArray(meal.sides) && meal.sides.length === 3;
-          return riceOk && soupOk && sidesOk;
-        };
+          const breakfast = result.breakfast ?? null;
+          const lunch = result.lunch ?? null;
+          const dinner = result.dinner ?? null;
 
-        const valid =
-          isValidMeal(breakfast as any) &&
-          isValidMeal(lunch as any) &&
-          isValidMeal(dinner as any);
+          // ✅ 검증 조건 대폭 완화: 하나의 식사라도 있으면 무조건 사용
+          const hasAnyMeal = breakfast || lunch || dinner;
+          
+          // 완전한 식사인지 확인 (선택적)
+          const isValidMeal = (meal: MealComposition | null) => {
+            if (!meal) return false;
+            const riceOk = Boolean(meal.rice?.title);
+            const soupOk = Boolean(meal.soup?.title);
+            const sidesOk = Array.isArray(meal.sides) && meal.sides.length >= 1;
+            return riceOk && soupOk && sidesOk;
+          };
 
-        if (!valid) {
-          console.warn("⚠️ 구성 규칙 미충족(재시도):", {
-            breakfast: {
-              rice: (breakfast as any)?.rice?.title,
-              sides: (breakfast as any)?.sides?.length ?? 0,
-              soup: (breakfast as any)?.soup?.title,
-            },
-            lunch: {
-              rice: (lunch as any)?.rice?.title,
-              sides: (lunch as any)?.sides?.length ?? 0,
-              soup: (lunch as any)?.soup?.title,
-            },
-            dinner: {
-              rice: (dinner as any)?.rice?.title,
-              sides: (dinner as any)?.sides?.length ?? 0,
-              soup: (dinner as any)?.soup?.title,
-            },
-          });
-          continue;
+          const hasAtLeastOneValidMeal =
+            isValidMeal(breakfast as any) ||
+            isValidMeal(lunch as any) ||
+            isValidMeal(dinner as any);
+
+          // ✅ 조건 완화: 하나의 식사라도 있으면 무조건 사용
+          if (hasAnyMeal) {
+            console.log(`✅ ${date} 식단 생성 성공 (시도 ${i + 1})`, {
+              breakfast: breakfast ? "있음" : "없음",
+              lunch: lunch ? "있음" : "없음",
+              dinner: dinner ? "있음" : "없음",
+              완전한식사: hasAtLeastOneValidMeal ? "있음" : "없음",
+            });
+            dailyPlan = {
+              date,
+              breakfast: breakfast as any,
+              lunch: lunch as any,
+              dinner: dinner as any,
+              snack: result.snack ?? null,
+              totalNutrition: result.totalNutrition,
+            } as any;
+            dailyPlansPersisted = false;
+            break;
+          } else {
+            console.warn(`⚠️ ${date} 구성 규칙 미충족(재시도 ${i + 1}):`, {
+              breakfast: breakfast ? "있음" : "없음",
+              lunch: lunch ? "있음" : "없음",
+              dinner: dinner ? "있음" : "없음",
+            });
+            // 마지막 시도가 아니면 계속 시도
+            if (i < attempts.length - 1) {
+              continue;
+            }
+          }
+        } catch (error) {
+          console.error(`❌ ${date} 식단 생성 시도 ${i + 1} 실패:`, error);
+          lastError = error;
+          // 마지막 시도가 아니면 계속 시도
+          if (i < attempts.length - 1) {
+            continue;
+          }
         }
-
-        dailyPlan = {
-          date,
-          breakfast: breakfast as any,
-          lunch: lunch as any,
-          dinner: dinner as any,
-          snack: result.snack ?? null,
-          totalNutrition: result.totalNutrition,
-        } as any;
-        dailyPlansPersisted = false;
-        break;
       }
 
+      // ✅ 모든 시도가 실패했지만 마지막 결과가 있으면 무조건 사용 (부분 식단이라도)
+      if (!dailyPlan && lastResult) {
+        console.warn(`⚠️ ${date} 완전한 식단 생성 실패, 부분 식단 사용`);
+        const breakfast = lastResult.breakfast ?? null;
+        const lunch = lastResult.lunch ?? null;
+        const dinner = lastResult.dinner ?? null;
+        
+        // 하나라도 있으면 사용
+        if (breakfast || lunch || dinner) {
+          dailyPlan = {
+            date,
+            breakfast: breakfast as any,
+            lunch: lunch as any,
+            dinner: dinner as any,
+            snack: lastResult.snack ?? null,
+            totalNutrition: lastResult.totalNutrition,
+          } as any;
+          dailyPlansPersisted = false;
+        }
+      }
+
+      // ✅ 모든 시도가 실패했고 결과도 없으면 빈 식단이라도 생성 (날짜 누락 방지)
       if (!dailyPlan) {
-        console.error("❌ 개인 식단 생성 실패(모든 재시도 실패):", date);
+        console.error(`❌ ${date} 개인 식단 생성 실패(모든 재시도 실패)`);
+        console.error("에러:", lastError);
+        console.warn(`⚠️ ${date} 빈 식단으로 생성 (날짜 누락 방지)`);
+        
+        // 빈 식단이라도 생성하여 날짜 누락 방지
+        dailyPlan = {
+          date,
+          breakfast: null,
+          lunch: null,
+          dinner: null,
+          snack: null,
+          totalNutrition: {
+            calories: 0,
+            carbohydrates: 0,
+            protein: 0,
+            fat: 0,
+            sodium: 0,
+          },
+        } as any;
+        dailyPlansPersisted = false;
       }
     }
 
@@ -245,6 +304,18 @@ export async function generateWeeklyDiet(
       // 밥 종류 인덱스 증가 (다음 날 다른 밥 종류 사용)
       riceTypeIndex++;
     }
+  }
+
+  // ✅ 생성된 날짜 확인
+  const generatedDates = Object.keys(dailyPlans);
+  const missingDates = dates.filter((date) => !generatedDates.includes(date));
+  console.log(`\n📅 주간 식단 생성 결과:`);
+  console.log(`- 요청된 날짜: ${dates.length}일 (${dates.join(", ")})`);
+  console.log(`- 생성된 날짜: ${generatedDates.length}일 (${generatedDates.join(", ")})`);
+  if (missingDates.length > 0) {
+    console.error(`- ❌ 누락된 날짜: ${missingDates.length}일 (${missingDates.join(", ")})`);
+  } else {
+    console.log(`- ✅ 모든 날짜 생성 완료`);
   }
 
   console.log(`\n📊 주간 레시피 다양성 통계:`);

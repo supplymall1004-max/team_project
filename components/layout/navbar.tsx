@@ -163,13 +163,13 @@ const Navbar = () => {
           }}
           aria-label="Django Care 홈으로 이동"
         >
-          <div className="relative w-[50px] h-[60px] flex-shrink-0">
+          <div className="relative w-[50px] h-[60px] flex-shrink-0 flex items-center justify-center">
             <Image
               src="/refrigerator-logo.png"
               alt="Django Care 로고"
               width={50}
               height={60}
-              className="rounded-lg object-contain"
+              className="rounded-lg object-contain object-center"
               priority
               unoptimized
               onError={(e) => {

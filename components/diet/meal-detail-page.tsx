@@ -16,7 +16,7 @@ import { NutritionBenefitsCard } from './nutrition-benefits-card';
 import { HealthWarningsCard } from './health-warnings-card';
 import { RecipeQuickLink } from './recipe-quick-link';
 import { MfdsRecipeModal } from './mfds-recipe-modal';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { MealType } from '@/types/health';
 import type { DietPlan } from '@/types/health';
 import type { MfdsRecipe } from '@/types/mfds-recipe';
@@ -74,6 +74,36 @@ export function MealDetailPageClient({
     weekday: 'long',
   });
 
+  // 뒤로가기 처리: 버튼 클릭 시
+  const handleBack = () => {
+    // 세션 스토리지에 플래그 설정하여 홈페이지에서 새로고침하도록 함
+    sessionStorage.setItem('shouldRefreshHome', 'true');
+    // 홈으로 이동 (완전한 페이지 리로드)
+    window.location.href = '/';
+  };
+
+  // 브라우저 뒤로가기 버튼 감지 및 처리
+  useEffect(() => {
+    // popstate 이벤트 리스너 (브라우저 뒤로가기/앞으로가기)
+    const handlePopState = () => {
+      // 홈페이지로 돌아갔는지 확인
+      if (window.location.pathname === '/') {
+        // 세션 스토리지에 플래그 설정
+        sessionStorage.setItem('shouldRefreshHome', 'true');
+        // 약간의 지연 후 새로고침 (라우팅 완료 후)
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* 헤더 */}
@@ -83,7 +113,7 @@ export function MealDetailPageClient({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.back()}
+              onClick={handleBack}
               className="shrink-0 hover:bg-slate-100"
             >
               <ArrowLeft className="h-5 w-5" />

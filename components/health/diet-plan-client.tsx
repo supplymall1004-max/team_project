@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, ShoppingCart, AlertCircle, Heart } from "lucide-react";
+import { RefreshCw, ShoppingCart, AlertCircle, Heart, AlertTriangle } from "lucide-react";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { NutritionInfo, DietPlan, DailyDietPlan } from "@/types/health";
 import { FamilyDietPlan, MealComposition, RecipeDetailForDiet } from "@/types/recipe";
@@ -21,7 +21,7 @@ import { DietCard } from "./diet-card";
 import { SafetyWarning } from "@/components/diet/safety-warning";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FamilyDietTabs } from "@/components/diet/family-diet-tabs";
 import type { FamilyMember } from "@/types/family";
 import { PremiumGuardButton } from "@/components/premium/premium-guard-button";
@@ -46,6 +46,15 @@ export function DietPlanClient() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [userHealthProfile, setUserHealthProfile] = useState<UserHealthProfile | null>(null);
   const [includeFavorites, setIncludeFavorites] = useState(false); // 찜한 식단 포함 여부
+  const [calorieWarning, setCalorieWarning] = useState<{
+    isValid: boolean;
+    severity: "critical" | "warning" | "info" | "none";
+    message: string;
+    recommendedCalories: number;
+    currentCalories: number;
+    minRequiredCalories: number;
+    details: string[];
+  } | null>(null);
 
   // 가족 구성원 관련 상태
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
@@ -217,6 +226,16 @@ export function DietPlanClient() {
       }
 
       setDietPlan(data.dietPlan);
+      // 칼로리 경고 정보 설정
+      if (data.calorieWarning) {
+        setCalorieWarning(data.calorieWarning);
+        console.log("⚠️ 칼로리 경고:", data.calorieWarning);
+      } else if (data.dietPlan?.calorieValidation) {
+        setCalorieWarning(data.dietPlan.calorieValidation);
+        console.log("⚠️ 칼로리 검증 결과:", data.dietPlan.calorieValidation);
+      } else {
+        setCalorieWarning(null);
+      }
       // API에서 로드한 식단은 AI 생성으로 간주 (크론 작업이나 수동 생성)
       setCachedDietPlan(user.id, dateToUse, data.dietPlan, undefined, true);
       console.log("diet plan loaded", data.dietPlan);
@@ -331,6 +350,16 @@ export function DietPlanClient() {
       }
 
       setDietPlan(data.dietPlan);
+      // 칼로리 경고 정보 설정
+      if (data.calorieWarning) {
+        setCalorieWarning(data.calorieWarning);
+        console.log("⚠️ 칼로리 경고:", data.calorieWarning);
+      } else if (data.dietPlan?.calorieValidation) {
+        setCalorieWarning(data.dietPlan.calorieValidation);
+        console.log("⚠️ 칼로리 검증 결과:", data.dietPlan.calorieValidation);
+      } else {
+        setCalorieWarning(null);
+      }
       if (user) {
         const currentDate = getToday();
         // 건강 맞춤 식단 생성 시 isAiGenerated 플래그 설정
@@ -677,6 +706,33 @@ export function DietPlanClient() {
           <DietCard mealType="dinner" dietPlan={convertToDietPlan(dietPlan.dinner, "dinner")} date={today} />
           <DietCard mealType="snack" dietPlan={convertToDietPlan(dietPlan.snack, "snack")} date={today} />
         </div>
+      )}
+
+      {/* 칼로리 경고 메시지 (최우선 표시) */}
+      {!isFamilyMode && calorieWarning && calorieWarning.severity !== "none" && (
+        <Alert 
+          variant={calorieWarning.severity === "critical" ? "destructive" : "default"}
+          className="mb-6"
+        >
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle className="font-bold">
+            {calorieWarning.severity === "critical" ? "🚨 치명적 경고" : 
+             calorieWarning.severity === "warning" ? "⚠️ 주의" : "💡 안내"}
+          </AlertTitle>
+          <AlertDescription className="mt-2 space-y-2">
+            <div className="whitespace-pre-line text-sm">
+              {calorieWarning.message}
+            </div>
+            {calorieWarning.details.length > 0 && (
+              <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                <div className="font-semibold">상세 정보:</div>
+                {calorieWarning.details.map((detail, index) => (
+                  <div key={index}>• {detail}</div>
+                ))}
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* 알레르기 안전 안내 (알레르기가 있는 경우에만 표시) */}

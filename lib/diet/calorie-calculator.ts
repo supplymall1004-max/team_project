@@ -175,12 +175,31 @@ export async function calculateDailyCalories(params: {
       }
     }
 
-    // 프리미엄 기능: 다이어트 모드
+    // 프리미엄 기능: 다이어트 모드 (질병이 있는 경우 안전 범위 고려)
     if (params.premium_features && params.premium_features.includes("diet")) {
       console.log("💎 프리미엄 기능: 다이어트 모드 적용");
-      const dietMultiplier = 0.85;
-      dailyCalories *= dietMultiplier;
-      console.log(`다이어트 모드 조정: ×${dietMultiplier}`);
+      
+      // 질병이 있는 경우 안전한 감량 범위 적용
+      const hasDiseases = params.diseases && params.diseases.length > 0;
+      if (hasDiseases) {
+        // 질병 + 프리미엄 식단: 최소 칼로리 보장 + 적절한 감량 (85% ~ 90%)
+        const minCalories = params.gender === "male" ? 1500 : 1200;
+        const safeMin = minCalories;
+        const safeMax = dailyCalories * 0.9;
+        const recommended = Math.max(safeMin * 1.1, dailyCalories * 0.85);
+        
+        console.log(`질병 + 프리미엄 식단: 안전 범위 고려`);
+        console.log(`안전 최소: ${safeMin}kcal, 안전 최대: ${Math.round(safeMax)}kcal`);
+        console.log(`권장 칼로리: ${Math.round(recommended)}kcal`);
+        
+        // 권장 칼로리 사용 (최소 칼로리보다 높게 보장)
+        dailyCalories = Math.max(recommended, safeMin);
+      } else {
+        // 질병이 없는 경우: 기존 로직 (85%)
+        const dietMultiplier = 0.85;
+        dailyCalories *= dietMultiplier;
+        console.log(`다이어트 모드 조정: ×${dietMultiplier}`);
+      }
     }
 
     console.log(`✅ 최종 권장 칼로리: ${Math.round(dailyCalories)}kcal`);
@@ -322,12 +341,31 @@ export function calculateDailyCaloriesSync(params: {
     }
   }
 
-  // 프리미엄 기능: 다이어트 모드
+  // 프리미엄 기능: 다이어트 모드 (질병이 있는 경우 안전 범위 고려)
   if (params.premium_features && params.premium_features.includes("diet")) {
     console.log("💎 프리미엄 기능: 다이어트 모드 적용");
-    const dietMultiplier = 0.85;
-    dailyCalories *= dietMultiplier;
-    console.log(`다이어트 모드 조정: ×${dietMultiplier}`);
+    
+    // 질병이 있는 경우 안전한 감량 범위 적용
+    const hasDiseases = params.diseases && params.diseases.length > 0;
+    if (hasDiseases) {
+      // 질병 + 프리미엄 식단: 최소 칼로리 보장 + 적절한 감량 (85% ~ 90%)
+      const minCalories = params.gender === "male" ? 1500 : 1200;
+      const safeMin = minCalories;
+      const safeMax = dailyCalories * 0.9;
+      const recommended = Math.max(safeMin * 1.1, dailyCalories * 0.85);
+      
+      console.log(`질병 + 프리미엄 식단: 안전 범위 고려`);
+      console.log(`안전 최소: ${safeMin}kcal, 안전 최대: ${Math.round(safeMax)}kcal`);
+      console.log(`권장 칼로리: ${Math.round(recommended)}kcal`);
+      
+      // 권장 칼로리 사용 (최소 칼로리보다 높게 보장)
+      dailyCalories = Math.max(recommended, safeMin);
+    } else {
+      // 질병이 없는 경우: 기존 로직 (85%)
+      const dietMultiplier = 0.85;
+      dailyCalories *= dietMultiplier;
+      console.log(`다이어트 모드 조정: ×${dietMultiplier}`);
+    }
   }
 
   const result = Math.round(dailyCalories);

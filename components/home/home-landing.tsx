@@ -205,10 +205,10 @@ export function HomeLanding() {
       {/* 히어로 섹션 (콘텐츠 전달) */}
       <HeroSection
         backgroundImageUrl={backgroundImageUrl}
-        badgeText={allContent["hero-badge"]?.content.text ?? "Flavor Archive Beta"}
-        title={allContent["hero-title"]?.content.title ?? "잊혀진 손맛을 연결하는\n디지털 식탁"}
-        subtitle={allContent["hero-title"]?.content.subtitle}
-        description={allContent["hero-description"]?.content.text ?? "궁중 레시피부터 건강 맞춤 식단까지, 세대와 세대를 넘나드는 요리 지식을 한 곳에서 경험하세요."}
+        badgeText={allContent["hero-badge"]?.content.text ?? ""}
+        title={allContent["hero-title"]?.content.title ?? "냉씨 가문 집사 장고"}
+        subtitle={allContent["hero-title"]?.content.subtitle ?? "잊혀진 손맛을 보관하는 디지털 식탁"}
+        description={allContent["hero-description"]?.content.text ?? "전통과 현대를 잇는 레시피 아카이브. 명인의 전통 레시피부터 건강 맞춤 식단까지, 세대와 세대를 넘나드는 요리 지식을 한 곳에서 경험하세요."}
         searchPlaceholder={allContent["hero-search-placeholder"]?.content.text ?? "레시피를 검색해보세요"}
         searchButtonText={allContent["hero-search-button"]?.content.text ?? "검색"}
         quickStartCards={quickStartCards}

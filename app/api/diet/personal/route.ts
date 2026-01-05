@@ -264,9 +264,34 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("✅ 식단 생성 및 저장 완료");
+    
+    // 칼로리 검증 결과가 있는 경우 로깅
+    if (dietPlan.calorieValidation) {
+      const validation = dietPlan.calorieValidation;
+      console.group("📊 칼로리 검증 결과");
+      console.log(`검증 상태: ${validation.isValid ? "✅ 통과" : "❌ 실패"}`);
+      console.log(`심각도: ${validation.severity}`);
+      console.log(`현재 칼로리: ${validation.currentCalories}kcal`);
+      console.log(`최소 필요량: ${validation.minRequiredCalories}kcal`);
+      console.log(`권장 칼로리: ${validation.recommendedCalories}kcal`);
+      console.log(`경고 메시지: ${validation.message}`);
+      console.groupEnd();
+      
+      // 치명적 경고인 경우 응답에 포함
+      if (validation.severity === "critical") {
+        console.error("🚨 [치명적 경고] 식단 칼로리가 최소 필요량보다 낮습니다!");
+      }
+    }
+    
     console.groupEnd();
 
-    return NextResponse.json({ dietPlan }, { status: 201 });
+    return NextResponse.json({ 
+      dietPlan,
+      // 칼로리 검증 결과를 별도로 포함 (클라이언트에서 쉽게 접근)
+      calorieWarning: dietPlan.calorieValidation?.severity === "critical" || dietPlan.calorieValidation?.severity === "warning" 
+        ? dietPlan.calorieValidation 
+        : undefined,
+    }, { status: 201 });
   } catch (error) {
     console.error("❌ 서버 오류:", error);
     console.groupEnd();

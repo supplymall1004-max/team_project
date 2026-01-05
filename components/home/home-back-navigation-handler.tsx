@@ -18,27 +18,39 @@ export function HomeBackNavigationHandler() {
     // 홈 페이지에서만 작동
     if (pathname !== '/') return;
 
+    // 세션 스토리지에서 새로고침 플래그 확인
+    const shouldRefresh = sessionStorage.getItem('shouldRefreshHome') === 'true';
+    
+    if (shouldRefresh) {
+      sessionStorage.removeItem('shouldRefreshHome');
+      console.log('[HomeBackNavigationHandler] 새로고침 플래그 감지 - 홈 페이지 리프레시');
+      // 완전한 페이지 리로드
+      window.location.reload();
+      return;
+    }
+
     // popstate 이벤트 리스너 (뒤로가기/앞으로가기)
-    const handlePopState = () => {
+    const handlePopState = (event: PopStateEvent) => {
       // 홈 페이지로 돌아왔을 때 강제로 리프레시
-      if (pathname === '/') {
+      if (window.location.pathname === '/') {
         console.log('[HomeBackNavigationHandler] 뒤로가기 감지 - 홈 페이지 리프레시');
-        // 약간의 딜레이 후 리프레시하여 페이지가 완전히 로드되도록 함
+        // 완전한 페이지 리로드 (router.refresh()보다 확실함)
         setTimeout(() => {
-          router.refresh();
-          // 스크롤을 맨 위로 이동
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 50);
+          window.location.reload();
+        }, 100);
       }
     };
 
     // 페이지가 표시될 때 (뒤로가기로 돌아왔을 때 포함)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && pathname === '/') {
-        console.log('[HomeBackNavigationHandler] 페이지 가시성 변경 - 홈 페이지 리프레시');
-        setTimeout(() => {
-          router.refresh();
-        }, 50);
+        // 세션 스토리지 플래그 확인
+        const shouldRefresh = sessionStorage.getItem('shouldRefreshHome') === 'true';
+        if (shouldRefresh) {
+          sessionStorage.removeItem('shouldRefreshHome');
+          console.log('[HomeBackNavigationHandler] 페이지 가시성 변경 - 홈 페이지 리프레시');
+          window.location.reload();
+        }
       }
     };
 

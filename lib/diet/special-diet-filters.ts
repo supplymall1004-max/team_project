@@ -83,8 +83,11 @@ function filterFitnessDiet(recipe: RecipeDetailForDiet): boolean {
 
 /**
  * 다이어트 저탄수화물 식단 필터
- * - 탄수화물 30g 이하
+ * - 탄수화물 50g 이하 (완화: 30g → 50g)
  * - 밥, 면, 빵 등 탄수화물 주식 제외
+ * 
+ * 참고: 저탄수 식단은 일반적으로 하루 50-100g 탄수화물을 허용합니다.
+ * 30g은 매우 엄격한 케토 식단 수준이므로, 일반 저탄수 식단을 위해 50g으로 완화했습니다.
  */
 function filterLowCarbDiet(recipe: RecipeDetailForDiet): boolean {
   const title = recipe.title.toLowerCase();
@@ -100,9 +103,9 @@ function filterLowCarbDiet(recipe: RecipeDetailForDiet): boolean {
     return false;
   }
 
-  // 탄수화물 30g 이하
+  // 탄수화물 50g 이하 (완화: 30g → 50g)
   const carbs = recipe.nutrition.carbs || 0;
-  return carbs <= 30;
+  return carbs <= 50;
 }
 
 /**

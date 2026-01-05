@@ -28,6 +28,7 @@ import { calculateAge } from "@/lib/utils/age-calculator";
 import { calculateMacroGoals, calculateMealMacroGoals, isWithinMacroRange } from "@/lib/diet/macro-calculator";
 import { DailyNutritionTracker } from "@/lib/diet/daily-nutrition-tracker";
 import { checkDietConflicts } from "@/lib/health/diet-conflict-manager";
+import { validateCalorieGoal, validateCalories, type CalorieValidationResult } from "@/lib/diet/calorie-validator";
 
 // 식사별 칼로리 비율
 const MEAL_CALORIE_RATIOS = {
@@ -114,6 +115,26 @@ export async function generatePersonalDiet(
   // 1. 목표 칼로리 계산
   const dailyCalories = await calculateUserGoalCalories(profile);
   console.log(`목표 칼로리: ${dailyCalories}kcal/일`);
+
+  // 1-0. [최우선] 칼로리 검증 및 경고
+  const calorieValidation = validateCalorieGoal(profile, dailyCalories);
+  console.group("🔍 칼로리 검증 결과");
+  console.log(`검증 상태: ${calorieValidation.isValid ? "✅ 통과" : "❌ 실패"}`);
+  console.log(`심각도: ${calorieValidation.severity}`);
+  console.log(`현재 칼로리: ${calorieValidation.currentCalories}kcal`);
+  console.log(`최소 필요량: ${calorieValidation.minRequiredCalories}kcal`);
+  console.log(`권장 칼로리: ${calorieValidation.recommendedCalories}kcal`);
+  console.log(`경고 메시지: ${calorieValidation.message}`);
+  console.log(`상세 정보:`, calorieValidation.details.join(", "));
+  console.groupEnd();
+
+  // 치명적 경고인 경우 경고 메시지를 포함하되 식단 생성은 계속 진행
+  if (calorieValidation.severity === "critical") {
+    console.error("🚨 [치명적 경고] 칼로리가 최소 필요량보다 낮습니다!");
+    console.error(`최소 필요량: ${calorieValidation.minRequiredCalories}kcal`);
+    console.error(`현재 칼로리: ${calorieValidation.currentCalories}kcal`);
+    console.error(`권장 칼로리: ${calorieValidation.recommendedCalories}kcal`);
+  }
 
   // 1-1. 매크로 목표 계산
   const dailyMacroGoals = calculateMacroGoals(dailyCalories, profile);
@@ -418,7 +439,11 @@ export async function generatePersonalDiet(
   console.log("간식 구성품:", snackComposition);
   console.groupEnd();
 
-  return {
+  // 최종 칼로리 검증 (실제 생성된 식단 기준)
+  const finalCalorieValidation = validateCalories(profile, dailyCalories, totalNutrition.calories);
+  
+  // 검증 결과를 식단에 포함
+  const result = {
     date: targetDate,
     breakfast: {
       ...breakfast,
@@ -437,7 +462,19 @@ export async function generatePersonalDiet(
       compositionSummary: snackComposition,
     },
     totalNutrition,
+    // 칼로리 검증 결과 포함
+    calorieValidation: finalCalorieValidation,
   };
+
+  // 치명적 경고 로깅
+  if (finalCalorieValidation.severity === "critical") {
+    console.error("🚨 [최종 검증] 생성된 식단의 칼로리가 최소 필요량보다 낮습니다!");
+    console.error(`생성된 칼로리: ${totalNutrition.calories}kcal`);
+    console.error(`최소 필요량: ${finalCalorieValidation.minRequiredCalories}kcal`);
+    console.error(`권장 칼로리: ${finalCalorieValidation.recommendedCalories}kcal`);
+  }
+
+  return result;
   } catch (error) {
     console.error("❌ generatePersonalDiet 함수에서 에러 발생:", error);
     console.error("❌ 에러 타입:", error instanceof Error ? error.constructor.name : typeof error);
@@ -673,46 +710,74 @@ async function selectMealComposition(
   const soupCalories = targetCalories * DISH_CALORIE_RATIOS.soup;
 
   // 카테고리별 제외 목록 생성 (주간 + 하루 내 중복)
+  // ✅ 주간 제외 목록을 제한하여 후반 날짜에서 레시피 부족 방지
+  const MAX_WEEKLY_EXCLUSIONS = 15; // 주간 제외 목록 최대 개수 (카테고리별)
+  const weeklySideExclusions = usedByCategory?.side 
+    ? Array.from(usedByCategory.side).slice(-MAX_WEEKLY_EXCLUSIONS) // 최근 15개만 제외
+    : [];
+  const weeklySoupExclusions = usedByCategory?.soup 
+    ? Array.from(usedByCategory.soup).slice(-MAX_WEEKLY_EXCLUSIONS) // 최근 15개만 제외
+    : [];
+  const weeklyRiceExclusions = usedByCategory?.rice 
+    ? Array.from(usedByCategory.rice).slice(-3) // 밥은 최근 3개만 제외 (밥 종류가 적음)
+    : [];
+  
   const excludedByCategory = {
-    rice: usedByCategory?.rice ? Array.from(usedByCategory.rice) : [],
+    rice: weeklyRiceExclusions,
     side: [
-      ...(usedByCategory?.side ? Array.from(usedByCategory.side) : []),
+      ...weeklySideExclusions,
       ...(dailyUsedByCategory?.side ? Array.from(dailyUsedByCategory.side) : []), // 하루 내 중복 제외
     ],
     soup: [
-      ...(usedByCategory?.soup ? Array.from(usedByCategory.soup) : []),
+      ...weeklySoupExclusions,
       ...(dailyUsedByCategory?.soup ? Array.from(dailyUsedByCategory.soup) : []), // 하루 내 중복 제외
     ],
   };
   
-  console.log(`📋 하루 내 중복 방지: 반찬 ${dailyUsedByCategory?.side?.size || 0}개, 국/찌개 ${dailyUsedByCategory?.soup?.size || 0}개 제외`);
+  console.log(`📋 제외 목록: 밥 ${excludedByCategory.rice.length}개, 반찬 ${excludedByCategory.side.length}개 (주간 ${weeklySideExclusions.length}개 + 하루 ${dailyUsedByCategory?.side?.size || 0}개), 국/찌개 ${excludedByCategory.soup.length}개 (주간 ${weeklySoupExclusions.length}개 + 하루 ${dailyUsedByCategory?.soup?.size || 0}개)`);
 
-  // 1. 밥 선택 (주간 컨텍스트 고려)
-  const riceMacroGoals = mealMacroGoals ? {
-    protein: { target: mealMacroGoals.protein.target * 0.2 }, // 밥은 단백질 비중 낮음
-    carbohydrates: { target: mealMacroGoals.carbohydrates.target * 0.6 }, // 밥은 탄수화물 비중 높음
-    fat: { target: mealMacroGoals.fat.target * 0.1 },
-  } : undefined;
-  const rice = await selectDishForMeal(
-    "rice",
-    mealType,
-    riceCalories,
-    excludedFoods,
-    allergies,
-    recentlyUsed,
-    availableRecipes,
-    isChildDiet,
-    dietaryPreferences,
-    excludedByCategory.rice, // 카테고리별 제외 목록
-    preferredRiceType, // 선호 밥 종류
-    premiumFeatures,
-    healthProfile, // 통합 필터링을 위한 건강 프로필
-    riceMacroGoals, // 밥용 매크로 목표
-    dailyNutrition // 일일 영양소 추적기
-  );
+  // 저탄수 식단 여부 확인
+  const isLowCarbDiet = dietaryPreferences?.includes("low_carb") || false;
+  
+  // 1. 밥 선택 (저탄수 식단이 아닌 경우만)
+  let rice: RecipeDetailForDiet | undefined = undefined;
+  let adjustedSidesCalories = sidesCalories;
+  let adjustedSoupCalories = soupCalories;
+  
+  if (!isLowCarbDiet) {
+    // 일반 식단: 밥 선택
+    const riceMacroGoals = mealMacroGoals ? {
+      protein: { target: mealMacroGoals.protein.target * 0.2 }, // 밥은 단백질 비중 낮음
+      carbohydrates: { target: mealMacroGoals.carbohydrates.target * 0.6 }, // 밥은 탄수화물 비중 높음
+      fat: { target: mealMacroGoals.fat.target * 0.1 },
+    } : undefined;
+    rice = await selectDishForMeal(
+      "rice",
+      mealType,
+      riceCalories,
+      excludedFoods,
+      allergies,
+      recentlyUsed,
+      availableRecipes,
+      isChildDiet,
+      dietaryPreferences,
+      excludedByCategory.rice, // 카테고리별 제외 목록
+      preferredRiceType, // 선호 밥 종류
+      premiumFeatures,
+      healthProfile, // 통합 필터링을 위한 건강 프로필
+      riceMacroGoals, // 밥용 매크로 목표
+      dailyNutrition // 일일 영양소 추적기
+    );
+  } else {
+    // 저탄수 식단: 밥을 선택하지 않고, 밥 칼로리를 반찬(60%)과 국(40%)에 재분배
+    console.log("🥗 저탄수 식단 감지: 밥 제외, 칼로리를 반찬과 국에 재분배");
+    adjustedSidesCalories = sidesCalories + (riceCalories * 0.6); // 반찬에 60% 추가
+    adjustedSoupCalories = soupCalories + (riceCalories * 0.4); // 국에 40% 추가
+    console.log(`칼로리 재분배: 반찬 ${Math.round(adjustedSidesCalories)}kcal, 국 ${Math.round(adjustedSoupCalories)}kcal`);
+  }
 
-  // 2. 반찬 3개 선택 (각 15%, 주간 컨텍스트 고려)
-  const sideCaloriesEach = sidesCalories / 3;
+  // 2. 반찬 3개 선택 (저탄수 식단인 경우 재분배된 칼로리 사용)
+  const sideCaloriesEach = adjustedSidesCalories / 3;
   const sides: RecipeDetailForDiet[] = [];
   const sideMacroGoals = mealMacroGoals ? {
     protein: { target: mealMacroGoals.protein.target * 0.5 / 3 }, // 반찬은 단백질 비중 높음 (각 반찬당)
@@ -722,7 +787,9 @@ async function selectMealComposition(
 
   // ✅ 반드시 3개를 채운다. (후보가 없으면 조건을 점진적으로 완화)
   let sideAttempts = 0;
-  while (sides.length < 3 && sideAttempts < 9) {
+  let currentExcludedSide = [...excludedByCategory.side]; // 제외 목록 복사 (점진적 완화용)
+  
+  while (sides.length < 3 && sideAttempts < 12) {
     const side = await selectDishForMeal(
       "side",
       mealType,
@@ -732,12 +799,12 @@ async function selectMealComposition(
       [
         ...recentlyUsed,
         ...sides.map((s) => s.title),
-        ...excludedByCategory.side,
+        ...currentExcludedSide,
       ], // 이미 선택한 반찬 + 주간/하루 제외 목록
       availableRecipes,
       isChildDiet,
       dietaryPreferences,
-      excludedByCategory.side, // 카테고리별 제외 목록 (주간 + 하루 내 중복)
+      currentExcludedSide, // 카테고리별 제외 목록 (점진적 완화)
       undefined,
       premiumFeatures,
       healthProfile, // 통합 필터링을 위한 건강 프로필
@@ -746,11 +813,21 @@ async function selectMealComposition(
     );
     if (side) {
       sides.push(side);
+      console.log(`✅ 반찬 ${sides.length}/3 선택: ${side.title}`);
     } else {
-      // 후보가 너무 적은 경우: 하루/주간 중복 제한을 완화해 재시도
-      if (excludedByCategory.side.length > 0) {
-        excludedByCategory.side = [];
-        console.warn("⚠️ 반찬 후보 부족: 주간/일일 중복 제한을 완화합니다.");
+      // 후보가 너무 적은 경우: 점진적으로 제외 목록 완화
+      if (sideAttempts === 3 && currentExcludedSide.length > 10) {
+        // 3번 시도 후 주간 제외 목록을 절반으로 줄임
+        currentExcludedSide = currentExcludedSide.slice(-Math.floor(currentExcludedSide.length / 2));
+        console.warn(`⚠️ 반찬 후보 부족: 주간 제외 목록을 ${currentExcludedSide.length}개로 완화합니다.`);
+      } else if (sideAttempts === 6 && currentExcludedSide.length > 5) {
+        // 6번 시도 후 주간 제외 목록을 더 줄임
+        currentExcludedSide = currentExcludedSide.slice(-5);
+        console.warn(`⚠️ 반찬 후보 부족: 주간 제외 목록을 ${currentExcludedSide.length}개로 더 완화합니다.`);
+      } else if (sideAttempts === 9) {
+        // 9번 시도 후 주간 제외 목록을 모두 제거 (하루 내 중복만 유지)
+        currentExcludedSide = dailyUsedByCategory?.side ? Array.from(dailyUsedByCategory.side) : [];
+        console.warn(`⚠️ 반찬 후보 부족: 주간 제외 목록을 모두 제거하고 하루 내 중복만 유지합니다.`);
       }
     }
     sideAttempts++;
@@ -780,29 +857,49 @@ async function selectMealComposition(
     sides.push(...fallbackSides.slice(0, needed));
   }
 
-  // 3. 국/찌개 선택 (주간 컨텍스트 고려)
+  // 3. 국/찌개 선택 (저탄수 식단인 경우 재분배된 칼로리 사용)
   const soupMacroGoals = mealMacroGoals ? {
     protein: { target: mealMacroGoals.protein.target * 0.3 }, // 국은 단백질 비중 중간
     carbohydrates: { target: mealMacroGoals.carbohydrates.target * 0.2 },
     fat: { target: mealMacroGoals.fat.target * 0.5 },
   } : undefined;
-  const soup = await selectDishForMeal(
-    "soup",
-    mealType,
-    soupCalories,
-    excludedFoods,
-    allergies,
-    [...recentlyUsed, ...excludedByCategory.soup], // 주간/하루 제외 목록 포함
-    availableRecipes,
-    isChildDiet,
-    dietaryPreferences,
-    excludedByCategory.soup, // 카테고리별 제외 목록 (주간 + 하루 내 중복)
-    undefined,
-    premiumFeatures,
-    healthProfile, // 통합 필터링을 위한 건강 프로필
-    soupMacroGoals, // 국용 매크로 목표
-    dailyNutrition // 일일 영양소 추적기
-  );
+  
+  // 국/찌개도 점진적 완화 적용
+  let currentExcludedSoup = [...excludedByCategory.soup];
+  let soupAttempts = 0;
+  let soup: RecipeDetailForDiet | undefined = undefined;
+  
+  while (!soup && soupAttempts < 6) {
+    soup = await selectDishForMeal(
+      "soup",
+      mealType,
+      adjustedSoupCalories,
+      excludedFoods,
+      allergies,
+      [...recentlyUsed, ...currentExcludedSoup], // 주간/하루 제외 목록 포함
+      availableRecipes,
+      isChildDiet,
+      dietaryPreferences,
+      currentExcludedSoup, // 카테고리별 제외 목록 (점진적 완화)
+      undefined,
+      premiumFeatures,
+      healthProfile, // 통합 필터링을 위한 건강 프로필
+      soupMacroGoals, // 국용 매크로 목표
+      dailyNutrition // 일일 영양소 추적기
+    );
+    
+    if (!soup) {
+      // 후보가 너무 적은 경우: 점진적으로 제외 목록 완화
+      if (soupAttempts === 2 && currentExcludedSoup.length > 5) {
+        currentExcludedSoup = currentExcludedSoup.slice(-Math.floor(currentExcludedSoup.length / 2));
+        console.warn(`⚠️ 국/찌개 후보 부족: 주간 제외 목록을 ${currentExcludedSoup.length}개로 완화합니다.`);
+      } else if (soupAttempts === 4) {
+        currentExcludedSoup = dailyUsedByCategory?.soup ? Array.from(dailyUsedByCategory.soup) : [];
+        console.warn(`⚠️ 국/찌개 후보 부족: 주간 제외 목록을 모두 제거하고 하루 내 중복만 유지합니다.`);
+      }
+    }
+    soupAttempts++;
+  }
 
   // 총 영양 정보
   const allDishes = [rice, ...sides, soup].filter(Boolean) as RecipeDetailForDiet[];
@@ -879,6 +976,8 @@ async function selectDishForMeal(
   if (weeklyExcludedByCategory && weeklyExcludedByCategory.length > 0) {
     console.log(`    주간 제외 목록 (${weeklyExcludedByCategory.length}개): ${weeklyExcludedByCategory.slice(0, 5).join(', ')}${weeklyExcludedByCategory.length > 5 ? '...' : ''}`);
     console.log(`    📋 주간 중복 방지: ${dishType} 카테고리에서 ${weeklyExcludedByCategory.length}개 제외됨`);
+  } else {
+    console.log(`    📋 주간 제외 목록 없음`);
   }
   if (preferredRiceType && dishType === "rice") {
     console.log(`    선호 밥 종류: ${preferredRiceType}`);
@@ -969,28 +1068,41 @@ async function selectDishForMeal(
     }
   }
 
+  console.log(`    📊 필터링 전 후보: ${candidates.length}개`);
+  
   // 통합 필터링 파이프라인 적용 (건강 프로필이 있는 경우)
   if (healthProfile) {
     const filteredCandidates = await integratedFilterRecipes(candidates, healthProfile, excludedFoods, dailyNutrition);
+    console.log(`    📊 통합 필터링 후: ${filteredCandidates.length}개 (${candidates.length - filteredCandidates.length}개 제외)`);
     candidates = filteredCandidates;
   } else {
     // 기존 필터링 방식 (하위 호환성)
+    const beforeFilter = candidates.length;
     candidates = filterCompatibleRecipes(candidates, [], excludedFoods);
     candidates = candidates.filter(recipe =>
       checkAllergyCompatibility(recipe, allergies)
     );
+    console.log(`    📊 질병/알레르기 필터링 후: ${candidates.length}개 (${beforeFilter - candidates.length}개 제외)`);
   }
 
   // ✅ 후보가 없으면 폴백을 더 공격적으로 시도 (구성 규칙을 깨지 않기 위해)
   if (candidates.length === 0) {
     console.warn(`    ⚠️ ${dishType} 후보가 없습니다. 폴백 후보를 확장합니다.`);
-    const excludeAll = [...excludeNames];
+    console.warn(`    ⚠️ 제외 목록: ${excludeNames.length}개, 주간 제외: ${weeklyExcludedByCategory?.length || 0}개`);
+    
+    // 주간 제외 목록을 제외하고 폴백 시도
+    const excludeWithoutWeekly = excludeNames.filter(name => 
+      !weeklyExcludedByCategory || !weeklyExcludedByCategory.includes(name)
+    );
+    
     const fallbackExpanded = searchFallbackRecipes({
       dishType: [dishType],
       mealType,
-      excludeNames: excludeAll,
-      limit: 50,
+      excludeNames: excludeWithoutWeekly, // 주간 제외 목록 제외
+      limit: 100, // 더 많은 후보 확보
     });
+    console.log(`    📊 폴백 후보: ${fallbackExpanded.length}개`);
+    
     let fallbackFiltered = fallbackExpanded;
     if (healthProfile) {
       fallbackFiltered = await integratedFilterRecipes(
@@ -999,13 +1111,17 @@ async function selectDishForMeal(
         excludedFoods,
         dailyNutrition,
       );
+      console.log(`    📊 폴백 통합 필터링 후: ${fallbackFiltered.length}개`);
     } else {
       fallbackFiltered = fallbackFiltered.filter((recipe) =>
         checkAllergyCompatibility(recipe, allergies),
       );
+      console.log(`    📊 폴백 알레르기 필터링 후: ${fallbackFiltered.length}개`);
     }
     candidates = fallbackFiltered;
   }
+  
+  console.log(`    📊 최종 후보: ${candidates.length}개`);
 
   // 특수 식단 필터 적용
   if (dietaryPreferences && dietaryPreferences.length > 0) {
