@@ -13,7 +13,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Clock, Baby, AlertCircle, CheckCircle2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +23,12 @@ import { MotionWrapper } from "@/components/motion/motion-wrapper";
 import { StaggerCard } from "@/components/motion/stagger-card";
 import { StaggerItem } from "@/components/motion/stagger-item";
 import { AnimatedBadge } from "@/components/motion/animated-badge";
+import { AnimatedIconWrapper } from "@/components/motion/animated-icon-wrapper";
+import { AnimatedAlertWrapper } from "@/components/motion/animated-alert-wrapper";
+import { AnimatedCheckIcon } from "@/components/motion/animated-check-icon";
+import { AnimatedText } from "@/components/motion/animated-text";
+import { AnimatedNutritionItem, AnimatedNutritionValue } from "@/components/motion/animated-nutrition-item";
+import { AnimatedTimer } from "@/components/motion/animated-timer";
 
 // 임시 레시피 데이터 (실제로는 데이터베이스에서 가져옴)
 const babyRecipes: Record<string, BabyRecipe & { 
@@ -904,18 +909,9 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
                   <CardTitle className="text-3xl mb-2">{recipe.title}</CardTitle>
                   <CardDescription className="text-base">{recipe.description}</CardDescription>
                 </div>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0, rotate: -180 }}
-                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 200,
-                    damping: 15,
-                    delay: 0.3,
-                  }}
-                >
+                <AnimatedIconWrapper>
                   <Baby className="h-8 w-8 text-pink-500 flex-shrink-0" />
-                </motion.div>
+                </AnimatedIconWrapper>
               </div>
               <div className="flex flex-wrap gap-2 mt-4">
                 <AnimatedBadge delay={0.4}>
@@ -946,16 +942,7 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
         {/* 알레르기 주의사항 */}
         {recipe.allergy_warnings && recipe.allergy_warnings.length > 0 && (
           <StaggerCard index={1}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                type: "spring",
-                stiffness: 150,
-                damping: 20,
-                delay: 0.2,
-              }}
-            >
+            <AnimatedAlertWrapper>
               <Alert className="border-amber-200 bg-amber-50">
                 <AlertCircle className="h-4 w-4 text-amber-600" />
                 <AlertTitle className="text-amber-900 font-semibold">알레르기 주의</AlertTitle>
@@ -966,7 +953,7 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
                   처음 먹일 때는 소량으로 시작하고 아기의 반응을 주의 깊게 관찰하세요.
                 </AlertDescription>
               </Alert>
-            </motion.div>
+            </AnimatedAlertWrapper>
           </StaggerCard>
         )}
 
@@ -981,18 +968,9 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
                 {recipe.ingredients.map((ingredient, index) => (
                   <StaggerItem key={index} index={index} delay={0.3}>
                     <li className="flex items-start gap-2">
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 200,
-                          damping: 15,
-                          delay: 0.3 + index * 0.05,
-                        }}
-                      >
+                      <AnimatedCheckIcon index={index}>
                         <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      </motion.div>
+                      </AnimatedCheckIcon>
                       <div>
                         <span className="font-medium">{ingredient.name}</span>
                         <span className="text-gray-600 ml-2">{ingredient.amount}</span>
@@ -1019,7 +997,7 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
                 {recipe.steps.map((step) => (
                   <StaggerItem key={step.step} index={step.step - 1} delay={0.4}>
                     <li className="flex gap-4">
-                      <motion.div
+                      <AnimatedIconWrapper
                         initial={{ opacity: 0, scale: 0, rotate: -180 }}
                         animate={{ opacity: 1, scale: 1, rotate: 0 }}
                         transition={{
@@ -1031,21 +1009,17 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
                         className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-100 text-pink-700 flex items-center justify-center font-bold"
                       >
                         {step.step}
-                      </motion.div>
+                      </AnimatedIconWrapper>
                       <div className="flex-1 pt-1">
                         <p className="text-gray-700">{step.description}</p>
                         {step.timer_minutes && (
-                          <motion.div
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{
-                              delay: 0.5 + (step.step - 1) * 0.1,
-                            }}
+                          <AnimatedTimer
+                            step={step.step}
                             className="mt-2 flex items-center gap-2 text-sm text-gray-500"
                           >
                             <Clock className="h-4 w-4" />
                             <span>{step.timer_minutes}분</span>
-                          </motion.div>
+                          </AnimatedTimer>
                         )}
                       </div>
                     </li>
@@ -1066,72 +1040,36 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {recipe.nutrition_info.calories && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5, duration: 0.5 }}
-                    >
+                    <AnimatedNutritionItem delay={0.5}>
                       <div className="text-sm text-gray-600">칼로리</div>
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
-                        className="text-2xl font-bold"
-                      >
+                      <AnimatedNutritionValue delay={0.6} className="text-2xl font-bold">
                         {recipe.nutrition_info.calories}kcal
-                      </motion.div>
-                    </motion.div>
+                      </AnimatedNutritionValue>
+                    </AnimatedNutritionItem>
                   )}
                   {recipe.nutrition_info.protein && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.55, duration: 0.5 }}
-                    >
+                    <AnimatedNutritionItem delay={0.55}>
                       <div className="text-sm text-gray-600">단백질</div>
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.65, type: "spring", stiffness: 200 }}
-                        className="text-2xl font-bold"
-                      >
+                      <AnimatedNutritionValue delay={0.65} className="text-2xl font-bold">
                         {recipe.nutrition_info.protein}g
-                      </motion.div>
-                    </motion.div>
+                      </AnimatedNutritionValue>
+                    </AnimatedNutritionItem>
                   )}
                   {recipe.nutrition_info.carbs && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.6, duration: 0.5 }}
-                    >
+                    <AnimatedNutritionItem delay={0.6}>
                       <div className="text-sm text-gray-600">탄수화물</div>
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.7, type: "spring", stiffness: 200 }}
-                        className="text-2xl font-bold"
-                      >
+                      <AnimatedNutritionValue delay={0.7} className="text-2xl font-bold">
                         {recipe.nutrition_info.carbs}g
-                      </motion.div>
-                    </motion.div>
+                      </AnimatedNutritionValue>
+                    </AnimatedNutritionItem>
                   )}
                   {recipe.nutrition_info.fat && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.65, duration: 0.5 }}
-                    >
+                    <AnimatedNutritionItem delay={0.65}>
                       <div className="text-sm text-gray-600">지방</div>
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.75, type: "spring", stiffness: 200 }}
-                        className="text-2xl font-bold"
-                      >
+                      <AnimatedNutritionValue delay={0.75} className="text-2xl font-bold">
                         {recipe.nutrition_info.fat}g
-                      </motion.div>
-                    </motion.div>
+                      </AnimatedNutritionValue>
+                    </AnimatedNutritionItem>
                   )}
                 </div>
               </CardContent>
@@ -1151,7 +1089,8 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
                   {recipe.tips.map((tip, index) => (
                     <StaggerItem key={index} index={index} delay={0.6}>
                       <li className="flex items-start gap-2">
-                        <motion.div
+                        <AnimatedCheckIcon
+                          index={index}
                           initial={{ opacity: 0, scale: 0 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{
@@ -1161,7 +1100,9 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
                             delay: 0.6 + index * 0.05,
                           }}
                           className="w-2 h-2 rounded-full bg-pink-500 mt-2 flex-shrink-0"
-                        />
+                        >
+                          <div />
+                        </AnimatedCheckIcon>
                         <span className="text-gray-700">{tip}</span>
                       </li>
                     </StaggerItem>
@@ -1179,7 +1120,7 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
               <CardTitle>추천 월령</CardTitle>
             </CardHeader>
             <CardContent>
-              <motion.p
+              <AnimatedText
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.7 }}
@@ -1187,7 +1128,7 @@ export default async function BabyRecipeDetailPage({ params }: PageProps) {
               >
                 이 레시피는 <strong>{recipe.age_months_min}개월</strong>
                 {recipe.age_months_max ? `부터 ${recipe.age_months_max}개월` : " 이상"} 아기에게 적합합니다.
-              </motion.p>
+              </AnimatedText>
             </CardContent>
           </Card>
         </StaggerCard>

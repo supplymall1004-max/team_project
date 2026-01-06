@@ -76,18 +76,22 @@ export function BottomNavigation() {
                 console.log("timestamp:", Date.now());
                 console.groupEnd();
                 
-                // 홈 링크이고 현재 경로가 "/"인 경우 강제로 네비게이션하여 페이지를 완전히 다시 로드
-                if (item.href === "/" && pathname === "/") {
-                  e.preventDefault();
-                  console.log("[BottomNavigation] 현재 홈 페이지에서 홈으로 이동 - 강제 네비게이션");
-                  // router.push와 router.refresh를 함께 사용하여 확실하게 리로드
-                  router.push("/");
-                  setTimeout(() => {
-                    router.refresh();
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }, 50);
-                } else {
-                  console.log("[BottomNavigation] 다른 경로에서 홈으로 이동");
+                // 홈 링크 클릭 시 (현재 경로가 홈이 아니거나 홈인 경우 모두)
+                if (item.href === "/") {
+                  // 다른 페이지에서 홈으로 이동하는 경우 세션 스토리지 플래그 설정
+                  if (pathname !== "/") {
+                    console.log("[BottomNavigation] 다른 경로에서 홈으로 이동 - 플래그 설정");
+                    sessionStorage.setItem('shouldRefreshHome', 'true');
+                  } else {
+                    // 현재 홈 페이지에서 홈으로 다시 클릭한 경우
+                    e.preventDefault();
+                    console.log("[BottomNavigation] 현재 홈 페이지에서 홈으로 이동 - 강제 네비게이션");
+                    router.push("/");
+                    setTimeout(() => {
+                      router.refresh();
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }, 50);
+                  }
                 }
               }}
               onKeyDown={(e) => {

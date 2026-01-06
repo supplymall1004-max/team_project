@@ -17,7 +17,7 @@ import {
 } from "@clerk/nextjs";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Menu,
@@ -29,6 +29,20 @@ import {
   Heart,
   FileText,
   LogOut,
+  Crown,
+  Calendar,
+  PawPrint,
+  Shield,
+  Gamepad2,
+  Users,
+  ChefHat,
+  BookMarked,
+  Baby,
+  Soup,
+  Sparkles,
+  Brain,
+  MemoryStick,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +51,141 @@ import { LoginModal } from "@/components/auth/login-modal";
 import { NotificationBadge } from "@/components/health/notification-badge";
 import { motion, AnimatePresence } from "framer-motion";
 
+// 카테고리별 메뉴 그룹 정의
+interface MenuCategory {
+  id: string;
+  label: string;
+  neonColor: string; // 네온 효과 색상 클래스
+  bgColor: string; // 배경색 (예: bg-blue-50)
+  borderColor: string; // 테두리색 (예: border-blue-200)
+  hoverBgColor: string; // 호버 배경색 (예: hover:bg-blue-100)
+  hoverBorderColor: string; // 호버 테두리색 (예: hover:border-blue-300)
+  textColor: string; // 텍스트 색상 (예: text-blue-900)
+  textSecondaryColor: string; // 보조 텍스트 색상 (예: text-blue-700)
+  iconBgColor: string; // 아이콘 배경색 (예: bg-blue-100)
+  iconHoverBgColor: string; // 아이콘 호버 배경색 (예: group-hover:bg-blue-200)
+  iconColor: string; // 아이콘 색상 (예: text-blue-600)
+  iconHoverColor: string; // 아이콘 호버 색상 (예: group-hover:text-blue-600)
+  neonAnimation: string; // 네온 애니메이션 이름
+  items: Array<{
+    label: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }>;
+}
+
+const menuCategories: MenuCategory[] = [
+  {
+    id: "recipes",
+    label: "레시피",
+    neonColor: "from-blue-400 via-cyan-400 to-blue-500",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    hoverBgColor: "hover:bg-blue-100",
+    hoverBorderColor: "hover:border-blue-300",
+    textColor: "text-blue-900",
+    textSecondaryColor: "text-blue-700",
+    iconBgColor: "bg-blue-100",
+    iconHoverBgColor: "group-hover:bg-blue-200",
+    iconColor: "text-blue-600",
+    iconHoverColor: "group-hover:text-blue-600",
+    neonAnimation: "neon-glow-blue",
+    items: [
+      { label: "레시피", href: "/recipes", icon: BookOpen },
+      { label: "궁중요리", href: "/royal-recipes", icon: Crown },
+      { label: "식약처 레시피", href: "/recipes/mfds", icon: ChefHat },
+      { label: "이유식 레시피", href: "/archive/recipes?tab=baby", icon: Baby },
+      { label: "죽 레시피", href: "/archive/recipes?tab=gruel", icon: Soup },
+      { label: "특수 레시피", href: "/archive/recipes?tab=special", icon: Sparkles },
+      { label: "비건 레시피", href: "/archive/recipes?tab=vegan", icon: BookOpen },
+    ],
+  },
+  {
+    id: "diet",
+    label: "식단",
+    neonColor: "from-green-400 via-emerald-400 to-green-500",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-200",
+    hoverBgColor: "hover:bg-green-100",
+    hoverBorderColor: "hover:border-green-300",
+    textColor: "text-green-900",
+    textSecondaryColor: "text-green-700",
+    iconBgColor: "bg-green-100",
+    iconHoverBgColor: "group-hover:bg-green-200",
+    iconColor: "text-green-600",
+    iconHoverColor: "group-hover:text-green-600",
+    neonAnimation: "neon-glow-green",
+    items: [
+      { label: "식단관리", href: "/diet", icon: UtensilsCrossed },
+      { label: "주간식단", href: "/diet/weekly", icon: Calendar },
+    ],
+  },
+  {
+    id: "health",
+    label: "건강",
+    neonColor: "from-pink-400 via-rose-400 to-red-500",
+    bgColor: "bg-pink-50",
+    borderColor: "border-pink-200",
+    hoverBgColor: "hover:bg-pink-100",
+    hoverBorderColor: "hover:border-pink-300",
+    textColor: "text-pink-900",
+    textSecondaryColor: "text-pink-700",
+    iconBgColor: "bg-pink-100",
+    iconHoverBgColor: "group-hover:bg-pink-200",
+    iconColor: "text-pink-600",
+    iconHoverColor: "group-hover:text-pink-600",
+    neonAnimation: "neon-glow-pink",
+    items: [
+      { label: "건강관리", href: "/health", icon: Heart },
+      { label: "반려동물", href: "/health/pets", icon: PawPrint },
+    ],
+  },
+  {
+    id: "games",
+    label: "게임",
+    neonColor: "from-purple-400 via-violet-400 to-purple-500",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    hoverBgColor: "hover:bg-purple-100",
+    hoverBorderColor: "hover:border-purple-300",
+    textColor: "text-purple-900",
+    textSecondaryColor: "text-purple-700",
+    iconBgColor: "bg-purple-100",
+    iconHoverBgColor: "group-hover:bg-purple-200",
+    iconColor: "text-purple-600",
+    iconHoverColor: "group-hover:text-purple-600",
+    neonAnimation: "neon-glow-purple",
+    items: [
+      { label: "냉장고 파수꾼", href: "/game/fridge-guardian", icon: Shield },
+      { label: "냉장고 디펜스", href: "/game/fridge-defense", icon: Gamepad2 },
+      { label: "냉장고 짝맞추기", href: "/game/fridge-memory", icon: MemoryStick },
+      { label: "뇌 훈련 숫자맞추기", href: "/game/codebreaker", icon: Brain },
+    ],
+  },
+  {
+    id: "community",
+    label: "스토리/커뮤니티",
+    neonColor: "from-orange-400 via-amber-400 to-orange-500",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-200",
+    hoverBgColor: "hover:bg-orange-100",
+    hoverBorderColor: "hover:border-orange-300",
+    textColor: "text-orange-900",
+    textSecondaryColor: "text-orange-700",
+    iconBgColor: "bg-orange-100",
+    iconHoverBgColor: "group-hover:bg-orange-200",
+    iconColor: "text-orange-600",
+    iconHoverColor: "group-hover:text-orange-600",
+    neonAnimation: "neon-glow-orange",
+    items: [
+      { label: "스토리", href: "/stories", icon: FileText },
+      { label: "음식 이야기", href: "/food-stories", icon: BookMarked },
+      { label: "커뮤니티", href: "/community", icon: Users },
+    ],
+  },
+];
+
+// 기본 네비게이션 링크 (데스크톱용)
 const navLinks = [
   { label: "레시피", href: "/archive/recipes", icon: BookOpen },
   { label: "식단", href: "/diet", icon: UtensilsCrossed },
@@ -55,10 +204,31 @@ const Navbar = () => {
   const prevSignedInRef = useRef<boolean | undefined>(undefined);
   const prevPathnameRef = useRef<string | null>(null);
 
+  // 전체 메뉴 아이템 수를 미리 계산 (성능 최적화)
+  const totalMenuItems = useMemo(() => {
+    return menuCategories.reduce((acc, cat) => acc + cat.items.length, 0);
+  }, []);
+
   // 클라이언트 사이드에서만 마운트 상태 설정 (Hydration 오류 방지)
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // 모바일 메뉴가 열릴 때 body 스크롤 막기
+  useEffect(() => {
+    if (menuOpen) {
+      // 모달이 열릴 때 body 스크롤 막기
+      document.body.style.overflow = 'hidden';
+    } else {
+      // 모달이 닫힐 때 body 스크롤 복원
+      document.body.style.overflow = '';
+    }
+
+    // cleanup: 컴포넌트 언마운트 시 스크롤 복원
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     // 라우트가 바뀌면(로그인/홈 이동 포함) 모바일 메뉴를 닫아
@@ -145,27 +315,28 @@ const Navbar = () => {
             handleNavClick("홈");
             console.log("[Navbar] 홈 링크 클릭", { pathname, timestamp: Date.now() });
             
-            // 현재 경로가 "/"인 경우 강제로 네비게이션하여 페이지를 완전히 다시 로드
-            if (pathname === "/") {
+            // 홈 링크 클릭 시 (현재 경로가 홈이 아니거나 홈인 경우 모두)
+            if (pathname !== "/") {
+              // 다른 페이지에서 홈으로 이동하는 경우 세션 스토리지 플래그 설정
+              console.log("[Navbar] 다른 경로에서 홈으로 이동 - 플래그 설정");
+              sessionStorage.setItem('shouldRefreshHome', 'true');
+            } else {
+              // 현재 홈 페이지에서 홈으로 다시 클릭한 경우
               e.preventDefault();
               console.log("[Navbar] 현재 홈 페이지에서 홈으로 이동 - 강제 네비게이션");
-              // router.push와 router.refresh를 함께 사용하여 확실하게 리로드
               router.push("/");
               // 약간의 딜레이 후 refresh와 스크롤 (렌더링 완료 대기)
               setTimeout(() => {
                 router.refresh();
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }, 50);
-            } else {
-              // 다른 경로에서 홈으로 이동하는 경우는 Link 컴포넌트가 자동으로 처리
-              console.log("[Navbar] 다른 경로에서 홈으로 이동");
             }
           }}
           aria-label="Django Care 홈으로 이동"
         >
           <div className="relative w-[50px] h-[60px] flex-shrink-0 flex items-center justify-center">
             <Image
-              src="/refrigerator-logo.png"
+              src="/icons/refrigerator-logo.png"
               alt="Django Care 로고"
               width={50}
               height={60}
@@ -189,9 +360,16 @@ const Navbar = () => {
               }}
             />
           </div>
-          <span className="text-lg sm:text-2xl font-bold text-orange-600 whitespace-nowrap">
-            Django Care
-          </span>
+          <div className="flex flex-col whitespace-nowrap">
+            <span className="text-lg sm:text-2xl font-bold text-orange-600">
+              Django Care
+            </span>
+            <span className="text-lg sm:text-2xl font-bold text-orange-600 leading-tight">
+              <span>냉</span>
+              <span className="text-xs sm:text-sm text-amber-700"> 씨가문 집사 </span>
+              <span>장고</span>
+            </span>
+          </div>
         </Link>
 
         {/* 중앙: 검색바 (항상 표시) */}
@@ -294,6 +472,8 @@ const Navbar = () => {
               background: menuOpen 
                 ? 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)'
                 : 'transparent',
+              zIndex: menuOpen ? 10000 : 'auto',
+              position: menuOpen ? 'relative' : 'static',
             }}
           >
             <motion.div
@@ -324,139 +504,185 @@ const Navbar = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-[55]"
+              transition={{ duration: 0.15 }}
+              className="md:hidden fixed bg-black/20 backdrop-blur-sm z-[9998]"
+              style={{ top: '64px', left: 0, right: 0, bottom: 0 }}
               onClick={() => setMenuOpen(false)}
-              style={{ top: "64px" }}
             />
             {/* 모바일 메뉴 */}
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="md:hidden fixed top-[64px] left-0 right-0 bg-gradient-to-br from-white via-orange-50/30 to-white border-b border-orange-200/50 shadow-2xl backdrop-blur-md z-[60] max-h-[calc(100vh-64px)] overflow-y-auto"
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="md:hidden fixed top-[64px] left-0 right-0 bg-white border-b border-orange-200/50 shadow-2xl z-[9999] max-h-[calc(100vh-64px)] overflow-y-auto"
               style={{
                 boxShadow: "0 20px 60px rgba(0, 0, 0, 0.15)",
+                paddingBottom: "80px", // 하단 네비게이션 바 높이(64px) + 여유 공간(16px)
               }}
             >
-            <div className="px-2 py-3 space-y-1.5">
-              {navLinks.map((link, index) => {
-                const Icon = link.icon;
-                const isHealthLink = link.href === "/health";
-                const isActive = pathname === link.href || pathname?.startsWith(link.href + "/");
+            <div className="px-2 py-3 pb-20 space-y-3">
+              {menuCategories.map((category, categoryIndex) => {
+                let itemIndex = 0;
+                // 이전 카테고리의 아이템 수를 계산하여 delay 계산
+                for (let i = 0; i < categoryIndex; i++) {
+                  itemIndex += menuCategories[i].items.length;
+                }
+                
                 return (
-                  <motion.div
-                    key={link.href}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1, duration: 0.3 }}
-                  >
-                    <Link
-                      href={link.href}
-                      className={cn(
-                        "relative flex items-center gap-2 px-2.5 py-2 text-sm font-semibold rounded-xl transition-all duration-300 gdweb-card",
-                        isActive
-                          ? "bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white shadow-lg"
-                          : "bg-white/90 text-gray-700 hover:bg-gradient-to-br hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:-translate-y-1",
-                      )}
-                      onClick={() => handleNavClick(link.label)}
-                      style={{
-                        boxShadow: isActive
-                          ? "0 4px 16px rgba(255, 107, 53, 0.3)"
-                          : "0 2px 10px rgba(0, 0, 0, 0.08)",
-                      }}
-                    >
-                      <div className={cn(
-                        "relative flex items-center justify-center w-5 h-5 rounded-lg transition-all",
-                        isActive
-                          ? "bg-white/20"
-                          : "bg-gradient-to-br from-orange-100 to-orange-200"
-                      )}>
-                        <Icon className={cn(
-                          "h-4 w-4 transition-colors",
-                          isActive ? "text-white" : "text-orange-600"
-                        )} />
-                        {isHealthLink && (
-                          <NotificationBadge className="absolute -top-0.5 -right-1 scale-75" />
-                        )}
-                      </div>
-                      <span className="flex-1">{link.label}</span>
-                      {isActive && (
+                  <div key={category.id} className="space-y-1.5">
+                    {/* 카테고리별 아이템들 */}
+                    {category.items.map((item, itemIdx) => {
+                      const Icon = item.icon;
+                      const isHealthLink = item.href === "/health";
+                      const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
+                      const globalIndex = itemIndex + itemIdx;
+                      
+                      return (
                         <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="w-1.5 h-1.5 rounded-full bg-white"
-                        />
-                      )}
-                    </Link>
-                  </motion.div>
+                          key={item.href}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: globalIndex * 0.02, duration: 0.15 }}
+                        >
+                          <Link
+                            href={item.href}
+                            className={cn(
+                              "group relative flex items-center justify-between gap-3 py-2.5 px-4 rounded-xl transition-all duration-300 overflow-hidden",
+                              "border-2",
+                              isActive
+                                ? `bg-gradient-to-br ${category.neonColor} text-white border-transparent`
+                                : cn(
+                                    category.bgColor,
+                                    category.borderColor,
+                                    category.hoverBgColor,
+                                    category.hoverBorderColor,
+                                    category.textColor
+                                  ),
+                            )}
+                            onClick={() => handleNavClick(item.label)}
+                            style={{
+                              // 활성 상태일 때는 강한 네온 효과, 비활성 상태일 때는 애니메이션 적용
+                              animation: !isActive ? `${category.neonAnimation} 2s ease-in-out infinite` : undefined,
+                            }}
+                          >
+                            <div className="flex items-center gap-3 flex-1">
+                              {/* 아이콘 */}
+                              <div className={cn(
+                                "relative flex items-center justify-center w-8 h-8 rounded-full transition-colors",
+                                isActive
+                                  ? "bg-white/20"
+                                  : cn(
+                                      category.iconBgColor,
+                                      category.iconHoverBgColor
+                                    )
+                              )}>
+                                <Icon className={cn(
+                                  "h-5 w-5 transition-colors",
+                                  isActive
+                                    ? "text-white"
+                                    : cn(
+                                        category.iconColor,
+                                        category.iconHoverColor
+                                      )
+                                )} />
+                                {isHealthLink && (
+                                  <NotificationBadge className="absolute -top-0.5 -right-1 scale-75" />
+                                )}
+                              </div>
+                              {/* 텍스트 */}
+                              <div className="flex-1">
+                                <span className={cn(
+                                  "font-bold text-sm block",
+                                  isActive ? "text-white" : category.textColor
+                                )}>
+                                  {item.label}
+                                </span>
+                              </div>
+                            </div>
+                            {/* 화살표 아이콘 */}
+                            <ChevronRight className={cn(
+                              "w-4 h-4 transition-colors flex-shrink-0",
+                              isActive
+                                ? "text-white/80"
+                                : cn(
+                                    category.iconColor,
+                                    category.iconHoverColor
+                                  )
+                            )} />
+                          </Link>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
                 );
               })}
+              {/* 설정 및 로그아웃 구분선 */}
+              <div className="pt-2 border-t border-gray-200" />
+              
               {isMounted && isLoaded && isSignedIn && (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: navLinks.length * 0.1, duration: 0.3 }}
-                >
-                  <Link
-                    href="/settings"
-                    className={cn(
-                      "flex items-center gap-2 px-2.5 py-2 text-sm font-semibold rounded-xl transition-all duration-300 gdweb-card",
-                      pathname === "/settings" || pathname?.startsWith("/settings/")
-                        ? "bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white shadow-lg"
-                        : "bg-white/90 text-gray-700 hover:bg-gradient-to-br hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:-translate-y-1",
-                    )}
-                    onClick={() => handleNavClick("설정")}
-                    style={{
-                      boxShadow: pathname === "/settings" || pathname?.startsWith("/settings/")
-                        ? "0 4px 16px rgba(255, 107, 53, 0.3)"
-                        : "0 2px 10px rgba(0, 0, 0, 0.08)",
-                    }}
+                <>
+                  {/* 설정 버튼 */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: totalMenuItems * 0.02 + 0.05, duration: 0.15 }}
+                    className="space-y-1.5"
                   >
-                    <div className={cn(
-                      "flex items-center justify-center w-5 h-5 rounded-lg transition-all",
-                      pathname === "/settings" || pathname?.startsWith("/settings/")
-                        ? "bg-white/20"
-                        : "bg-gradient-to-br from-orange-100 to-orange-200"
-                    )}>
-                      <Settings className={cn(
-                        "h-4 w-4 transition-colors",
-                        pathname === "/settings" || pathname?.startsWith("/settings/")
-                          ? "text-white"
-                          : "text-orange-600"
-                      )} />
-                    </div>
-                    <span className="flex-1">설정</span>
-                  </Link>
-                </motion.div>
+                    <Link
+                      href="/settings"
+                      className={cn(
+                        "group relative flex items-center justify-between gap-3 py-2.5 px-4 rounded-xl transition-all duration-300 overflow-hidden",
+                        "border-2 bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300 text-gray-900"
+                      )}
+                      onClick={() => handleNavClick("설정")}
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 group-hover:bg-gray-200 transition-colors">
+                          <Settings className="h-5 w-5 text-gray-600 group-hover:text-gray-700 transition-colors" />
+                        </div>
+                        <div className="flex-1">
+                          <span className="font-bold text-sm block text-gray-900">설정</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0" />
+                    </Link>
+                  </motion.div>
+                  
+                  {/* 로그아웃 버튼 */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: totalMenuItems * 0.02 + 0.08, duration: 0.15 }}
+                  >
+                    <SignOutButton>
+                      <button
+                        className="group relative flex items-center justify-between gap-3 py-2.5 px-4 rounded-xl transition-all duration-300 overflow-hidden w-full border-2 bg-red-50 border-red-200 hover:bg-red-100 hover:border-red-300 text-red-900"
+                        style={{
+                          animation: 'neon-glow-red 2s ease-in-out infinite',
+                        }}
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-100 group-hover:bg-red-200 transition-colors">
+                            <LogOut className="h-5 w-5 text-red-600 group-hover:text-red-700 transition-colors" />
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-bold text-sm block text-red-900">로그아웃</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-red-400 group-hover:text-red-600 transition-colors flex-shrink-0" />
+                      </button>
+                    </SignOutButton>
+                  </motion.div>
+                </>
               )}
               {isMounted && isLoaded && !isSignedIn && (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: (navLinks.length + (isSignedIn ? 1 : 0)) * 0.1, duration: 0.3 }}
-                  className="pt-2 border-t border-orange-200/50"
+                  transition={{ delay: menuCategories.reduce((acc, cat) => acc + cat.items.length, 0) * 0.02 + 0.05, duration: 0.15 }}
                 >
                   <LoginModal />
-                </motion.div>
-              )}
-              {isMounted && isLoaded && isSignedIn && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: (navLinks.length + 1) * 0.1, duration: 0.3 }}
-                  className="pt-2 border-t border-orange-200/50"
-                >
-                  <SignOutButton>
-                    <Button
-                      variant="outline"
-                      className="w-full flex items-center gap-2 py-2 text-sm font-semibold rounded-xl border-2 border-gray-300 hover:border-orange-500 hover:bg-orange-50 transition-all duration-300"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span>로그아웃</span>
-                    </Button>
-                  </SignOutButton>
                 </motion.div>
               )}
             </div>

@@ -21,7 +21,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
-import type { QuickStartCard } from "./hero-section";
+import type { QuickStartCard, IconCategory } from "./hero-section";
 import type { DragData } from "@/types/icon-groups";
 
 interface DraggableIconCardProps {
@@ -33,13 +33,9 @@ interface DraggableIconCardProps {
   onDrop?: (draggedIconTitle: string, targetIconTitle: string) => void;
   /** 드래그 종료 이벤트 */
   onDragEnd?: () => void;
-  /** 드래그 중인지 여부 */
   isDragging?: boolean;
-  /** 드롭 가능한지 여부 */
   canDrop?: boolean;
-  /** 클릭 이벤트 */
   onClick?: (href: string) => void;
-  /** 애니메이션 인덱스 */
   index?: number;
 }
 
@@ -55,6 +51,7 @@ export function DraggableIconCard({
 }: DraggableIconCardProps) {
   const [isDraggedOver, setIsDraggedOver] = useState(false);
   const [isTouchDragging, setIsTouchDragging] = useState(false);
+  const [isClicked, setIsClicked] = useState(false); // 클릭 상태 추가
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -148,6 +145,10 @@ export function DraggableIconCard({
     if (isTouchDragging) {
       return;
     }
+    
+    setIsClicked(true); // 클릭 시 네온 효과 활성화
+    setTimeout(() => setIsClicked(false), 500); // 0.5초 후 비활성화
+
     if (onClick) {
       onClick(card.href);
     }
@@ -218,6 +219,19 @@ export function DraggableIconCard({
     }
   }, [isTouchDragging]);
 
+  // 카테고리별 네온 애니메이션 이름
+  const getNeonAnimation = (): string => {
+    const animationMap: Record<IconCategory, string> = {
+      recipe: 'neon-glow-blue',
+      diet: 'neon-glow-green',
+      health: 'neon-glow-red',
+      game: 'neon-glow-purple',
+      utility: 'neon-glow-gray',
+      story: 'neon-glow-indigo',
+    };
+    return animationMap[card.category] || 'neon-glow-blue';
+  };
+
   return (
     <motion.div
       ref={cardRef}
@@ -233,6 +247,7 @@ export function DraggableIconCard({
         onTouchEnd: handleTouchEnd,
       } as any)}
       data-icon-title={card.title}
+      data-category={card.category}
       initial={{ 
         opacity: 0, 
         y: 50, 
@@ -265,22 +280,16 @@ export function DraggableIconCard({
       <Link
         href={card.href}
         onClick={handleClick}
-        className={`group flex flex-col items-center justify-between h-full min-h-[140px] sm:min-h-[160px] p-4 sm:p-5 rounded-2xl bg-white/95 backdrop-blur-md border border-white/30 shadow-lg hover:shadow-2xl transition-all gdweb-card touch-none ${
-          isDraggedOver ? "bg-blue-50 border-blue-300" : ""
+        className={`group flex flex-col items-center justify-center h-full p-2 rounded-xl transition-all touch-none ${
+          isDraggedOver ? "bg-blue-50/50" : ""
         } ${isDragging || isTouchDragging ? "opacity-50" : ""}`}
         style={{
-          boxShadow: isDraggedOver 
-            ? '0 8px 32px rgba(59, 130, 246, 0.3)' 
-            : '0 8px 32px rgba(0, 0, 0, 0.12)',
           pointerEvents: isTouchDragging ? 'none' : 'auto',
         }}
       >
-        {/* 아이콘 영역 - 고정 크기 */}
+        {/* 아이콘 영역 - 크기 축소 */}
         <motion.div
-          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shadow-xl group-hover:shadow-2xl transition-all relative flex-shrink-0"
-          style={{
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-          }}
+          className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden transition-all relative flex-shrink-0 mb-1.5"
         >
           {card.gradient ? (
             <div className={`absolute inset-0 ${card.gradient} opacity-90`} />
@@ -292,23 +301,19 @@ export function DraggableIconCard({
             alt={card.title}
             fill
             className="object-cover relative z-10"
-            sizes="80px"
+            sizes="56px"
             priority={index < 6}
             draggable={false}
           />
         </motion.div>
 
-        {/* 텍스트 영역 - 고정 높이 */}
-        <div className="text-center w-full flex-1 flex flex-col justify-center min-h-[48px] sm:min-h-[52px]">
-          <h3 className="text-xs sm:text-sm font-bold text-gray-900 leading-tight group-hover:text-primary transition-colors mb-1">
+        {/* 제목만 표시 */}
+        <div className="text-center w-full">
+          <h3 className="text-[10px] sm:text-xs font-bold text-gray-900 drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)] leading-tight group-hover:text-gray-800 transition-colors break-words whitespace-pre-line">
             {card.title}
           </h3>
-          <p className="text-[10px] sm:text-xs text-gray-600 leading-tight line-clamp-2">
-            {card.description}
-          </p>
         </div>
       </Link>
-    </motion.div>
-  );
+    </motion.div>  );
 }
 

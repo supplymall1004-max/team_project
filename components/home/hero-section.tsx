@@ -24,6 +24,8 @@ import { FolderCard } from "./folder-card";
 import { ExpandedFolderView } from "./expanded-folder-view";
 import type { DragData } from "@/types/icon-groups";
 
+export type IconCategory = "recipe" | "diet" | "health" | "game" | "utility" | "story";
+
 export interface QuickStartCard {
   title: string;
   description: string;
@@ -35,6 +37,7 @@ export interface QuickStartCard {
   iconSrc: string;
   color: string;
   gradient?: string; // 그라데이션 클래스 (선택적)
+  category: IconCategory; // 아이콘 카테고리 (네온 효과용)
 }
 
 interface HeroSectionProps {
@@ -64,6 +67,7 @@ export function HeroSection({
       iconSrc: "/icons/26.png",
       color: "bg-blue-500",
       gradient: "bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700",
+      category: "recipe",
     },
     {
       title: "궁중요리",
@@ -72,6 +76,7 @@ export function HeroSection({
       iconSrc: "/icons/21.png",
       color: "bg-amber-500",
       gradient: "bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500",
+      category: "recipe",
     },
     {
       title: "식단관리",
@@ -80,6 +85,7 @@ export function HeroSection({
       iconSrc: "/icons/22.png",
       color: "bg-green-500",
       gradient: "bg-gradient-to-br from-green-400 via-emerald-500 to-green-600",
+      category: "diet",
     },
     {
       title: "주간식단",
@@ -88,6 +94,7 @@ export function HeroSection({
       iconSrc: "/icons/3.png",
       color: "bg-purple-500",
       gradient: "bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600",
+      category: "diet",
     },
     {
       title: "검색",
@@ -96,6 +103,7 @@ export function HeroSection({
       iconSrc: "/icons/14.png",
       color: "bg-gray-500",
       gradient: "bg-gradient-to-br from-slate-500 via-gray-600 to-slate-700",
+      category: "utility",
     },
     {
       title: "건강관리",
@@ -104,6 +112,7 @@ export function HeroSection({
       iconSrc: "/icons/11.png",
       color: "bg-red-500",
       gradient: "bg-gradient-to-br from-pink-500 via-rose-500 to-red-500",
+      category: "health",
     },
     {
       title: "식재료",
@@ -112,6 +121,7 @@ export function HeroSection({
       iconSrc: "/icons/25.png",
       color: "bg-emerald-500",
       gradient: "bg-gradient-to-br from-emerald-400 via-green-500 to-emerald-600",
+      category: "recipe",
     },
     {
       title: "음식안전",
@@ -120,6 +130,7 @@ export function HeroSection({
       iconSrc: "/icons/12.png",
       color: "bg-orange-500",
       gradient: "bg-gradient-to-br from-orange-400 via-orange-500 to-red-500",
+      category: "health",
     },
     {
       title: "요리이야기",
@@ -128,6 +139,7 @@ export function HeroSection({
       iconSrc: "/icons/14.png",
       color: "bg-indigo-500",
       gradient: "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700",
+      category: "story",
     },
   ],
 }: HeroSectionProps = {}) {
@@ -286,14 +298,51 @@ export function HeroSection({
     console.groupEnd();
   };
 
-  // 그리드에 표시할 아이템들 (그룹화되지 않은 아이콘 + 폴더)
+  // 카테고리별 아이콘 그룹화
+  const categorizedIcons = useMemo(() => {
+    const categories: Record<string, QuickStartCard[]> = {
+      recipe: [],
+      diet: [],
+      health: [],
+      game: [],
+      utility: [],
+      story: [],
+    };
+
+    ungroupedCards.forEach((card) => {
+      if (card.category && categories[card.category]) {
+        categories[card.category].push(card);
+      }
+    });
+
+    return categories;
+  }, [ungroupedCards]);
+
+  // 그리드에 표시할 아이템들 (카테고리별로 그룹화된 아이콘 + 폴더)
   // Hydration 오류 방지: isGroupsLoaded가 false일 때는 폴더 없이 모든 아이콘만 표시
   const gridItems = useMemo(() => {
-    const items: Array<{ type: "icon" | "folder"; data: QuickStartCard | typeof groupState.groups[0] }> = [];
+    const items: Array<{ type: "icon" | "folder" | "category-header"; data: QuickStartCard | typeof groupState.groups[0] | { category: string; label: string } }> = [];
 
-    // 그룹화되지 않은 아이콘들
-    ungroupedCards.forEach((card) => {
-      items.push({ type: "icon", data: card });
+    // 카테고리별로 아이콘 추가
+    const categoryOrder: Array<{ key: string; label: string }> = [
+      { key: "recipe", label: "레시피" },
+      { key: "diet", label: "식단" },
+      { key: "health", label: "건강" },
+      { key: "game", label: "게임" },
+      { key: "story", label: "이야기" },
+      { key: "utility", label: "유틸리티" },
+    ];
+
+    categoryOrder.forEach(({ key, label }) => {
+      const icons = categorizedIcons[key as keyof typeof categorizedIcons];
+      if (icons.length > 0) {
+        // 카테고리 헤더 추가
+        items.push({ type: "category-header", data: { category: key, label } });
+        // 해당 카테고리의 아이콘들 추가
+        icons.forEach((card) => {
+          items.push({ type: "icon", data: card });
+        });
+      }
     });
 
     // 폴더들 (그룹 데이터가 로드된 후에만 표시)
@@ -304,7 +353,7 @@ export function HeroSection({
     }
 
     return items;
-  }, [ungroupedCards, groupState.groups, isGroupsLoaded]);
+  }, [categorizedIcons, groupState.groups, isGroupsLoaded]);
 
   // 그룹 데이터가 로드될 때까지 로딩 표시하지 않음 (기본 렌더링 유지)
 
@@ -384,219 +433,165 @@ export function HeroSection({
   };
 
   return (
-    <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
-      {/* 배경 이미지/비디오 - 커스텀 설정 적용 */}
-      <div className="absolute inset-0 z-0">
-        {renderBackground()}
-        
-        {/* 패턴 오버레이 */}
-        <div 
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `
-              radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 0%, transparent 50%),
-              radial-gradient(circle at 75% 75%, rgba(255,255,255,0.1) 0%, transparent 50%)
-            `,
-            backgroundSize: '100px 100px',
-          }}
-        />
-        
-        {/* 오버레이 - 더 부드러운 그라데이션 */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/20" />
+    <section className="relative min-h-[85vh] flex flex-col justify-start items-center overflow-hidden">
+      {/* 배경 이미지 - 11.png 이미지 영역 */}
+      <div className="relative w-full max-w-7xl z-0">
+        <div className="relative w-full min-h-[50vh] sm:min-h-[60vh] md:min-h-[70vh]">
+          <Image
+            src="/11.png"
+            alt=""
+            fill
+            className="object-cover"
+            sizes="100vw"
+            priority
+            unoptimized
+            onError={(e) => {
+              console.error("[HeroSection] 배경 이미지 로딩 실패: /11.png");
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        </div>
       </div>
 
       {/* 콘텐츠 - 모바일 앱 아이콘 그리드 */}
-      <div className="relative z-10 w-full max-w-5xl mx-auto px-4 py-12 sm:px-6 sm:py-20">
-        {/* 타이틀 섹션 - GDWEB 스타일 */}
-        <motion.div
-          className="text-center mb-12"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ 
-            type: "spring",
-            stiffness: 100,
-            damping: 20,
-            delay: 0.2,
-          }}
-        >
-          {/* 베타 배지 - badgeText가 있을 때만 표시 */}
-          {badgeText && (
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-start flex-1">
+        {/* 앱 아이콘 그리드 - 4열 그리드에 각 행마다 4개씩 배치 */}
+        <div className="w-full h-full relative">
             <motion.div
-              className="mb-6"
-              initial={{ opacity: 0, y: -50, scale: 0.8 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ 
-                type: "spring",
-                stiffness: 150,
-                damping: 25,
-                mass: 1.2,
-                delay: 0.4,
+              className="grid grid-cols-4 gap-3 sm:gap-4 md:gap-5 items-start relative pt-6 sm:pt-8 rounded-t-2xl"
+              data-icon-grid
+              variants={staggerContainer}
+              initial="initial"
+              animate="animate"
+              style={{
+                gridAutoFlow: 'row',
+                alignContent: 'start',
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const dragDataStr = e.dataTransfer.getData("application/json");
+                const fromFolder = e.dataTransfer.getData("from-folder");
+                
+                if (dragDataStr && fromFolder) {
+                  try {
+                    const dragData: DragData = JSON.parse(dragDataStr);
+                    console.group("[HeroSection] 폴더 밖으로 아이콘 드롭");
+                    console.log("아이콘:", dragData.iconTitle);
+                    console.log("원래 폴더:", fromFolder);
+                    console.groupEnd();
+                    
+                    // 폴더에서 아이콘 제거
+                    removeIconFromGroup(dragData.iconTitle, fromFolder);
+                  } catch (error) {
+                    console.error("[HeroSection] 드롭 데이터 파싱 실패:", error);
+                  }
+                }
               }}
             >
-              <div className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm px-4 py-2 text-sm font-semibold text-white border border-white/30 shadow-lg">
-                {badgeText}
-              </div>
-            </motion.div>
-          )}
+            {(() => {
+              // 식단 카테고리를 먼저, 나머지는 순서대로
+              const orderedCategories: Array<{ key: string }> = [
+                { key: "diet" },
+                { key: "recipe" },
+                { key: "health" },
+                { key: "game" },
+                { key: "story" },
+                { key: "utility" },
+              ];
 
-          {/* 메인 타이틀 */}
-          {title && (
-            <motion.h1
-              className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4 leading-tight"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-            >
-              {title.includes('냉씨 가문 집사 장고') || title.includes('냉장고') ? (
-                <div className="space-y-3">
-                  {/* 씨가문집사 - 중간 크기 */}
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
-                    <span className="text-2xl sm:text-3xl md:text-4xl text-white/90 font-semibold">씨</span>
-                    <span className="text-2xl sm:text-3xl md:text-4xl text-white/90 font-semibold">가문</span>
-                    <span className="text-2xl sm:text-3xl md:text-4xl text-white/90 font-semibold">집사</span>
-                  </div>
-                  {/* 냉 장고 - 큰 크기 강조 */}
-                  <div className="flex items-center justify-center gap-3 sm:gap-4">
-                    <span className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold text-white drop-shadow-2xl">냉</span>
-                    <span className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold bg-gradient-to-r from-white via-orange-200 to-white bg-clip-text text-transparent drop-shadow-2xl">장고</span>
-                  </div>
-                </div>
-              ) : (
-                titleLines.map((line, index) => (
-                  <span key={index} className="block">
-                    {line}
-                  </span>
-                ))
-              )}
-            </motion.h1>
-          )}
+              let globalIndex = 0;
+              const allIcons: QuickStartCard[] = [];
 
-          {/* 서브타이틀 */}
-          {subtitle && (
-            <motion.p
-              className="text-xl sm:text-2xl text-white/90 mb-4 font-medium"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-            >
-              {subtitle}
-            </motion.p>
-          )}
+              orderedCategories.forEach(({ key }) => {
+                const categoryIcons = categorizedIcons[key as keyof typeof categorizedIcons];
+                categoryIcons.forEach((card) => {
+                  const folderId = getGroupIdForIcon(card.title);
+                  // 이미 그룹에 속한 아이콘은 제외
+                  if (!folderId) {
+                    allIcons.push(card);
+                  }
+                });
+              });
 
-          {/* 설명 */}
-          {description && (
-            <motion.p
-              className="text-base sm:text-lg text-white/80 max-w-2xl mx-auto leading-relaxed"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.0 }}
-            >
-              {description}
-            </motion.p>
-          )}
-        </motion.div>
-
-        {/* 앱 아이콘 그리드 - GDWEB 카드 스타일 (카드 크기 통일) */}
-        <motion.div
-          className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 sm:gap-6 max-w-4xl mx-auto items-stretch relative"
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
-          data-icon-grid
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            e.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const dragDataStr = e.dataTransfer.getData("application/json");
-            const fromFolder = e.dataTransfer.getData("from-folder");
-            
-            if (dragDataStr && fromFolder) {
-              try {
-                const dragData: DragData = JSON.parse(dragDataStr);
-                console.group("[HeroSection] 폴더 밖으로 아이콘 드롭");
-                console.log("아이콘:", dragData.iconTitle);
-                console.log("원래 폴더:", fromFolder);
-                console.groupEnd();
+              const icons = allIcons.map((card) => {
+                const isDragging = draggingIcon === card.title;
+                const currentIndex = globalIndex++;
+                // 각 행에서 4개씩 배치 (1,2,3,4열)
+                const colInRow = currentIndex % 4; // 행 내에서의 위치 (0,1,2,3)
+                // 각 행에서 0,1,2,3은 각각 1,2,3,4열에 배치
+                const gridColumn = `${colInRow + 1} / ${colInRow + 2}`; // 1열, 2열, 3열, 4열
                 
-                // 폴더에서 아이콘 제거
-                removeIconFromGroup(dragData.iconTitle, fromFolder);
-              } catch (error) {
-                console.error("[HeroSection] 드롭 데이터 파싱 실패:", error);
-              }
-            }
-          }}
-        >
-          {gridItems.map((item, index) => {
-            if (item.type === "icon") {
-              const card = item.data as QuickStartCard;
-              const isDragging = draggingIcon === card.title;
-              const folderId = getGroupIdForIcon(card.title);
-              
-              // 이미 그룹에 속한 아이콘은 표시하지 않음 (폴더 내부에서만 표시)
-              if (folderId) {
-                return null;
-              }
+                return (
+                  <div key={card.title} className="relative" style={{ gridColumn }}>
+                    <DraggableIconCard
+                      card={card}
+                      onDragStart={handleDragStart}
+                      onDrop={handleIconDrop}
+                      onDragEnd={handleDragEnd}
+                      isDragging={isDragging}
+                      onClick={handleQuickStartClick}
+                      index={currentIndex}
+                    />
+                  </div>
+                );
+              });
 
-              return (
-                <div key={card.title} className="relative">
-                  <DraggableIconCard
-                    card={card}
-                    onDragStart={handleDragStart}
-                    onDrop={handleIconDrop}
-                    onDragEnd={handleDragEnd}
-                    isDragging={isDragging}
-                    onClick={handleQuickStartClick}
-                    index={index}
-                  />
-                </div>
-              );
-            } else {
-              const group = item.data as typeof groupState.groups[0];
-              const isExpanded = expandedFolderId === group.id;
-              
-              // 폴더 내부 아이콘 카드들
-              const folderIconCards = group.iconTitles
-                .map((title) => getCardByTitle(title))
-                .filter((card): card is QuickStartCard => card !== undefined);
+              // 폴더들도 같은 그리드에 추가
+              const folders = isGroupsLoaded ? groupState.groups.map((group) => {
+                const isExpanded = expandedFolderId === group.id;
+                const folderIconCards = group.iconTitles
+                  .map((title) => getCardByTitle(title))
+                  .filter((card): card is QuickStartCard => card !== undefined);
 
-              return (
-                <div key={group.id} className="relative">
-                  <FolderCard
-                    group={group}
-                    iconCards={folderIconCards}
-                    isExpanded={isExpanded}
-                    onToggle={() => handleFolderToggle(group.id)}
-                    onDrop={(iconTitle) => handleFolderDrop(iconTitle, group.id)}
-                    onDelete={() => handleFolderDelete(group.id)}
-                    onRename={(newName) => handleFolderRename(group.id, newName)}
-                    index={index}
-                  />
-                  
-                  {/* 확장된 폴더 뷰 */}
-                  {isExpanded && (
-                    <ExpandedFolderView
+                const currentIndex = globalIndex++;
+                // 각 행에서 4개씩 배치 (1,2,3,4열)
+                const colInRow = currentIndex % 4; // 행 내에서의 위치 (0,1,2,3)
+                // 각 행에서 0,1,2,3은 각각 1,2,3,4열에 배치
+                const gridColumn = `${colInRow + 1} / ${colInRow + 2}`; // 1열, 2열, 3열, 4열
+
+                return (
+                  <div key={group.id} className="relative" style={{ gridColumn }}>
+                    <FolderCard
                       group={group}
                       iconCards={folderIconCards}
-                      onClose={() => setExpandedFolderId(null)}
-                      onRemoveIcon={(iconTitle) =>
-                        handleRemoveIconFromFolder(iconTitle, group.id)
-                      }
-                      onIconClick={handleQuickStartClick}
-                      onDragStart={handleDragStart}
-                      onDragEnd={handleFolderDragEnd}
+                      isExpanded={isExpanded}
+                      onToggle={() => handleFolderToggle(group.id)}
+                      onDrop={(iconTitle) => handleFolderDrop(iconTitle, group.id)}
+                      onDelete={() => handleFolderDelete(group.id)}
                       onRename={(newName) => handleFolderRename(group.id, newName)}
+                      index={currentIndex}
                     />
-                  )}
-                </div>
-              );
-            }
-          })}
-        </motion.div>
+                    
+                    {/* 확장된 폴더 뷰 */}
+                    {isExpanded && (
+                      <ExpandedFolderView
+                        group={group}
+                        iconCards={folderIconCards}
+                        onClose={() => setExpandedFolderId(null)}
+                        onRemoveIcon={(iconTitle) =>
+                          handleRemoveIconFromFolder(iconTitle, group.id)
+                        }
+                        onIconClick={handleQuickStartClick}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleFolderDragEnd}
+                        onRename={(newName) => handleFolderRename(group.id, newName)}
+                      />
+                    )}
+                  </div>
+                );
+              }) : [];
+
+              return [...icons, ...folders];
+            })()}
+            </motion.div>
+        </div>
       </div>
     </section>
   );

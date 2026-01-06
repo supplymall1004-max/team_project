@@ -10,7 +10,7 @@ import { createClerkSupabaseClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { DirectionalEntrance } from '@/components/motion/directional-entrance';
 import { MotionWrapper } from '@/components/motion/motion-wrapper';
-import { motion } from 'framer-motion';
+import { AnimatedButtonWrapper } from '@/components/motion/animated-button-wrapper';
 import { Button } from '@/components/ui/button';
 
 interface PageProps {
@@ -54,7 +54,7 @@ export default async function AllergyEmergencyPage({ params }: PageProps) {
                 <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
                     {/* 뒤로 가기 */}
                     <MotionWrapper>
-                        <motion.div
+                        <AnimatedButtonWrapper
                             whileHover={{ scale: 1.05, x: -5 }}
                             whileTap={{ scale: 0.95 }}
                         >
@@ -65,7 +65,7 @@ export default async function AllergyEmergencyPage({ params }: PageProps) {
                                 <ArrowLeft className="w-4 h-4" />
                                 <span>응급조치 메인으로</span>
                             </Link>
-                        </motion.div>
+                        </AnimatedButtonWrapper>
                     </MotionWrapper>
 
                 {/* 헤더 */}
@@ -93,7 +93,7 @@ export default async function AllergyEmergencyPage({ params }: PageProps) {
                                 심각한 알레르기 반응 발생 시 즉시 응급 서비스에 연락하세요.
                             </p>
                         </div>
-                        <motion.div
+                        <AnimatedButtonWrapper
                             whileHover={{ scale: 1.1, rotate: 5 }}
                             whileTap={{ scale: 0.9 }}
                             transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -104,7 +104,7 @@ export default async function AllergyEmergencyPage({ params }: PageProps) {
                             >
                                 119
                             </a>
-                        </motion.div>
+                        </AnimatedButtonWrapper>
                     </div>
                 </div>
 

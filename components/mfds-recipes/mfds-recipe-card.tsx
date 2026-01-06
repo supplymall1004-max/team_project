@@ -42,6 +42,7 @@ export function MfdsRecipeCard({ recipe }: MfdsRecipeCardProps) {
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-110"
               unoptimized
+              loading="lazy"
             />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400">

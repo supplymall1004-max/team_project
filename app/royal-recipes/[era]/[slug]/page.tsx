@@ -10,7 +10,7 @@ import { getRecipeImages } from "@/lib/royal-recipes/images";
 import { RoyalRecipeTitle } from "@/components/royal-recipes/royal-recipe-title";
 import { DirectionalEntrance } from "@/components/motion/directional-entrance";
 import { MotionWrapper } from "@/components/motion/motion-wrapper";
-import { motion } from "framer-motion";
+import { AnimatedButtonWrapper } from "@/components/motion/animated-button-wrapper";
 
 interface RoyalRecipePageProps {
   params: Promise<{ era: string; slug: string }>;
@@ -49,22 +49,14 @@ export default async function RoyalRecipePage({ params }: RoyalRecipePageProps) 
           {/* 뒤로가기 버튼 */}
           <MotionWrapper>
             <div className="flex justify-start mb-6">
-              <motion.div
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 17,
-                }}
-              >
+              <AnimatedButtonWrapper>
                 <Link
                   href={`/royal-recipes/${era}`}
                   className="inline-flex items-center px-6 py-3 bg-amber-800 text-white rounded-lg hover:bg-amber-900 transition-colors font-medium shadow-md"
                 >
                   ← {era === 'sanguk' ? '삼국시대' : era === 'goryeo' ? '고려시대' : '조선시대'} 레시피 목록으로
                 </Link>
-              </motion.div>
+              </AnimatedButtonWrapper>
             </div>
           </MotionWrapper>
 
@@ -159,22 +151,14 @@ export default async function RoyalRecipePage({ params }: RoyalRecipePageProps) 
           {/* 하단 네비게이션 */}
           <MotionWrapper>
             <div className="flex justify-center mt-8">
-              <motion.div
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 17,
-                }}
-              >
+              <AnimatedButtonWrapper>
                 <Link
                   href={`/royal-recipes/${era}`}
                   className="inline-flex items-center px-8 py-4 bg-amber-800 text-white rounded-lg hover:bg-amber-900 transition-colors font-medium shadow-lg text-lg"
                 >
                   다른 레시피 보기
                 </Link>
-              </motion.div>
+              </AnimatedButtonWrapper>
             </div>
           </MotionWrapper>
         </div>

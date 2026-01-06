@@ -191,25 +191,157 @@
   }
 }
 
-/* 네온 글로우 효과 - 보라색/핑크색/오렌지색 (건강냉장고) */
-@keyframes neon-glow-purple {
+/* 네온 글로우 효과 - 파란색 (레시피) */
+@keyframes neon-glow-blue {
   0%, 100% {
     box-shadow:
-      0 0 5px rgba(147, 51, 234, 0.5),
-      0 0 10px rgba(236, 72, 153, 0.4),
-      0 0 15px rgba(249, 115, 22, 0.3),
-      0 0 20px rgba(147, 51, 234, 0.2),
-      inset 0 0 10px rgba(147, 51, 234, 0.1);
-    border-color: rgba(147, 51, 234, 0.8);
+      0 0 5px rgba(59, 130, 246, 0.5),
+      0 0 10px rgba(59, 130, 246, 0.4),
+      0 0 15px rgba(59, 130, 246, 0.3),
+      0 0 20px rgba(59, 130, 246, 0.2),
+      inset 0 0 10px rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.8);
   }
   50% {
     box-shadow:
-      0 0 10px rgba(147, 51, 234, 0.7),
+      0 0 10px rgba(59, 130, 246, 0.7),
+      0 0 20px rgba(59, 130, 246, 0.6),
+      0 0 30px rgba(59, 130, 246, 0.5),
+      0 0 40px rgba(59, 130, 246, 0.3),
+      inset 0 0 15px rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 1);
+  }
+}
+
+/* 네온 글로우 효과 - 초록색 (식단) */
+@keyframes neon-glow-green {
+  0%, 100% {
+    box-shadow:
+      0 0 5px rgba(34, 197, 94, 0.5),
+      0 0 10px rgba(34, 197, 94, 0.4),
+      0 0 15px rgba(34, 197, 94, 0.3),
+      0 0 20px rgba(34, 197, 94, 0.2),
+      inset 0 0 10px rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.8);
+  }
+  50% {
+    box-shadow:
+      0 0 10px rgba(34, 197, 94, 0.7),
+      0 0 20px rgba(34, 197, 94, 0.6),
+      0 0 30px rgba(34, 197, 94, 0.5),
+      0 0 40px rgba(34, 197, 94, 0.3),
+      inset 0 0 15px rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 1);
+  }
+}
+
+/* 네온 글로우 효과 - 핑크색 (건강) */
+@keyframes neon-glow-pink {
+  0%, 100% {
+    box-shadow:
+      0 0 5px rgba(236, 72, 153, 0.5),
+      0 0 10px rgba(236, 72, 153, 0.4),
+      0 0 15px rgba(236, 72, 153, 0.3),
+      0 0 20px rgba(236, 72, 153, 0.2),
+      inset 0 0 10px rgba(236, 72, 153, 0.1);
+    border-color: rgba(236, 72, 153, 0.8);
+  }
+  50% {
+    box-shadow:
+      0 0 10px rgba(236, 72, 153, 0.7),
       0 0 20px rgba(236, 72, 153, 0.6),
-      0 0 30px rgba(249, 115, 22, 0.5),
-      0 0 40px rgba(147, 51, 234, 0.3),
+      0 0 30px rgba(236, 72, 153, 0.5),
+      0 0 40px rgba(236, 72, 153, 0.3),
       inset 0 0 15px rgba(236, 72, 153, 0.2);
-    border-color: rgba(147, 51, 234, 1);
+    border-color: rgba(236, 72, 153, 1);
+  }
+}
+
+/* 네온 글로우 효과 - 보라색 (게임) */
+@keyframes neon-glow-purple {
+  0%, 100% {
+    box-shadow:
+      0 0 5px rgba(168, 85, 247, 0.5),
+      0 0 10px rgba(168, 85, 247, 0.4),
+      0 0 15px rgba(168, 85, 247, 0.3),
+      0 0 20px rgba(168, 85, 247, 0.2),
+      inset 0 0 10px rgba(168, 85, 247, 0.1);
+    border-color: rgba(168, 85, 247, 0.8);
+  }
+  50% {
+    box-shadow:
+      0 0 10px rgba(168, 85, 247, 0.7),
+      0 0 20px rgba(168, 85, 247, 0.6),
+      0 0 30px rgba(168, 85, 247, 0.5),
+      0 0 40px rgba(168, 85, 247, 0.3),
+      inset 0 0 15px rgba(168, 85, 247, 0.2);
+    border-color: rgba(168, 85, 247, 1);
+  }
+}
+
+/* 네온 글로우 효과 - 주황색 (스토리/커뮤니티) */
+@keyframes neon-glow-orange {
+  0%, 100% {
+    box-shadow:
+      0 0 5px rgba(251, 146, 60, 0.5),
+      0 0 10px rgba(251, 146, 60, 0.4),
+      0 0 15px rgba(251, 146, 60, 0.3),
+      0 0 20px rgba(251, 146, 60, 0.2),
+      inset 0 0 10px rgba(251, 146, 60, 0.1);
+    border-color: rgba(251, 146, 60, 0.8);
+  }
+  50% {
+    box-shadow:
+      0 0 10px rgba(251, 146, 60, 0.7),
+      0 0 20px rgba(251, 146, 60, 0.6),
+      0 0 30px rgba(251, 146, 60, 0.5),
+      0 0 40px rgba(251, 146, 60, 0.3),
+      inset 0 0 15px rgba(251, 146, 60, 0.2);
+    border-color: rgba(251, 146, 60, 1);
+  }
+}
+
+/* 네온 글로우 효과 - 회색 (유틸리티) */
+@keyframes neon-glow-gray {
+  0%, 100% {
+    box-shadow:
+      0 0 5px rgba(107, 114, 128, 0.5),
+      0 0 10px rgba(107, 114, 128, 0.4),
+      0 0 15px rgba(107, 114, 128, 0.3),
+      0 0 20px rgba(107, 114, 128, 0.2),
+      inset 0 0 10px rgba(107, 114, 128, 0.1);
+    border-color: rgba(107, 114, 128, 0.8);
+  }
+  50% {
+    box-shadow:
+      0 0 10px rgba(107, 114, 128, 0.7),
+      0 0 20px rgba(107, 114, 128, 0.6),
+      0 0 30px rgba(107, 114, 128, 0.5),
+      0 0 40px rgba(107, 114, 128, 0.3),
+      inset 0 0 15px rgba(107, 114, 128, 0.2);
+    border-color: rgba(107, 114, 128, 1);
+  }
+}
+
+/* 네온 글로우 효과 - 인디고 (스토리) */
+@keyframes neon-glow-indigo {
+  0%, 100% {
+    box-shadow:
+      0 0 5px rgba(99, 102, 241, 0.5),
+      0 0 10px rgba(99, 102, 241, 0.4),
+      0 0 15px rgba(99, 102, 241, 0.3),
+      0 0 20px rgba(99, 102, 241, 0.2),
+      inset 0 0 10px rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.8);
+  }
+  50% {
+    box-shadow:
+      0 0 10px rgba(99, 102, 241, 0.7),
+      0 0 20px rgba(99, 102, 241, 0.6),
+      0 0 30px rgba(99, 102, 241, 0.5),
+      0 0 40px rgba(99, 102, 241, 0.3),
+      inset 0 0 15px rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 1);
   }
 }
 

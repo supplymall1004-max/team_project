@@ -55,8 +55,15 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
   const handleStartCooking = () => {
     console.groupCollapsed("[RecipeDetail] 요리 시작");
     console.log("recipeId", recipe.id);
-    console.log("stepsCount", recipe.steps.length);
+    console.log("stepsCount", recipe.steps?.length || 0);
     console.groupEnd();
+    
+    // 조리 단계가 없으면 요리 모드 진입 불가
+    if (!recipe.steps || recipe.steps.length === 0) {
+      console.warn("[RecipeDetail] 조리 단계가 없어 요리 모드를 시작할 수 없습니다.");
+      return;
+    }
+    
     setIsCookingMode(true);
   };
 
@@ -99,26 +106,28 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
             </motion.div>
 
           {/* 별점 */}
-          {recipe.rating_stats && recipe.rating_stats.rating_count > 0 && (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-0.5">
-                {ratingStars.map((star, index) => (
-                  <Star
-                    key={index}
-                    className={`h-5 w-5 ${
-                      star === "full"
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "fill-gray-200 text-gray-200"
-                    }`}
-                  />
-                ))}
+          {recipe.rating_stats &&
+            recipe.rating_stats.rating_count > 0 &&
+            recipe.rating_stats.average_rating != null && (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-0.5">
+                  {ratingStars.map((star, index) => (
+                    <Star
+                      key={index}
+                      className={`h-5 w-5 ${
+                        star === "full"
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "fill-gray-200 text-gray-200"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {recipe.rating_stats.average_rating.toFixed(1)} (
+                  {recipe.rating_stats.rating_count}개 평가)
+                </span>
               </div>
-              <span className="text-sm text-muted-foreground">
-                {recipe.rating_stats.average_rating.toFixed(1)} (
-                {recipe.rating_stats.rating_count}개 평가)
-              </span>
-            </div>
-          )}
+            )}
 
           {/* 메타 정보 (조리 시간, 난이도, 인분) */}
           <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
@@ -195,60 +204,54 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
             영양 정보
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {recipe.foodsafety_info_eng !== null &&
-              recipe.foodsafety_info_eng !== undefined && (
-                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
-                  <div className="text-sm text-gray-600 font-medium mb-1">칼로리</div>
-                  <div className="text-xl font-bold text-orange-600">
-                    {recipe.foodsafety_info_eng.toFixed(0)} kcal
-                  </div>
+            {recipe.foodsafety_info_eng != null && (
+              <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                <div className="text-sm text-gray-600 font-medium mb-1">칼로리</div>
+                <div className="text-xl font-bold text-orange-600">
+                  {recipe.foodsafety_info_eng.toFixed(0)} kcal
                 </div>
-              )}
-            {recipe.foodsafety_info_car !== null &&
-              recipe.foodsafety_info_car !== undefined && (
-                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
-                  <div className="text-sm text-gray-600 font-medium mb-1">탄수화물</div>
-                  <div className="text-xl font-bold text-orange-600">
-                    {recipe.foodsafety_info_car.toFixed(1)} g
-                  </div>
+              </div>
+            )}
+            {recipe.foodsafety_info_car != null && (
+              <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                <div className="text-sm text-gray-600 font-medium mb-1">탄수화물</div>
+                <div className="text-xl font-bold text-orange-600">
+                  {recipe.foodsafety_info_car.toFixed(1)} g
                 </div>
-              )}
-            {recipe.foodsafety_info_pro !== null &&
-              recipe.foodsafety_info_pro !== undefined && (
-                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
-                  <div className="text-sm text-gray-600 font-medium mb-1">단백질</div>
-                  <div className="text-xl font-bold text-orange-600">
-                    {recipe.foodsafety_info_pro.toFixed(1)} g
-                  </div>
+              </div>
+            )}
+            {recipe.foodsafety_info_pro != null && (
+              <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                <div className="text-sm text-gray-600 font-medium mb-1">단백질</div>
+                <div className="text-xl font-bold text-orange-600">
+                  {recipe.foodsafety_info_pro.toFixed(1)} g
                 </div>
-              )}
-            {recipe.foodsafety_info_fat !== null &&
-              recipe.foodsafety_info_fat !== undefined && (
-                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
-                  <div className="text-sm text-gray-600 font-medium mb-1">지방</div>
-                  <div className="text-xl font-bold text-orange-600">
-                    {recipe.foodsafety_info_fat.toFixed(1)} g
-                  </div>
+              </div>
+            )}
+            {recipe.foodsafety_info_fat != null && (
+              <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                <div className="text-sm text-gray-600 font-medium mb-1">지방</div>
+                <div className="text-xl font-bold text-orange-600">
+                  {recipe.foodsafety_info_fat.toFixed(1)} g
                 </div>
-              )}
-            {recipe.foodsafety_info_na !== null &&
-              recipe.foodsafety_info_na !== undefined && (
-                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
-                  <div className="text-sm text-gray-600 font-medium mb-1">나트륨</div>
-                  <div className="text-xl font-bold text-orange-600">
-                    {recipe.foodsafety_info_na.toFixed(0)} mg
-                  </div>
+              </div>
+            )}
+            {recipe.foodsafety_info_na != null && (
+              <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                <div className="text-sm text-gray-600 font-medium mb-1">나트륨</div>
+                <div className="text-xl font-bold text-orange-600">
+                  {recipe.foodsafety_info_na.toFixed(0)} mg
                 </div>
-              )}
-            {recipe.foodsafety_info_fiber !== null &&
-              recipe.foodsafety_info_fiber !== undefined && (
-                <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
-                  <div className="text-sm text-gray-600 font-medium mb-1">식이섬유</div>
-                  <div className="text-xl font-bold text-orange-600">
-                    {recipe.foodsafety_info_fiber.toFixed(1)} g
-                  </div>
+              </div>
+            )}
+            {recipe.foodsafety_info_fiber != null && (
+              <div className="bg-white/80 rounded-xl p-4 border border-orange-100 hover:shadow-md transition-all duration-300">
+                <div className="text-sm text-gray-600 font-medium mb-1">식이섬유</div>
+                <div className="text-xl font-bold text-orange-600">
+                  {recipe.foodsafety_info_fiber.toFixed(1)} g
                 </div>
-              )}
+              </div>
+            )}
           </div>
           </div>
         </MotionWrapper>
@@ -260,8 +263,11 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
         <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-orange-600 to-orange-800 bg-clip-text text-transparent">
           재료
         </h2>
-        <ul className="space-y-3">
-          {recipe.ingredients.map((ingredient) => {
+        {!recipe.ingredients || recipe.ingredients.length === 0 ? (
+          <p className="text-muted-foreground">재료 정보가 없습니다.</p>
+        ) : (
+          <ul className="space-y-3">
+            {recipe.ingredients.map((ingredient) => {
             const isChecked = checkedIngredients.has(ingredient.id);
             return (
               <motion.li
@@ -307,7 +313,8 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
               </motion.li>
             );
           })}
-        </ul>
+          </ul>
+        )}
         </div>
       </MotionWrapper>
 

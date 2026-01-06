@@ -36,7 +36,7 @@ function RecipeTabsContent({
 
   return (
     <Tabs defaultValue={initialTab} className="w-full relative">
-      <TabsList className="grid w-full grid-cols-2 gap-2 mb-12 relative z-50" style={{ pointerEvents: 'auto' }}>
+      <TabsList className="grid w-full grid-cols-2 gap-2 mb-12 relative z-10" style={{ pointerEvents: 'auto' }}>
         <TabsTrigger value="all" className="text-xs sm:text-sm">전체</TabsTrigger>
         <TabsTrigger value="modern" className="text-xs sm:text-sm">현대 레시피</TabsTrigger>
         <TabsTrigger value="royal" className="text-xs sm:text-sm">궁중 레시피</TabsTrigger>

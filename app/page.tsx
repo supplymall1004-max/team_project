@@ -27,8 +27,9 @@ import { HomeSectionsWrapper } from "@/components/home/home-sections-wrapper";
 import { GameMenuProvider } from "@/components/home/game-menu-context";
 import { HomeBackNavigationHandler } from "@/components/home/home-back-navigation-handler";
 
-// 동적 렌더링 설정 (뒤로가기 시 캐시 문제 방지를 위해 제거)
-// export const dynamic = 'force-dynamic';
+// 동적 렌더링 설정 (뒤로가기 및 다른 페이지에서 돌아올 때 캐시 문제 방지)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function Home() {
   return (

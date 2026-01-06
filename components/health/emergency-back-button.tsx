@@ -15,16 +15,12 @@ export function EmergencyBackButton() {
   const router = useRouter();
 
   const handleBack = () => {
-    // 홈 페이지로 이동하면서 강제로 리프레시
+    // 홈 페이지로 이동하면서 세션 스토리지 플래그 설정
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('shouldRefreshHome', 'true');
+    }
+    // 홈 페이지로 이동
     router.push('/');
-    // 약간의 딜레이 후 리프레시하여 페이지가 완전히 로드되도록 함
-    setTimeout(() => {
-      router.refresh();
-      // 스크롤을 맨 위로 이동
-      if (typeof window !== 'undefined') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }, 100);
   };
 
   return (

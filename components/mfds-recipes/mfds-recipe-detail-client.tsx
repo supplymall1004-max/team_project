@@ -113,31 +113,41 @@ export function MfdsRecipeDetailClient({
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
-                  {recipe.nutrition.calories?.toFixed(1) || "-"}
+                  {recipe.nutrition.calories != null
+                    ? recipe.nutrition.calories.toFixed(1)
+                    : "-"}
                 </div>
                 <div className="text-sm text-muted-foreground">칼로리 (kcal)</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
-                  {recipe.nutrition.sodium?.toFixed(1) || "-"}
+                  {recipe.nutrition.sodium != null
+                    ? recipe.nutrition.sodium.toFixed(1)
+                    : "-"}
                 </div>
                 <div className="text-sm text-muted-foreground">나트륨 (mg)</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
-                  {recipe.nutrition.carbohydrates?.toFixed(1) || "-"}
+                  {recipe.nutrition.carbohydrates != null
+                    ? recipe.nutrition.carbohydrates.toFixed(1)
+                    : "-"}
                 </div>
                 <div className="text-sm text-muted-foreground">탄수화물 (g)</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
-                  {recipe.nutrition.protein?.toFixed(1) || "-"}
+                  {recipe.nutrition.protein != null
+                    ? recipe.nutrition.protein.toFixed(1)
+                    : "-"}
                 </div>
                 <div className="text-sm text-muted-foreground">단백질 (g)</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
-                  {recipe.nutrition.fat?.toFixed(1) || "-"}
+                  {recipe.nutrition.fat != null
+                    ? recipe.nutrition.fat.toFixed(1)
+                    : "-"}
                 </div>
                 <div className="text-sm text-muted-foreground">지방 (g)</div>
               </div>
@@ -155,9 +165,12 @@ export function MfdsRecipeDetailClient({
         <Card>
           <CardContent className="pt-6">
             <h2 className="text-2xl font-bold mb-4">재료 확인</h2>
-            <div className="space-y-4">
-              {/* 주재료 */}
-              {recipe.ingredients.filter((ing) => !ing.category).length > 0 && (
+            {!recipe.ingredients || recipe.ingredients.length === 0 ? (
+              <p className="text-muted-foreground">재료 정보가 없습니다.</p>
+            ) : (
+              <div className="space-y-4">
+                {/* 주재료 */}
+                {recipe.ingredients.filter((ing) => !ing.category).length > 0 && (
                 <div>
                   <h3 className="text-lg font-semibold mb-2">주재료</h3>
                   <ul className="list-disc list-inside space-y-1 text-muted-foreground">
@@ -190,7 +203,8 @@ export function MfdsRecipeDetailClient({
                   </ul>
                 </div>
               )}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -202,8 +216,11 @@ export function MfdsRecipeDetailClient({
         transition={{ duration: 0.6, delay: 0.7 }}
       >
         <h2 className="text-2xl font-bold mb-4">조리 순서</h2>
-        <div className="space-y-6">
-          {recipe.steps.map((step, index) => {
+        {!recipe.steps || recipe.steps.length === 0 ? (
+          <p className="text-muted-foreground">조리 과정 정보가 없습니다.</p>
+        ) : (
+          <div className="space-y-6">
+            {recipe.steps.map((step, index) => {
             const stepImageUrl = getManualImageUrl(
               step.originalImageUrl,
               step.localImagePath,
@@ -250,7 +267,8 @@ export function MfdsRecipeDetailClient({
               </motion.div>
             );
           })}
-        </div>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );

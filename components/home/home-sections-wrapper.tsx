@@ -10,7 +10,8 @@
 
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useHomeCustomization } from "@/hooks/use-home-customization";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { EmergencyQuickAccess } from "@/components/home/emergency-quick-access";
@@ -105,12 +106,22 @@ const SECTION_COMPONENTS: Record<
  * 커스텀 설정의 섹션 순서에 따라 섹션을 렌더링합니다.
  */
 export function HomeSectionsWrapper() {
+  const pathname = usePathname();
   const { customization, isLoaded } = useHomeCustomization();
+  const [key, setKey] = useState(0); // 강제 리렌더링을 위한 키
+
+  // pathname이 '/'로 변경될 때마다 강제로 리렌더링
+  useEffect(() => {
+    if (pathname === '/') {
+      console.log('[HomeSectionsWrapper] 홈 페이지 감지 - 컴포넌트 리렌더링');
+      setKey((prev) => prev + 1);
+    }
+  }, [pathname]);
 
   // 로딩 중일 때는 기본 순서로 렌더링 (Hydration 오류 방지)
   if (!isLoaded) {
     return (
-      <>
+      <div key={`loading-${key}`}>
         {/* 기본 순서로 렌더링 */}
         <div
           data-section-id={SECTION_IDS.emergency}
@@ -136,13 +147,13 @@ export function HomeSectionsWrapper() {
             <CommunityPreview />
           </Suspense>
         </ErrorBoundary>
-      </>
+      </div>
     );
   }
 
   // 커스텀 순서에 따라 섹션 렌더링
   return (
-    <>
+    <div key={`loaded-${key}`}>
       {customization.sectionOrder.map((sectionId) => {
         const renderComponent = SECTION_COMPONENTS[sectionId];
         if (!renderComponent) {
@@ -151,9 +162,9 @@ export function HomeSectionsWrapper() {
           }
           return null;
         }
-        return <div key={sectionId}>{renderComponent()}</div>;
+        return <div key={`${sectionId}-${key}`}>{renderComponent()}</div>;
       })}
-    </>
+    </div>
   );
 }
 
