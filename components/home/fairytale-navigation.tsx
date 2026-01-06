@@ -44,19 +44,19 @@ const categories: Category[] = [
     description: "현대부터 전통까지, 모든 요리 지식을 한 곳에서",
     icons: [
       {
-        iconSrc: "/icons/21.png",
+        iconSrc: "/icons/궁중요리.png",
         label: "궁중 레시피",
         description: "삼국시대부터 조선시대까지 전통 궁중 요리 레시피",
         href: "/#royal-recipes",
       },
       {
-        iconSrc: "/icons/26.png",
+        iconSrc: "/icons/레시피.png",
         label: "레시피",
         description: "별점과 난이도로 정리된 현대 요리 레시피 모음",
         href: "/recipes",
       },
       {
-        iconSrc: "/icons/18.png",
+        iconSrc: "/icons/이유식 레시피.png",
         label: "이유식 레시피",
         description: "아기 성장 단계별 맞춤 이유식 레시피 가이드",
         href: "/archive/recipes?tab=baby",
@@ -68,13 +68,13 @@ const categories: Category[] = [
     description: "AI 기반 개인 맞춤 식단으로 건강한 식생활을 시작하세요",
     icons: [
       {
-        iconSrc: "/icons/22.png",
+        iconSrc: "/icons/식단관리.png",
         label: "건강 맞춤 식단",
         description: "건강 정보 기반 AI 맞춤 식단 추천 및 관리",
         href: "/diet",
       },
       {
-        iconSrc: "/icons/3.png",
+        iconSrc: "/icons/주간식단.png",
         label: "주간 식단",
         description: "7일 식단 계획 및 영양 정보 시각화",
         href: "/diet/weekly",
@@ -86,19 +86,19 @@ const categories: Category[] = [
     description: "일상 속 편리한 기능들로 더 스마트한 식생활",
     icons: [
       {
-        iconSrc: "/icons/12.png",
+        iconSrc: "/icons/유틸리티.png",
         label: "장보기",
         description: "자주 구매하는 식자재 관리 및 장보기 리스트",
         href: "/shopping",
       },
       {
-        iconSrc: "/icons/24.png",
+        iconSrc: "/icons/유틸리티.png",
         label: "즐겨찾기",
         description: "마음에 드는 레시피와 식단을 저장하고 관리",
         href: "/diet/favorites",
       },
       {
-        iconSrc: "/icons/11.png",
+        iconSrc: "/icons/건강관리.png",
         label: "건강 관리",
         description: "가족 건강 프로필 및 건강 기록 관리",
         href: "/health",
@@ -110,7 +110,7 @@ const categories: Category[] = [
     description: "음식과 요리에 대한 이야기와 지식을 만나보세요",
     icons: [
       {
-        iconSrc: "/icons/14.png",
+        iconSrc: "/icons/요리 이야기.png",
         label: "음식 동화",
         description: "전통 음식 스토리와 요리 문화를 배우는 인터랙티브 콘텐츠",
         href: "/storybook",
@@ -122,7 +122,6 @@ const categories: Category[] = [
 interface FairytaleNavigationProps {
   /**
    * 배경 이미지 경로
-   * 기본값: 계절별 이미지 (봄.jpg, 여름.jpg, 가을.jpg, 겨울.jpg)
    */
   backgroundImage?: string;
   /**
@@ -145,7 +144,6 @@ export function FairytaleNavigation({
   excludeCategories = [],
 }: FairytaleNavigationProps) {
   const [isDesktop, setIsDesktop] = useState(false);
-  const [currentSeason, setCurrentSeason] = useState<string>("봄");
 
   // 화면 크기 감지 (데스크톱만 표시)
   useEffect(() => {
@@ -161,20 +159,6 @@ export function FairytaleNavigation({
     };
   }, []);
 
-  // 계절 감지
-  useEffect(() => {
-    const month = new Date().getMonth() + 1; // 1-12
-    if (month >= 3 && month <= 5) {
-      setCurrentSeason("봄");
-    } else if (month >= 6 && month <= 8) {
-      setCurrentSeason("여름");
-    } else if (month >= 9 && month <= 11) {
-      setCurrentSeason("가을");
-    } else {
-      setCurrentSeason("겨울");
-    }
-  }, []);
-
   // 모바일에서는 null 반환
   if (!isDesktop) {
     return null;
@@ -185,8 +169,8 @@ export function FairytaleNavigation({
     (category) => !excludeCategories.includes(category.title)
   );
 
-  // 배경 이미지 결정
-  const bgImage = backgroundImage || `/${currentSeason}.jpg`;
+  // 배경 이미지 결정 (backgroundImage가 없으면 배경 이미지 사용 안 함)
+  const bgImage = backgroundImage;
 
   return (
     <div
@@ -197,6 +181,7 @@ export function FairytaleNavigation({
       )}
     >
       {/* 배경 이미지 */}
+      {bgImage && (
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -206,6 +191,7 @@ export function FairytaleNavigation({
         {/* 그라데이션 오버레이 (가독성 향상) */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60" />
       </div>
+      )}
 
       {/* 카드 섹션 배경 레이어 (배경과 카드 구분) */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/10 to-black/20" />

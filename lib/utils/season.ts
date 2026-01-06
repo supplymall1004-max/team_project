@@ -46,21 +46,6 @@ export function getSeasonName(season: Season): string {
 }
 
 /**
- * 계절에 해당하는 이미지 경로를 반환합니다.
- * @param season - 계절 ('spring' | 'summer' | 'autumn' | 'winter')
- * @returns 이미지 경로
- */
-export function getSeasonImagePath(season: Season): string {
-  const imagePaths: Record<Season, string> = {
-    spring: '/봄.jpg',
-    summer: '/여름.jpg',
-    autumn: '/가을.jpg',
-    winter: '/겨울.jpg',
-  };
-  return imagePaths[season];
-}
-
-/**
  * 날짜를 기준으로 계절 내에서 패널 인덱스를 반환합니다 (0~3).
  * 각 계절 이미지는 4개의 패널로 구성되어 있으며, 계절 기간을 4등분하여 각 패널을 표시합니다.
  * @param date - 판단할 날짜 (기본값: 현재 날짜)

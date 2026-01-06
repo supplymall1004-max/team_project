@@ -64,7 +64,7 @@ export function HeroSection({
       title: "레시피",
       description: "최신 레시피 모음",
       href: "/recipes",
-      iconSrc: "/icons/26.png",
+      iconSrc: "/icons/레시피.png",
       color: "bg-blue-500",
       gradient: "bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700",
       category: "recipe",
@@ -73,7 +73,7 @@ export function HeroSection({
       title: "궁중요리",
       description: "전통 궁중 레시피",
       href: "/royal-recipes",
-      iconSrc: "/icons/21.png",
+      iconSrc: "/icons/궁중요리.png",
       color: "bg-amber-500",
       gradient: "bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500",
       category: "recipe",
@@ -82,7 +82,7 @@ export function HeroSection({
       title: "식단관리",
       description: "맞춤 식단 추천",
       href: "/diet",
-      iconSrc: "/icons/22.png",
+      iconSrc: "/icons/식단관리.png",
       color: "bg-green-500",
       gradient: "bg-gradient-to-br from-green-400 via-emerald-500 to-green-600",
       category: "diet",
@@ -91,7 +91,7 @@ export function HeroSection({
       title: "주간식단",
       description: "7일 식단 계획",
       href: "/diet/weekly",
-      iconSrc: "/icons/3.png",
+      iconSrc: "/icons/주간식단.png",
       color: "bg-purple-500",
       gradient: "bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600",
       category: "diet",
@@ -100,7 +100,7 @@ export function HeroSection({
       title: "검색",
       description: "레시피 검색",
       href: "/search",
-      iconSrc: "/icons/14.png",
+      iconSrc: "/icons/유틸리티.png",
       color: "bg-gray-500",
       gradient: "bg-gradient-to-br from-slate-500 via-gray-600 to-slate-700",
       category: "utility",
@@ -109,7 +109,7 @@ export function HeroSection({
       title: "건강관리",
       description: "건강 정보 확인",
       href: "/health",
-      iconSrc: "/icons/11.png",
+      iconSrc: "/icons/건강관리.png",
       color: "bg-red-500",
       gradient: "bg-gradient-to-br from-pink-500 via-rose-500 to-red-500",
       category: "health",
@@ -118,7 +118,7 @@ export function HeroSection({
       title: "식재료",
       description: "신선한 채소 정보",
       href: "/food",
-      iconSrc: "/icons/25.png",
+      iconSrc: "/icons/레시피.png",
       color: "bg-emerald-500",
       gradient: "bg-gradient-to-br from-emerald-400 via-green-500 to-emerald-600",
       category: "recipe",
@@ -127,7 +127,7 @@ export function HeroSection({
       title: "음식안전",
       description: "안전한 식생활",
       href: "/foodsafety",
-      iconSrc: "/icons/12.png",
+      iconSrc: "/icons/건강관리.png",
       color: "bg-orange-500",
       gradient: "bg-gradient-to-br from-orange-400 via-orange-500 to-red-500",
       category: "health",
@@ -136,7 +136,7 @@ export function HeroSection({
       title: "요리이야기",
       description: "맛있는 이야기들",
       href: "/stories",
-      iconSrc: "/icons/14.png",
+      iconSrc: "/icons/요리 이야기.png",
       color: "bg-indigo-500",
       gradient: "bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700",
       category: "story",
@@ -434,24 +434,61 @@ export function HeroSection({
 
   return (
     <section className="relative min-h-[85vh] flex flex-col justify-start items-center overflow-hidden">
-      {/* 배경 이미지 - 11.png 이미지 영역 */}
+      {/* 배경 이미지 - 12.png 이미지 영역 */}
       <div className="relative w-full max-w-7xl z-0">
-        <div className="relative w-full min-h-[50vh] sm:min-h-[60vh] md:min-h-[70vh]">
+        <div 
+          className="relative w-full min-h-[50vh] sm:min-h-[60vh] md:min-h-[70vh] rounded-2xl overflow-hidden"
+          style={{
+            boxShadow: `
+              0 0 20px rgba(249, 115, 22, 0.6),
+              0 0 40px rgba(249, 115, 22, 0.4),
+              0 0 60px rgba(249, 115, 22, 0.3),
+              0 0 80px rgba(249, 115, 22, 0.2),
+              inset 0 0 20px rgba(249, 115, 22, 0.3)
+            `,
+            border: '3px solid rgba(249, 115, 22, 0.8)',
+            animation: 'neon-glow-orange 2s ease-in-out infinite',
+          }}
+        >
           <Image
-            src="/11.png"
+            src="/12.png"
             alt=""
             fill
-            className="object-cover"
+            className="object-cover pointer-events-none"
             sizes="100vw"
             priority
             unoptimized
             onError={(e) => {
-              console.error("[HeroSection] 배경 이미지 로딩 실패: /11.png");
+              console.error("[HeroSection] 배경 이미지 로딩 실패: /12.png");
               e.currentTarget.style.display = "none";
             }}
           />
         </div>
       </div>
+      
+      {/* 형광등 효과 애니메이션 스타일 */}
+      <style jsx>{`
+        @keyframes neon-glow-orange {
+          0%, 100% {
+            box-shadow: 
+              0 0 20px rgba(249, 115, 22, 0.6),
+              0 0 40px rgba(249, 115, 22, 0.4),
+              0 0 60px rgba(249, 115, 22, 0.3),
+              0 0 80px rgba(249, 115, 22, 0.2),
+              inset 0 0 20px rgba(249, 115, 22, 0.3);
+            border-color: rgba(249, 115, 22, 0.8);
+          }
+          50% {
+            box-shadow: 
+              0 0 30px rgba(249, 115, 22, 0.8),
+              0 0 60px rgba(249, 115, 22, 0.6),
+              0 0 90px rgba(249, 115, 22, 0.4),
+              0 0 120px rgba(249, 115, 22, 0.3),
+              inset 0 0 30px rgba(249, 115, 22, 0.5);
+            border-color: rgba(249, 115, 22, 1);
+          }
+        }
+      `}</style>
 
       {/* 콘텐츠 - 모바일 앱 아이콘 그리드 */}
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-start flex-1">

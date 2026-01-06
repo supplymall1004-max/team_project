@@ -24,6 +24,7 @@ import { Suspense } from "react";
 import { FixedHeader } from "@/components/home/fixed-header";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
 import { HomeSectionsWrapper } from "@/components/home/home-sections-wrapper";
+import { HomeSeasonalEffect } from "@/components/home/home-seasonal-effect";
 import { GameMenuProvider } from "@/components/home/game-menu-context";
 import { HomeBackNavigationHandler } from "@/components/home/home-back-navigation-handler";
 
@@ -45,6 +46,9 @@ export default async function Home() {
       >
         {/* 스크롤 진행 표시기 */}
         <ScrollProgress />
+
+        {/* 계절 효과 (전체 화면 오버레이) */}
+        <HomeSeasonalEffect />
 
         {/* 고정 헤더 (검색바 + 프리미엄 배너) */}
         <FixedHeader />

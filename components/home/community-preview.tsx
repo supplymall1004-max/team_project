@@ -23,20 +23,20 @@ import { DirectionalEntrance } from "@/components/motion/directional-entrance";
 export function CommunityPreview() {
   return (
     <DirectionalEntrance direction="up" delay={0.1}>
-      <section className="px-4 py-12 space-y-8 bg-gradient-to-b from-white via-gray-50/50 to-white">
-        {/* 섹션 헤더 - GDWEB 스타일 */}
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
+      <section className="px-4 py-12 space-y-8 bg-gradient-to-b from-white via-orange-50/30 to-white">
+        {/* 섹션 헤더 - 홈페이지 디자인과 일관성 */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 max-w-6xl mx-auto">
           <div className="flex items-center gap-4">
             <div 
-              className="flex items-center justify-center w-14 h-14 rounded-2xl gdweb-gradient-primary shadow-lg"
+              className="flex items-center justify-center w-14 h-14 rounded-2xl shadow-lg transition-all hover:scale-105"
               style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
               }}
             >
               <Users className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-1">커뮤니티</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">커뮤니티</h2>
               <p className="text-sm text-gray-600">
                 함께 건강하고 맛있는 삶을 나눠요
               </p>
@@ -46,7 +46,7 @@ export function CommunityPreview() {
             <Button 
               variant="ghost" 
               size="sm" 
-              className="gap-2 hover:bg-primary/10 transition-colors"
+              className="gap-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50 transition-all"
             >
               전체 보기
               <ArrowRight className="h-4 w-4" />
@@ -54,23 +54,23 @@ export function CommunityPreview() {
           </Link>
         </div>
 
-        {/* 카드 - GDWEB 스타일 */}
+        {/* 카드 - 홈페이지 디자인과 일관성 */}
         <div className="max-w-6xl mx-auto">
-          <Card className="gdweb-card border-0">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-xl">
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl overflow-hidden">
+            <CardHeader className="pb-4 border-b border-gray-100">
+              <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
                 <div 
-                  className="flex items-center justify-center w-10 h-10 rounded-xl gdweb-gradient-primary"
+                  className="flex items-center justify-center w-10 h-10 rounded-xl transition-all hover:scale-110"
                   style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
                   }}
                 >
                   <MessageSquare className="h-5 w-5 text-white" />
                 </div>
-                인기 그룹
+                <span>인기 그룹</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <GroupList
                 initialParams={{
                   limit: 6,
@@ -81,13 +81,13 @@ export function CommunityPreview() {
           </Card>
         </div>
 
-        {/* CTA 버튼 - GDWEB 스타일 */}
+        {/* CTA 버튼 - 홈페이지 디자인과 일관성 */}
         <div className="flex items-center justify-center max-w-6xl mx-auto">
           <Link href="/community">
             <Button 
-              className="w-full sm:w-auto gdweb-btn-primary text-white px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
+              className="w-full sm:w-auto text-white px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 rounded-xl"
               style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
               }}
             >
               커뮤니티 둘러보기

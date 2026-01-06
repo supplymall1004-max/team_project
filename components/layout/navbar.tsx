@@ -49,6 +49,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { LoginModal } from "@/components/auth/login-modal";
 import { NotificationBadge } from "@/components/health/notification-badge";
+import { SeasonalEffectToggle } from "@/components/home/seasonal-effect-toggle";
 import { motion, AnimatePresence } from "framer-motion";
 
 // 카테고리별 메뉴 그룹 정의
@@ -372,13 +373,13 @@ const Navbar = () => {
           </div>
         </Link>
 
-        {/* 중앙: 검색바 (항상 표시) */}
+        {/* 중앙: 검색바 (데스크톱만 표시) */}
         <form
           onSubmit={handleSearch}
-          className="flex-1 max-w-2xl mx-4"
+          className="hidden sm:flex flex-1 max-w-2xl mx-4"
           suppressHydrationWarning
         >
-          <div className="relative" suppressHydrationWarning>
+          <div className="relative w-full" suppressHydrationWarning>
             <Input
               type="text"
               placeholder="레시피 검색..."
@@ -388,26 +389,47 @@ const Navbar = () => {
               onBlur={() => setIsSearchFocused(false)}
               className={cn(
                 "w-full pr-10 transition-all",
-                "hidden sm:block", // 모바일에서는 숨김
               )}
               suppressHydrationWarning
             />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 hidden sm:block" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           </div>
         </form>
 
-        {/* 오른쪽: 검색 아이콘 + 로그인 + 햄버거 */}
+        {/* 오른쪽: 검색 아이콘 + 작은 검색창 (모바일) + 로그인 + 햄버거 */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* 검색 아이콘 (모바일) */}
+          {/* 검색 아이콘 + 작은 검색창 (모바일) */}
+          <div className="sm:hidden flex items-center gap-1.5 min-w-0 flex-1 max-w-[140px]">
           <Button
             variant="ghost"
             size="icon"
-            className="sm:hidden"
+              className="h-9 w-9 shrink-0"
             onClick={() => router.push("/search")}
             aria-label="검색"
           >
             <Search className="h-5 w-5" />
           </Button>
+            <form
+              onSubmit={handleSearch}
+              className="flex-1 min-w-0"
+              suppressHydrationWarning
+            >
+              <div className="relative" suppressHydrationWarning>
+                <Input
+                  type="text"
+                  placeholder="검색..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
+                  className={cn(
+                    "w-full h-9 pr-8 text-sm transition-all",
+                  )}
+                  suppressHydrationWarning
+                />
+              </div>
+            </form>
+          </div>
 
           {/* 데스크톱 네비게이션 */}
           <div className="hidden lg:flex items-center gap-6">
@@ -647,6 +669,16 @@ const Navbar = () => {
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0" />
                     </Link>
+                    
+                    {/* 계절 효과 토글 버튼 */}
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: totalMenuItems * 0.02 + 0.06, duration: 0.15 }}
+                      className="space-y-1.5"
+                    >
+                      <SeasonalEffectToggle inMenu={true} />
+                    </motion.div>
                   </motion.div>
                   
                   {/* 로그아웃 버튼 */}

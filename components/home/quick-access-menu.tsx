@@ -26,47 +26,47 @@ interface QuickAccessItem {
 
 const quickAccessItems: QuickAccessItem[] = [
   {
-    iconSrc: "/icons/21.png",
+    iconSrc: "/icons/궁중요리.png",
     label: "궁중 레시피",
     href: "/#royal-recipes",
   },
   {
-    iconSrc: "/icons/26.png",
+    iconSrc: "/icons/레시피.png",
     label: "레시피",
     href: "/recipes",
   },
   {
-    iconSrc: "/icons/22.png",
+    iconSrc: "/icons/식단관리.png",
     label: "건강 맞춤 식단",
     href: "/diet",
   },
   {
-    iconSrc: "/icons/3.png",
+    iconSrc: "/icons/주간식단.png",
     label: "주간 식단",
     href: "/diet/weekly",
   },
   {
-    iconSrc: "/icons/12.png",
+    iconSrc: "/icons/유틸리티.png",
     label: "장보기",
     href: "/shopping",
   },
   {
-    iconSrc: "/icons/24.png",
+    iconSrc: "/icons/유틸리티.png",
     label: "즐겨찾기",
     href: "/diet/favorites",
   },
   {
-    iconSrc: "/icons/14.png",
+    iconSrc: "/icons/요리 이야기.png",
     label: "음식 동화",
     href: "/storybook",
   },
   {
-    iconSrc: "/icons/18.png",
+    iconSrc: "/icons/이유식 레시피.png",
     label: "이유식 레시피",
     href: "/archive/recipes?tab=baby",
   },
   {
-    iconSrc: "/icons/19.png",
+    iconSrc: "/icons/반려동물.png",
     label: "반려동물 건강",
     href: "/health/pets",
   },

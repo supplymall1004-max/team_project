@@ -18,7 +18,6 @@ import { Footer } from "@/components/layout/footer";
 import { BottomNavigation } from "@/components/layout/bottom-navigation";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { ErrorFallback } from "@/components/error-fallback";
-import { SeasonBackground } from "@/components/season-background";
 import { PageTransitionWrapper } from "@/components/motion/page-transition-wrapper";
 import "./globals.css";
 
@@ -195,9 +194,6 @@ export default function RootLayout({
             className={`${geistSans.variable} ${geistMono.variable} ${notoSansSc.variable} min-h-screen bg-background text-foreground antialiased w-full overflow-x-hidden relative`}
             suppressHydrationWarning={true}
           >
-            {/* 계절별 배경 이미지 */}
-            <SeasonBackground opacity={0.4} />
-
             <AppProviders>
               <div className="flex flex-col h-screen w-full max-w-full overflow-hidden">
                 {/* Navbar (최상단 고정) */}
