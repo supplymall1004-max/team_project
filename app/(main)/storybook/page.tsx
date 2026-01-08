@@ -1,6 +1,6 @@
 /**
  * @file page.tsx
- * @description 맛카의 음식 동화 스토리북 플레이어 페이지
+ * @description 장고의 음식 동화 스토리북 플레이어 페이지
  * 
  * GDWEB 기반 디자인 패턴 적용:
  * - 세련된 레이아웃 및 타이포그래피
@@ -18,7 +18,7 @@ import { StorybookRoom } from "@/components/storybook/storybook-room"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "맛카의 음식 동화 | Flavor Archive",
+  title: "장고의 음식 동화 | Flavor Archive",
   description: "전통 음식의 탄생과 역사를 동화처럼 들려주는 인터랙티브 스토리북입니다.",
 }
 

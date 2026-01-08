@@ -37,7 +37,9 @@ export function PetVaccineTab({ petId, pet }: PetVaccineTabProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
-    fetchVaccinations();
+    if (petId) {
+      fetchVaccinations();
+    }
   }, [petId]);
 
   const fetchVaccinations = async () => {
@@ -49,7 +51,16 @@ export function PetVaccineTab({ petId, pet }: PetVaccineTabProps) {
       }
       const data = await response.json();
       setRecords(data.records || []);
-      setSchedules(data.schedules || []);
+      
+      // schedules의 recommended_date를 Date 객체로 변환
+      const schedulesWithDates = (data.schedules || []).map((schedule: any) => ({
+        ...schedule,
+        recommended_date: schedule.recommended_date 
+          ? new Date(schedule.recommended_date) 
+          : new Date(),
+      }));
+      setSchedules(schedulesWithDates);
+      
       if (data.nextVaccineDate) {
         setNextVaccineDate(new Date(data.nextVaccineDate));
       }
@@ -125,8 +136,19 @@ export function PetVaccineTab({ petId, pet }: PetVaccineTabProps) {
           ) : (
             <div className="space-y-3">
               {schedules.map((schedule, index) => {
+                // recommended_date가 Date 객체인지 확인하고 변환
+                const recommendedDate = schedule.recommended_date instanceof Date
+                  ? schedule.recommended_date
+                  : new Date(schedule.recommended_date);
+                
+                // 유효한 날짜인지 확인
+                if (isNaN(recommendedDate.getTime())) {
+                  console.error('유효하지 않은 날짜:', schedule.recommended_date);
+                  return null;
+                }
+                
                 const daysUntil = Math.ceil(
-                  (schedule.recommended_date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                  (recommendedDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
                 );
                 const schedulePriority = calculateVaccinePriority(daysUntil);
 
@@ -151,7 +173,7 @@ export function PetVaccineTab({ petId, pet }: PetVaccineTabProps) {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
-                            {format(schedule.recommended_date, 'yyyy-MM-dd', { locale: ko })}
+                            {format(recommendedDate, 'yyyy-MM-dd', { locale: ko })}
                           </span>
                           {daysUntil >= 0 && (
                             <span className={cn(

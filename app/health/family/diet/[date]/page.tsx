@@ -24,11 +24,61 @@ interface PageProps {
   params: Promise<{ date: string }>;
 }
 
+// 날짜 파라미터를 위한 동적 라우트 설정
+export const dynamicParams = true;
+export const revalidate = 0; // 개발 중에는 항상 최신 데이터 사용
+
 export default async function FamilyDietPage({ params }: PageProps) {
   console.group("📅 가족 식단 페이지 로딩");
 
-  const { date } = await params;
-  console.log("조회 날짜:", date);
+  let date: string;
+  try {
+    const resolvedParams = await params;
+    date = resolvedParams.date;
+    console.log("조회 날짜:", date);
+
+    // 날짜 형식 검증 (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) {
+      console.error("❌ 잘못된 날짜 형식:", date);
+      throw new Error(`잘못된 날짜 형식입니다. YYYY-MM-DD 형식으로 입력해주세요. (받은 값: ${date})`);
+    }
+
+    // 날짜 유효성 검증
+    const dateObj = new Date(date);
+    if (isNaN(dateObj.getTime())) {
+      console.error("❌ 유효하지 않은 날짜:", date);
+      throw new Error(`유효하지 않은 날짜입니다. (받은 값: ${date})`);
+    }
+
+    // 날짜 정규화 (YYYY-MM-DD 형식으로)
+    const normalizedDate = dateObj.toISOString().split('T')[0];
+    if (normalizedDate !== date) {
+      console.log(`날짜 정규화: ${date} → ${normalizedDate}`);
+      date = normalizedDate;
+    }
+  } catch (error) {
+    console.error("❌ 날짜 파라미터 처리 실패:", error);
+    console.groupEnd();
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">
+            잘못된 날짜 형식입니다
+          </h1>
+          <p className="text-gray-600 mb-4">
+            {error instanceof Error ? error.message : "YYYY-MM-DD 형식으로 입력해주세요."}
+          </p>
+          <a
+            href="/health"
+            className="inline-block px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+          >
+            건강 관리로 돌아가기
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   try {
     const { userId } = await auth();

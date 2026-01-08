@@ -22,11 +22,17 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Palette, Image, Sparkles, Circle, RotateCcw, Upload } from "lucide-react";
 import { SectionReorderHandler } from "@/components/home/section-reorder-handler";
+import { SeasonalEffectToggle } from "@/components/home/seasonal-effect-toggle";
 import type { ThemeMode, BackgroundType } from "@/types/home-customization";
 import { SECTION_IDS } from "@/types/home-customization";
 
 /** 그라데이션 프리셋 목록 */
 const GRADIENT_PRESETS = [
+  {
+    id: "white",
+    name: "흰색",
+    value: "linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)",
+  },
   {
     id: "default",
     name: "기본 (보라/핑크)",
@@ -86,6 +92,60 @@ const GRADIENT_PRESETS = [
     id: "emerald-glow",
     name: "에메랄드 빛",
     value: "linear-gradient(135deg, #0ba360 0%, #3cba92 100%)",
+  },
+] as const;
+
+/** 단색 프리셋 목록 */
+const COLOR_PRESETS = [
+  {
+    id: "white",
+    name: "흰색",
+    value: "#ffffff",
+  },
+  {
+    id: "light-gray",
+    name: "밝은 회색",
+    value: "#f5f5f5",
+  },
+  {
+    id: "gray",
+    name: "회색",
+    value: "#808080",
+  },
+  {
+    id: "black",
+    name: "검정",
+    value: "#000000",
+  },
+  {
+    id: "blue",
+    name: "파랑",
+    value: "#3b82f6",
+  },
+  {
+    id: "green",
+    name: "녹색",
+    value: "#10b981",
+  },
+  {
+    id: "red",
+    name: "빨강",
+    value: "#ef4444",
+  },
+  {
+    id: "orange",
+    name: "주황",
+    value: "#f97316",
+  },
+  {
+    id: "purple",
+    name: "보라",
+    value: "#8b5cf6",
+  },
+  {
+    id: "pink",
+    name: "핑크",
+    value: "#ec4899",
   },
 ] as const;
 
@@ -356,23 +416,79 @@ export function HomeCustomizationSettings() {
 
           {/* 단색 배경 */}
           {customization.theme.backgroundType === "color" && (
-            <div className="space-y-2">
-              <Label htmlFor="background-color">배경 색상</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="background-color"
-                  type="color"
-                  value={customization.theme.backgroundColor || "#667eea"}
-                  onChange={(e) => updateBackgroundColor(e.target.value)}
-                  className="w-20 h-10"
-                />
-                <Input
-                  type="text"
-                  value={customization.theme.backgroundColor || "#667eea"}
-                  onChange={(e) => updateBackgroundColor(e.target.value)}
-                  placeholder="#667eea"
-                  className="flex-1"
-                />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>색상 프리셋</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {COLOR_PRESETS.map((preset) => {
+                    const isSelected =
+                      customization.theme.backgroundColor === preset.value;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => updateBackgroundColor(preset.value)}
+                        className={`relative h-20 rounded-lg border-2 transition-all hover:scale-105 ${
+                          isSelected
+                            ? "border-primary shadow-md ring-2 ring-primary/20"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                        style={{ backgroundColor: preset.value }}
+                        title={preset.name}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/10 rounded-lg" />
+                        <div className="absolute bottom-1 left-1 right-1">
+                          <p className={`text-xs font-medium drop-shadow-md text-left ${
+                            preset.id === "white" || preset.id === "light-gray" 
+                              ? "text-gray-700" 
+                              : "text-white"
+                          }`}>
+                            {preset.name}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-1 right-1">
+                            <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={3}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="background-color">커스텀 색상</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="background-color"
+                    type="color"
+                    value={customization.theme.backgroundColor || "#ffffff"}
+                    onChange={(e) => updateBackgroundColor(e.target.value)}
+                    className="w-20 h-10"
+                  />
+                  <Input
+                    type="text"
+                    value={customization.theme.backgroundColor || "#ffffff"}
+                    onChange={(e) => updateBackgroundColor(e.target.value)}
+                    placeholder="#ffffff"
+                    className="flex-1"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -445,6 +561,22 @@ export function HomeCustomizationSettings() {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* 계절 효과 설정 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5" />
+            계절 효과 설정
+          </CardTitle>
+          <CardDescription>
+            홈페이지에 표시되는 계절별 파티클 효과를 켜고 끄거나, 원하는 계절을 선택할 수 있습니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SeasonalEffectToggle inSettings={true} />
         </CardContent>
       </Card>
 

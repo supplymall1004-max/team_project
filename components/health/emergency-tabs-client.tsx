@@ -7,7 +7,7 @@
 
 'use client';
 
-import { AlertTriangle, Baby, MapPin } from 'lucide-react';
+import { AlertTriangle, Baby, MapPin, Video, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BabyEmergencyGuide } from '@/components/health/baby-emergency-guide';
@@ -26,7 +26,7 @@ export function EmergencyTabsClient({ allergies }: EmergencyTabsClientProps) {
 
   return (
     <Tabs defaultValue="baby" className="space-y-6">
-      <TabsList className="grid w-full grid-cols-2 h-auto p-1">
+      <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto p-1">
         <TabsTrigger
           value="baby"
           className="flex items-center gap-2 py-3 px-4 data-[state=active]:bg-white data-[state=active]:shadow-md"
@@ -40,6 +40,20 @@ export function EmergencyTabsClient({ allergies }: EmergencyTabsClientProps) {
         >
           <AlertTriangle className="w-5 h-5" />
           <span className="font-medium">알레르기 응급조치</span>
+        </TabsTrigger>
+        <TabsTrigger
+          value="videos"
+          className="flex items-center gap-2 py-3 px-4 data-[state=active]:bg-white data-[state=active]:shadow-md"
+        >
+          <Video className="w-5 h-5" />
+          <span className="font-medium">응급처치 영상</span>
+        </TabsTrigger>
+        <TabsTrigger
+          value="info"
+          className="flex items-center gap-2 py-3 px-4 data-[state=active]:bg-white data-[state=active]:shadow-md"
+        >
+          <Info className="w-5 h-5" />
+          <span className="font-medium">생활필수 정보</span>
         </TabsTrigger>
       </TabsList>
 
@@ -122,6 +136,21 @@ export function EmergencyTabsClient({ allergies }: EmergencyTabsClientProps) {
               <li>옷을 벗길 필요는 없지만 두꺼운 벨트는 피하세요</li>
             </ul>
           </div>
+
+          <div className="mt-4 space-y-2">
+            <p className="font-semibold text-sm text-gray-900">
+              📺 참고 영상:
+            </p>
+            <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-gray-200">
+              <iframe
+                src="https://www.youtube.com/embed/m6UjVkf1_1U"
+                title="에피네프린 자가주사기 사용법 영상"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              />
+            </div>
+          </div>
         </div>
 
         {/* 아나필락시스 증상 */}
@@ -198,6 +227,126 @@ export function EmergencyTabsClient({ allergies }: EmergencyTabsClientProps) {
               </Link>
             </div>
           </div>
+        </div>
+      </TabsContent>
+
+      {/* 응급처치 영상 탭 */}
+      <TabsContent value="videos" className="space-y-8">
+        {/* 행정안전부 응급조치 영상 */}
+        <div className="bg-white rounded-xl border-2 border-red-200 p-6 space-y-6">
+          <h2 className="text-2xl font-bold text-red-900 flex items-center gap-2">
+            <Video className="w-6 h-6" />
+            행정안전부 응급조치 영상
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+              {
+                title: '심폐소생술',
+                videoId: '2ZIdOeTZRMk',
+              },
+              {
+                title: '외상응급처치법',
+                videoId: 'JATNQm2KrqI',
+              },
+              {
+                title: '하임리히법',
+                videoId: 'PxP2VArWh94',
+              },
+              {
+                title: '쇼크환자 대처법',
+                videoId: '2BumBlpDb_M',
+              },
+              {
+                title: '아이가 화상을 입었을때',
+                videoId: 'RIU2i0xVipU',
+              },
+              {
+                title: '응급처치로 내 아이를 위기에서 구하기 [응급처치]',
+                videoId: 'knzpPALjHuU',
+              },
+            ].map((video) => (
+              <div key={video.videoId} className="space-y-2">
+                <h3 className="font-semibold text-lg text-gray-900">{video.title}</h3>
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-gray-200">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${video.videoId}`}
+                    title={video.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    className="absolute inset-0 w-full h-full"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 행정안전부 참고영상 */}
+        <div className="bg-white rounded-xl border-2 border-blue-200 p-6 space-y-6">
+          <h2 className="text-2xl font-bold text-blue-900 flex items-center gap-2">
+            <Video className="w-6 h-6" />
+            행정안전부 참고영상
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[
+              {
+                title: '해외에서 아파도 실시간 상담 해준다고?',
+                videoId: 'u7k4B_fSPcc',
+              },
+              {
+                title: '응급상황시 112와 119에 내 위치를 알리기 쉬운방법 #국가지점번호',
+                videoId: 'VPTFmg-aUDU',
+              },
+              {
+                title: '마음까지 멍들게 하는 아동학대, 적극적으로 도와주세요! [아동학대]',
+                videoId: 'FPVHmdbg12w',
+              },
+              {
+                title: '등산시 응급환자를 목격한다면?!',
+                videoId: 'rHtYJjednVo',
+              },
+              {
+                title: '배 위에서 사고가 발생했다! 대처 방법은? [재난]',
+                videoId: 'jVD3olKS4_8',
+              },
+              {
+                title: '우리의 안전은 우리 손으로! 민방위 제도 (풀버전)',
+                videoId: 'sIe1VMk6Mqo',
+              },
+              {
+                title: '갑자기 벌을 만난다면?! 당황하지 않고 안전하고 쉽게 대응하는 벌 안전수칙 | 문방구TV x 행정안전부',
+                videoId: 'EJEpLHlY80M',
+              },
+            ].map((video) => (
+              <div key={video.videoId} className="space-y-2">
+                <h3 className="font-semibold text-lg text-gray-900">{video.title}</h3>
+                <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-gray-200">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${video.videoId}`}
+                    title={video.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    className="absolute inset-0 w-full h-full"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </TabsContent>
+
+      {/* 생활필수 정보 탭 */}
+      <TabsContent value="info" className="space-y-6">
+        <div className="bg-white rounded-xl border-2 border-green-200 p-6">
+          <h2 className="text-2xl font-bold text-green-900 flex items-center gap-2 mb-4">
+            <Info className="w-6 h-6" />
+            생활필수 정보
+          </h2>
+          <p className="text-gray-700">
+            생활에 필요한 응급상황 대처 정보를 제공합니다.
+          </p>
         </div>
       </TabsContent>
     </Tabs>

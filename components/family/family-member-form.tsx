@@ -5,10 +5,13 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import type { FamilyMember } from "@/types/family";
 import { X } from "lucide-react";
+import { DiseaseSelector } from "@/components/health/disease-selector";
+import { AllergySelector } from "@/components/health/allergy-selector";
+import { SafetyWarning } from "@/components/health/safety-warning";
 
 interface FamilyMemberFormProps {
   member?: FamilyMember;
@@ -27,12 +30,41 @@ export function FamilyMemberForm({
     birth_date: member?.birth_date || "",
     gender: member?.gender || "male",
     relationship: member?.relationship || "child",
-    diseases: member?.diseases || [],
-    allergies: member?.allergies || [],
     height_cm: member?.height_cm?.toString() || "",
     weight_kg: member?.weight_kg?.toString() || "",
     activity_level: member?.activity_level || "sedentary",
   });
+
+  // DiseaseSelector와 AllergySelector용 상태 (형식: { code: string, custom_name: string | null }[])
+  const [selectedDiseases, setSelectedDiseases] = useState<{ code: string; custom_name: string | null }[]>([]);
+  const [selectedAllergies, setSelectedAllergies] = useState<{ code: string; custom_name: string | null }[]>([]);
+
+  // 기존 데이터를 새 형식으로 변환 (초기화)
+  useEffect(() => {
+    if (member) {
+      // 기존 diseases (string[])를 selectedDiseases 형식으로 변환
+      const diseases = Array.isArray(member.diseases) ? member.diseases : [];
+      setSelectedDiseases(
+        diseases.map((code) => ({
+          code: typeof code === 'string' ? code : String(code),
+          custom_name: null,
+        }))
+      );
+
+      // 기존 allergies (string[])를 selectedAllergies 형식으로 변환
+      const allergies = Array.isArray(member.allergies) ? member.allergies : [];
+      setSelectedAllergies(
+        allergies.map((code) => ({
+          code: typeof code === 'string' ? code : String(code),
+          custom_name: null,
+        }))
+      );
+    } else {
+      // 새 구성원인 경우 빈 배열로 초기화
+      setSelectedDiseases([]);
+      setSelectedAllergies([]);
+    }
+  }, [member]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,8 +80,14 @@ export function FamilyMemberForm({
         : "/api/family/members";
       const method = member ? "PUT" : "POST";
 
+      // selectedDiseases와 selectedAllergies를 string[] 형식으로 변환 (API가 기대하는 형식)
+      const diseasesArray = selectedDiseases.map((d) => d.code);
+      const allergiesArray = selectedAllergies.map((a) => a.code);
+
       const requestData = {
         ...formData,
+        diseases: diseasesArray,
+        allergies: allergiesArray,
         height_cm: formData.height_cm ? parseInt(formData.height_cm) : null,
         weight_kg: formData.weight_kg
           ? parseFloat(formData.weight_kg)
@@ -332,83 +370,36 @@ export function FamilyMemberForm({
           </div>
 
           {/* 질병 정보 */}
-          <div>
-            <label className="mb-2 block text-sm font-medium">질병 정보 (복수 선택 가능)</label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { value: "diabetes", label: "당뇨" },
-                { value: "hypertension", label: "고혈압" },
-                { value: "heart_disease", label: "심장병" },
-                { value: "kidney_disease", label: "신장병" },
-                { value: "liver_disease", label: "간질환" },
-                { value: "cancer", label: "암" },
-                { value: "thyroid", label: "갑상선 질환" },
-                { value: "arthritis", label: "관절염" },
-              ].map((disease) => (
-                <label key={disease.value} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.diseases.includes(disease.value)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setFormData({
-                          ...formData,
-                          diseases: [...formData.diseases, disease.value],
-                        });
-                      } else {
-                        setFormData({
-                          ...formData,
-                          diseases: formData.diseases.filter((d) => d !== disease.value),
-                        });
-                      }
-                    }}
-                    className="rounded border-gray-300 dark:border-gray-600"
-                  />
-                  <span className="text-sm">{disease.label}</span>
-                </label>
-              ))}
-            </div>
+          <div className="rounded-2xl border border-border/60 bg-white p-6 space-y-4">
+            <h2 className="text-xl font-bold">질병 정보</h2>
+            <p className="text-sm text-muted-foreground">
+              보유하신 질병을 선택하면 해당 질병에 맞는 식단을 추천하고 칼로리를 조정합니다.
+            </p>
+            <DiseaseSelector
+              selectedDiseases={selectedDiseases}
+              onChange={(diseases) => {
+                setSelectedDiseases(diseases);
+              }}
+            />
           </div>
 
           {/* 알레르기 정보 */}
-          <div>
-            <label className="mb-2 block text-sm font-medium">알레르기 정보 (복수 선택 가능)</label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { value: "milk", label: "우유" },
-                { value: "egg", label: "계란" },
-                { value: "peanut", label: "땅콩" },
-                { value: "tree_nut", label: "견과류" },
-                { value: "fish", label: "생선" },
-                { value: "shellfish", label: "갑각류" },
-                { value: "wheat", label: "밀" },
-                { value: "soy", label: "대두" },
-                { value: "sesame", label: "참깨" },
-                { value: "sulfite", label: "아황산염" },
-              ].map((allergy) => (
-                <label key={allergy.value} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.allergies.includes(allergy.value)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setFormData({
-                          ...formData,
-                          allergies: [...formData.allergies, allergy.value],
-                        });
-                      } else {
-                        setFormData({
-                          ...formData,
-                          allergies: formData.allergies.filter((a) => a !== allergy.value),
-                        });
-                      }
-                    }}
-                    className="rounded border-gray-300 dark:border-gray-600"
-                  />
-                  <span className="text-sm">{allergy.label}</span>
-                </label>
-              ))}
-            </div>
+          <div className="rounded-2xl border border-border/60 bg-white p-6 space-y-4">
+            <h2 className="text-xl font-bold">알레르기 정보</h2>
+            <p className="text-sm text-muted-foreground">
+              알레르기가 있는 식재료를 선택하면 해당 식재료와 모든 파생 재료가 엄격하게 제외됩니다.
+            </p>
+            <AllergySelector
+              selectedAllergies={selectedAllergies}
+              onChange={(allergies) => setSelectedAllergies(allergies)}
+            />
+
+            {/* 안전 경고 표시 */}
+            <SafetyWarning
+              allergens={selectedAllergies.map(a => a.code)}
+              severity={selectedAllergies.some(a => ['peanuts', 'crustacean'].includes(a.code)) ? 'critical' : 'safe'}
+              showEmergencyInfo={true}
+            />
           </div>
 
           {/* 버튼 */}

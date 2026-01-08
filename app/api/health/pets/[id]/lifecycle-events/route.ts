@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";
 import { ensureSupabaseUser } from "@/lib/supabase/ensure-user";
-import { generatePetLifecycleEvents } from "@/lib/health/pet-lifecycle-events";
+import { generatePetLifecycleEvents, generateAllPetLifecycleEvents } from "@/lib/health/pet-lifecycle-events";
 
 /**
  * GET /api/health/pets/[id]/lifecycle-events
@@ -55,15 +55,27 @@ export async function GET(
       return NextResponse.json({ error: "Pet not found" }, { status: 404 });
     }
 
-    // 생애주기별 건강 이벤트 생성
-    const events = generatePetLifecycleEvents(pet as any);
+    // 쿼리 파라미터 확인
+    const { searchParams } = new URL(request.url);
+    const allEvents = searchParams.get('all') === 'true';
 
-    console.log(`✅ 생애주기 이벤트 조회 완료: ${events.length}건`);
+    let events;
+    if (allEvents) {
+      // 전체 생애 이벤트 생성 (태어나서부터 죽을 때까지)
+      events = generateAllPetLifecycleEvents(pet as any);
+      console.log(`✅ 전체 생애주기 이벤트 조회 완료: ${events.length}건`);
+    } else {
+      // 현재 시점 기준 이벤트만 생성
+      events = generatePetLifecycleEvents(pet as any);
+      console.log(`✅ 생애주기 이벤트 조회 완료: ${events.length}건`);
+    }
+
     console.groupEnd();
 
     return NextResponse.json({
       events,
       count: events.length,
+      allEvents,
     });
   } catch (error) {
     console.error("❌ 예상치 못한 오류:", error);

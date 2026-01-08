@@ -41,7 +41,9 @@ export function PetCheckupTab({ petId, pet }: PetCheckupTabProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
-    fetchCheckupRecords();
+    if (petId) {
+      fetchCheckupRecords();
+    }
   }, [petId]);
 
   const fetchCheckupRecords = async () => {

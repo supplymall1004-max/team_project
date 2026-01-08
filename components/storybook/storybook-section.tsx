@@ -1,9 +1,9 @@
 /**
  * @file storybook-section.tsx
- * @description 홈페이지에 표시되는 마카의 음식 동화 섹션 컴포넌트
+ * @description 홈페이지에 표시되는 장고의 음식 동화 섹션 컴포넌트
  * 
  * 주요 기능:
- * 1. 홈페이지에 마카의 음식 동화 섹션 표시
+ * 1. 홈페이지에 장고의 음식 동화 섹션 표시
  * 2. 카드 형태로 간단한 미리보기 제공
  * 3. 클릭 시 스토리북 페이지로 이동
  */
@@ -20,7 +20,7 @@ export function StorybookSection() {
         {/* 섹션 제목 */}
         <div className="flex items-center justify-between mb-6">
           <h2 id="storybook-title" className="text-2xl sm:text-3xl font-bold text-gray-900">
-            📖 마카의 음식 동화
+            📖 장고의 음식 동화
           </h2>
           <Link
             href="/storybook"
@@ -55,7 +55,7 @@ export function StorybookSection() {
                 <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center">
                   <BookOpen className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold">맛카의 음식 동화</h3>
+                <h3 className="text-xl sm:text-2xl font-bold">장고의 음식 동화</h3>
               </div>
               <p className="text-sm sm:text-base text-gray-200">
                 막걸리, 떡, 김치, 비빔밥 등 다양한 음식의 이야기를 만나보세요

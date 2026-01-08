@@ -308,34 +308,34 @@ const Navbar = () => {
     >
       <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 gap-4" suppressHydrationWarning>
         {/* 왼쪽: 로고 + 앱제목 (클릭 시 메인으로 이동) */}
-        <Link
-          href="/"
-          className="flex items-center gap-3 shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
-          suppressHydrationWarning
-          onClick={(e) => {
-            handleNavClick("홈");
-            console.log("[Navbar] 홈 링크 클릭", { pathname, timestamp: Date.now() });
-            
-            // 홈 링크 클릭 시 (현재 경로가 홈이 아니거나 홈인 경우 모두)
-            if (pathname !== "/") {
-              // 다른 페이지에서 홈으로 이동하는 경우 세션 스토리지 플래그 설정
-              console.log("[Navbar] 다른 경로에서 홈으로 이동 - 플래그 설정");
-              sessionStorage.setItem('shouldRefreshHome', 'true');
-            } else {
-              // 현재 홈 페이지에서 홈으로 다시 클릭한 경우
-              e.preventDefault();
-              console.log("[Navbar] 현재 홈 페이지에서 홈으로 이동 - 강제 네비게이션");
-              router.push("/");
-              // 약간의 딜레이 후 refresh와 스크롤 (렌더링 완료 대기)
-              setTimeout(() => {
-                router.refresh();
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }, 50);
-            }
-          }}
-          aria-label="Django Care 홈으로 이동"
-        >
-          <div className="relative w-[50px] h-[60px] flex-shrink-0 flex items-center justify-center">
+        <div className="flex items-center gap-3 shrink-0">
+          <Link
+            href="/"
+            className="relative w-[50px] h-[60px] flex-shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+            suppressHydrationWarning
+            onClick={(e) => {
+              handleNavClick("홈");
+              console.log("[Navbar] 냉장고 로고 클릭", { pathname, timestamp: Date.now() });
+              
+              // 홈 링크 클릭 시 (현재 경로가 홈이 아니거나 홈인 경우 모두)
+              if (pathname !== "/") {
+                // 다른 페이지에서 홈으로 이동하는 경우 세션 스토리지 플래그 설정
+                console.log("[Navbar] 다른 경로에서 홈으로 이동 - 플래그 설정");
+                sessionStorage.setItem('shouldRefreshHome', 'true');
+              } else {
+                // 현재 홈 페이지에서 홈으로 다시 클릭한 경우
+                e.preventDefault();
+                console.log("[Navbar] 현재 홈 페이지에서 홈으로 이동 - 강제 네비게이션");
+                router.push("/");
+                // 약간의 딜레이 후 refresh와 스크롤 (렌더링 완료 대기)
+                setTimeout(() => {
+                  router.refresh();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }, 50);
+              }
+            }}
+            aria-label="Django Care 홈으로 이동"
+          >
             <Image
               src="/icons/refrigerator-logo.png"
               alt="Django Care 로고"
@@ -360,18 +360,56 @@ const Navbar = () => {
                 }
               }}
             />
+          </Link>
+          <div className="flex items-center whitespace-nowrap">
+            <Link
+              href="/"
+              className="relative w-[116px] h-[60px] flex-shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+              onClick={(e) => {
+                handleNavClick("홈");
+                console.log("[Navbar] Django Care 로고 클릭", { pathname, timestamp: Date.now() });
+                
+                // 홈 링크 클릭 시 (현재 경로가 홈이 아니거나 홈인 경우 모두)
+                if (pathname !== "/") {
+                  // 다른 페이지에서 홈으로 이동하는 경우 세션 스토리지 플래그 설정
+                  console.log("[Navbar] 다른 경로에서 홈으로 이동 - 플래그 설정");
+                  sessionStorage.setItem('shouldRefreshHome', 'true');
+                } else {
+                  // 현재 홈 페이지에서 홈으로 다시 클릭한 경우
+                  e.preventDefault();
+                  console.log("[Navbar] 현재 홈 페이지에서 홈으로 이동 - 강제 네비게이션");
+                  router.push("/");
+                  // 약간의 딜레이 후 refresh와 스크롤 (렌더링 완료 대기)
+                  setTimeout(() => {
+                    router.refresh();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }, 50);
+                }
+              }}
+              aria-label="Django Care 홈으로 이동"
+            >
+              <Image
+                src="/icons/10045.webp"
+                alt="Django Care 로고"
+                width={116}
+                height={28}
+                className="object-contain object-center -translate-x-2"
+                priority
+                unoptimized
+                onError={(e) => {
+                  if (process.env.NODE_ENV === "development") {
+                    console.error('[Navbar] 로고 이미지 로드 실패:', e);
+                  }
+                }}
+                onLoad={() => {
+                  if (process.env.NODE_ENV === "development") {
+                    console.log('[Navbar] 로고 이미지 로드 완료');
+                  }
+                }}
+              />
+            </Link>
           </div>
-          <div className="flex flex-col whitespace-nowrap">
-            <span className="text-lg sm:text-2xl font-bold text-orange-600">
-              Django Care
-            </span>
-            <span className="text-lg sm:text-2xl font-bold text-orange-600 leading-tight">
-              <span>냉</span>
-              <span className="text-xs sm:text-sm text-amber-700"> 씨가문 집사 </span>
-              <span>장고</span>
-            </span>
-          </div>
-        </Link>
+        </div>
 
         {/* 중앙: 검색바 (데스크톱만 표시) */}
         <form
@@ -396,25 +434,17 @@ const Navbar = () => {
           </div>
         </form>
 
-        {/* 오른쪽: 검색 아이콘 + 작은 검색창 (모바일) + 로그인 + 햄버거 */}
+        {/* 오른쪽: 작은 검색창 (모바일) + 로그인 + 햄버거 */}
         <div className="flex items-center gap-2 shrink-0">
-          {/* 검색 아이콘 + 작은 검색창 (모바일) */}
-          <div className="sm:hidden flex items-center gap-1.5 min-w-0 flex-1 max-w-[140px]">
-          <Button
-            variant="ghost"
-            size="icon"
-              className="h-9 w-9 shrink-0"
-            onClick={() => router.push("/search")}
-            aria-label="검색"
-          >
-            <Search className="h-5 w-5" />
-          </Button>
+          {/* 작은 검색창 (모바일) - 돋보기 아이콘을 검색창 안에 배치 */}
+          <div className="sm:hidden flex items-center min-w-0 max-w-[100px]">
             <form
               onSubmit={handleSearch}
               className="flex-1 min-w-0"
               suppressHydrationWarning
             >
               <div className="relative" suppressHydrationWarning>
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 <Input
                   type="text"
                   placeholder="검색..."
@@ -423,7 +453,7 @@ const Navbar = () => {
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setIsSearchFocused(false)}
                   className={cn(
-                    "w-full h-9 pr-8 text-sm transition-all",
+                    "w-full h-9 pl-8 pr-2 text-xs transition-all",
                   )}
                   suppressHydrationWarning
                 />
@@ -494,7 +524,7 @@ const Navbar = () => {
               background: menuOpen 
                 ? 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)'
                 : 'transparent',
-              zIndex: menuOpen ? 10000 : 'auto',
+              zIndex: menuOpen ? 100000 : 'auto',
               position: menuOpen ? 'relative' : 'static',
             }}
           >
@@ -527,20 +557,28 @@ const Navbar = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="md:hidden fixed bg-black/20 backdrop-blur-sm z-[9998]"
-              style={{ top: '64px', left: 0, right: 0, bottom: 0 }}
+              className="md:hidden fixed bg-black/80 backdrop-blur-md"
+              style={{ 
+                top: '64px', 
+                left: 0, 
+                right: 0, 
+                bottom: 0,
+                zIndex: 9998
+              }}
               onClick={() => setMenuOpen(false)}
             />
             {/* 모바일 메뉴 */}
             <motion.div
+              data-slot="mobile-menu"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className="md:hidden fixed top-[64px] left-0 right-0 bg-white border-b border-orange-200/50 shadow-2xl z-[9999] max-h-[calc(100vh-64px)] overflow-y-auto"
+              className="md:hidden fixed top-[64px] left-0 right-0 bg-white border-b border-orange-200/50 shadow-2xl max-h-[calc(100vh-64px)] overflow-y-auto"
               style={{
-                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.15)",
+                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
                 paddingBottom: "80px", // 하단 네비게이션 바 높이(64px) + 여유 공간(16px)
+                zIndex: 9999, // 모바일 메뉴는 높은 z-index, 하지만 모달보다는 낮음
               }}
             >
             <div className="px-2 py-3 pb-20 space-y-3">

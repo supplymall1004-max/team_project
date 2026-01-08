@@ -40,9 +40,10 @@ interface SyncStatus {
     synced_at: string;
     records_synced: number;
     error_message?: string;
-    health_data_sources: {
-      source_type: string;
-    };
+    health_data_sources:
+      | { source_type: string }
+      | { source_type: string }[]
+      | null;
   }>;
   dataSources: {
     mydata: {
@@ -79,11 +80,23 @@ export function SyncStatusIndicator({
   const fetchSyncStatus = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/health/sync/status");
+      // `/api/health/sync`는 GET으로 동기화 상태를 반환합니다.
+      const response = await fetch("/api/health/sync");
 
       if (response.ok) {
         const data = await response.json();
-        setSyncStatus(data.status);
+        const rawStatus = data?.status as
+          | (Omit<SyncStatus, "nextSyncAvailable"> & { nextSyncAvailable: string })
+          | undefined;
+
+        if (rawStatus?.nextSyncAvailable) {
+          setSyncStatus({
+            ...rawStatus,
+            nextSyncAvailable: new Date(rawStatus.nextSyncAvailable),
+          });
+        } else {
+          setSyncStatus(null);
+        }
         setLastRefresh(new Date());
       } else {
         console.error("동기화 상태 조회 실패:", response.statusText);
@@ -382,9 +395,16 @@ export function SyncStatusIndicator({
                       <XCircle className="w-3 h-3 text-red-500" />
                     )}
                     <span className="capitalize">
-                      {sync.health_data_sources.source_type === "mydata" ? "마이데이터" :
-                       sync.health_data_sources.source_type === "health_highway" ? "건강정보고속도로" :
-                       sync.health_data_sources.source_type}
+                      {(() => {
+                        const sourceType = Array.isArray(sync.health_data_sources)
+                          ? sync.health_data_sources[0]?.source_type
+                          : sync.health_data_sources?.source_type;
+
+                        if (!sourceType) return "알 수 없음";
+                        if (sourceType === "mydata") return "마이데이터";
+                        if (sourceType === "health_highway") return "건강정보고속도로";
+                        return sourceType;
+                      })()}
                     </span>
                   </div>
                   <div className="text-right">

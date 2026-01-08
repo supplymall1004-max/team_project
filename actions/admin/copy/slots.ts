@@ -129,10 +129,10 @@ export const TEXT_SLOTS: TextSlot[] = [
   {
     slug: "quick-start-storybook",
     section: "빠른 시작",
-    label: "마카의 음식 동화 카드",
-    description: "빠른 시작 - 마카의 음식 동화 섹션",
+    label: "장고의 음식 동화 카드",
+    description: "빠른 시작 - 장고의 음식 동화 섹션",
     defaultContent: {
-      title: "📖 마카의 음식 동화",
+      title: "📖 장고의 음식 동화",
       description: "전통 음식의 탄생과 역사를 동화처럼 들려주는 이야기입니다.",
       href: "/storybook",
     },

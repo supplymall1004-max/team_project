@@ -412,9 +412,9 @@ export function HealthSyncButton() {
 
   return (
     <Card className="p-6">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <h3 className="text-lg font-semibold">건강정보 자동 연동</h3>
             <Badge variant="secondary" className="text-xs">
               프리미엄
@@ -424,7 +424,7 @@ export function HealthSyncButton() {
               신원확인 완료
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground mb-3">
+          <p className="text-sm text-muted-foreground mb-3 break-words">
             마이데이터, 건강정보고속도로 등 공공 API를 통해 병원 기록, 건강검진 결과, 약물 기록을 자동으로 가져올 수 있습니다.
           </p>
           <div className="flex items-center gap-2">
@@ -440,7 +440,7 @@ export function HealthSyncButton() {
           onClick={handleSync}
           disabled={isSyncing}
           variant="default"
-          className="ml-4"
+          className="sm:ml-4 sm:flex-shrink-0 w-full sm:w-auto"
         >
           {isSyncing ? (
             <>

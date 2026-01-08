@@ -30,7 +30,9 @@ export function PetLifecycleEventsTab({ petId, pet }: PetLifecycleEventsTabProps
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchLifecycleEvents();
+    if (petId) {
+      fetchLifecycleEvents();
+    }
   }, [petId]);
 
   const fetchLifecycleEvents = async () => {

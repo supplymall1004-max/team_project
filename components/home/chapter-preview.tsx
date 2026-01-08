@@ -121,12 +121,12 @@ export function Chapter1Preview({ className }: { className?: string }) {
             </CardContent>
           </Card>
 
-          {/* 마카의 음식 동화 */}
+          {/* 장고의 음식 동화 */}
           <Card className="hover:shadow-lg transition-all cursor-pointer group">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Book className="h-5 w-5 text-orange-600" />
-                📖 마카의 음식 동화
+                📖 장고의 음식 동화
               </CardTitle>
               <CardDescription>전통 음식의 탄생과 역사를 동화처럼 들려주는 이야기</CardDescription>
             </CardHeader>

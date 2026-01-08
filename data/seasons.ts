@@ -22,7 +22,7 @@ export const seasonThemes: Record<Season, SeasonTheme> = {
     name: "Spring",
     nameKo: "봄",
     icon: "🌸",
-    title: "맛카의 음식 동화 이야기",
+    title: "장고의 음식 동화 이야기",
     // 밝은 하늘, 태양, 구름, 나비, 초록 언덕, 꽃들의 느낌
     bgGradient: "from-[#e8f5e9] via-[#c8e6c9] to-[#a5d6a7]",
     windowBg: "bg-gradient-to-b from-[#87CEEB] to-[#B0E0E6]",
@@ -38,7 +38,7 @@ export const seasonThemes: Record<Season, SeasonTheme> = {
     name: "Summer",
     nameKo: "여름",
     icon: "☀️",
-    title: "맛카의 음식 동화 이야기",
+    title: "장고의 음식 동화 이야기",
     // 밝은 파란 하늘, 태양, 열기구, 자전거, 초록 언덕의 느낌
     bgGradient: "from-[#87CEEB] via-[#B0E0E6] to-[#E0F6FF]",
     windowBg: "bg-gradient-to-b from-[#4FC3F7] to-[#81D4FA]",
@@ -54,7 +54,7 @@ export const seasonThemes: Record<Season, SeasonTheme> = {
     name: "Autumn",
     nameKo: "가을",
     icon: "🍂",
-    title: "맛카의 음식 동화 이야기",
+    title: "장고의 음식 동화 이야기",
     // 따뜻한 오렌지/황금색 하늘, 태양, 낙엽의 느낌
     bgGradient: "from-[#FF8C42] via-[#FFA07A] to-[#FFB347]",
     windowBg: "bg-gradient-to-b from-[#FFA500] to-[#FFD700]",
@@ -70,7 +70,7 @@ export const seasonThemes: Record<Season, SeasonTheme> = {
     name: "Winter",
     nameKo: "겨울",
     icon: "❄️",
-    title: "맛카의 음식 동화 이야기",
+    title: "장고의 음식 동화 이야기",
     // 어두운 밤 하늘, 달, 별, 눈의 느낌
     bgGradient: "from-[#1a1a2e] via-[#16213e] to-[#0f3460]",
     windowBg: "bg-gradient-to-b from-[#1e3a5f] to-[#2d4a6e]",

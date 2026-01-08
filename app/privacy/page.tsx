@@ -54,7 +54,7 @@ export default function PrivacyPage() {
                   <li>
                     <strong>서비스 제공</strong>
                     <ul className="mt-1 list-disc space-y-1 pl-5">
-                      <li>레거시 아카이브 콘텐츠 제공</li>
+                      <li>장고 콘텐츠 제공</li>
                       <li>레시피 검색 및 추천 서비스 제공</li>
                       <li>AI 기반 맞춤 식단 추천 서비스 제공</li>
                       <li>식자재 구매 연동 서비스 제공</li>

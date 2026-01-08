@@ -171,9 +171,10 @@ export function ExpandedFolderView({
           stiffness: 300,
           damping: 30,
         }}
-        className="fixed inset-4 sm:inset-8 md:inset-12 lg:inset-16 z-50 bg-white/98 backdrop-blur-md rounded-2xl border-2 border-blue-300 shadow-2xl p-4 sm:p-6 md:p-8"
+        className="fixed inset-4 sm:inset-8 md:inset-12 lg:inset-16 bg-white/98 backdrop-blur-md rounded-2xl border-2 border-blue-300 shadow-2xl p-4 sm:p-6 md:p-8"
         style={{
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+          zIndex: 999999,
         }}
       >
         {/* 헤더 */}

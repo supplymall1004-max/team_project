@@ -4,6 +4,7 @@ export interface YouTubeVideo {
   id: string
   title?: string
   season?: Season // 계절 테마 정보
+  icon?: string // 비디오 아이콘 (이모지 등)
 }
 
 // YouTube 쇼츠/비디오 링크에서 ID 추출 헬퍼 함수
@@ -41,6 +42,9 @@ export const youtubeVideos: YouTubeVideo[] = [
   { id: "xQwR2BQHWdU", title: "짜장면 이야기", season: "spring" },
   { id: "35Zr2YAXV84", title: "카레 이야기", season: "autumn" },
   { id: "FNNDaY4M-to", title: "피자 이야기", season: "summer" },
+  { id: "WKQvW4FCZm0", title: "당근 이야기", season: "spring", icon: "🥕" },
+  { id: "skmmdZiaJZY", title: "브로콜리 이야기", season: "spring", icon: "🥦" },
+  { id: "Xk53sEJb7LM", title: "시금치 이야기", season: "spring", icon: "🥬" },
 ]
 
 // 비디오 ID로 임베드 URL 생성

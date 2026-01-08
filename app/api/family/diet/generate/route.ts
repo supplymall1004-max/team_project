@@ -49,9 +49,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const targetDate = body.targetDate || new Date().toISOString().split("T")[0];
     const includeUnified = body.includeUnified ?? true;
+    const useVariation = body.useVariation ?? false; // 변형 모드
+    const variationLevel = (body.variationLevel || 2) as 1 | 2 | 3; // 변형 레벨
     
     console.log("대상 날짜:", targetDate);
     console.log("통합 식단 포함:", includeUnified);
+    console.log("변형 모드:", useVariation, useVariation ? `(Level ${variationLevel})` : "");
 
     // 사용자 정보 확인 및 자동 동기화
     console.log("🔍 사용자 정보 확인 중...");
@@ -116,7 +119,9 @@ export async function POST(request: NextRequest) {
       profile,
       familyMembers || [],
       targetDate,
-      includeUnified
+      includeUnified,
+      useVariation, // 변형 모드
+      variationLevel // 변형 레벨
     );
 
     // 데이터베이스에 저장

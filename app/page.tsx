@@ -1,7 +1,7 @@
 /**
  * @file page.tsx
  * @description Flavor Archive 홈 페이지. 서버 컴포넌트에서 데이터를 준비하고,
- *              클라이언트 섹션과 레거시 아카이브 섹션을 조합합니다.
+ *              클라이언트 섹션과 장고 섹션을 조합합니다.
  * 
  * 성능 최적화:
  * - Suspense를 사용하여 각 섹션을 독립적으로 스트리밍 렌더링
@@ -25,6 +25,7 @@ import { FixedHeader } from "@/components/home/fixed-header";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
 import { HomeSectionsWrapper } from "@/components/home/home-sections-wrapper";
 import { HomeSeasonalEffect } from "@/components/home/home-seasonal-effect";
+import { HomeBackground } from "@/components/home/home-background";
 import { GameMenuProvider } from "@/components/home/game-menu-context";
 import { HomeBackNavigationHandler } from "@/components/home/home-back-navigation-handler";
 
@@ -44,6 +45,9 @@ export default async function Home() {
           contain: 'layout style paint',
         }}
       >
+        {/* 커스터마이징 배경 (메인 영역 전체) */}
+        <HomeBackground />
+
         {/* 스크롤 진행 표시기 */}
         <ScrollProgress />
 

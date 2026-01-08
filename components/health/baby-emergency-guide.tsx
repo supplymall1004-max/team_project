@@ -59,6 +59,7 @@ interface EmergencySituation {
         child?: string; // 1세 이상
     };
     warnings?: string[];
+    videoUrl?: string; // 유튜브 영상 URL
 }
 
 const emergencyCategories: EmergencyCategory[] = [
@@ -115,6 +116,7 @@ const emergencyCategories: EmergencyCategory[] = [
                     "함부로 손을 넣어 빼지 마세요: 이물질이 눈에 확실히 보이지 않는데 손가락을 넣으면 오히려 이물질을 더 깊숙이 밀어 넣을 수 있습니다.",
                     "의식을 잃으면 즉시 CPR: 하임리히법 도중 아이가 의식을 잃고 축 늘어지면 즉시 바닥에 눕히고 심폐소생술(CPR)을 시작해야 합니다.",
                 ],
+                videoUrl: "https://www.youtube.com/embed/tqOA0TEd4Sk",
             },
             {
                 id: "cpr",
@@ -160,6 +162,7 @@ const emergencyCategories: EmergencyCategory[] = [
                         description: "가슴 압박 30번과 인공호흡 2번을 한 세트로 반복합니다. 인공호흡이 어렵다면 가슴 압박만이라도 쉬지 않고 하는 것이 중요합니다.",
                     },
                 ],
+                videoUrl: "https://www.youtube.com/embed/Ph00dGUNIbc",
             },
         ],
     },
@@ -544,6 +547,23 @@ export function BabyEmergencyGuide() {
                                                         <li key={index}>{warning}</li>
                                                     ))}
                                                 </ul>
+                                            </div>
+                                        )}
+
+                                        {situation.videoUrl && (
+                                            <div className="mt-4 space-y-2">
+                                                <p className="font-semibold text-sm text-gray-900">
+                                                    📺 참고 영상:
+                                                </p>
+                                                <div className="relative w-full aspect-video rounded-lg overflow-hidden border-2 border-gray-200">
+                                                    <iframe
+                                                        src={situation.videoUrl}
+                                                        title="유튜브 영상 플레이어"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                        allowFullScreen
+                                                        className="absolute inset-0 w-full h-full"
+                                                    />
+                                                </div>
                                             </div>
                                         )}
                                     </CardContent>

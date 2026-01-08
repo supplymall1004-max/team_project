@@ -3,20 +3,20 @@
  * @description 스토리 & 학습 상세 페이지
  *
  * 주요 기능:
- * 1. 마카의 음식 동화, 음식 스토리 통합
+ * 1. 장고의 음식 동화, 음식 스토리 통합
  * 2. 탭 네비게이션으로 각 섹션 전환
  * 3. 필터 및 정렬 기능
  */
 
-'use client';
-
 import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Section } from '@/components/section';
-import { StorybookSection } from '@/components/storybook/storybook-section';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { StoriesTabsClient } from './stories-tabs-client';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { StorybookSection } from '@/components/storybook/storybook-section';
+import { FolktaleSectionServer } from '@/components/folktale-stories/folktale-section-server';
+import { ReversalSectionServer } from '@/components/reversal-stories/reversal-section-server';
+import { EarthSectionServer } from '@/components/earth-stories/earth-section-server';
 
 function SectionSkeleton() {
   return (
@@ -26,10 +26,7 @@ function SectionSkeleton() {
   );
 }
 
-function StoriesLearningContent() {
-  const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'all';
-
+export default function StoriesLearningPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Section className="pt-8">
@@ -40,39 +37,66 @@ function StoriesLearningContent() {
           </p>
         </div>
 
-        <Tabs defaultValue={initialTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="all">전체</TabsTrigger>
-            <TabsTrigger value="storybook">마카의 음식 동화</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all" className="space-y-8">
-            {/* 마카의 음식 동화 */}
+        <StoriesTabsClient
+          allContent={
+            <>
+              {/* 장고의 음식 동화 */}
+              <ErrorBoundary>
+                <Suspense fallback={<SectionSkeleton />}>
+                  <StorybookSection />
+                </Suspense>
+              </ErrorBoundary>
+              {/* 장고의 전래동화 */}
+              <ErrorBoundary>
+                <Suspense fallback={<SectionSkeleton />}>
+                  <FolktaleSectionServer />
+                </Suspense>
+              </ErrorBoundary>
+              {/* 장고의 반전동화 */}
+              <ErrorBoundary>
+                <Suspense fallback={<SectionSkeleton />}>
+                  <ReversalSectionServer />
+                </Suspense>
+              </ErrorBoundary>
+              {/* 장고의 지구동화 */}
+              <ErrorBoundary>
+                <Suspense fallback={<SectionSkeleton />}>
+                  <EarthSectionServer />
+                </Suspense>
+              </ErrorBoundary>
+            </>
+          }
+          storybookContent={
             <ErrorBoundary>
               <Suspense fallback={<SectionSkeleton />}>
                 <StorybookSection />
               </Suspense>
             </ErrorBoundary>
-          </TabsContent>
-
-          <TabsContent value="storybook">
+          }
+          folktaleContent={
             <ErrorBoundary>
               <Suspense fallback={<SectionSkeleton />}>
-                <StorybookSection />
+                <FolktaleSectionServer />
               </Suspense>
             </ErrorBoundary>
-          </TabsContent>
-        </Tabs>
+          }
+          reversalContent={
+            <ErrorBoundary>
+              <Suspense fallback={<SectionSkeleton />}>
+                <ReversalSectionServer />
+              </Suspense>
+            </ErrorBoundary>
+          }
+          earthContent={
+            <ErrorBoundary>
+              <Suspense fallback={<SectionSkeleton />}>
+                <EarthSectionServer />
+              </Suspense>
+            </ErrorBoundary>
+          }
+        />
       </Section>
     </div>
-  );
-}
-
-export default function StoriesLearningPage() {
-  return (
-    <Suspense fallback={<SectionSkeleton />}>
-      <StoriesLearningContent />
-    </Suspense>
   );
 }
 

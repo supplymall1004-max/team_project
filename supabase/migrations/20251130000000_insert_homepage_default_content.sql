@@ -36,7 +36,7 @@ ON CONFLICT (slug, locale) DO NOTHING;
 -- 빠른 시작 카드
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by)
 VALUES
-  ('quick-start-legacy', 'ko', '{"title": "🎬 레거시 아카이브", "description": "명인 인터뷰와 전통 조리법을 고화질로 감상하세요.", "href": "/legacy"}'::jsonb, 'system')
+  ('quick-start-legacy', 'ko', '{"title": "🎬 장고", "description": "명인 인터뷰와 전통 조리법을 고화질로 감상하세요.", "href": "/legacy"}'::jsonb, 'system')
 ON CONFLICT (slug, locale) DO NOTHING;
 
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by)
@@ -100,7 +100,7 @@ ON CONFLICT (slug, locale) DO NOTHING;
 -- Legacy Section
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by)
 VALUES
-  ('legacy-section-title', 'ko', '{"title": "레거시 아카이브"}'::jsonb, 'system')
+  ('legacy-section-title', 'ko', '{"title": "장고"}'::jsonb, 'system')
 ON CONFLICT (slug, locale) DO NOTHING;
 
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by)

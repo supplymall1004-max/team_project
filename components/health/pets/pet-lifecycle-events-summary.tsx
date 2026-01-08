@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { PetProfile } from '@/types/pet';
-import { PetLifecycleEvent, getEventTypeLabel } from '@/lib/health/pet-lifecycle-events';
+import { PetLifecycleEvent, getEventTypeLabel, generateAllPetLifecycleEvents, PetLifecycleEventWithDate } from '@/lib/health/pet-lifecycle-events';
 import { Calendar, AlertCircle, Clock, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -24,6 +24,7 @@ interface PetEventWithPet {
   event: PetLifecycleEvent;
   eventDate: Date;
   daysUntil: number;
+  isPast: boolean;
 }
 
 interface PetLifecycleEventsSummaryProps {
@@ -43,44 +44,33 @@ export function PetLifecycleEventsSummary({ pets }: PetLifecycleEventsSummaryPro
       setIsLoading(true);
       const allEvents: PetEventWithPet[] = [];
 
-      // 각 반려동물의 이벤트 조회
+      // 각 반려동물의 전체 생애 이벤트 생성
       for (const pet of pets) {
         try {
-          const response = await fetch(`/api/health/pets/${pet.id}/lifecycle-events`);
-          if (!response.ok) continue;
+          // 필수 정보 확인
+          if (!pet.birth_date || !pet.pet_type) {
+            console.warn(`반려동물 ${pet.name}의 생년월일 또는 종류 정보가 없습니다.`);
+            continue;
+          }
 
-          const data = await response.json();
-          const petEvents: PetLifecycleEvent[] = data.events || [];
+          // 전체 생애 이벤트 생성 (반복 이벤트 포함)
+          const petAllEvents = generateAllPetLifecycleEvents(pet);
 
-          // 이벤트 예정일 계산 및 정렬
-          for (const event of petEvents) {
-            const birthDate = new Date(pet.birth_date);
-            let eventDate: Date;
-
-            if (event.target_age_months) {
-              eventDate = new Date(birthDate);
-              eventDate.setMonth(eventDate.getMonth() + event.target_age_months);
-            } else if (event.target_age_years) {
-              eventDate = new Date(birthDate);
-              eventDate.setFullYear(eventDate.getFullYear() + event.target_age_years);
-            } else {
-              continue;
-            }
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            eventDate.setHours(0, 0, 0, 0);
-            const daysUntil = Math.floor((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
+          // 이벤트를 PetEventWithPet 형식으로 변환
+          for (const eventWithDate of petAllEvents) {
+            // PetLifecycleEvent 부분만 추출 (eventDate 등 추가 필드 제외)
+            const { eventDate, eventAgeMonths, eventAgeYears, isPast, daysUntil, ...eventBase } = eventWithDate;
             allEvents.push({
               pet,
-              event,
+              event: eventBase as PetLifecycleEvent,
               eventDate,
               daysUntil,
+              isPast,
             });
           }
         } catch (error) {
-          console.error(`반려동물 ${pet.name}의 이벤트 조회 실패:`, error);
+          console.error(`반려동물 ${pet.name}의 이벤트 생성 실패:`, error);
+          // 에러가 발생해도 다른 반려동물의 이벤트는 계속 처리
         }
       }
 
@@ -150,30 +140,17 @@ export function PetLifecycleEventsSummary({ pets }: PetLifecycleEventsSummaryPro
     );
   }
 
-  if (events.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>생애주기별 건강 이벤트 요약</CardTitle>
-          <CardDescription>
-            반려동물들의 건강 이벤트를 한눈에 확인하세요
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-muted-foreground">
-              현재 예정된 건강 이벤트가 없습니다.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  // 과거 이벤트와 미래 이벤트 분리
+  const pastEvents = events.filter(e => e.daysUntil < 0);
+  const futureEvents = events.filter(e => e.daysUntil >= 0);
+  
   // 우선순위별로 그룹화
-  const urgentEvents = events.filter(e => e.daysUntil <= 30 && e.event.priority === 'high');
-  const upcomingEvents = events.filter(e => e.daysUntil > 30 || e.event.priority !== 'high');
+  const urgentEvents = futureEvents.filter(e => e.daysUntil <= 30 && e.event.priority === 'high');
+  const upcomingEvents = futureEvents.filter(e => e.daysUntil > 30 || e.event.priority !== 'high');
+
+  // 이벤트가 없을 때도 최근 과거 이벤트와 가까운 미래 이벤트 표시
+  const recentPastEvents = pastEvents.slice(-3).reverse(); // 최근 3개
+  const nearFutureEvents = futureEvents.slice(0, 1); // 가까운 1개
 
   return (
     <Card>
@@ -208,15 +185,36 @@ export function PetLifecycleEventsSummary({ pets }: PetLifecycleEventsSummaryPro
           </div>
         )}
 
+        {/* 최근 과거 이벤트 */}
+        {recentPastEvents.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-gray-600">
+              <Calendar className="w-4 h-4" />
+              최근 지난 이벤트 ({recentPastEvents.length}건)
+            </h3>
+            <div className="space-y-3">
+              {recentPastEvents.map((item, index) => (
+                <EventItem
+                  key={`${item.pet.id}-${item.event.event_code}-past-${index}`}
+                  item={item}
+                  getPriorityColor={getPriorityColor}
+                  getPriorityBadgeColor={getPriorityBadgeColor}
+                  getDaysUntilText={getDaysUntilText}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 예정된 이벤트 */}
-        {upcomingEvents.length > 0 && (
+        {nearFutureEvents.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              예정된 이벤트 ({upcomingEvents.length}건)
+              예정된 이벤트 ({nearFutureEvents.length}건)
             </h3>
             <div className="space-y-3">
-              {upcomingEvents.slice(0, 10).map((item, index) => (
+              {nearFutureEvents.map((item, index) => (
                 <EventItem
                   key={`${item.pet.id}-${item.event.event_code}-${index}`}
                   item={item}
@@ -226,11 +224,28 @@ export function PetLifecycleEventsSummary({ pets }: PetLifecycleEventsSummaryPro
                 />
               ))}
             </div>
-            {upcomingEvents.length > 10 && (
-              <p className="text-xs text-muted-foreground mt-3 text-center">
-                외 {upcomingEvents.length - 10}건의 이벤트가 더 있습니다
-              </p>
+            {futureEvents.length > 5 && (
+              <div className="mt-4 text-center">
+                <Link href="/health/pets/events">
+                  <Button variant="outline" size="sm">
+                    전체 이벤트 보기 ({futureEvents.length + pastEvents.length}건)
+                  </Button>
+                </Link>
+              </div>
             )}
+          </div>
+        )}
+
+        {/* 이벤트가 없을 때 */}
+        {events.length === 0 && (
+          <div className="text-center py-8">
+            <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-muted-foreground mb-4">
+              현재 예정된 건강 이벤트가 없습니다.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              반려동물의 생애주기에 따라 이벤트가 자동으로 생성됩니다.
+            </p>
           </div>
         )}
       </CardContent>
@@ -247,11 +262,12 @@ interface EventItemProps {
 
 function EventItem({ item, getPriorityColor, getPriorityBadgeColor, getDaysUntilText }: EventItemProps) {
   return (
-    <Link href={`/health/pets/${item.pet.id}`}>
+    <Link href={`/health/pets/events?petId=${item.pet.id}`}>
       <div
         className={cn(
           "p-4 rounded-lg border-2 transition-all hover:shadow-md cursor-pointer",
-          getPriorityColor(item.event.priority)
+          getPriorityColor(item.event.priority),
+          item.daysUntil < 0 && "opacity-60"
         )}
       >
         <div className="flex items-start justify-between mb-2">

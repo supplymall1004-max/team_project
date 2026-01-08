@@ -10,7 +10,7 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight } from "lucide-react";
 import { DietCard } from "./diet-card";
-import { FamilyDietHeaderTabs, YesterdayFamilyTabs } from "@/components/health/yesterday-family-tabs";
+import { YesterdayFamilyTabs } from "@/components/health/yesterday-family-tabs";
 import type { DailyDietPlan, NutritionInfo } from "@/types/health";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -466,52 +466,30 @@ export function DietSectionClient() {
         </div>
 
         {familySummary && (
-            <PremiumGate
-              isPremium={isPremium}
-              variant="card"
-              message="가족 맞춤 건강 식단은 프리미엄 전용 기능입니다. 가족 구성원별 맞춤 식단을 생성하고 통합 식단을 관리하세요!"
-            >
-              <FamilyDietHeaderTabs
-                members={familySummary.memberTabs}
-                activeTab={activeFamilyTab}
-                onTabChange={handleFamilyTabChange}
-                onToggleMember={handleFamilyToggle}
-                includedMemberIds={includedMemberIds}
-                perServingTotals={familySummary.nutrientTotals}
-                scaledTotals={scaledSummaryTotals}
-                planExists={familySummary.planExists}
-                isLoading={familySummaryLoading}
-                togglingMemberIds={Array.from(togglingMemberIds)}
-              />
-            </PremiumGate>
-          )}
+          <PremiumGate
+            isPremium={isPremium}
+            variant="card"
+            message="가족 맞춤 건강 식단은 프리미엄 전용 기능입니다. 가족 구성원별 맞춤 식단을 생성하고 통합 식단을 관리하세요!"
+          >
+            <YesterdayFamilyTabs
+              members={familySummary.memberTabs}
+              activeTab={activeFamilyTab}
+              onTabChange={handleFamilyTabChange}
+              onToggleMember={handleFamilyToggle}
+              includedMemberIds={includedMemberIds}
+              perServingTotals={familySummary.nutrientTotals}
+              scaledTotals={scaledSummaryTotals}
+              exclusionNotes={familySummary.exclusionNotes}
+              planExists={familySummary.planExists}
+              isLoading={familySummaryLoading}
+              togglingMemberIds={Array.from(togglingMemberIds)}
+            />
+          </PremiumGate>
+        )}
       </div>
 
       {/* 식단 카드 미리보기 (아침/점심/저녁/간식) */}
-      {familySummary && (
-        <PremiumGate
-          isPremium={isPremium}
-          variant="card"
-          message="가족 맞춤 건강 식단은 프리미엄 전용 기능입니다. 가족 구성원별 맞춤 식단을 확인하세요!"
-        >
-          <YesterdayFamilyTabs
-            members={familySummary.memberTabs}
-            activeTab={activeFamilyTab}
-            onTabChange={handleFamilyTabChange}
-            onToggleMember={handleFamilyToggle}
-            includedMemberIds={includedMemberIds}
-            perServingTotals={familySummary.nutrientTotals}
-            scaledTotals={scaledSummaryTotals}
-            exclusionNotes={familySummary.exclusionNotes}
-            planExists={familySummary.planExists}
-            isLoading={familySummaryLoading}
-            togglingMemberIds={Array.from(togglingMemberIds)}
-          />
-        </PremiumGate>
-      )}
-
-      {/* 식단 카드 미리보기 (아침/점심/저녁/간식) */}
-      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-4">
         <DietCard mealType="breakfast" dietPlan={dietPlan.breakfast} date={summaryDate ?? undefined} />
         <DietCard mealType="lunch" dietPlan={dietPlan.lunch} date={summaryDate ?? undefined} />
         <DietCard mealType="dinner" dietPlan={dietPlan.dinner} date={summaryDate ?? undefined} />

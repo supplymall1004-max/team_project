@@ -75,31 +75,31 @@ export function RecipeQuickLink({ recipes, onRecipeClick }: RecipeQuickLinkProps
 
   return (
     <Card className="border border-slate-200 shadow-md hover:shadow-lg transition-shadow">
-      <CardHeader className="border-b border-slate-200 bg-gradient-to-r from-amber-50/50 to-orange-50/50">
-        <CardTitle className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-          <ChefHat className="h-5 w-5 text-amber-600" />
-          식약처 레시피 바로가기
+      <CardHeader className="border-b border-slate-200 bg-gradient-to-r from-amber-50/50 to-orange-50/50 px-4 sm:px-6 py-4">
+        <CardTitle className="text-lg sm:text-xl font-semibold text-slate-900 flex items-center gap-2">
+          <ChefHat className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 shrink-0" />
+          <span>식약처 레시피 바로가기</span>
         </CardTitle>
-        <CardDescription className="text-slate-600">
+        <CardDescription className="text-xs sm:text-sm text-slate-600 mt-1">
           이 식단에 포함된 각 반찬, 국, 찌개의 상세 레시피를 확인하세요
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
-        <div className="space-y-5">
+      <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 pb-4 sm:pb-6">
+        <div className="space-y-4 sm:space-y-5">
           {Object.entries(recipesByCategory).map(([category, categoryRecipes]) => {
             const Icon = CATEGORY_ICONS[category] || ChefHat;
             const colors = CATEGORY_COLORS[category] || CATEGORY_COLORS['기타'];
 
             return (
               <div key={category} className="space-y-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1.5 rounded bg-white">
-                    <Icon className={`h-4 w-4 ${colors.text}`} />
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <div className="p-1.5 rounded bg-white shrink-0">
+                    <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${colors.text}`} />
                   </div>
-                  <span className={`text-sm font-semibold ${colors.text}`}>
+                  <span className={`text-xs sm:text-sm font-semibold ${colors.text}`}>
                     {category}
                   </span>
-                  <Badge variant="outline" className="ml-2 text-xs bg-white">
+                  <Badge variant="outline" className="ml-2 text-xs bg-white shrink-0">
                     {categoryRecipes.length}개
                   </Badge>
                 </div>
@@ -109,10 +109,10 @@ export function RecipeQuickLink({ recipes, onRecipeClick }: RecipeQuickLinkProps
                       key={recipe.rcpSeq}
                       variant="outline"
                       size="sm"
-                      className={`${colors.bg} ${colors.hover} ${colors.border} ${colors.text} font-medium transition-all shadow-sm hover:shadow`}
+                      className={`${colors.bg} ${colors.hover} ${colors.border} ${colors.text} font-medium transition-all shadow-sm hover:shadow text-xs sm:text-sm min-h-[36px] sm:min-h-[32px] px-3 sm:px-4`}
                       onClick={() => onRecipeClick(recipe.rcpSeq)}
                     >
-                      {recipe.title}
+                      <span className="line-clamp-1">{recipe.title}</span>
                     </Button>
                   ))}
                 </div>

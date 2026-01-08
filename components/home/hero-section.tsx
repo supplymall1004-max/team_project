@@ -414,7 +414,7 @@ export function HeroSection({
           <div 
             className="absolute inset-0"
             style={{
-              backgroundColor: backgroundColor || '#667eea',
+              backgroundColor: backgroundColor || '#ffffff',
             }}
           />
         );

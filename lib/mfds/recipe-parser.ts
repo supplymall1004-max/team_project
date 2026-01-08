@@ -180,7 +180,6 @@ function parseCookingSteps(content: string): MfdsRecipeStep[] {
     }
   }
 
-  console.log(`[RecipeParser] 조리 단계 파싱 완료: ${steps.length}개`);
   return steps;
 }
 
@@ -369,37 +368,36 @@ export function parseRecipeMarkdown(
   content: string,
   rcpSeq: string
 ): MfdsRecipe | null {
-  console.group(`[RecipeParser] 레시피 파싱 시작: ${rcpSeq}`);
+  // 로그를 최소화하여 성능 개선 (개발 환경에서만 상세 로그 출력)
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  if (isDevelopment) {
+    console.groupCollapsed(`[RecipeParser] 레시피 파싱: ${rcpSeq}`);
+  }
 
   // Frontmatter 파싱
   const frontmatter = parseFrontmatter(content);
   if (!frontmatter) {
-    console.error("[RecipeParser] Frontmatter 파싱 실패");
-    console.groupEnd();
+    if (isDevelopment) {
+      console.error("[RecipeParser] Frontmatter 파싱 실패");
+      console.groupEnd();
+    }
     return null;
   }
-  console.log("[RecipeParser] Frontmatter 파싱 완료:", frontmatter);
 
   // 제목과 설명 추출
   const { title, description } = parseTitleAndDescription(content);
-  console.log("[RecipeParser] 제목:", title);
-  console.log("[RecipeParser] 설명:", description);
 
   // 재료 추출
   const ingredients = parseIngredients(content);
-  console.log("[RecipeParser] 재료 개수:", ingredients.length);
 
   // 조리 단계 추출
   const cookingSteps = parseCookingSteps(content);
-  console.log("[RecipeParser] 조리 단계 개수:", cookingSteps.length);
 
   // 영양 정보 추출
   const nutrition = parseNutritionInfo(content);
-  console.log("[RecipeParser] 영양 정보:", nutrition);
 
   // 이미지 URL 추출
   const imageData = parseImageUrls(content, rcpSeq);
-  console.log("[RecipeParser] 이미지 정보:", imageData);
 
   // 조리 단계에 이미지 정보 병합
   // 이미지 정보의 steps와 조리 단계를 병합
@@ -426,8 +424,6 @@ export function parseRecipeMarkdown(
   // 단계 번호로 정렬
   stepsWithImages.sort((a, b) => a.step - b.step);
 
-  console.log(`[RecipeParser] 조리 단계 병합 완료: ${stepsWithImages.length}개`);
-
   // 이미지 정보에서 steps 제거
   const { steps: _, ...images } = imageData;
 
@@ -442,8 +438,9 @@ export function parseRecipeMarkdown(
     rawContent: content,
   };
 
-  console.log("[RecipeParser] 레시피 파싱 완료");
-  console.groupEnd();
+  if (isDevelopment) {
+    console.groupEnd();
+  }
 
   return recipe;
 }

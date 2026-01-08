@@ -308,7 +308,7 @@ export function SubscriptionManager() {
 
         {/* 취소 모달 */}
         {showCancelModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 999999 }}>
             <div className="bg-white rounded-lg max-w-md w-full p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">
                 구독을 취소하시겠습니까?

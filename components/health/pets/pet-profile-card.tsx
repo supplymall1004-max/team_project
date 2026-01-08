@@ -8,7 +8,6 @@
 
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,8 +34,7 @@ export function PetProfileCard({ pet, nextVaccineDate }: PetProfileCardProps) {
     : null;
 
   return (
-    <Link href={`/health/pets/${pet.id}`}>
-      <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 cursor-pointer h-full">
+    <Card className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 cursor-pointer h-full">
         <CardContent className="p-4">
           {/* 프로필 이미지 및 기본 정보 */}
           <div className="flex items-start gap-4 mb-3">
@@ -120,7 +118,6 @@ export function PetProfileCard({ pet, nextVaccineDate }: PetProfileCardProps) {
           )}
         </CardContent>
       </Card>
-    </Link>
   );
 }
 

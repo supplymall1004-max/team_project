@@ -16,7 +16,7 @@ import { LoadingSpinner } from "@/components/loading-spinner";
 
 export const metadata = {
   title: "검색 결과 | 맛의 아카이브",
-  description: "레시피와 레거시 아카이브를 통합 검색합니다",
+  description: "레시피와 장고를 통합 검색합니다",
 };
 
 interface SearchPageProps {

@@ -91,19 +91,29 @@ function DietCardContent({
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   useEffect(() => {
+    console.log(`[DietCard] ${MEAL_TYPE_LABELS[mealType]} 이미지 URL:`, imageFromPlan);
     setUseDefaultImage(false);
     setImageError(false);
-  }, [imageFromPlan]);
+  }, [imageFromPlan, mealType]);
 
   const displayedImageUrl = useDefaultImage
     ? DEFAULT_SOUP_IMAGE
-    : imageFromPlan;
+    : (imageFromPlan || DEFAULT_SOUP_IMAGE);
 
-  const handleImageError = () => {
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.target as HTMLImageElement;
+    console.error(`[DietCard] ${MEAL_TYPE_LABELS[mealType]} 이미지 로딩 실패:`, {
+      url: displayedImageUrl,
+      src: target.src,
+      useDefaultImage,
+    });
+    
     if (!useDefaultImage) {
+      console.log(`[DietCard] 기본 이미지로 폴백 시도:`, DEFAULT_SOUP_IMAGE);
       setUseDefaultImage(true);
       return;
     }
+    console.error(`[DietCard] 기본 이미지도 로딩 실패, 에러 상태로 전환`);
     setImageError(true);
   };
 
@@ -159,19 +169,19 @@ function DietCardContent({
     <>
       <div
         className={cn(
-          "group relative rounded-2xl border border-border/60 bg-white overflow-hidden shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg",
+          "group relative rounded-xl sm:rounded-2xl border border-border/60 bg-white overflow-hidden shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg",
           className,
         )}
       >
         {/* 즐겨찾기 버튼 (우측 상단) */}
         <div
-          className="absolute top-3 right-3 z-20"
+          className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-20"
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
           }}
         >
-          <div className="bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg border border-gray-200/50">
+          <div className="bg-white/90 backdrop-blur-sm rounded-full p-0.5 sm:p-1 shadow-lg border border-gray-200/50">
             <FavoriteButton
               recipeId={recipe.id}
               recipeTitle={recipeTitle}
@@ -186,19 +196,27 @@ function DietCardContent({
         {/* 썸네일 */}
         <Link href={href} className="block">
           <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
-          {!imageError ? (
+          {!imageError && displayedImageUrl ? (
             <img
               src={displayedImageUrl}
               alt={`${MEAL_TYPE_LABELS[mealType]} 대표 국/찌개 이미지`}
               className="w-full h-full object-contain transition-all duration-300 group-hover:scale-105"
               loading="lazy"
               onError={handleImageError}
+              onLoad={() => {
+                console.log(`[DietCard] ${MEAL_TYPE_LABELS[mealType]} 이미지 로딩 성공:`, displayedImageUrl);
+              }}
             />
           ) : (
             <div className="flex h-full items-center justify-center bg-gradient-to-br from-emerald-50 to-emerald-100">
               <div className="text-center">
                 <ImageOff className="h-8 w-8 text-emerald-300 mx-auto mb-2" />
                 <p className="text-xs text-emerald-600">이미지 로딩 실패</p>
+                {displayedImageUrl && (
+                  <p className="text-xs text-emerald-500 mt-1 break-all px-2">
+                    {displayedImageUrl}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -213,29 +231,29 @@ function DietCardContent({
 
       {/* 카드 내용 */}
       <Link href={href} className="block">
-        <div className="p-4 space-y-3">
+        <div className="p-2 sm:p-2.5 space-y-1 sm:space-y-1.5">
           {/* 식사 유형 및 구성품 목록 */}
           <div>
-            <p className="text-sm font-semibold text-emerald-600">
+            <p className="text-[10px] sm:text-xs font-semibold text-emerald-600">
               {MEAL_TYPE_LABELS[mealType]}
             </p>
             {dietPlan.compositionSummary &&
             dietPlan.compositionSummary.length > 0 ? (
-              <div className="mt-1">
-                <p className="font-semibold text-base text-gray-900 group-hover:text-emerald-600 transition-colors leading-relaxed">
+              <div className="mt-0.5">
+                <p className="font-semibold text-xs sm:text-sm text-gray-900 group-hover:text-emerald-600 transition-colors leading-tight line-clamp-2">
                   {dietPlan.compositionSummary.join(", ")}
                 </p>
               </div>
             ) : (
               // compositionSummary가 없을 경우 기존 방식 (레거시 호환)
-              <h3 className="font-semibold text-lg line-clamp-2 group-hover:text-emerald-600 transition-colors mt-1">
+              <h3 className="font-semibold text-sm sm:text-base line-clamp-2 group-hover:text-emerald-600 transition-colors mt-0.5">
                 {recipe.title}
               </h3>
             )}
           </div>
 
           {/* 영양소 정보 */}
-          <div className="space-y-1 text-sm">
+          <div className="space-y-0.5 text-[10px] sm:text-xs">
             {typeof dietPlan.calories === "number" &&
               Number.isFinite(dietPlan.calories) && (
                 <div className="flex justify-between">
@@ -245,7 +263,7 @@ function DietCardContent({
                   </span>
                 </div>
               )}
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between text-xs text-muted-foreground gap-2">
               {typeof dietPlan.carbohydrates === "number" &&
                 Number.isFinite(dietPlan.carbohydrates) && (
                   <span>탄 {dietPlan.carbohydrates.toFixed(1)}g</span>
@@ -289,9 +307,10 @@ function DietCardContent({
  * 식단 카드 대표 이미지 결정 규칙 (사용자 요청 반영)
  *
  * 우선순위:
- * 1순위 - 국 또는 찌개 음식사진
- * 2순위 - 반찬사진 1,2,3
- * 3순위 - 밥 사진
+ * 1순위 - 레시피 사진 (로컬 이미지)
+ * 2순위 - 식약처 API 이미지 (recipe.id가 foodsafety-로 시작하는 경우)
+ * 3순위 - compositionSummary 기반 이미지 (국/찌개 > 반찬 > 밥)
+ * 4순위 - 기본 이미지
  *
  * - **간식(제철 과일)**: fruit-mapper의 imageUrl 사용 (사과 이미지 오류 방지)
  */
@@ -314,11 +333,33 @@ function getRepresentativeImageUrl(mealType: MealType, dietPlan: DietPlan): stri
     return getRecipeImageUrlEnhanced(title, recipe?.thumbnail_url ?? null);
   }
 
-  // 아침/점심/저녁: compositionSummary에서 우선순위에 따라 이미지 찾기
+  // 1순위: 레시피 사진 (로컬 이미지) - 레시피 제목 기반
+  if (recipe?.title) {
+    const localImage = getRecipeImageUrlEnhanced(recipe.title, null);
+    // SVG 아이콘이 아닌 실제 이미지면 사용
+    if (localImage && 
+        localImage !== "/images/food/soup.svg" && 
+        localImage !== "/images/food/side.svg" &&
+        localImage !== "/images/food/rice.svg" &&
+        !localImage.endsWith(".svg")) {
+      console.log(`[DietCard] 1순위: 레시피 사진 사용 - ${recipe.title} -> ${localImage}`);
+      return localImage;
+    }
+  }
+
+  // 2순위: 식약처 API 이미지 (recipe.id가 foodsafety-로 시작하는 경우)
+  if (recipe?.id && recipe.id.startsWith("foodsafety-")) {
+    const rcpSeq = recipe.id.replace("foodsafety-", "");
+    const mfdsImageUrl = `/api/mfds-recipes/images/${rcpSeq}_main.jpg`;
+    console.log(`[DietCard] 2순위: 식약처 API 이미지 사용 - ${rcpSeq} -> ${mfdsImageUrl}`);
+    return mfdsImageUrl;
+  }
+
+  // 3순위: compositionSummary 기반 이미지 찾기
   const safeSummary = dietPlan.compositionSummary?.map((item) => item.trim()).filter(Boolean) ?? [];
   
   if (safeSummary.length === 0) {
-    // compositionSummary가 없으면 레시피 제목 기반
+    // compositionSummary가 없으면 레시피 제목 기반 (이미 1순위에서 시도했지만 SVG였을 경우)
     const fallback = getRecipeImageUrlEnhanced(recipe?.title ?? "", recipe?.thumbnail_url ?? null);
     if (fallback === "/images/food/soup.svg") {
       return DEFAULT_SOUP_IMAGE;
@@ -389,11 +430,11 @@ function getRepresentativeImageUrl(mealType: MealType, dietPlan: DietPlan): stri
     }
   }
 
-  // 최종 폴백: 레시피 제목 기반
-  console.log(`[DietCard] 폴백: 레시피 제목 기반 이미지 사용 - ${recipe?.title ?? "없음"}`);
+  // 최종 폴백: 레시피 제목 기반 또는 기본 이미지
+  console.log(`[DietCard] 4순위: 폴백 이미지 사용 - ${recipe?.title ?? "없음"}`);
   const fallback = getRecipeImageUrlEnhanced(recipe?.title ?? "", recipe?.thumbnail_url ?? null);
-  if (fallback === "/images/food/soup.svg") {
+  if (fallback === "/images/food/soup.svg" || fallback === "/images/food/side.svg" || fallback === "/images/food/rice.svg") {
     return DEFAULT_SOUP_IMAGE;
   }
-  return fallback;
+  return fallback || DEFAULT_SOUP_IMAGE;
 }

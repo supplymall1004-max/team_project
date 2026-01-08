@@ -174,22 +174,24 @@ export function SpecialVideoCard({ video }: SpecialVideoCardProps) {
         </button>
       </div>
 
-      <Dialog open={isPlaying} onOpenChange={handleDialogOpenChange}>
-        <DialogContent className="max-w-sm p-0">
-          <div className="aspect-[9/40]" ref={videoContainerRef}>
-            <iframe
-              src={`${video.embedUrl}?autoplay=1&rel=0`}
-              title={video.title}
-              className="h-full w-full rounded-lg"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              onLoad={() =>
-                console.log("[SpecialVideoCard] 유튜브 플레이어 로드 완료:", video.title)
-              }
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+      {isPlaying && (
+        <Dialog open={isPlaying} onOpenChange={handleDialogOpenChange}>
+          <DialogContent className="max-w-sm p-0">
+            <div className="aspect-[9/40]" ref={videoContainerRef}>
+              <iframe
+                src={`${video.embedUrl}?autoplay=1&rel=0`}
+                title={video.title}
+                className="h-full w-full rounded-lg"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                onLoad={() =>
+                  console.log("[SpecialVideoCard] 유튜브 플레이어 로드 완료:", video.title)
+                }
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* 카드 내용 */}
       <div className="p-2">

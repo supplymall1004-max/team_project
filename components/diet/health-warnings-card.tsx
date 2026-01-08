@@ -189,16 +189,16 @@ export function HealthWarningsCard({
 
   return (
     <Card className="border border-slate-200 shadow-md hover:shadow-lg transition-shadow">
-      <CardHeader className="border-b border-slate-200 bg-gradient-to-r from-amber-50/50 to-orange-50/50">
-        <CardTitle className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-amber-600" />
-          주의사항
+      <CardHeader className="border-b border-slate-200 bg-gradient-to-r from-amber-50/50 to-orange-50/50 px-4 sm:px-6 py-4">
+        <CardTitle className="text-lg sm:text-xl font-semibold text-slate-900 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 shrink-0" />
+          <span>주의사항</span>
         </CardTitle>
-        <CardDescription className="text-slate-600">
+        <CardDescription className="text-xs sm:text-sm text-slate-600 mt-1">
           현재 건강 상태를 고려한 식단 섭취 시 주의사항입니다
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3 pt-6">
+      <CardContent className="space-y-2 sm:space-y-3 pt-4 sm:pt-6 px-4 sm:px-6 pb-4 sm:pb-6">
         {highSeverityWarnings.length > 0 && (
           <div className="space-y-2">
             {highSeverityWarnings.map((warning, index) => (

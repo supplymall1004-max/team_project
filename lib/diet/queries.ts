@@ -927,12 +927,13 @@ export async function generateAndSaveDietPlan(
           );
         } else {
           saveSuccess = true;
+          const insertedCount = insertedData?.length || plansToInsert.length;
           console.log(
             "✅ 식단 저장 완료:",
-            insertedData?.length || plansToInsert.length,
+            insertedCount,
             "개",
           );
-          if (insertedData) {
+          if (insertedData && insertedData.length > 0) {
             console.log(
               "✅ 저장된 레코드 상세:",
               insertedData.map((r) => ({
@@ -945,6 +946,31 @@ export async function generateAndSaveDietPlan(
                 family_member_id: r.family_member_id,
               })),
             );
+            
+            // 저장 후 즉시 검증: 저장된 데이터가 실제로 조회 가능한지 확인
+            console.log("🔍 저장 후 검증: 저장된 데이터 조회 테스트");
+            const { data: verifyData, error: verifyError } = await supabase
+              .from("diet_plans")
+              .select("id, plan_date, meal_type, recipe_title")
+              .eq("user_id", userId)
+              .eq("plan_date", date)
+              .is("family_member_id", null)
+              .eq("is_unified", false)
+              .in("id", insertedData.map(r => r.id));
+            
+            if (verifyError) {
+              console.error("⚠️ 저장 후 검증 실패:", verifyError);
+            } else {
+              console.log("✅ 저장 후 검증 성공:", verifyData?.length || 0, "개 레코드 확인됨");
+              if (verifyData && verifyData.length !== insertedCount) {
+                console.warn("⚠️ 저장된 레코드 수와 검증된 레코드 수가 일치하지 않습니다:", {
+                  inserted: insertedCount,
+                  verified: verifyData.length,
+                });
+              }
+            }
+          } else {
+            console.warn("⚠️ 저장은 성공했지만 insertedData가 비어있습니다. 저장된 데이터 확인 필요.");
           }
         }
       } catch (saveError) {
@@ -1241,20 +1267,58 @@ export async function getDailyDietPlan(
   try {
     const supabase = getServiceRoleClient();
 
+    // 먼저 모든 데이터 조회 (디버깅용)
+    const { data: allData, error: allError } = await supabase
+      .from("diet_plans")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("plan_date", date);
+    
+    console.log("🔍 [getDailyDietPlan] 전체 조회 결과:", {
+      count: allData?.length || 0,
+      data: allData?.map(p => ({
+        id: p.id,
+        meal_type: p.meal_type,
+        is_unified: p.is_unified,
+        family_member_id: p.family_member_id,
+        recipe_title: p.recipe_title,
+      })),
+    });
+
+    // 필터링된 쿼리
+    // 주의: is_unified가 false인 개인 식단만 조회
+    // family_member_id가 null인 경우만 조회 (개인 식단)
     const { data, error } = await supabase
       .from("diet_plans")
       .select(
         `
         *,
         composition_summary,
-        recipe:recipes(id, title, thumbnail_url, slug)
+        recipe:recipes!left(id, title, thumbnail_url, slug)
         `,
       )
       .eq("user_id", userId)
       .eq("plan_date", date)
       .is("family_member_id", null) // 개인 식단만 조회
-      .eq("is_unified", false) // 통합 식단 제외
+      .eq("is_unified", false) // 통합 식단 제외 (개인 식단만)
       .order("meal_type", { ascending: true });
+    
+    console.log("🔍 [getDailyDietPlan] 필터링된 쿼리 결과:", {
+      count: data?.length || 0,
+      filters: {
+        user_id: userId,
+        plan_date: date,
+        family_member_id: "null",
+        is_unified: false,
+      },
+      data: data?.map(p => ({
+        id: p.id,
+        meal_type: p.meal_type,
+        is_unified: p.is_unified,
+        family_member_id: p.family_member_id,
+        recipe_title: p.recipe_title,
+      })),
+    });
 
     if (error) {
       console.error("❌ 데이터베이스 조회 오류:", error);
@@ -1263,9 +1327,21 @@ export async function getDailyDietPlan(
     }
 
     console.log("📊 조회된 식단 데이터 개수:", data?.length || 0);
-    console.log("📊 식단 데이터:", data);
-
-    if (!data || data.length === 0) {
+    if (data && data.length > 0) {
+      console.log("📊 식단 데이터 상세:", JSON.stringify(data, null, 2));
+      data.forEach((plan, index) => {
+        console.log(`📋 [${index}] 식단 항목:`, {
+          id: plan.id,
+          meal_type: plan.meal_type,
+          meal_type_type: typeof plan.meal_type,
+          recipe_id: plan.recipe_id,
+          recipe_title: plan.recipe_title,
+          hasRecipe: !!plan.recipe,
+          calories: plan.calories,
+          composition_summary: plan.composition_summary,
+        });
+      });
+    } else {
       console.warn("⚠️ 식단 데이터가 없습니다");
       console.groupEnd();
       return null;
@@ -1298,14 +1374,34 @@ export async function getDailyDietPlan(
     };
 
     data.forEach((plan) => {
-      const mealType = plan.meal_type as MealType;
+      // meal_type을 소문자로 정규화하여 비교 (대소문자 차이 방지)
+      const rawMealType = String(plan.meal_type || '').trim().toLowerCase();
+      const mealType = rawMealType as MealType;
       console.log(`🍽️ 처리 중인 식사 타입: ${mealType}`);
+      console.log(`📋 원본 meal_type 값: "${plan.meal_type}" (타입: ${typeof plan.meal_type})`);
+      console.log(`📋 정규화된 meal_type: "${rawMealType}"`);
+      console.log(`📋 recipe_id: ${plan.recipe_id}, recipe_title: ${plan.recipe_title}`);
+      console.log(`📋 전체 plan 객체:`, {
+        id: plan.id,
+        user_id: plan.user_id,
+        plan_date: plan.plan_date,
+        meal_type: plan.meal_type,
+        recipe_id: plan.recipe_id,
+        recipe_title: plan.recipe_title,
+        calories: plan.calories,
+        protein_g: plan.protein_g,
+        carbs_g: plan.carbs_g,
+        fat_g: plan.fat_g,
+        sodium_mg: plan.sodium_mg,
+        composition_summary: plan.composition_summary,
+        recipe: plan.recipe,
+      });
 
       if (
-        mealType === "breakfast" ||
-        mealType === "lunch" ||
-        mealType === "dinner" ||
-        mealType === "snack"
+        rawMealType === "breakfast" ||
+        rawMealType === "lunch" ||
+        rawMealType === "dinner" ||
+        rawMealType === "snack"
       ) {
         // composition_summary는 JSONB 타입이므로 이미 파싱되어 있음
         let compositionSummary: string[] | undefined;
@@ -1365,25 +1461,34 @@ export async function getDailyDietPlan(
         // recipeData가 없어도 recipe_title이 있으면 계속 진행
         if (!recipeData && !plan.recipe_title) {
           console.warn(`⚠️ ${mealType}에 레시피 정보가 없습니다 (recipe_title도 없음)`);
-          return;
+          console.warn(`⚠️ ${mealType} 식단 건너뜀 - recipeData: ${!!recipeData}, recipe_title: ${plan.recipe_title}`);
+          // recipe_title이 없어도 다른 정보(칼로리, 영양소 등)가 있으면 계속 진행
+          // 하지만 최소한 recipe_title이나 recipe_id가 있어야 함
+          if (!plan.recipe_id && !plan.recipe_title) {
+            console.warn(`⚠️ ${mealType} 식단을 건너뜁니다 - recipe_id와 recipe_title 모두 없음`);
+            return;
+          }
         }
 
-        // recipeData가 없으면 recipe_title로 생성
+        // recipeData가 없으면 recipe_title 또는 recipe_id로 생성
         if (!recipeData) {
+          const fallbackTitle = plan.recipe_title || `식단-${mealType}`;
           recipeData = {
-            id: plan.recipe_id || `fallback-${plan.recipe_title}`,
-            title: plan.recipe_title,
+            id: plan.recipe_id || `fallback-${fallbackTitle}`,
+            title: fallbackTitle,
             thumbnail_url: null,
-            slug: plan.recipe_title.toLowerCase().replace(/\s+/g, "-"),
+            slug: fallbackTitle.toLowerCase().replace(/\s+/g, "-"),
           };
         }
 
         // 데이터베이스 컬럼명을 TypeScript 타입으로 변환
-        dailyPlan[mealType] = {
+        // mealType을 정규화된 값으로 사용하되, dailyPlan의 키는 원본 meal_type 값 사용
+        const planKey = rawMealType as MealType;
+        dailyPlan[planKey] = {
           id: plan.id,
           user_id: plan.user_id,
           plan_date: plan.plan_date,
-          meal_type: mealType,
+          meal_type: planKey,
           recipe_id: plan.recipe_id,
           calories: plan.calories,
           carbohydrates: plan.carbs_g ?? plan.carbohydrates ?? null,
@@ -1395,7 +1500,7 @@ export async function getDailyDietPlan(
           recipe: recipeData as any,
         } as DietPlan;
 
-        console.log(`✅ ${mealType} 식단 설정 완료`);
+        console.log(`✅ ${planKey} 식단 설정 완료 (원본: "${plan.meal_type}")`);
       }
     });
 

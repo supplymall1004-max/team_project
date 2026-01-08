@@ -17,6 +17,7 @@ import type { FamilyDietPlan } from "@/types/recipe";
 import type { FamilyMember } from "@/types/family";
 import { IndividualDietTabs } from "@/components/family/individual-diet-tabs";
 import { UnifiedDietSection } from "@/components/family/unified-diet-section";
+import { FamilyDietComparison } from "@/components/family/family-diet-comparison";
 
 interface FamilyDietTabsProps {
   familyDiet: FamilyDietPlan;
@@ -57,13 +58,17 @@ export function FamilyDietTabs({
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 gap-2">
+        <TabsList className="grid w-full grid-cols-3 gap-2">
           <TabsTrigger value="individual" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             개인별 식단
             <Badge variant="secondary" className="ml-1">
               {(Array.isArray(familyMembers) ? familyMembers.length : 0) + 1}명
             </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="comparison" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            비교 뷰
           </TabsTrigger>
           <TabsTrigger value="unified" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
@@ -86,6 +91,15 @@ export function FamilyDietTabs({
             familyMembers={familyMembers}
             userName={userName}
             onOpenInclusionSettings={handleOpenInclusionSettings}
+          />
+        </TabsContent>
+
+        {/* 비교 뷰 탭 */}
+        <TabsContent value="comparison" className="mt-6">
+          <FamilyDietComparison
+            familyDiet={familyDiet}
+            familyMembers={familyMembers}
+            userName={userName}
           />
         </TabsContent>
 

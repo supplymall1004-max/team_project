@@ -232,13 +232,16 @@ export function FamilyMemberCard({ member, onRefresh }: FamilyMemberCardProps) {
           
           {showHealthSection && (
             <div className="mt-4 space-y-4">
-              <FamilyMemberIdentityVerification
-                member={member}
-                onVerified={() => {
-                  // 신원확인 완료 후 새로고침
-                  onRefresh();
-                }}
-              />
+              {/* 펫인 경우 신원확인 불필요 */}
+              {member.relationship !== "pet" && (
+                <FamilyMemberIdentityVerification
+                  member={member}
+                  onVerified={() => {
+                    // 신원확인 완료 후 새로고침
+                    onRefresh();
+                  }}
+                />
+              )}
               <FamilyMemberHealthSyncButton
                 member={member}
                 onSyncComplete={() => {

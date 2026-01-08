@@ -104,36 +104,36 @@ function DietManagementContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black">
-      <Section className="pt-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 dark:text-foreground">🍽️ 식단 관리</h1>
-          <p className="text-muted-foreground dark:text-muted-foreground">
+      <Section className="pt-6 sm:pt-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 dark:text-foreground">🍽️ 식단 관리</h1>
+          <p className="text-sm sm:text-base text-muted-foreground dark:text-muted-foreground">
             AI 기반 개인 맞춤 식단으로 건강한 식생활을 시작하세요
           </p>
         </div>
 
         <Tabs defaultValue={initialTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 gap-2 mb-6">
-            <TabsTrigger value="today" className="text-xs sm:text-sm">오늘의 식단</TabsTrigger>
-            <TabsTrigger value="weekly" className="text-xs sm:text-sm">주간 식단</TabsTrigger>
-            <TabsTrigger value="health-guide" className="text-xs sm:text-sm">건강 맞춤 가이드</TabsTrigger>
-            <TabsTrigger value="visualization" className="text-xs sm:text-sm">건강 시각화</TabsTrigger>
-            <TabsTrigger value="records" className="text-xs sm:text-sm col-span-2">📸 식사 기록 & 분석</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6 h-auto p-1">
+            <TabsTrigger value="today" className="text-xs sm:text-sm py-2 sm:py-2.5 px-3 sm:px-4">오늘의 식단</TabsTrigger>
+            <TabsTrigger value="weekly" className="text-xs sm:text-sm py-2 sm:py-2.5 px-3 sm:px-4">주간 식단</TabsTrigger>
+            <TabsTrigger value="health-guide" className="text-xs sm:text-sm py-2 sm:py-2.5 px-3 sm:px-4">건강 맞춤 가이드</TabsTrigger>
+            <TabsTrigger value="visualization" className="text-xs sm:text-sm py-2 sm:py-2.5 px-3 sm:px-4">건강 시각화</TabsTrigger>
+            <TabsTrigger value="records" className="text-xs sm:text-sm py-2 sm:py-2.5 px-3 sm:px-4 col-span-2">📸 식사 기록 & 분석</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="today" className="space-y-6">
+          <TabsContent value="today" className="space-y-4 sm:space-y-6">
             <ErrorBoundary>
               <DietSectionClientOnly />
             </ErrorBoundary>
           </TabsContent>
 
-          <TabsContent value="weekly" className="space-y-6">
+          <TabsContent value="weekly" className="space-y-4 sm:space-y-6">
             <ErrorBoundary>
               <LazyWeeklyDietSummary />
             </ErrorBoundary>
           </TabsContent>
 
-          <TabsContent value="health-guide" className="space-y-6">
+          <TabsContent value="health-guide" className="space-y-4 sm:space-y-6">
             <ErrorBoundary>
               {isLoadingProfile ? (
                 <div className="flex items-center justify-center py-12">
@@ -148,16 +148,16 @@ function DietManagementContent() {
             </ErrorBoundary>
           </TabsContent>
 
-          <TabsContent value="visualization" className="space-y-6">
-            <div className="rounded-xl border border-purple-200 bg-purple-50/30 p-6">
-              <h2 className="text-2xl font-bold mb-4">💚 건강 시각화 대시보드</h2>
+          <TabsContent value="visualization" className="space-y-4 sm:space-y-6">
+            <div className="rounded-xl border border-purple-200 bg-purple-50/30 p-4 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">💚 건강 시각화 대시보드</h2>
               <ErrorBoundary>
                 <HealthVisualizationPreview compact={false} />
               </ErrorBoundary>
             </div>
           </TabsContent>
 
-          <TabsContent value="records" className="space-y-6">
+          <TabsContent value="records" className="space-y-4 sm:space-y-6">
             <ErrorBoundary>
               <MealRecordsTab />
             </ErrorBoundary>

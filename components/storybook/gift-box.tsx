@@ -20,6 +20,7 @@ interface GiftBoxProps {
   onClick: () => void
   colorIndex: number
   season?: Season // 계절 테마 정보
+  icon?: string // 비디오 아이콘 (이모지 등, 있으면 우선 표시)
 }
 
 // 계절별 아이콘 배열 - 각 계절은 해당 계절의 아이콘만 사용
@@ -58,7 +59,7 @@ const seasonalStyles = {
   },
 }
 
-export function GiftBox({ title, isSelected, onClick, colorIndex, season = "winter" }: GiftBoxProps) {
+export function GiftBox({ title, isSelected, onClick, colorIndex, season = "winter", icon }: GiftBoxProps) {
   // 각 계절별로 해당 계절의 아이콘만 표시되도록 보장
   // 봄 테마는 봄 아이콘만, 여름 테마는 여름 아이콘만, 가을 테마는 가을 아이콘만, 겨울 테마는 겨울 아이콘만 사용
   const validSeason: Season = (season && season in seasonalIcons ? season : "winter") as Season
@@ -68,6 +69,9 @@ export function GiftBox({ title, isSelected, onClick, colorIndex, season = "wint
   
   // 해당 계절의 아이콘 배열에서만 선택 (다른 계절 아이콘은 선택되지 않음)
   const seasonIcon = icons[colorIndex % icons.length]
+  
+  // icon prop이 있으면 우선적으로 사용, 없으면 계절 아이콘 사용
+  const displayIcon = icon || seasonIcon
   
   const styles = seasonalStyles[validSeason]
   
@@ -108,7 +112,7 @@ export function GiftBox({ title, isSelected, onClick, colorIndex, season = "wint
           isSelected && "animate-bounce"
         )}
       >
-        {seasonIcon}
+        {displayIcon}
 
         {/* Selection indicator */}
         {isSelected && (

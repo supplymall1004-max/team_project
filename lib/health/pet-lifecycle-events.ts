@@ -116,7 +116,7 @@ const PET_LIFECYCLE_EVENTS: PetLifecycleEvent[] = [
 ];
 
 /**
- * 반려동물의 생애주기별 건강 이벤트 생성
+ * 반려동물의 생애주기별 건강 이벤트 생성 (현재 시점 기준)
  * @param pet 반려동물 프로필
  * @returns 건강 이벤트 목록
  */
@@ -168,6 +168,102 @@ export function generatePetLifecycleEvents(pet: PetProfile): PetLifecycleEvent[]
 
   console.log(`[generatePetLifecycleEvents] 적용 가능한 이벤트: ${applicableEvents.length}건`);
   return applicableEvents;
+}
+
+/**
+ * 반려동물의 전체 생애 건강 이벤트 생성 (태어나서부터 죽을 때까지)
+ * 반복 이벤트를 포함하여 모든 이벤트를 생성합니다.
+ * @param pet 반려동물 프로필
+ * @param maxAgeYears 최대 나이 (기본값: 20년)
+ * @returns 전체 생애 건강 이벤트 목록 (날짜 포함)
+ */
+export interface PetLifecycleEventWithDate extends PetLifecycleEvent {
+  eventDate: Date;
+  eventAgeMonths: number;
+  eventAgeYears: number;
+  isPast: boolean;
+  daysUntil: number;
+}
+
+export function generateAllPetLifecycleEvents(
+  pet: PetProfile,
+  maxAgeYears: number = 20
+): PetLifecycleEventWithDate[] {
+  if (!pet.birth_date || !pet.pet_type) {
+    return [];
+  }
+
+  const birthDate = new Date(pet.birth_date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const maxAgeMonths = maxAgeYears * 12;
+
+  const allEvents: PetLifecycleEventWithDate[] = [];
+
+  // 해당 반려동물 종류에 맞는 이벤트 필터링
+  const applicableEvents = PET_LIFECYCLE_EVENTS.filter((event) => {
+    if (event.event_code.startsWith('dog_') && pet.pet_type !== 'dog') {
+      return false;
+    }
+    if (event.event_code.startsWith('cat_') && pet.pet_type !== 'cat') {
+      return false;
+    }
+    return true;
+  });
+
+  // 각 이벤트에 대해 날짜 계산
+  for (const event of applicableEvents) {
+    const targetMonths = event.target_age_months ?? (event.target_age_years ? event.target_age_years * 12 : 0);
+
+    if (targetMonths === 0) continue;
+
+    // 반복 이벤트인 경우
+    if (event.is_recurring) {
+      const recurrenceMonths = event.recurrence_interval_months ?? 
+                             (event.recurrence_interval_years ? event.recurrence_interval_years * 12 : 12);
+
+      // 첫 이벤트부터 최대 나이까지 반복
+      for (let ageMonths = targetMonths; ageMonths <= maxAgeMonths; ageMonths += recurrenceMonths) {
+        const eventDate = new Date(birthDate);
+        eventDate.setMonth(eventDate.getMonth() + ageMonths);
+        eventDate.setHours(0, 0, 0, 0);
+
+        const daysUntil = Math.floor((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const isPast = daysUntil < 0;
+
+        allEvents.push({
+          ...event,
+          eventDate,
+          eventAgeMonths: ageMonths,
+          eventAgeYears: Math.floor(ageMonths / 12),
+          isPast,
+          daysUntil,
+        });
+      }
+    } else {
+      // 일회성 이벤트 (중성화 수술 등)
+      const eventDate = new Date(birthDate);
+      eventDate.setMonth(eventDate.getMonth() + targetMonths);
+      eventDate.setHours(0, 0, 0, 0);
+
+      const daysUntil = Math.floor((eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const isPast = daysUntil < 0;
+
+      allEvents.push({
+        ...event,
+        eventDate,
+        eventAgeMonths: targetMonths,
+        eventAgeYears: Math.floor(targetMonths / 12),
+        isPast,
+        daysUntil,
+      });
+    }
+  }
+
+  // 날짜순으로 정렬
+  allEvents.sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
+
+  return allEvents;
 }
 
 /**

@@ -16,13 +16,14 @@ import { Section } from '@/components/section';
 import { HealthDashboardWrapper } from '@/components/health/dashboard/HealthDashboardWrapper';
 import { HealthVisualizationPreview } from '@/components/home/health-visualization-preview';
 import { LifecycleNotificationGrid } from '@/components/health/lifecycle-notification-grid';
+import { HealthComprehensiveTab } from '@/components/health/comprehensive/health-comprehensive-tab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { ErrorBoundary } from '@/components/error-boundary';
 import Link from 'next/link';
-import { ArrowRight, Activity, Heart, Bell, Target, FileText, Camera } from 'lucide-react';
+import { Activity, FileText, Camera, Sparkles } from 'lucide-react';
 
 function SectionSkeleton() {
   return (
@@ -78,11 +79,11 @@ function HealthManagementContent() {
             >
               건강 기록
             </TabsTrigger>
-            <TabsTrigger 
-              value="insights" 
+            <TabsTrigger
+              value="comprehensive"
               className="text-foreground data-[state=active]:text-foreground text-xs sm:text-sm px-2 sm:px-3 py-2 whitespace-nowrap"
             >
-              건강 인사이트
+              종합
             </TabsTrigger>
           </TabsList>
 
@@ -258,23 +259,22 @@ function HealthManagementContent() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="insights" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Heart className="h-5 w-5" />
-                  💡 건강 인사이트
-                </CardTitle>
-                <CardDescription>개인화된 건강 개선 추천사항</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm">
-                  <li>• 운동 부족: 주 3회 이상 운동을 권장합니다</li>
-                  <li>• 영양 균형: 단백질 섭취를 늘려보세요</li>
-                  <li>• 수면 개선: 취침 시간을 30분 앞당겨보세요</li>
-                </ul>
-              </CardContent>
-            </Card>
+          <TabsContent value="comprehensive" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <Sparkles className="h-6 w-6 text-emerald-600" />
+                  종합 건강 관리
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  공공 건강정보 + 웨어러블 데이터를 연결하고, 대시보드·기록·시각화에 자동 반영합니다.
+                </p>
+              </div>
+            </div>
+
+            <ErrorBoundary>
+              <HealthComprehensiveTab />
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </Section>

@@ -56,7 +56,7 @@ const SECTION_COMPONENTS: Record<
   [SECTION_IDS.emergency]: () => (
     <div
       data-section-id={SECTION_IDS.emergency}
-      className="px-4 pt-6 pb-4 space-y-4 bg-gradient-to-b from-white to-gray-50/30 dark:from-black dark:to-black"
+      className="px-4 pt-6 pb-4 space-y-4"
     >
       <EmergencyQuickAccess />
     </div>
@@ -64,7 +64,7 @@ const SECTION_COMPONENTS: Record<
   [SECTION_IDS.weather]: () => (
     <div
       data-section-id={SECTION_IDS.weather}
-      className="px-4 pt-6 pb-4 space-y-4 bg-gradient-to-b from-white to-gray-50/30 dark:from-black dark:to-black"
+      className="px-4 pt-6 pb-4 space-y-4"
     >
       <ErrorBoundary>
         <WeatherWidget />
@@ -125,7 +125,7 @@ export function HomeSectionsWrapper() {
         {/* 기본 순서로 렌더링 */}
         <div
           data-section-id={SECTION_IDS.emergency}
-          className="px-4 pt-6 pb-4 space-y-4 bg-gradient-to-b from-white to-gray-50/30 dark:from-black dark:to-black"
+          className="px-4 pt-6 pb-4 space-y-4"
         >
           <EmergencyQuickAccess />
           <ErrorBoundary>

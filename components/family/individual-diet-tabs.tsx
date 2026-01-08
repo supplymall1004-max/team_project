@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { User, Users } from "lucide-react";
 import { DailyDietView } from "@/components/diet/daily-diet-view";
+import { HealthGuideBanner } from "@/components/diet/health-guide-banner";
 import { calculateAge } from "@/lib/utils/age-calculator";
 import { getHealthLabels, getAllergyLabels } from "@/lib/utils/health-labels";
 import { DISEASE_LABELS as HEALTH_DISEASE_LABELS, ALLERGY_LABELS as HEALTH_ALLERGY_LABELS } from "@/types/health";
@@ -171,6 +172,17 @@ export function IndividualDietTabs({
                     </div>
                   </div>
                 </div>
+
+                {/* 건강 상태별 안내 */}
+                {memberDiet && (
+                  <HealthGuideBanner
+                    member={member.isUser 
+                      ? { id: "user", name: member.name, age: member.age }
+                      : (familyMembers.find(fm => fm.id === member.id) as FamilyMember)
+                    }
+                    dietPlan={memberDiet}
+                  />
+                )}
 
                 {/* 식단 내용 */}
                 {memberDiet ? (

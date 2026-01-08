@@ -74,6 +74,7 @@ export interface PremiumDrawerData {
   familyHealthSummary: FamilyHealthSummary;
   urgentNotifications: Notification[];
   familyNotifications: Notification[];
+  petNotifications: Notification[];
   todaySchedule: ScheduleItem[];
   upcomingSchedule: ScheduleItem[];
   familyAnnouncements: FamilyAnnouncement[];

@@ -29,6 +29,11 @@ import { calculateMacroGoals, calculateMealMacroGoals, isWithinMacroRange } from
 import { DailyNutritionTracker } from "@/lib/diet/daily-nutrition-tracker";
 import { checkDietConflicts } from "@/lib/health/diet-conflict-manager";
 import { validateCalorieGoal, validateCalories, type CalorieValidationResult } from "@/lib/diet/calorie-validator";
+import {
+  calculateAdolescentMacros,
+  prioritizeGrowthNutrients,
+  recommendAdolescentSides,
+} from "@/lib/diet/adolescent-diet-optimizer";
 
 // 식사별 칼로리 비율
 const MEAL_CALORIE_RATIOS = {
@@ -99,17 +104,35 @@ export async function generatePersonalDiet(
     });
   }
 
-  // 1. 어린이 감지 및 식단 비율 설정
-  const isChild = profile.age && profile.age < 18;
+  // 1. 연령대 감지 및 식단 비율 설정
+  const age = profile.age || 30;
+  const isChild = age < 18;
+  const isAdolescent = age >= 13 && age < 18; // 청소년 (13-18세)
+  const isYoungChild = age < 13; // 어린이 (13세 미만)
+  
   const mealCalorieRatios = isChild ? {
-    breakfast: 0.25,  // 어린이: 아침 25%
-    lunch: 0.35,      // 어린이: 점심 35%
-    dinner: 0.30,     // 어린이: 저녁 30%
-    snack: 0.10,      // 어린이: 간식 10%
+    breakfast: 0.25,  // 어린이/청소년: 아침 25%
+    lunch: 0.35,      // 어린이/청소년: 점심 35%
+    dinner: 0.30,     // 어린이/청소년: 저녁 30%
+    snack: 0.10,      // 어린이/청소년: 간식 10%
   } : MEAL_CALORIE_RATIOS;
 
-  if (isChild) {
-    console.log(`👶 어린이 감지됨 (${profile.age}세) - 성장기 식단 비율 적용`);
+  if (isAdolescent) {
+    console.log(`🧑‍🎓 청소년 감지됨 (${age}세) - 성장기 특별 영양소 처리 적용`);
+  } else if (isYoungChild) {
+    console.log(`👶 어린이 감지됨 (${age}세) - 성장기 식단 비율 적용`);
+  }
+  
+  // 청소년 영양소 목표 계산
+  let adolescentMacros: ReturnType<typeof calculateAdolescentMacros> | null = null;
+  if (isAdolescent) {
+    adolescentMacros = calculateAdolescentMacros(profile);
+    console.log("🧑‍🎓 청소년 영양소 목표:", {
+      단백질: `${adolescentMacros.protein.target}g`,
+      칼슘: `${adolescentMacros.calcium.target}mg`,
+      철분: `${adolescentMacros.iron.target}mg`,
+      비타민D: `${adolescentMacros.vitaminD.target}IU`,
+    });
   }
 
   // 1. 목표 칼로리 계산
@@ -161,10 +184,7 @@ export async function generatePersonalDiet(
   const recentlyUsed = await getRecentlyUsedRecipes(userId);
   console.log(`최근 사용 레시피: ${recentlyUsed.length}개`);
 
-  // 4. 나이 계산 (과일 추천용)
-  const age = profile.age || 30;
-
-  // 5. 레시피 목록이 없으면 조회 (availableRecipes가 없는 경우)
+  // 4. 레시피 목록이 없으면 조회 (availableRecipes가 없는 경우)
   let finalAvailableRecipes = availableRecipes;
   if (!finalAvailableRecipes || finalAvailableRecipes.length === 0) {
     console.log("📚 레시피 목록이 없어 조회 시작...");
@@ -394,6 +414,7 @@ export async function generatePersonalDiet(
       protein: fruitSnack.fruit.nutrition.protein * fruitSnack.servings,
       carbs: fruitSnack.fruit.nutrition.carbs * fruitSnack.servings,
       fat: fruitSnack.fruit.nutrition.fat * fruitSnack.servings,
+      sodium: 0, // 과일은 나트륨 함량이 매우 낮음
       fiber: fruitSnack.fruit.nutrition.fiber * fruitSnack.servings,
     },
     emoji: fruitSnack.fruit.emoji,

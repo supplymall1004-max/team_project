@@ -1,6 +1,6 @@
 /**
  * @file storybook-room.tsx
- * @description 맛카의 음식 동화 스토리북 플레이어 메인 컴포넌트
+ * @description 장고의 음식 동화 스토리북 플레이어 메인 컴포넌트
  * 
  * GDWEB 기반 디자인 패턴 적용:
  * - 세련된 그라데이션 배경 및 패턴 오버레이
@@ -19,15 +19,39 @@ import { VintageTV } from "@/components/storybook/vintage-tv"
 import { SeasonalFireplace } from "@/components/storybook/fireplace"
 import { SeasonalTree } from "@/components/storybook/christmas-tree"
 import { SeasonalEffect } from "@/components/storybook/seasonal-effect"
-import { SeasonSelector } from "@/components/storybook/season-selector"
 import { BookOpen, Play, Shuffle, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { type Season, seasonThemes } from "@/data/seasons"
+import { getCurrentSeason } from "@/lib/utils/season"
 
 export function StorybookRoom() {
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(youtubeVideos[0]?.id || null)
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedSeason, setSelectedSeason] = useState<Season>("winter")
+  const [selectedSeason, setSelectedSeason] = useState<Season>("spring")
+
+  // 메인 페이지와 동일한 계절 효과 로직: localStorage에서 계절 불러오기 및 전역 이벤트 리스너
+  useEffect(() => {
+    // 로컬 스토리지에서 선택된 계절 불러오기
+    const savedSeason = localStorage.getItem("selected-season");
+    if (savedSeason && ["spring", "summer", "autumn", "winter"].includes(savedSeason)) {
+      setSelectedSeason(savedSeason as Season);
+    } else {
+      // 저장된 계절이 없으면 현재 계절 사용
+      const currentSeason = getCurrentSeason();
+      setSelectedSeason(currentSeason);
+    }
+
+    // 전역 이벤트 리스너 추가 (메인 페이지의 계절 변경 이벤트 감지)
+    const handleSeasonChange = (event: CustomEvent<{ season: Season }>) => {
+      setSelectedSeason(event.detail.season);
+    };
+
+    window.addEventListener("season-change", handleSeasonChange as EventListener);
+
+    return () => {
+      window.removeEventListener("season-change", handleSeasonChange as EventListener);
+    };
+  }, []);
 
   // YouTube IFrame API 로드
   useEffect(() => {
@@ -100,7 +124,7 @@ export function StorybookRoom() {
           </div>
           
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-yellow-300 via-orange-300 to-amber-300 bg-clip-text text-transparent drop-shadow-2xl">
-            맛카의 음식 동화 이야기
+            장고의 음식 동화 이야기
           </h1>
           
           <p 
@@ -193,17 +217,6 @@ export function StorybookRoom() {
 
           {/* TV - Center - 카드 디자인 패턴 적용 */}
           <div id="vintage-tv-section" className="order-1 lg:order-2 lg:w-2/4 flex flex-col items-center gap-6 animate-fade-in-up scroll-mt-24" style={{ animationDelay: '0.1s' }}>
-            {/* 계절 테마 선택 섹션 - TV 위에 배치 */}
-            <SeasonSelector
-              selectedSeason={selectedSeason}
-              onSeasonChange={(season) => {
-                console.groupCollapsed("[StorybookRoom] 계절 테마 변경")
-                console.log("season:", season)
-                console.groupEnd()
-                setSelectedSeason(season)
-              }}
-            />
-            
             <div className="relative group">
               {/* 글로우 효과 */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/30 via-pink-500/30 to-orange-500/30 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -239,6 +252,7 @@ export function StorybookRoom() {
                         console.groupCollapsed("[StorybookRoom] 선물 상자 클릭")
                         console.log("video:", video.title || video.id)
                         console.log("season:", video.season || "winter")
+                        console.log("icon:", video.icon)
                         console.groupEnd()
                         setIsLoading(true)
                         
@@ -266,6 +280,7 @@ export function StorybookRoom() {
                       }}
                       colorIndex={index}
                       season={video.season || "winter"}
+                      icon={video.icon}
                     />
                   </div>
                 ))}

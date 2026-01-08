@@ -18,7 +18,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { FamilyDietTabs } from "@/components/diet/family-diet-tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RefreshCw, Calendar, Users } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { RefreshCw, Calendar, Users, Settings2 } from "lucide-react";
 import { PremiumGuardButton } from "@/components/premium/premium-guard-button";
 import type { FamilyDietPlan } from "@/types/recipe";
 import type { FamilyMember } from "@/types/family";
@@ -44,6 +45,8 @@ export function FamilyDietView({
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [memberStates, setMemberStates] = useState<FamilyMember[]>(Array.isArray(familyMembers) ? familyMembers : []);
+  const [useVariation, setUseVariation] = useState(false); // 변형 모드
+  const [variationLevel, setVariationLevel] = useState<1 | 2 | 3>(2); // 변형 레벨
 
   useEffect(() => {
     setMemberStates(Array.isArray(familyMembers) ? familyMembers : []);
@@ -105,6 +108,8 @@ export function FamilyDietView({
         body: JSON.stringify({
           targetDate,
           includeUnified: true,
+          useVariation, // 변형 모드
+          variationLevel, // 변형 레벨
         }),
       });
 
@@ -382,6 +387,53 @@ export function FamilyDietView({
 
   return (
     <div className="space-y-6">
+      {/* 변형 모드 설정 */}
+      <Card className="border-blue-200 bg-blue-50/50">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Settings2 className="h-5 w-5 text-blue-600" />
+                <Label className="text-base font-semibold text-gray-900">
+                  변형 모드
+                </Label>
+              </div>
+              <p className="text-sm text-gray-600">
+                같은 메인 재료로 구성원별 맞춤 변형 식단을 생성합니다.
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="variation-mode"
+                  checked={useVariation}
+                  onChange={(e) => setUseVariation(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                />
+                <Label htmlFor="variation-mode" className="text-sm font-medium cursor-pointer">
+                  변형 모드 사용
+                </Label>
+              </div>
+              {useVariation && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm text-gray-600">레벨:</Label>
+                  <select
+                    value={variationLevel}
+                    onChange={(e) => setVariationLevel(Number(e.target.value) as 1 | 2 | 3)}
+                    className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value={1}>Level 1 (기본)</option>
+                    <option value={2}>Level 2 (중급)</option>
+                    <option value={3}>Level 3 (고급)</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 액션 버튼 */}
       <div className="flex justify-between items-center">
         <div className="text-sm text-gray-600">

@@ -82,30 +82,30 @@ export function FoodStoryCard({ video, layout = "default" }: FoodStoryCardProps)
 
         {/* 플레이 버튼 오버레이 */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
-          <Dialog open={isPlaying} onOpenChange={setIsPlaying}>
-            <DialogTrigger asChild>
-              <Button
-                size={isShortsLayout ? "sm" : "lg"}
-                className={cn("rounded-full bg-white/90 text-black hover:bg-white", isShortsLayout && "h-8 w-8 p-0")}
-                onClick={handlePlayClick}
-              >
-                <Play className={cn("fill-current", isShortsLayout ? "h-3 w-3" : "h-5 w-5")} />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className={cn(dialogWidthClass, "p-0")}>
-              <DialogTitle className="sr-only">{video.title}</DialogTitle>
-              <div className={aspectClass}>
-                <iframe
-                  src={`${video.embedUrl}?autoplay=1&rel=0`}
-                  title={video.title}
-                  className="h-full w-full rounded-lg"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  onLoad={() => console.log("[FoodStoryCard] 유튜브 플레이어 로드 완료:", video.title)}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button
+            size={isShortsLayout ? "sm" : "lg"}
+            className={cn("rounded-full bg-white/90 text-black hover:bg-white", isShortsLayout && "h-8 w-8 p-0")}
+            onClick={handlePlayClick}
+          >
+            <Play className={cn("fill-current", isShortsLayout ? "h-3 w-3" : "h-5 w-5")} />
+          </Button>
+          {isPlaying && (
+            <Dialog open={isPlaying} onOpenChange={setIsPlaying}>
+              <DialogContent className={cn(dialogWidthClass, "p-0")}>
+                <DialogTitle className="sr-only">{video.title}</DialogTitle>
+                <div className={aspectClass}>
+                  <iframe
+                    src={`${video.embedUrl}?autoplay=1&rel=0`}
+                    title={video.title}
+                    className="h-full w-full rounded-lg"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    onLoad={() => console.log("[FoodStoryCard] 유튜브 플레이어 로드 완료:", video.title)}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 

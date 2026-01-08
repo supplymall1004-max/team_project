@@ -344,29 +344,29 @@ export function YesterdayFamilyTabs({
         </div>
 
         {/* 영양소 정보 카드 */}
-        <div className="rounded-2xl border-2 border-orange-200/60 bg-gradient-to-br from-white to-orange-50/30 p-5 shadow-sm">
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="rounded-lg bg-orange-100 p-1.5">
-                <Apple className="h-4 w-4 text-orange-600" />
+        <div className="rounded-2xl border-2 border-orange-200/60 bg-gradient-to-br from-white to-orange-50/30 p-3 shadow-sm">
+          <div className="mb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="rounded-lg bg-orange-100 p-1">
+                <Apple className="h-3.5 w-3.5 text-orange-600" />
               </div>
-              <h5 className="text-base font-bold text-gray-900">
+              <h5 className="text-sm font-bold text-gray-900">
                 총 영양소
               </h5>
             </div>
-            <p className="text-xs text-gray-600 ml-9">
+            <p className="text-[10px] text-gray-600 ml-7 leading-tight">
               {summaryDescription}
             </p>
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-20 animate-pulse rounded-xl bg-orange-100" />
-              ))}
-            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-16 animate-pulse rounded-xl bg-orange-100" />
+            ))}
+          </div>
           ) : shouldShowNutrition ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <NutritionStat 
                 label="칼로리" 
                 value={scaledTotals.calories} 
@@ -415,40 +415,40 @@ export function YesterdayFamilyTabs({
 
         {/* 특이 사항 카드 */}
         <div className={cn(
-          "rounded-2xl border-2 p-5 shadow-sm",
+          "rounded-2xl border-2 p-3 shadow-sm",
           selectedFlags.length > 0 || detailNotes.length > 0
             ? "border-amber-200 bg-gradient-to-br from-amber-50/50 to-orange-50/30"
             : "border-gray-200 bg-white/80"
         )}>
-          <div className="flex items-center gap-2.5 mb-4">
+          <div className="flex items-center gap-2 mb-3">
             <div className={cn(
-              "rounded-lg p-1.5",
+              "rounded-lg p-1",
               selectedFlags.length > 0 || detailNotes.length > 0
                 ? "bg-amber-100"
                 : "bg-gray-100"
             )}>
               <AlertTriangle className={cn(
-                "h-4 w-4",
+                "h-3.5 w-3.5",
                 selectedFlags.length > 0 || detailNotes.length > 0
                   ? "text-amber-600"
                   : "text-gray-500"
               )} />
             </div>
-            <h5 className="text-base font-bold text-gray-900">
+            <h5 className="text-sm font-bold text-gray-900">
               특이 사항 및 건강 정보
             </h5>
           </div>
           
           {selectedFlags.length > 0 && (
-            <div className="mb-4">
-              <p className="text-xs font-medium text-gray-600 mb-2">건강 상태</p>
-              <div className="flex flex-wrap gap-2">
+            <div className="mb-3">
+              <p className="text-[10px] font-medium text-gray-600 mb-1.5">건강 상태</p>
+              <div className="flex flex-wrap gap-1.5">
                 {selectedFlags.map((flag) => (
                   <Badge
                     key={`${flag.code}-${flag.type}`}
                     variant={flag.type === "disease" ? "destructive" : "secondary"}
                     className={cn(
-                      "rounded-full px-3 py-1 text-xs font-bold shadow-sm transition-all",
+                      "rounded-full px-2 py-0.5 text-[10px] font-bold shadow-sm transition-all",
                       flag.type === "disease" && "bg-gradient-to-r from-red-500 to-red-600 text-white border-2 border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.4)] hover:shadow-[0_0_15px_rgba(239,68,68,0.6)]",
                       flag.type === "allergy" && "bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-2 border-yellow-400 shadow-[0_0_10px_rgba(245,158,11,0.4)] hover:shadow-[0_0_15px_rgba(245,158,11,0.6)]"
                     )}
@@ -462,8 +462,8 @@ export function YesterdayFamilyTabs({
           
           {detailNotes.length > 0 ? (
             <div>
-              <p className="text-xs font-medium text-gray-600 mb-2">주의 사항</p>
-              <ul className="space-y-2">
+              <p className="text-[10px] font-medium text-gray-600 mb-1.5">주의 사항</p>
+              <ul className="space-y-1.5">
                 {detailNotes.map((note, index) => {
                   // 질병/알레르기 키워드 추출 (네온 효과 적용)
                   const isDisease = note.includes('관리') && !note.includes('알레르기');
@@ -473,27 +473,27 @@ export function YesterdayFamilyTabs({
                     <li 
                       key={`${note}-${index}`}
                       className={cn(
-                        "flex items-center gap-2 text-sm font-medium rounded-lg p-3 border-2 transition-all",
+                        "flex items-center gap-1.5 text-xs font-medium rounded-lg p-2 border-2 transition-all",
                         isDisease && "bg-gradient-to-r from-red-50/80 to-orange-50/80 border-red-300/60 text-red-900 shadow-[0_0_10px_rgba(239,68,68,0.3)] hover:shadow-[0_0_15px_rgba(239,68,68,0.5)]",
                         isAllergy && "bg-gradient-to-r from-yellow-50/80 to-amber-50/80 border-yellow-300/60 text-amber-900 shadow-[0_0_10px_rgba(245,158,11,0.3)] hover:shadow-[0_0_15px_rgba(245,158,11,0.5)]",
                         !isDisease && !isAllergy && "bg-white/60 border-amber-100 text-gray-800"
                       )}
                     >
                       <span className={cn(
-                        "font-bold mt-0.5 text-lg",
+                        "font-bold mt-0.5 text-sm",
                         isDisease && "text-red-500 drop-shadow-[0_0_4px_rgba(239,68,68,0.6)]",
                         isAllergy && "text-yellow-500 drop-shadow-[0_0_4px_rgba(245,158,11,0.6)]",
                         !isDisease && !isAllergy && "text-amber-600"
                       )}>⚠</span>
-                      <span className="flex-1">{note}</span>
+                      <span className="flex-1 leading-tight">{note}</span>
                     </li>
                   );
                 })}
               </ul>
             </div>
           ) : (
-            <div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
-              <p className="text-sm text-gray-600 leading-relaxed">
+            <div className="rounded-lg bg-gray-50 border border-gray-200 p-3">
+              <p className="text-xs text-gray-600 leading-relaxed">
                 등록된 질병이나 알레르기 정보가 없습니다. 
                 <span className="font-medium text-gray-700"> 건강 프로필을 업데이트</span>하면 개인별 맞춤 제약 정보를 확인할 수 있습니다.
               </p>
@@ -526,18 +526,18 @@ function NutritionStat({ label, value, unit, icon: Icon, color = "text-orange-60
         });
 
   return (
-    <div className="group relative rounded-xl border-2 border-gray-200 bg-white p-4 transition-all duration-200 hover:border-orange-300 hover:shadow-md">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{label}</p>
+    <div className="group relative rounded-xl border-2 border-gray-200 bg-white p-2.5 transition-all duration-200 hover:border-orange-300 hover:shadow-md">
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide leading-tight">{label}</p>
         {Icon && (
-          <div className={cn("rounded-lg p-1.5", bgColor)}>
-            <Icon className={cn("h-3.5 w-3.5", color)} />
+          <div className={cn("rounded-lg p-1", bgColor)}>
+            <Icon className={cn("h-3 w-3", color)} />
           </div>
         )}
       </div>
-      <p className="text-2xl font-bold text-gray-900">
+      <p className="text-lg font-bold text-gray-900 leading-tight">
         {formattedValue}
-        <span className="ml-1.5 text-sm font-medium text-gray-500">{unit}</span>
+        <span className="ml-1 text-xs font-medium text-gray-500">{unit}</span>
       </p>
     </div>
   );

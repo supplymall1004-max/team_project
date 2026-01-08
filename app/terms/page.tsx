@@ -48,7 +48,7 @@ export default function TermsPage() {
               <CardContent className="space-y-4 text-sm leading-relaxed">
                 <ol className="list-decimal space-y-2 pl-5">
                   <li>
-                    &quot;서비스&quot;란 회사가 제공하는 레거시 아카이브, 현대 레시피 북, AI
+                    &quot;서비스&quot;란 회사가 제공하는 장고, 현대 레시피 북, AI
                     기반 식단 큐레이션 등 모든 온라인 서비스를 의미합니다.
                   </li>
                   <li>
@@ -100,7 +100,7 @@ export default function TermsPage() {
                   <li>
                     회사는 다음과 같은 서비스를 제공합니다:
                     <ul className="mt-2 list-disc space-y-1 pl-5">
-                      <li>레거시 아카이브: 명인 인터뷰 영상 및 전문 문서화 기록</li>
+                      <li>장고: 명인 인터뷰 영상 및 전문 문서화 기록</li>
                       <li>현대 레시피 북: 단계별 레시피 및 커뮤니티 기능</li>
                       <li>
                         AI 기반 식단 큐레이션: 개인 맞춤 식단 추천 및 영양 정보

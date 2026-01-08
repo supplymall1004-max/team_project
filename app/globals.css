@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* 맛카의 음식 동화 전용 애니메이션 */
+/* 장고의 음식 동화 전용 애니메이션 */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -855,5 +855,43 @@ body {
   .gdweb-btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  }
+
+  /* 모달이 열렸을 때 모바일 네비게이션 메뉴 숨기기 */
+  body:has([data-slot="dialog-overlay"][data-state="open"]) [data-slot="mobile-menu"],
+  body:has([data-slot="alert-dialog-overlay"][data-state="open"]) [data-slot="mobile-menu"],
+  body:has([data-slot="drawer-overlay"][data-state="open"]) [data-slot="mobile-menu"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
+
+  /* 모달 오버레이가 열렸을 때 최상위로 */
+  [data-slot="dialog-overlay"][data-state="open"],
+  [data-slot="alert-dialog-overlay"][data-state="open"],
+  [data-slot="drawer-overlay"][data-state="open"] {
+    z-index: 999999 !important;
+  }
+
+  /* 모달 콘텐츠가 열렸을 때 최상위로 */
+  [data-slot="dialog-content"][data-state="open"],
+  [data-slot="alert-dialog-content"][data-state="open"],
+  [data-slot="drawer-content"][data-state="open"] {
+    z-index: 999999 !important;
+  }
+
+  /* 모바일 메뉴가 열렸을 때 배경 콘텐츠 숨기기 */
+  body:has([data-slot="mobile-menu"]) main {
+    filter: blur(4px);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* 모바일 메뉴가 열렸을 때 탭 등 모든 배경 요소 숨기기 */
+  body:has([data-slot="mobile-menu"]) main > * {
+    opacity: 0.3;
+    pointer-events: none;
   }
 }

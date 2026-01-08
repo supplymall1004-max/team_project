@@ -38,6 +38,12 @@ export interface Recipe {
   foodsafety_rcp_parts_dtls?: string | null; // 재료 정보
   foodsafety_att_file_no_main?: string | null; // 대표 이미지 URL
   foodsafety_att_file_no_mk?: string | null; // 만드는 법 이미지 URL
+  // 변형 시스템 메타데이터 (옵셔널)
+  main_ingredients?: string[] | null; // 메인 재료 목록
+  cooking_method?: string | null; // 조리법
+  variation_group_id?: string | null; // 변형 그룹 ID
+  nutrition_focus?: string[] | null; // 영양소 강점
+  age_group_suitable?: string[] | null; // 적합 연령대
   // 조인된 데이터
   user?: {
     id: string;
@@ -169,11 +175,14 @@ export interface RecipeNutrition {
   protein: number;
   carbs: number;
   fat: number;
-  sodium?: number;
+  sodium: number;
   fiber?: number;
   potassium?: number; // 칼륨
   phosphorus?: number; // 인
   gi?: number; // GI 지수
+  calcium?: number; // 칼슘 (mg) - 청소년 성장기 필수
+  iron?: number; // 철분 (mg) - 청소년 성장기 필수
+  vitaminD?: number; // 비타민 D (IU) - 청소년 성장기 필수
 }
 
 // 레시피 주의사항 인터페이스
@@ -322,5 +331,80 @@ export interface FoodSafetyRecipe {
   MANUAL_IMG20: string | null;
   ATT_FILE_NO_MAIN: string | null;
   ATT_FILE_NO_MK: string | null;
+}
+
+// =============================================================================
+// 레시피 변형 시스템 타입 정의
+// =============================================================================
+
+/**
+ * 레시피 메타데이터 (변형 시스템용)
+ */
+export interface RecipeMetadata {
+  id: string;
+  recipe_id: string;
+  main_ingredients: string[]; // 메인 재료 목록
+  cooking_method: string | null; // 조리법
+  variation_group_id: string | null; // 변형 그룹 ID
+  nutrition_focus: string[]; // 영양소 강점 (단백질, 칼슘, 철분 등)
+  age_group_suitable: string[]; // 적합 연령대 (청소년, 성인, 어린이 등)
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 레시피 변형 그룹
+ */
+export interface RecipeVariationGroup {
+  id: string;
+  main_ingredient: string; // 메인 재료
+  base_recipe_id: string | null; // 기본 레시피 ID
+  variation_type: 'cooking_method' | 'seasoning' | 'combination'; // 변형 타입
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 변형 레시피 탐색 결과
+ */
+export interface VariationRecipe {
+  recipe: RecipeDetailForDiet;
+  similarity_score: number; // 유사도 점수 (0-1)
+  variation_type: 'cooking_method' | 'seasoning' | 'combination';
+  difference_description: string; // 차이점 설명
+}
+
+/**
+ * 영양소 부족분 계산 결과
+ */
+export interface NutritionGap {
+  protein: number; // 단백질 부족량 (g)
+  calcium: number; // 칼슘 부족량 (mg)
+  iron: number; // 철분 부족량 (mg)
+  vitaminD: number; // 비타민 D 부족량 (IU)
+  total: number; // 총 부족 점수 (정규화된 값)
+}
+
+/**
+ * 가족 변형 전략 레벨
+ */
+export type VariationLevel = 1 | 2 | 3;
+
+/**
+ * 변형 계획
+ */
+export interface VariationPlan {
+  level: VariationLevel;
+  commonMainIngredient: string; // 공통 메인 재료
+  sharedItems: {
+    rice?: boolean; // 밥 공유 여부
+    soup?: boolean; // 국/찌개 공유 여부
+  };
+  variationItems: {
+    sides: number; // 다른 반찬 개수
+    soup?: boolean; // 국/찌개 변형 여부
+  };
+  description: string; // 변형 계획 설명
 }
 

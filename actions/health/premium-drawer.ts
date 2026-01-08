@@ -66,6 +66,7 @@ export async function getPremiumDrawerData(): Promise<PremiumDrawerData> {
       familyHealthSummary,
       urgentNotifications,
       familyNotifications,
+      petNotifications,
       todaySchedule,
       upcomingSchedule,
       familyAnnouncements,
@@ -75,6 +76,7 @@ export async function getPremiumDrawerData(): Promise<PremiumDrawerData> {
       getFamilyHealthSummary(supabase, userId),
       getUrgentNotifications(supabase, userId),
       getFamilyNotifications(supabase, userId),
+      getPetNotifications(supabase, userId),
       getTodaySchedule(supabase, userId),
       getUpcomingSchedule(supabase, userId),
       getFamilyAnnouncements(supabase, userId),
@@ -86,6 +88,7 @@ export async function getPremiumDrawerData(): Promise<PremiumDrawerData> {
       familyHealthSummary,
       urgentNotifications,
       familyNotifications,
+      petNotifications,
       todaySchedule,
       upcomingSchedule,
       familyAnnouncements,
@@ -392,6 +395,52 @@ async function getFamilyNotifications(
     return (data || []) as Notification[];
   } catch (error) {
     console.error("❌ 가족 알림 조회 오류:", error);
+    return [];
+  }
+}
+
+/**
+ * 반려동물 관련 알림 조회
+ */
+async function getPetNotifications(
+  supabase: Awaited<ReturnType<typeof createClerkSupabaseClient>>,
+  userId: string
+): Promise<Notification[]> {
+  try {
+    // 반려동물(member_type = 'pet') ID 목록 조회
+    const { data: pets } = await supabase
+      .from("family_members")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("member_type", "pet");
+
+    const petIds = pets?.map((p: any) => p.id) || [];
+
+    if (petIds.length === 0) {
+      console.log("🐾 반려동물이 없습니다.");
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .in("family_member_id", petIds)
+      .in("priority", ["urgent", "high", "normal"])
+      .in("status", ["pending", "sent"])
+      .order("priority", { ascending: true })
+      .order("scheduled_at", { ascending: true })
+      .limit(5);
+
+    if (error) {
+      console.error("❌ 반려동물 알림 조회 실패:", error);
+      return [];
+    }
+
+    console.log("🐾 반려동물 알림 조회 완료:", data?.length || 0, "개");
+    return (data || []) as Notification[];
+  } catch (error) {
+    console.error("❌ 반려동물 알림 조회 오류:", error);
     return [];
   }
 }

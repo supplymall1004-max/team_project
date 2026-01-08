@@ -45,8 +45,10 @@ export function FamilyMemberHealthSyncButton({
     staleTime: 5 * 60 * 1000,
   });
 
-  const hasVerifiedIdentity = Array.isArray(verifications) && 
-    verifications.some((v: any) => v.status === 'verified');
+  // 펫인 경우 신원확인 불필요
+  const isPet = member.relationship === "pet";
+  const hasVerifiedIdentity = isPet || (Array.isArray(verifications) && 
+    verifications.some((v: any) => v.status === 'verified'));
 
   // 동기화 실행
   const handleSync = async () => {
@@ -152,7 +154,12 @@ export function FamilyMemberHealthSyncButton({
             <div>
               <div className="font-medium">{member.name}님 건강 정보</div>
               <div className="text-sm text-muted-foreground">
-                {hasVerifiedIdentity ? (
+                {isPet ? (
+                  <span className="flex items-center gap-1 text-blue-600">
+                    <CheckCircle2 className="h-3 w-3" />
+                    반려동물
+                  </span>
+                ) : hasVerifiedIdentity ? (
                   <span className="flex items-center gap-1 text-green-600">
                     <CheckCircle2 className="h-3 w-3" />
                     신원확인 완료
@@ -185,7 +192,7 @@ export function FamilyMemberHealthSyncButton({
             )}
           </Button>
         </div>
-        {!hasVerifiedIdentity && (
+        {!isPet && !hasVerifiedIdentity && (
           <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <p className="text-sm text-amber-800">
               건강 정보를 동기화하려면 먼저 신원확인이 완료되어야 합니다.

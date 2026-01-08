@@ -32,75 +32,81 @@ function getRecipeFilePath(rcpSeq: string): string {
 }
 
 /**
- * RCP_SEQ로 특정 레시피 로드 (캐시 우선 사용)
+ * RCP_SEQ로 특정 레시피 로드 (지연 로딩 방식)
+ * 
+ * 성능 최적화:
+ * - 캐시 초기화를 하지 않고 필요한 레시피만 로드
+ * - 전체 목록이 필요할 때만 initializeCache() 호출
  */
 export function loadRecipeBySeq(rcpSeq: string): MfdsRecipe | null {
-  // 캐시가 초기화되지 않았으면 초기화
-  if (!cacheInitialized) {
-    initializeCache();
-  }
-
-  // 캐시에서 먼저 조회 (O(1))
-  if (recipeCache && recipeCache.has(rcpSeq)) {
+  // 캐시가 이미 초기화되어 있으면 캐시에서 조회
+  if (cacheInitialized && recipeCache && recipeCache.has(rcpSeq)) {
     return recipeCache.get(rcpSeq)!;
   }
 
-  // 캐시에 없으면 파일에서 로드 (캐시 미스)
-  console.groupCollapsed(`[RecipeLoader] 캐시 미스 - 레시피 로드: ${rcpSeq}`);
+  // 캐시가 없거나 해당 레시피가 없으면 파일에서 직접 로드 (지연 로딩)
   const filePath = getRecipeFilePath(rcpSeq);
 
   try {
     if (!fs.existsSync(filePath)) {
-      console.warn("[RecipeLoader] 파일이 존재하지 않습니다:", filePath);
-      console.groupEnd();
       return null;
     }
 
     const content = fs.readFileSync(filePath, "utf-8");
     const recipe = parseRecipeMarkdown(content, rcpSeq);
     
-    if (recipe && recipeCache) {
-      // 캐시에 추가 (다음 조회 시 빠르게 접근 가능)
+    if (recipe) {
+      // 캐시가 초기화되어 있으면 캐시에 추가
+      if (!recipeCache) {
+        recipeCache = new Map<string, MfdsRecipe>();
+      }
+      if (!recipeListCache) {
+        recipeListCache = [];
+      }
+      
       recipeCache.set(rcpSeq, recipe);
-      if (recipeListCache) {
+      // 중복 방지: 이미 있는지 확인 후 추가
+      if (!recipeListCache.find(r => r.frontmatter.rcp_seq === rcpSeq)) {
         recipeListCache.push(recipe);
       }
     }
 
-    console.log("[RecipeLoader] 레시피 로드 완료 (캐시에 추가됨)");
-    console.groupEnd();
     return recipe;
   } catch (error) {
-    console.error("[RecipeLoader] 레시피 로드 중 오류 발생:", error);
-    console.groupEnd();
+    console.error(`[RecipeLoader] 레시피 로드 중 오류 발생: ${rcpSeq}`, error);
     return null;
   }
 }
 
 /**
- * 캐시 초기화 (서버 시작 시 또는 첫 호출 시 한 번만 실행)
+ * 캐시 초기화 (전체 목록이 필요할 때만 호출)
+ * 
+ * 주의: 이 함수는 모든 레시피를 파싱하므로 느릴 수 있습니다.
+ * loadRecipeBySeq는 이 함수를 호출하지 않고 필요한 레시피만 로드합니다.
  */
 function initializeCache(): void {
   if (cacheInitialized) {
     return;
   }
 
-  console.group("[RecipeLoader] 캐시 초기화 시작");
   const startTime = Date.now();
 
-  recipeCache = new Map<string, MfdsRecipe>();
-  recipeListCache = [];
+  // 이미 일부 레시피가 로드되어 있을 수 있으므로 기존 캐시 유지
+  if (!recipeCache) {
+    recipeCache = new Map<string, MfdsRecipe>();
+  }
+  if (!recipeListCache) {
+    recipeListCache = [];
+  }
 
   try {
     if (!fs.existsSync(RECIPES_DIR)) {
-      console.warn("[RecipeLoader] 레시피 디렉토리가 존재하지 않습니다:", RECIPES_DIR);
       cacheInitialized = true;
-      console.groupEnd();
       return;
     }
 
     const files = fs.readdirSync(RECIPES_DIR);
-    console.log("[RecipeLoader] 발견된 파일 개수:", files.length);
+    const existingSeqs = new Set(recipeCache.keys());
 
     for (const file of files) {
       if (!file.endsWith(".md")) {
@@ -108,6 +114,12 @@ function initializeCache(): void {
       }
 
       const rcpSeq = file.replace(".md", "");
+      
+      // 이미 로드된 레시피는 건너뛰기
+      if (existingSeqs.has(rcpSeq)) {
+        continue;
+      }
+
       const filePath = getRecipeFilePath(rcpSeq);
 
       try {
@@ -126,11 +138,9 @@ function initializeCache(): void {
     const duration = Date.now() - startTime;
     console.log(`[RecipeLoader] 캐시 초기화 완료: ${recipeCache.size}개 레시피 (${duration}ms)`);
     cacheInitialized = true;
-    console.groupEnd();
   } catch (error) {
     console.error("[RecipeLoader] 캐시 초기화 중 오류 발생:", error);
     cacheInitialized = true; // 에러가 나도 재시도 방지
-    console.groupEnd();
   }
 }
 

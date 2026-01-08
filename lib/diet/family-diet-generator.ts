@@ -148,15 +148,33 @@ export async function generateFamilyDietWithWeeklyContext(
 
 /**
  * 가족 식단 생성 (개인별 + 통합)
+ * 
+ * @param useVariation 변형 모드 사용 여부 (기본값: false)
+ * @param variationLevel 변형 레벨 (1-3, 기본값: 2)
  */
 export async function generateFamilyDiet(
   userId: string,
   userProfile: UserHealthProfile,
   familyMembers: FamilyMember[],
   targetDate: string,
-  includeUnified: boolean = true
+  includeUnified: boolean = true,
+  useVariation: boolean = false,
+  variationLevel: 1 | 2 | 3 = 2
 ): Promise<FamilyDietPlan> {
   console.group("👨‍👩‍👧‍👦 가족 식단 생성");
+  
+  // 변형 모드 사용 여부 확인
+  if (useVariation) {
+    console.log("🔄 변형 모드 활성화 (Level", variationLevel, ")");
+    const { generateFamilyVariationDiet } = await import("./family-variation-generator");
+    return await generateFamilyVariationDiet(
+      userId,
+      userProfile,
+      familyMembers,
+      targetDate,
+      variationLevel
+    );
+  }
   
   // 반려동물 제외 (member_type이 'pet'인 경우 제외)
   const humanMembers = familyMembers.filter(member => {
@@ -409,6 +427,7 @@ async function generateUnifiedDiet(
       protein: fruitSnack.fruit.nutrition.protein * fruitSnack.servings,
       carbs: fruitSnack.fruit.nutrition.carbs * fruitSnack.servings,
       fat: fruitSnack.fruit.nutrition.fat * fruitSnack.servings,
+      sodium: 0, // 과일은 나트륨 함량이 매우 낮음
       fiber: fruitSnack.fruit.nutrition.fiber * fruitSnack.servings,
     },
     emoji: fruitSnack.fruit.emoji,
@@ -688,6 +707,7 @@ async function generateUnifiedDietWithWeeklyContext(
       protein: fruitSnack.fruit.nutrition.protein * fruitSnack.servings,
       carbs: fruitSnack.fruit.nutrition.carbs * fruitSnack.servings,
       fat: fruitSnack.fruit.nutrition.fat * fruitSnack.servings,
+      sodium: 0, // 과일은 나트륨 함량이 매우 낮음
       fiber: fruitSnack.fruit.nutrition.fiber * fruitSnack.servings,
     },
     emoji: fruitSnack.fruit.emoji,

@@ -224,7 +224,7 @@ export function HomeLanding() {
       <HeroSection
         backgroundImageUrl={backgroundImageUrl}
         badgeText={allContent["hero-badge"]?.content.text ?? ""}
-        title={allContent["hero-title"]?.content.title ?? "냉씨 가문 집사 장고"}
+        title={allContent["hero-title"]?.content.title ?? "장씨집안집사 장고"}
         subtitle={allContent["hero-title"]?.content.subtitle ?? "잊혀진 손맛을 보관하는 디지털 식탁"}
         description={allContent["hero-description"]?.content.text ?? "전통과 현대를 잇는 레시피 아카이브. 명인의 전통 레시피부터 건강 맞춤 식단까지, 세대와 세대를 넘나드는 요리 지식을 한 곳에서 경험하세요."}
         searchPlaceholder={allContent["hero-search-placeholder"]?.content.text ?? "레시피를 검색해보세요"}

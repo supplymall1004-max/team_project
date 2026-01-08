@@ -61,7 +61,7 @@ export function usePageTexture(targetSelector?: string) {
         ctx.fillStyle = "#1f2937";
         ctx.font = "bold 24px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("맛카", canvas.width / 2, canvas.height / 2 - 20);
+        ctx.fillText("장고", canvas.width / 2, canvas.height / 2 - 20);
         ctx.font = "16px sans-serif";
         ctx.fillText(
           "Flavor Archive",

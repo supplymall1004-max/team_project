@@ -33,7 +33,9 @@ export function PetWeightTab({ petId, pet }: PetWeightTabProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
-    fetchWeightRecords();
+    if (petId) {
+      fetchWeightRecords();
+    }
   }, [petId]);
 
   const fetchWeightRecords = async () => {

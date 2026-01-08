@@ -17,12 +17,13 @@
 
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Heart, Bell, Calendar, Users, Megaphone } from "lucide-react";
+import { X, Heart, Bell, Calendar, Users, Megaphone, PawPrint } from "lucide-react";
 import { PremiumHealthStatusSection } from "./premium-health-status-section";
 import { PremiumHealthNotifications } from "./premium-health-notifications";
 import { PremiumHealthSchedule } from "./premium-health-schedule";
 import { PremiumFamilyCommunication } from "./premium-family-communication";
 import { PremiumSystemAnnouncements } from "./premium-system-announcements";
+import { PremiumPetNotifications } from "./premium-pet-notifications";
 
 interface PremiumHealthDrawerProps {
   isOpen: boolean;
@@ -58,6 +59,14 @@ export function PremiumHealthDrawer({
       gradient: "from-amber-500 via-orange-500 to-red-500",
       borderColor: "border-amber-300",
       textColor: "text-amber-700",
+    },
+    {
+      id: "pets",
+      title: "반려동물 알림",
+      icon: PawPrint,
+      gradient: "from-yellow-500 via-amber-500 to-orange-500",
+      borderColor: "border-yellow-300",
+      textColor: "text-yellow-700",
     },
     {
       id: "schedule",
@@ -207,6 +216,7 @@ export function PremiumHealthDrawer({
                         <div className="relative">
                           {section.id === "health" && <PremiumHealthStatusSection />}
                           {section.id === "notifications" && <PremiumHealthNotifications />}
+                          {section.id === "pets" && <PremiumPetNotifications />}
                           {section.id === "schedule" && <PremiumHealthSchedule />}
                           {section.id === "family" && <PremiumFamilyCommunication />}
                           {section.id === "announcements" && <PremiumSystemAnnouncements />}
