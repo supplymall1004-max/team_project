@@ -43,7 +43,8 @@ export async function getPremiumDrawerData(): Promise<PremiumDrawerData> {
     if (!clerkUserId) {
       console.error("❌ 인증 실패");
       console.groupEnd();
-      throw new Error("인증이 필요합니다.");
+      // 에러를 throw하지 않고 기본값 반환
+      return getDefaultPremiumDrawerData();
     }
 
     // 2. Supabase 클라이언트 생성
@@ -54,24 +55,15 @@ export async function getPremiumDrawerData(): Promise<PremiumDrawerData> {
     if (!userData) {
       console.error("❌ 사용자 동기화 실패");
       console.groupEnd();
-      throw new Error("사용자 정보를 동기화할 수 없습니다.");
+      // 에러를 throw하지 않고 기본값 반환
+      return getDefaultPremiumDrawerData();
     }
 
     const userId = userData.id;
     console.log("✅ 사용자 확인 완료:", userId);
 
-    // 4. 병렬로 데이터 조회
-    const [
-      healthStatus,
-      familyHealthSummary,
-      urgentNotifications,
-      familyNotifications,
-      petNotifications,
-      todaySchedule,
-      upcomingSchedule,
-      familyAnnouncements,
-      systemAnnouncements,
-    ] = await Promise.all([
+    // 4. 병렬로 데이터 조회 (각 함수가 내부적으로 에러를 처리하므로 안전)
+    const results = await Promise.allSettled([
       getHealthStatusSummary(supabase, userId),
       getFamilyHealthSummary(supabase, userId),
       getUrgentNotifications(supabase, userId),
@@ -82,6 +74,16 @@ export async function getPremiumDrawerData(): Promise<PremiumDrawerData> {
       getFamilyAnnouncements(supabase, userId),
       getSystemAnnouncements(),
     ]);
+
+    const healthStatus = results[0].status === "fulfilled" ? results[0].value : getDefaultHealthStatus();
+    const familyHealthSummary = results[1].status === "fulfilled" ? results[1].value : getDefaultFamilyHealthSummary();
+    const urgentNotifications = results[2].status === "fulfilled" ? results[2].value : [];
+    const familyNotifications = results[3].status === "fulfilled" ? results[3].value : [];
+    const petNotifications = results[4].status === "fulfilled" ? results[4].value : [];
+    const todaySchedule = results[5].status === "fulfilled" ? results[5].value : [];
+    const upcomingSchedule = results[6].status === "fulfilled" ? results[6].value : [];
+    const familyAnnouncements = results[7].status === "fulfilled" ? results[7].value : [];
+    const systemAnnouncements = results[8].status === "fulfilled" ? results[8].value : [];
 
     const result: PremiumDrawerData = {
       healthStatus,
@@ -101,9 +103,56 @@ export async function getPremiumDrawerData(): Promise<PremiumDrawerData> {
     return result;
   } catch (error) {
     console.error("❌ 프리미엄 드로어 데이터 조회 오류:", error);
+    console.error("에러 상세:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     console.groupEnd();
-    throw error;
+    // 에러를 throw하지 않고 기본값 반환
+    return getDefaultPremiumDrawerData();
   }
+}
+
+/**
+ * 기본 프리미엄 드로어 데이터 반환
+ */
+function getDefaultPremiumDrawerData(): PremiumDrawerData {
+  return {
+    healthStatus: getDefaultHealthStatus(),
+    familyHealthSummary: getDefaultFamilyHealthSummary(),
+    urgentNotifications: [],
+    familyNotifications: [],
+    petNotifications: [],
+    todaySchedule: [],
+    upcomingSchedule: [],
+    familyAnnouncements: [],
+    systemAnnouncements: [],
+  };
+}
+
+/**
+ * 기본 건강 상태 요약 반환
+ */
+function getDefaultHealthStatus(): HealthStatusSummary {
+  return {
+    healthScore: 0,
+    activeMedications: 0,
+    upcomingVaccinations: 0,
+    lastCheckupDate: null,
+    bmi: null,
+  };
+}
+
+/**
+ * 기본 가족 건강 요약 반환
+ */
+function getDefaultFamilyHealthSummary(): FamilyHealthSummary {
+  return {
+    familyAverageScore: 0,
+    familyMembersCount: 0,
+    familyActiveMedications: 0,
+    familyUpcomingVaccinations: 0,
+  };
 }
 
 /**

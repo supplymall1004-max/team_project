@@ -432,7 +432,7 @@ export async function POST(request: NextRequest) {
         protein_g: number;
         fat_g: number;
         sodium_mg: number;
-        composition_summary: Record<string, string[]> | null;
+        composition_summary: Record<string, Array<{ id: string; title: string } | string>> | null;
         is_unified: boolean;
         family_member_id: string | null;
       }> = [];
@@ -678,7 +678,7 @@ function buildDietPlanRecords({
   potassium_mg: number | null;
   phosphorus_mg: number | null;
   gi_index: number | null;
-  composition_summary: Record<string, string[]> | null;
+  composition_summary: Record<string, Array<{ id: string; title: string } | string>> | null;
   is_unified: boolean;
   family_member_id: string | null;
   weekly_diet_plan_id: string | null; // 새로 추가된 필드
@@ -725,11 +725,14 @@ function buildCompositionMealRecord({
   const summaryItems = getMealCompositionSummaryItems(meal);
   const nutrition = meal.totalNutrition || {};
 
-  const summaryPayload: Record<string, string[]> = {
+  // composition_summary에 ID와 제목을 함께 저장
+  const summaryPayload: Record<string, Array<{ id: string; title: string } | string>> = {
     items: summaryItems,
-    rice: meal.rice?.title ? [meal.rice.title] : [],
-    sides: (meal.sides || []).map((side) => side.title).filter(Boolean),
-    soup: meal.soup?.title ? [meal.soup.title] : [],
+    rice: meal.rice?.id && meal.rice?.title ? [{ id: meal.rice.id, title: meal.rice.title }] : [],
+    sides: (meal.sides || [])
+      .filter((side) => side.id && side.title)
+      .map((side) => ({ id: side.id, title: side.title })),
+    soup: meal.soup?.id && meal.soup?.title ? [{ id: meal.soup.id, title: meal.soup.title }] : [],
   };
 
   return {

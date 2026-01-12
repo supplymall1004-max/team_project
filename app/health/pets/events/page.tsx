@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Section } from '@/components/section';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +21,7 @@ import { ko } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export default function PetEventsPage() {
+function PetEventsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const petId = searchParams.get('petId');
@@ -373,6 +373,22 @@ export default function PetEventsPage() {
         )}
       </Section>
     </div>
+  );
+}
+
+export default function PetEventsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-muted-foreground">로딩 중...</p>
+          </div>
+        </div>
+      }
+    >
+      <PetEventsContent />
+    </Suspense>
   );
 }
 

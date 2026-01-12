@@ -78,7 +78,7 @@ export function getManualImageUrl(
   stepNumber: number
 ): string | null {
   return getRecipeImageUrl(
-    null,
+    originalUrl,
     localPath,
     rcpSeq,
     "manual",

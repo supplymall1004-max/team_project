@@ -47,6 +47,13 @@ export function PremiumHealthNotifications() {
         setNotifications(finalNotifications);
       } catch (error) {
         console.error("❌ [PremiumHealthNotifications] 알림 데이터 로드 실패:", error);
+        console.error("에러 상세:", {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          name: error instanceof Error ? error.name : "Unknown",
+        });
+        // 에러가 발생해도 빈 배열로 설정하여 UI가 깨지지 않도록 함
+        setNotifications([]);
       } finally {
         setIsLoading(false);
       }

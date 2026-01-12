@@ -20,6 +20,14 @@ export function MealCompositionCard({
 }: MealCompositionCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // 디버깅 로그
+  console.log(`[MealCompositionCard] ${mealType} composition:`, {
+    rice: composition.rice?.title,
+    sides: composition.sides?.map(s => s.title),
+    soup: composition.soup?.title,
+    compositionSummary: composition.compositionSummary,
+  });
+
   return (
     <>
       <div
@@ -74,14 +82,41 @@ export function MealCompositionCard({
           </div>
         )}
 
-        {/* 총 칼로리 */}
+        {/* 총 영양 정보 */}
         <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            총 칼로리:{" "}
-            <span className="font-bold text-gray-900 dark:text-gray-100">
-              {composition.totalNutrition.calories}kcal
-            </span>
+          <p className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+            📊 총 영양 정보
           </p>
+          <div className="grid grid-cols-4 gap-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">칼로리</p>
+              <p className="text-lg font-bold">
+                {Math.round(composition.totalNutrition.calories)}
+              </p>
+              <p className="text-xs text-gray-500">kcal</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">탄수화물</p>
+              <p className="text-lg font-bold">
+                {Math.round(composition.totalNutrition.carbs)}
+              </p>
+              <p className="text-xs text-gray-500">g</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">단백질</p>
+              <p className="text-lg font-bold">
+                {Math.round(composition.totalNutrition.protein)}
+              </p>
+              <p className="text-xs text-gray-500">g</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">지방</p>
+              <p className="text-lg font-bold">
+                {Math.round(composition.totalNutrition.fat)}
+              </p>
+              <p className="text-xs text-gray-500">g</p>
+            </div>
+          </div>
         </div>
 
         <p className="mt-2 text-xs text-gray-500">

@@ -437,22 +437,23 @@ export async function generatePersonalDiet(
 
   // 구성품 요약 생성 및 로깅
   console.group("📋 식단 구성품 요약 생성");
+  // composition_summary에 ID와 제목을 함께 저장
   const breakfastComposition = [
-    ...(breakfast.rice ? [breakfast.rice.title] : []),
-    ...(breakfast.sides ? breakfast.sides.map(side => side.title) : []),
-    ...(breakfast.soup ? [breakfast.soup.title] : []),
+    ...(breakfast.rice?.id && breakfast.rice?.title ? [{ id: breakfast.rice.id, title: breakfast.rice.title }] : []),
+    ...(breakfast.sides ? breakfast.sides.filter(side => side.id && side.title).map(side => ({ id: side.id, title: side.title })) : []),
+    ...(breakfast.soup?.id && breakfast.soup?.title ? [{ id: breakfast.soup.id, title: breakfast.soup.title }] : []),
   ];
   const lunchComposition = [
-    ...(lunch.rice ? [lunch.rice.title] : []),
-    ...(lunch.sides ? lunch.sides.map(side => side.title) : []),
-    ...(lunch.soup ? [lunch.soup.title] : []),
+    ...(lunch.rice?.id && lunch.rice?.title ? [{ id: lunch.rice.id, title: lunch.rice.title }] : []),
+    ...(lunch.sides ? lunch.sides.filter(side => side.id && side.title).map(side => ({ id: side.id, title: side.title })) : []),
+    ...(lunch.soup?.id && lunch.soup?.title ? [{ id: lunch.soup.id, title: lunch.soup.title }] : []),
   ];
   const dinnerComposition = [
-    ...(dinner.rice ? [dinner.rice.title] : []),
-    ...(dinner.sides ? dinner.sides.map(side => side.title) : []),
-    ...(dinner.soup ? [dinner.soup.title] : []),
+    ...(dinner.rice?.id && dinner.rice?.title ? [{ id: dinner.rice.id, title: dinner.rice.title }] : []),
+    ...(dinner.sides ? dinner.sides.filter(side => side.id && side.title).map(side => ({ id: side.id, title: side.title })) : []),
+    ...(dinner.soup?.id && dinner.soup?.title ? [{ id: dinner.soup.id, title: dinner.soup.title }] : []),
   ];
-  const snackComposition = [snack.title]; // 간식은 제철 과일 하나
+  const snackComposition = snack.id && snack.title ? [{ id: snack.id, title: snack.title }] : []; // 간식은 제철 과일 하나
 
   console.log("아침 구성품:", breakfastComposition);
   console.log("점심 구성품:", lunchComposition);
@@ -1029,24 +1030,76 @@ async function selectDishForMeal(
             return true;
         }
       })
-      .map(recipe => ({
-        title: recipe.title,
-        description: "",
-        source: "database",
-        ingredients: [],
-        instructions: "",
-        nutrition: {
-          calories: recipe.calories || 0,
-          protein: recipe.protein || 0,
-          carbs: recipe.carbohydrates || 0,
-          fat: recipe.fat || 0,
-          fiber: 0,
-          sodium: recipe.sodium || 0,
-        },
-        dishType: [dishType],
-        mealType: [mealType],
-        emoji: dishType === "rice" ? "🍚" : dishType === "soup" ? "🍲" : "🍽️",
-      }))
+      .map(recipe => {
+        // 식약처 레시피인지 확인
+        const isFoodsafetyRecipe = recipe.id && typeof recipe.id === 'string' && recipe.id.startsWith('foodsafety-');
+        
+        // 식약처 레시피는 상세 정보 로드
+        if (isFoodsafetyRecipe) {
+          const rcpSeq = recipe.id.replace('foodsafety-', '');
+          try {
+            const { loadRecipeBySeq } = require('@/lib/mfds/recipe-loader');
+            const mfdsRecipe = loadRecipeBySeq(rcpSeq);
+            
+            if (mfdsRecipe) {
+              // 재료 정보 추출 (parsedIngredients를 문자열로 변환)
+              const ingredients = mfdsRecipe.parsedIngredients?.map(ing => ({
+                name: ing.name,
+                amount: ing.quantity ? `${ing.quantity}${ing.unit || ''}` : '',
+                unit: '',
+              })) || [];
+              
+              // 조리 방법 추출 (steps를 문자열로 변환)
+              const instructions = mfdsRecipe.cookingSteps?.map(step => step.instruction).join('\n') || '';
+              
+              return {
+                id: recipe.id,
+                title: recipe.title,
+                description: mfdsRecipe.description || "",
+                source: "foodsafety" as const,
+                ingredients,
+                instructions,
+                nutrition: {
+                  calories: mfdsRecipe.nutrition.calories || 0,
+                  protein: mfdsRecipe.nutrition.protein || 0,
+                  carbs: mfdsRecipe.nutrition.carbohydrate || 0,
+                  fat: mfdsRecipe.nutrition.fat || 0,
+                  fiber: mfdsRecipe.nutrition.fiber || 0,
+                  sodium: mfdsRecipe.nutrition.sodium || 0,
+                },
+                dishType: [dishType],
+                mealType: [mealType],
+                emoji: dishType === "rice" ? "🍚" : dishType === "soup" ? "🍲" : "🍽️",
+                thumbnail_url: mfdsRecipe.images?.mainImageUrl || undefined,
+                slug: `mfds-${rcpSeq}`,
+              };
+            }
+          } catch (error) {
+            console.error(`❌ 식약처 레시피 로드 실패: ${rcpSeq}`, error);
+          }
+        }
+        
+        // 일반 레시피
+        return {
+          id: recipe.id,
+          title: recipe.title,
+          description: "",
+          source: "database" as const,
+          ingredients: [],
+          instructions: "",
+          nutrition: {
+            calories: recipe.calories || 0,
+            protein: recipe.protein || 0,
+            carbs: recipe.carbohydrates || 0,
+            fat: recipe.fat || 0,
+            fiber: 0,
+            sodium: recipe.sodium || 0,
+          },
+          dishType: [dishType],
+          mealType: [mealType],
+          emoji: dishType === "rice" ? "🍚" : dishType === "soup" ? "🍲" : "🍽️",
+        };
+      })
       .filter(recipe => {
         // 일반 제외 목록 필터링
         if (excludeNames.includes(recipe.title)) return false;

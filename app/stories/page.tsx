@@ -37,7 +37,8 @@ export default function StoriesLearningPage() {
           </p>
         </div>
 
-        <StoriesTabsClient
+        <Suspense fallback={<SectionSkeleton />}>
+          <StoriesTabsClient
           allContent={
             <>
               {/* 장고의 음식 동화 */}
@@ -94,7 +95,8 @@ export default function StoriesLearningPage() {
               </Suspense>
             </ErrorBoundary>
           }
-        />
+          />
+        </Suspense>
       </Section>
     </div>
   );

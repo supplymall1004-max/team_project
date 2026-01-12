@@ -177,23 +177,64 @@ export default async function MealDetailPage({ params }: PageProps) {
       // composition_summary에서 관련 레시피 로드
       const compositionSummary = mealData.compositionSummary || [];
       if (Array.isArray(compositionSummary) && compositionSummary.length > 0) {
-        const processedTitles = new Set<string>();
+        const processedIds = new Set<string>();
         
-        for (const title of compositionSummary) {
-          if (!title || typeof title !== 'string' || processedTitles.has(title)) continue;
-          processedTitles.add(title);
-          
-          try {
-            const recipe = loadRecipeByTitle(title);
-            if (recipe) {
-              mealDetails[mealTypeKey].relatedRecipes.push({
-                rcpSeq: recipe.frontmatter.rcp_seq,
-                title: recipe.title,
-                category: recipe.frontmatter.rcp_pat2 || '기타',
-              });
+        for (const item of compositionSummary) {
+          // 새 형식: { id, title } 객체
+          if (item && typeof item === 'object' && 'id' in item && 'title' in item) {
+            const { id, title } = item as { id: string; title: string };
+            if (!id || !title || processedIds.has(id)) continue;
+            processedIds.add(id);
+            
+            try {
+              // 1. ID가 foodsafety- 형식이면 RCP_SEQ 추출하여 로드
+              const rcpSeq = id.startsWith('foodsafety-') 
+                ? id.replace('foodsafety-', '') 
+                : (/^\d+$/.test(id) ? id : null);
+              
+              if (rcpSeq) {
+                const recipe = loadRecipeBySeq(rcpSeq);
+                if (recipe) {
+                  mealDetails[mealTypeKey].relatedRecipes.push({
+                    rcpSeq: recipe.frontmatter.rcp_seq,
+                    title: recipe.title,
+                    category: recipe.frontmatter.rcp_pat2 || '기타',
+                  });
+                  continue;
+                }
+              }
+              
+              // 2. ID로 찾지 못하면 제목으로 폴백
+              const recipe = loadRecipeByTitle(title);
+              if (recipe) {
+                mealDetails[mealTypeKey].relatedRecipes.push({
+                  rcpSeq: recipe.frontmatter.rcp_seq,
+                  title: recipe.title,
+                  category: recipe.frontmatter.rcp_pat2 || '기타',
+                });
+              }
+            } catch (error) {
+              console.warn(`[MealDetailPage] ${mealTypeKey} 관련 레시피 (ID: ${id}, Title: "${title}") 로드 실패:`, error);
             }
-          } catch (error) {
-            console.warn(`[MealDetailPage] ${mealTypeKey} 관련 레시피 "${title}" 로드 실패:`, error);
+          }
+          // 기존 형식: 문자열 (제목만)
+          else if (typeof item === 'string') {
+            const title = item;
+            if (!title || processedIds.has(title)) continue;
+            processedIds.add(title);
+            
+            try {
+              const recipe = loadRecipeByTitle(title);
+              if (recipe) {
+                mealDetails[mealTypeKey].relatedRecipes.push({
+                  rcpSeq: recipe.frontmatter.rcp_seq,
+                  title: recipe.title,
+                  category: recipe.frontmatter.rcp_pat2 || '기타',
+                });
+              }
+            } catch (error) {
+              console.warn(`[MealDetailPage] ${mealTypeKey} 관련 레시피 "${title}" 로드 실패:`, error);
+            }
           }
         }
         

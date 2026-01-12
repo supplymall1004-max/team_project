@@ -640,13 +640,15 @@ export default async function VaccinationsPage() {
           </p>
         </div>
 
-        <VaccinationTabsClient
-          lifecycleContent={<LifecycleTabContent />}
-          situationContent={<SituationTabContent />}
-          travelContent={<TravelTabContent />}
-          seasonalContent={<SeasonalTabContent />}
-          ageSummaryContent={<AgeSummaryTabContent />}
-        />
+        <Suspense fallback={<SectionSkeleton />}>
+          <VaccinationTabsClient
+            lifecycleContent={<LifecycleTabContent />}
+            situationContent={<SituationTabContent />}
+            travelContent={<TravelTabContent />}
+            seasonalContent={<SeasonalTabContent />}
+            ageSummaryContent={<AgeSummaryTabContent />}
+          />
+        </Suspense>
       </Section>
     </div>
   );

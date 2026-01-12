@@ -30,7 +30,7 @@ export function MfdsRecipeCard({ recipe }: MfdsRecipeCardProps) {
 
   return (
     <Link
-      href={`/recipes/mfds/${recipe.frontmatter.rcp_seq}`}
+      href={`/archive/recipes/mfds/${recipe.frontmatter.rcp_seq}`}
       className="group"
     >
       <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105">

@@ -117,7 +117,10 @@ function DietCardContent({
     setImageError(true);
   };
 
-  // 레시피 제목 (compositionSummary가 있으면 첫 번째 항목, 없으면 recipe.title)
+  // 레시피 제목 (compositionSummary가 있으면 개별 음식 이름 표시, 없으면 recipe.title)
+  console.log(`[DietCard] ${MEAL_TYPE_LABELS[mealType]} compositionSummary:`, dietPlan.compositionSummary);
+  console.log(`[DietCard] ${MEAL_TYPE_LABELS[mealType]} recipe.title:`, recipe.title);
+  
   const recipeTitle =
     dietPlan.compositionSummary && dietPlan.compositionSummary.length > 0
       ? dietPlan.compositionSummary.join(", ")

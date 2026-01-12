@@ -932,13 +932,59 @@ async function selectUnifiedDish(
       .map(recipe => {
         // 정적 파일 레시피인지 확인 (id가 foodsafety-로 시작하는 경우)
         const isFoodsafetyRecipe = recipe.id && typeof recipe.id === 'string' && recipe.id.startsWith('foodsafety-');
-        const source = isFoodsafetyRecipe ? 'foodsafety' : 'database';
         
+        // 식약처 레시피는 상세 정보 로드
+        if (isFoodsafetyRecipe) {
+          const rcpSeq = recipe.id.replace('foodsafety-', '');
+          try {
+            const { loadRecipeBySeq } = require('@/lib/mfds/recipe-loader');
+            const mfdsRecipe = loadRecipeBySeq(rcpSeq);
+            
+            if (mfdsRecipe) {
+              // 재료 정보 추출
+              const ingredients = mfdsRecipe.parsedIngredients?.map(ing => ({
+                name: ing.name,
+                amount: ing.quantity ? `${ing.quantity}${ing.unit || ''}` : '',
+                unit: '',
+              })) || [];
+              
+              // 조리 방법 추출
+              const instructions = mfdsRecipe.cookingSteps?.map(step => step.instruction).join('\n') || '';
+              
+              return {
+                id: recipe.id || undefined,
+                title: recipe.title,
+                description: mfdsRecipe.description || "",
+                source: 'foodsafety' as const,
+                ingredients,
+                instructions,
+                nutrition: {
+                  calories: mfdsRecipe.nutrition.calories || 0,
+                  protein: mfdsRecipe.nutrition.protein || 0,
+                  carbs: mfdsRecipe.nutrition.carbohydrate || 0,
+                  fat: mfdsRecipe.nutrition.fat || 0,
+                  fiber: mfdsRecipe.nutrition.fiber || 0,
+                  sodium: mfdsRecipe.nutrition.sodium || 0,
+                },
+                dishType: [dishType],
+                mealType: [mealType],
+                emoji: dishType === "rice" ? "🍚" : dishType === "soup" ? "🍲" : "🍽️",
+                imageUrl: mfdsRecipe.images?.mainImageUrl || undefined,
+                thumbnail_url: mfdsRecipe.images?.mainImageUrl || undefined,
+                slug: `mfds-${rcpSeq}`,
+              };
+            }
+          } catch (error) {
+            console.error(`❌ 식약처 레시피 로드 실패: ${rcpSeq}`, error);
+          }
+        }
+        
+        // 일반 레시피
         return {
           id: recipe.id || undefined,
           title: recipe.title,
           description: "",
-          source: source,
+          source: 'database' as const,
           ingredients: [],
           instructions: "",
           nutrition: {
@@ -946,13 +992,13 @@ async function selectUnifiedDish(
             protein: recipe.protein || 0,
             carbs: recipe.carbohydrates || 0,
             fat: recipe.fat || 0,
-            fiber: (recipe as any).fiber || 0, // 정적 파일 레시피에는 fiber 정보가 있을 수 있음
+            fiber: (recipe as any).fiber || 0,
             sodium: recipe.sodium || 0,
           },
           dishType: [dishType],
           mealType: [mealType],
           emoji: dishType === "rice" ? "🍚" : dishType === "soup" ? "🍲" : "🍽️",
-          imageUrl: (recipe as any).thumbnail_url || undefined, // 정적 파일 레시피 이미지 URL
+          imageUrl: (recipe as any).thumbnail_url || undefined,
         };
       })
       .filter(recipe => {

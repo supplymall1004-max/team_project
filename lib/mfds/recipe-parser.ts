@@ -64,8 +64,11 @@ function parseTitleAndDescription(content: string): {
   title: string;
   description: string;
 } {
+  // 개행 문자 정규화
+  const normalizedContent = content.replace(/\r\n/g, '\n');
+  
   // Frontmatter 제거
-  const withoutFrontmatter = content.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, "");
+  const withoutFrontmatter = normalizedContent.replace(/^---\s*\n[\s\S]*?\n---\s*\n/, "");
 
   // 제목 추출 (# 제목)
   const titleMatch = withoutFrontmatter.match(/^#\s+(.+?)\s*$/m);
@@ -73,7 +76,7 @@ function parseTitleAndDescription(content: string): {
 
   // 설명 추출 (제목 다음 줄부터 다음 ## 섹션 전까지)
   const descriptionMatch = withoutFrontmatter.match(
-    /^#\s+.+?\s*\n\n(.+?)\n\n##/s
+    /^#\s+.+?\s*\n+(.+?)(?:\n+##|$)/s
   );
   const description = descriptionMatch
     ? descriptionMatch[1].trim()
@@ -87,7 +90,11 @@ function parseTitleAndDescription(content: string): {
  */
 function parseIngredients(content: string): MfdsIngredient[] {
   const ingredients: MfdsIngredient[] = [];
-  const ingredientsMatch = content.match(/##\s+재료\s*\n\n([\s\S]*?)\n\n##/);
+  
+  // 개행 문자 정규화
+  const normalizedContent = content.replace(/\r\n/g, '\n');
+  
+  const ingredientsMatch = normalizedContent.match(/##\s+재료\s*\n+([\s\S]*?)(?:\n+##|$)/);
   if (!ingredientsMatch) {
     return ingredients;
   }
@@ -131,8 +138,11 @@ function parseIngredients(content: string): MfdsIngredient[] {
 function parseCookingSteps(content: string): MfdsRecipeStep[] {
   const steps: MfdsRecipeStep[] = [];
   
+  // 개행 문자 정규화 (Windows의 \r\n을 \n으로 변환)
+  const normalizedContent = content.replace(/\r\n/g, '\n');
+  
   // 조리 방법 섹션 추출 (더 견고한 패턴)
-  const stepsMatch = content.match(/##\s+조리\s+방법\s*\n\n([\s\S]*?)(?=\n\n##|\n*$)/);
+  const stepsMatch = normalizedContent.match(/##\s+조리\s+방법\s*\n+([\s\S]*?)(?:\n+##|$)/);
   if (!stepsMatch) {
     console.warn("[RecipeParser] 조리 방법 섹션을 찾을 수 없습니다");
     return steps;
@@ -196,7 +206,10 @@ function parseNutritionInfo(content: string): MfdsNutritionInfo {
     fiber: null,
   };
 
-  const nutritionMatch = content.match(/##\s+영양\s+정보\s*\n\n([\s\S]*?)\n\n---/);
+  // 개행 문자 정규화
+  const normalizedContent = content.replace(/\r\n/g, '\n');
+  
+  const nutritionMatch = normalizedContent.match(/##\s+영양\s+정보\s*\n+([\s\S]*?)(?:\n+---|$)/);
   if (!nutritionMatch) {
     return nutrition as MfdsNutritionInfo;
   }
@@ -274,8 +287,11 @@ function parseImageUrls(
 
   const steps: MfdsRecipeStep[] = [];
 
+  // 개행 문자 정규화
+  const normalizedContent = content.replace(/\r\n/g, '\n');
+
   // 참고사항 섹션 추출
-  const referenceMatch = content.match(/##\s+참고사항\s*\n\n([\s\S]*)$/);
+  const referenceMatch = normalizedContent.match(/##\s+참고사항\s*\n+([\s\S]*)$/);
   if (!referenceMatch) {
     return { ...images, steps };
   }
@@ -346,6 +362,7 @@ function parseImageUrls(
 
     if (imageUrlMatch) {
       const originalUrl = imageUrlMatch[1].trim();
+      const localPath = `/images/${rcpSeq}_manual_${stepNum}.jpg`;
 
       steps.push({
         step: i,
@@ -353,7 +370,7 @@ function parseImageUrls(
         // API 경로 사용 (로컬 파일이 없으면 식약처 API에서 가져옴)
         imageUrl: `/api/mfds-recipes/images/${rcpSeq}_manual_${stepNum}.jpg`,
         originalImageUrl: originalUrl,
-        localImagePath: null,
+        localImagePath: localPath,
       });
     }
   }

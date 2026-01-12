@@ -203,15 +203,6 @@ export function HomeLanding() {
       gradient: "bg-gradient-to-br from-purple-500 via-pink-500 to-purple-600",
       category: "game",
     },
-    {
-      title: "유틸리티",
-      description: "편리한 도구들",
-      href: "/game/fridge-guardian",
-      iconSrc: "/icons/유틸리티.png",
-      color: "bg-gray-500",
-      gradient: "bg-gradient-to-br from-slate-500 via-gray-600 to-slate-700",
-      category: "utility",
-    },
   ], []);
 
   // 배경 이미지 URL
