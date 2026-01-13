@@ -88,20 +88,29 @@ function HealthManagementContent() {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            {/* 건강 대시보드 */}
+            {/* 건강 대시보드 - 우선 로딩 */}
             <ErrorBoundary>
               <div className="mb-8">
                 <h2 className="text-2xl font-bold mb-4">👨‍👩‍👧‍👦 가족 건강 대시보드</h2>
-                <HealthDashboardWrapper />
+                <Suspense fallback={<SectionSkeleton />}>
+                  <HealthDashboardWrapper />
+                </Suspense>
               </div>
             </ErrorBoundary>
 
-            {/* 건강 시각화 대시보드 */}
+            {/* 건강 시각화 대시보드 - 지연 로딩 */}
             <ErrorBoundary>
-              <div className="rounded-xl border border-green-200 bg-green-50/30 p-6">
-                <h2 className="text-2xl font-bold mb-4">💚 건강 시각화 대시보드</h2>
-                <HealthVisualizationPreview compact={false} />
-              </div>
+              <Suspense fallback={
+                <div className="rounded-xl border border-green-200 bg-green-50/30 p-6">
+                  <h2 className="text-2xl font-bold mb-4">💚 건강 시각화 대시보드</h2>
+                  <SectionSkeleton />
+                </div>
+              }>
+                <div className="rounded-xl border border-green-200 bg-green-50/30 p-6">
+                  <h2 className="text-2xl font-bold mb-4">💚 건강 시각화 대시보드</h2>
+                  <HealthVisualizationPreview compact={false} />
+                </div>
+              </Suspense>
             </ErrorBoundary>
 
             {/* 건강 트렌드 */}
@@ -120,7 +129,7 @@ function HealthManagementContent() {
               </CardContent>
             </Card>
 
-            {/* 생애주기별 건강 알림 */}
+            {/* 생애주기별 건강 알림 - 지연 로딩 */}
             <ErrorBoundary>
               <div className="mb-6">
                 <h2 className="text-2xl font-bold mb-4">🔔 생애주기별 건강 알림</h2>

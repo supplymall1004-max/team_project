@@ -116,7 +116,8 @@ export interface DietPlan {
   sodium: number | null;
   created_at: string;
   // 식사 구성품 요약 (밥/반찬/국/간식 등)
-  compositionSummary?: string[];
+  // 문자열 배열 또는 { id, title } 객체 배열 지원
+  compositionSummary?: string[] | Array<{ id: string; title: string }>;
   // 조인된 데이터
   recipe?: {
     id: string;

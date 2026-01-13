@@ -68,8 +68,8 @@ interface UseIconGroupsResult {
   state: IconGroupState;
   /** 로드 완료 여부 */
   isLoaded: boolean;
-  /** 새 그룹 생성 (두 아이콘을 묶어서) */
-  createGroup: (iconTitle1: string, iconTitle2: string, name?: string) => string | null;
+  /** 새 그룹 생성 (두 아이콘을 묶어서, 또는 단일 아이콘) */
+  createGroup: (iconTitle1: string, iconTitle2?: string, name?: string) => string | null;
   /** 그룹에 아이콘 추가 */
   addIconToGroup: (iconTitle: string, groupId: string) => boolean;
   /** 그룹에서 아이콘 제거 */
@@ -141,34 +141,46 @@ export function useIconGroups(allIconTitles: string[]): UseIconGroupsResult {
 
   /**
    * 새 그룹 생성
+   * @param iconTitle1 첫 번째 아이콘 (필수)
+   * @param iconTitle2 두 번째 아이콘 (선택적, 없으면 단일 아이콘으로 그룹 생성)
+   * @param name 그룹 이름 (선택적)
    */
   const createGroup = useCallback(
-    (iconTitle1: string, iconTitle2: string, name?: string): string | null => {
+    (iconTitle1: string, iconTitle2?: string, name?: string): string | null => {
       console.group("[useIconGroups] 그룹 생성");
       console.log("아이콘1:", iconTitle1);
-      console.log("아이콘2:", iconTitle2);
+      console.log("아이콘2:", iconTitle2 || "없음 (단일 아이콘 그룹)");
       
-      // 두 아이콘이 모두 ungrouped인지 확인
-      if (!state.ungroupedIcons.includes(iconTitle1) || !state.ungroupedIcons.includes(iconTitle2)) {
-        console.warn("두 아이콘 모두 그룹화되지 않은 상태여야 합니다.");
+      // 첫 번째 아이콘이 ungrouped인지 확인
+      if (!state.ungroupedIcons.includes(iconTitle1)) {
+        console.warn("첫 번째 아이콘이 그룹화되지 않은 상태여야 합니다.");
+        console.groupEnd();
+        return null;
+      }
+      
+      // 두 번째 아이콘이 제공된 경우 확인
+      if (iconTitle2 && !state.ungroupedIcons.includes(iconTitle2)) {
+        console.warn("두 번째 아이콘이 그룹화되지 않은 상태여야 합니다.");
         console.groupEnd();
         return null;
       }
       
       const groupId = `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const groupName = name || `${iconTitle1} 그룹`;
+      const groupName = name || (iconTitle2 ? `${iconTitle1} 그룹` : `${iconTitle1}`);
+      
+      const iconTitles = iconTitle2 ? [iconTitle1, iconTitle2] : [iconTitle1];
       
       const newGroup: IconGroup = {
         id: groupId,
         name: groupName,
-        iconTitles: [iconTitle1, iconTitle2],
+        iconTitles,
         createdAt: Date.now(),
       };
       
       setState((prev) => ({
         groups: [...prev.groups, newGroup],
         ungroupedIcons: prev.ungroupedIcons.filter(
-          (title) => title !== iconTitle1 && title !== iconTitle2
+          (title) => !iconTitles.includes(title)
         ),
       }));
       

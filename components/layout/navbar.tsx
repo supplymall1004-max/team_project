@@ -158,7 +158,7 @@ const menuCategories: MenuCategory[] = [
     neonAnimation: "neon-glow-purple",
     items: [
       { label: "냉장고 파수꾼", href: "/game/fridge-guardian", icon: Shield },
-      { label: "냉장고 디펜스", href: "/game/fridge-defense", icon: Gamepad2 },
+      { label: "Django Defender", href: "/game/fridge-defense", icon: Gamepad2 },
       { label: "냉장고 짝맞추기", href: "/game/fridge-memory", icon: MemoryStick },
       { label: "뇌 훈련 숫자맞추기", href: "/game/codebreaker", icon: Brain },
     ],

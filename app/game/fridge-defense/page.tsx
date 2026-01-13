@@ -1,15 +1,15 @@
 /**
  * @file app/game/fridge-defense/page.tsx
- * @description 냉장고 디펜스 게임 페이지
+ * @description Django Defender 게임 페이지
  * 
- * 타워 디펜스 방식의 냉장고 디펜스 게임을 플레이할 수 있는 페이지입니다.
+ * 타워 디펜스 방식의 Django Defender 게임을 플레이할 수 있는 페이지입니다.
  */
 
 import { Metadata } from 'next';
 import FridgeDefense from '@/components/games/fridge-defense';
 
 export const metadata: Metadata = {
-  title: '냉장고 디펜스 | Flavor Archive',
+  title: 'Django Defender | Flavor Archive',
   description: '타워를 배치하여 세균을 막아내는 타워 디펜스 게임',
 };
 
@@ -19,7 +19,7 @@ export default function FridgeDefensePage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 text-center">
           <h1 className="text-5xl sm:text-6xl font-black bg-gradient-to-r from-sky-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
-            냉장고 디펜스
+            Django Defender
           </h1>
           <p className="text-lg sm:text-xl text-gray-700 font-medium">
             타워를 배치하여 세균이 냉장고에 도달하는 것을 막아보세요! 🛡️

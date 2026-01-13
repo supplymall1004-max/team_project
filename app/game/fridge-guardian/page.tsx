@@ -16,10 +16,10 @@ export const metadata: Metadata = {
 
 export default function FridgeGuardianPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-purple-50 to-pink-50 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-purple-50 to-pink-50 pt-16 sm:pt-8 pb-8 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 text-center">
-          <h1 className="text-5xl sm:text-6xl font-black bg-gradient-to-r from-sky-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
+          <h1 className="text-5xl sm:text-6xl font-black bg-gradient-to-r from-sky-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3 leading-tight">
             냉장고 파수꾼
           </h1>
           <p className="text-lg sm:text-xl text-gray-700 font-medium">

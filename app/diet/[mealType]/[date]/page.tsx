@@ -180,9 +180,14 @@ export default async function MealDetailPage({ params }: PageProps) {
         const processedIds = new Set<string>();
         
         for (const item of compositionSummary) {
+          // null 체크 및 타입 가드
+          if (item === null || item === undefined) continue;
+          if (typeof item !== 'object') continue;
+          
           // 새 형식: { id, title } 객체
-          if (item && typeof item === 'object' && 'id' in item && 'title' in item) {
-            const { id, title } = item as { id: string; title: string };
+          const itemObj = item as Record<string, unknown>;
+          if ('id' in itemObj && 'title' in itemObj) {
+            const { id, title } = itemObj as { id: string; title: string };
             if (!id || !title || processedIds.has(id)) continue;
             processedIds.add(id);
             

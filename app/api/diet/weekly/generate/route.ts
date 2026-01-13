@@ -813,7 +813,10 @@ function buildSingleRecipeRecord({
 
 function getMealCompositionSummaryItems(meal: MealComposition): string[] {
   if (meal.compositionSummary?.length) {
-    return meal.compositionSummary;
+    // compositionSummary가 { id, title }[] 형태인 경우 title만 추출
+    return meal.compositionSummary.map(item => 
+      typeof item === 'string' ? item : item.title
+    );
   }
 
   const items: string[] = [];

@@ -74,6 +74,35 @@ export function HealthProfileForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  // 생년월일로부터 만나이 계산 함수
+  const calculateAge = (birthDate: string | null): number | null => {
+    if (!birthDate) return null;
+    try {
+      const birth = new Date(birthDate);
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+      return age >= 0 ? age : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // 생년월일 변경 시 나이 자동 계산
+  useEffect(() => {
+    if (formData.birth_date) {
+      const calculatedAge = calculateAge(formData.birth_date);
+      if (calculatedAge !== null) {
+        setFormData((prev) => ({ ...prev, age: calculatedAge }));
+      }
+    } else if (formData.birth_date === null || formData.birth_date === "") {
+      // 생년월일이 비어있으면 나이도 초기화하지 않음 (사용자가 직접 입력할 수 있도록)
+    }
+  }, [formData.birth_date]);
+
   // 프리미엄 여부 확인
   useEffect(() => {
     async function checkPremium() {
@@ -422,6 +451,11 @@ export function HealthProfileForm() {
             <p className="text-xs text-muted-foreground mt-1">
               건강 알림을 받으려면 생년월일을 입력해주세요. 생애주기별 예방접종, 건강검진 등 맞춤형 알림을 제공합니다.
             </p>
+            {formData.birth_date && calculateAge(formData.birth_date) !== null && (
+              <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                만 {calculateAge(formData.birth_date)}세로 자동 계산되었습니다
+              </p>
+            )}
           </div>
           <div>
             <Label>나이</Label>
@@ -429,8 +463,15 @@ export function HealthProfileForm() {
               type="number"
               value={formData.age || ""}
               onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) || null })}
-              placeholder="만 나이"
+              placeholder="만 나이 (생년월일 입력 시 자동 계산)"
+              readOnly={!!formData.birth_date}
+              className={formData.birth_date ? "bg-gray-100 dark:bg-gray-800" : ""}
             />
+            {formData.birth_date && (
+              <p className="text-xs text-muted-foreground mt-1">
+                생년월일로부터 자동 계산됩니다. 수정하려면 생년월일을 변경하세요.
+              </p>
+            )}
           </div>
           <div>
             <Label>성별</Label>

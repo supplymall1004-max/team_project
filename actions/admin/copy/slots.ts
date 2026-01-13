@@ -192,7 +192,7 @@ export const TEXT_SLOTS: TextSlot[] = [
     label: "저작권 텍스트",
     description: "Footer의 저작권 텍스트",
     defaultContent: {
-      text: "맛의 아카이브 (Flavor Archive)",
+      text: "냉씨집안집사 장고( Django Care)",
     },
     location: "components/footer.tsx:42-43",
   },

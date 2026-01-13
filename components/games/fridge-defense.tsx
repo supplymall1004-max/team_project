@@ -1,6 +1,6 @@
 /**
  * @file components/games/fridge-defense.tsx
- * @description 냉장고 디펜스 게임 메인 컴포넌트
+ * @description Django Defender 게임 메인 컴포넌트
  * 
  * 타워 디펜스 방식의 게임으로, 세균들이 경로를 따라 이동하고
  * 타워를 배치하여 막아내는 게임입니다.
@@ -1185,7 +1185,7 @@ export default function FridgeDefense() {
         <aside className={`bg-[#212529] text-gray-400 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-x-visible flex-shrink-0 ${isFullscreen ? 'w-48 p-2' : 'w-full md:w-72 p-3 md:p-8 gap-3 md:gap-0'}`}>
           <div className={`flex-shrink-0 md:flex-shrink flex flex-col md:flex-col ${isFullscreen ? 'min-w-[180px]' : 'min-w-[260px] md:min-w-0'}`}>
           <div className={`flex items-center gap-2 text-white font-black italic tracking-tighter ${isFullscreen ? 'mb-2 text-xs' : 'mb-4 md:mb-10 text-sm md:text-base gap-3'}`}>
-            <Utensils size={isFullscreen ? 14 : 18} className={`${isFullscreen ? 'w-3 h-3' : 'md:w-5 md:h-5'} text-blue-400`} /> FLAVOR_DEFENDER
+            <Utensils size={isFullscreen ? 14 : 18} className={`${isFullscreen ? 'w-3 h-3' : 'md:w-5 md:h-5'} text-blue-400`} /> DJANGO_DEFENDER
           </div>
           <div className={`flex md:flex-col mb-2 md:mb-10 ${isFullscreen ? 'gap-2' : 'gap-4 md:gap-4'}`}>
             <Stat icon={<Heart className={`text-red-500 ${isFullscreen ? 'w-3 h-3' : 'w-4 h-4 md:w-5 md:h-5'}`} />} label="LIVES" value={lives} isFullscreen={isFullscreen} />
@@ -1270,7 +1270,8 @@ export default function FridgeDefense() {
         ref={gameBoardRef}
         onClick={handleGameBoardClick}
         onMouseMove={(e) => {
-          if (!isPlaying || !gameBoardRef.current) {
+          // 게임 중이고 타워가 선택되어 있을 때만 위치 표시
+          if (!isPlaying || !gameBoardRef.current || !selectedTowerType) {
             setHoveredTile(null);
             return;
           }
@@ -1281,7 +1282,22 @@ export default function FridgeDefense() {
           setHoveredTile({ x: gridX, y: gridY });
         }}
         onMouseLeave={() => setHoveredTile(null)}
-        className={`flex-1 bg-gradient-to-br from-[#87ceeb] via-[#a5d8ff] to-[#b0e0e6] relative overflow-hidden w-full touch-none ${
+        onTouchMove={(e) => {
+          // 터치 이벤트도 지원 (모바일/태블릿)
+          if (!isPlaying || !gameBoardRef.current || !selectedTowerType) {
+            setHoveredTile(null);
+            return;
+          }
+          const touch = e.touches[0];
+          if (!touch) return;
+          const rect = gameBoardRef.current.getBoundingClientRect();
+          const x = touch.clientX - rect.left;
+          const y = touch.clientY - rect.top;
+          const { gridX, gridY } = getGridPosition(x, y);
+          setHoveredTile({ x: gridX, y: gridY });
+        }}
+        onTouchEnd={() => setHoveredTile(null)}
+        className={`flex-1 bg-gradient-to-br from-[#87ceeb] via-[#a5d8ff] to-[#b0e0e6] relative overflow-hidden w-full ${
           isFullscreen ? 'h-full' : 'min-h-[400px] md:min-h-[600px]'
         }`}
         style={isFullscreen ? { 
@@ -1300,8 +1316,21 @@ export default function FridgeDefense() {
             >
               <div className="text-center text-white px-4">
                 <Skull size={48} className="md:w-16 md:h-16 mx-auto mb-4 text-red-500" />
-                <h2 className="text-3xl md:text-5xl font-black italic uppercase">Game Over</h2>
-                <p className="mt-4 text-lg md:text-xl">웨이브: {wave}</p>
+                <h2 className={`font-black italic uppercase ${isFullscreen ? 'text-2xl' : 'text-3xl md:text-5xl'}`}>Game Over</h2>
+                <p className={`mt-4 ${isFullscreen ? 'text-base' : 'text-lg md:text-xl'}`}>웨이브: {wave}</p>
+                <button
+                  onClick={() => {
+                    startGame();
+                    setIsGameOver(false);
+                  }}
+                  className={`mt-6 bg-[#339af0] text-white rounded-xl font-black tracking-widest hover:bg-[#228be6] active:scale-95 transition-all ${
+                    isFullscreen 
+                      ? 'px-6 py-2 text-sm' 
+                      : 'px-8 py-3 text-base md:text-lg'
+                  }`}
+                >
+                  다시하기
+                </button>
               </div>
             </motion.div>
           )}

@@ -67,7 +67,7 @@ ON CONFLICT (slug, locale) DO NOTHING;
 
 INSERT INTO admin_copy_blocks (slug, locale, content, updated_by)
 VALUES
-  ('footer-copyright', 'ko', '{"text": "맛의 아카이브 (Flavor Archive)"}'::jsonb, 'system')
+  ('footer-copyright', 'ko', '{"text": "냉씨집안집사 장고( Django Care)"}'::jsonb, 'system')
 ON CONFLICT (slug, locale) DO NOTHING;
 
 -- Recipe Section

@@ -161,7 +161,12 @@ export async function GET(
         const foundRecipes: RecipeDetailForDiet[] = [];
         const processedTitles = new Set<string>(); // 중복 제거
         
-        for (const title of compositionSummary) {
+        // compositionSummary 타입 처리 (string[] 또는 { id, title }[])
+        const titles = compositionSummary.map(item => 
+          typeof item === 'string' ? item : item.title
+        );
+        
+        for (const title of titles) {
           if (!title || processedTitles.has(title)) continue;
           processedTitles.add(title);
           

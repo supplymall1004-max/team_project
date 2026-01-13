@@ -38,6 +38,8 @@ export function LifecycleNotificationGrid({
   className,
 }: LifecycleNotificationGridProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [pastNotification, setPastNotification] = useState<Notification | null>(null);
+  const [upcomingNotification, setUpcomingNotification] = useState<Notification | null>(null);
   const [grouped, setGrouped] = useState<{
     high: Notification[];
     medium: Notification[];
@@ -59,19 +61,44 @@ export function LifecycleNotificationGrid({
       if (priority && priority !== 'all') {
         params.append('priority', priority);
       }
-      params.append('status', status);
 
-      const response = await fetch(
-        `/api/health/lifecycle-notifications?${params.toString()}`
-      );
+      // 지난 알림(completed)과 다가올 알림(pending)을 병렬로 조회
+      const [pastResponse, upcomingResponse] = await Promise.all([
+        // 지난 알림 1개 조회 (완료된 알림 중 가장 최근)
+        fetch(
+          `/api/health/lifecycle-notifications?${new URLSearchParams({
+            ...Object.fromEntries(params),
+            status: 'completed',
+            limit: '1',
+          }).toString()}`
+        ),
+        // 다가올 알림 조회 (예정된 알림)
+        fetch(
+          `/api/health/lifecycle-notifications?${new URLSearchParams({
+            ...Object.fromEntries(params),
+            status: 'pending',
+          }).toString()}`
+        ),
+      ]);
 
-      if (!response.ok) {
+      if (!pastResponse.ok || !upcomingResponse.ok) {
         throw new Error('알림을 불러오는데 실패했습니다.');
       }
 
-      const data = await response.json();
-      setNotifications(data.notifications || []);
-      setGrouped(data.grouped || { high: [], medium: [], low: [] });
+      const pastData = await pastResponse.json();
+      const upcomingData = await upcomingResponse.json();
+
+      // 지난 알림 1개 (가장 최근 완료된 알림)
+      const pastNotifications = pastData.notifications || [];
+      setPastNotification(pastNotifications.length > 0 ? pastNotifications[0] : null);
+
+      // 다가올 알림 1개 (가장 가까운 예정 알림)
+      const upcomingNotifications = upcomingData.notifications || [];
+      setUpcomingNotification(upcomingNotifications.length > 0 ? upcomingNotifications[0] : null);
+
+      // 기존 로직 유지 (다가올 알림 전체)
+      setNotifications(upcomingNotifications);
+      setGrouped(upcomingData.grouped || { high: [], medium: [], low: [] });
     } catch (error) {
       console.error('알림 조회 실패:', error);
       toast.error('알림을 불러오는데 실패했습니다.');
@@ -125,8 +152,9 @@ export function LifecycleNotificationGrid({
   }
 
   const totalCount = notifications.length;
+  const hasAnyNotification = pastNotification || upcomingNotification || totalCount > 0;
 
-  if (totalCount === 0) {
+  if (!hasAnyNotification) {
     return (
       <Card>
         <CardContent className="py-8 text-center">
@@ -139,6 +167,46 @@ export function LifecycleNotificationGrid({
 
   return (
     <div className={className}>
+      {/* 지난 알림 1개와 다가올 알림 1개 표시 */}
+      {(pastNotification || upcomingNotification) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* 지난 알림 */}
+          {pastNotification && (
+            <Card className="border-gray-300 bg-gray-50/50 dark:bg-gray-900/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-500">📅 지난 알림</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <LifecycleNotificationCard
+                  notification={pastNotification}
+                  onComplete={handleComplete}
+                  onDismiss={handleDismiss}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 다가올 알림 */}
+          {upcomingNotification && (
+            <Card className="border-blue-300 bg-blue-50/50 dark:bg-blue-900/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <span className="text-blue-600 dark:text-blue-400">🔔 다가올 알림</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <LifecycleNotificationCard
+                  notification={upcomingNotification}
+                  onComplete={handleComplete}
+                  onDismiss={handleDismiss}
+                />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
       {/* High 우선순위 알림 */}
       {grouped.high.length > 0 && (
         <div className="mb-6">

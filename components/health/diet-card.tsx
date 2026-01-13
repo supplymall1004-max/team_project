@@ -322,10 +322,14 @@ function getRepresentativeImageUrl(mealType: MealType, dietPlan: DietPlan): stri
 
   // 간식은 제철과일 이미지 우선
   if (mealType === "snack") {
-    const title =
-      Array.isArray(dietPlan.compositionSummary) && dietPlan.compositionSummary.length > 0
-        ? dietPlan.compositionSummary[0]
-        : recipe?.title ?? "";
+    const firstItem = Array.isArray(dietPlan.compositionSummary) && dietPlan.compositionSummary.length > 0
+      ? dietPlan.compositionSummary[0]
+      : null;
+    const title = firstItem
+      ? typeof firstItem === "string"
+        ? firstItem
+        : firstItem.title
+      : recipe?.title ?? "";
     const fruitId = getFruitIdFromRecipeTitle(title);
     if (fruitId) {
       // 제철 과일은 docs/foodjpg.md의 로컬 이미지(/images/food/사과.jpg 등)를 우선 사용하도록

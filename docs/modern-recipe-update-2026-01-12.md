@@ -225,3 +225,5 @@ curl "http://localhost:3000/api/picture/시금치나물.jpg" -o test2.jpg
 모든 현대 레시피가 이미지와 함께 정상적으로 표시됩니다.
 
 
+
+

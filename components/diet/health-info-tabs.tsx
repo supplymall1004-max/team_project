@@ -129,15 +129,15 @@ export function HealthInfoTabs({ healthProfile, initialTab }: HealthInfoTabsProp
             onValueChange={(value) => setSelectedTab(value as HealthTabType)}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mb-6">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mb-6 h-auto p-1">
               {tabInfos.map((tabInfo) => (
                 <TabsTrigger
                   key={tabInfo.type}
                   value={tabInfo.type}
-                  className="flex flex-col items-center gap-1 py-3"
+                  className="flex flex-col items-center justify-center gap-1.5 py-3 px-2 min-h-[70px] md:min-h-[80px] h-full"
                 >
-                  <span className="text-2xl">{tabInfo.icon}</span>
-                  <span className="text-xs md:text-sm">{tabInfo.title}</span>
+                  <span className="text-2xl md:text-3xl leading-none">{tabInfo.icon}</span>
+                  <span className="text-xs md:text-sm text-center leading-tight">{tabInfo.title}</span>
                 </TabsTrigger>
               ))}
             </TabsList>

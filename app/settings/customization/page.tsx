@@ -28,8 +28,10 @@ export default function CustomizationPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black">
       <Section className="pt-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 dark:text-foreground">홈페이지 커스터마이징</h1>
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold mb-2 dark:text-foreground">
+            홈페이지<br />커스터마이징
+          </h1>
           <p className="text-muted-foreground dark:text-muted-foreground">
             테마, 배경 이미지, 섹션 순서 등을 커스터마이징하여 나만의 홈페이지를 만들어보세요.
           </p>

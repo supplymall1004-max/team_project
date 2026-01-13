@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
     const priority = searchParams.get("priority") || undefined;
     const category = searchParams.get("category") || undefined;
     const status = searchParams.get("status") || "pending";
+    const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : undefined;
 
     // 알림 조회 쿼리 구성
     let query = supabase
@@ -80,9 +81,21 @@ export async function GET(request: NextRequest) {
       query = query.eq("status", status);
     }
 
-    // 정렬 (우선순위 높은 순, 예정일 빠른 순)
-    query = query.order("priority", { ascending: false });
-    query = query.order("scheduled_at", { ascending: true, nullsFirst: false });
+    // 정렬 (상태에 따라 다르게)
+    if (status === "completed") {
+      // 완료된 알림은 최근 날짜 순 (내림차순)
+      query = query.order("scheduled_at", { ascending: false, nullsFirst: false });
+      query = query.order("priority", { ascending: false });
+    } else {
+      // 예정된 알림은 예정일 빠른 순 (오름차순)
+      query = query.order("priority", { ascending: false });
+      query = query.order("scheduled_at", { ascending: true, nullsFirst: false });
+    }
+
+    // Limit 적용
+    if (limit) {
+      query = query.limit(limit);
+    }
 
     const { data: notifications, error } = await query;
 

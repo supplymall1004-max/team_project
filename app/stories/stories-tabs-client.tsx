@@ -29,7 +29,7 @@ export function StoriesTabsClient({
 
   return (
     <Tabs defaultValue={initialTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-5 mb-6">
+      <TabsList className="grid w-full grid-cols-2 mb-6">
         <TabsTrigger value="all">전체</TabsTrigger>
         <TabsTrigger value="storybook">장고의 음식 동화</TabsTrigger>
         <TabsTrigger value="folktale">장고의 전래동화</TabsTrigger>

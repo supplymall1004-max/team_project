@@ -13,7 +13,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { staggerContainer } from "@/lib/animations";
@@ -22,6 +22,7 @@ import { useHomeCustomization } from "@/hooks/use-home-customization";
 import { DraggableIconCard } from "./draggable-icon-card";
 import { FolderCard } from "./folder-card";
 import { ExpandedFolderView } from "./expanded-folder-view";
+import { IconGroupModal } from "./icon-group-modal";
 import type { DragData } from "@/types/icon-groups";
 
 export type IconCategory = "recipe" | "diet" | "health" | "game" | "utility" | "story";
@@ -168,6 +169,47 @@ export function HeroSection({
   // 드래그 상태
   const [draggingIcon, setDraggingIcon] = useState<string | null>(null);
   const [expandedFolderId, setExpandedFolderId] = useState<string | null>(null);
+  
+  // 그룹화 모달 상태
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedIconForModal, setSelectedIconForModal] = useState<QuickStartCard | null>(null);
+  
+  // 아이콘 순서 관리
+  const [iconOrder, setIconOrder] = useState<string[]>([]);
+  
+  // localStorage에서 아이콘 순서 로드
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem("app.icon-order.v1");
+      if (stored) {
+        const parsed = JSON.parse(stored) as string[];
+        // 모든 아이콘이 순서에 포함되어 있는지 확인
+        const allTitles = initialQuickStartCards.map((card) => card.title);
+        const validOrder = parsed.filter((title) => allTitles.includes(title));
+        // 순서에 없는 아이콘 추가
+        const missingIcons = allTitles.filter((title) => !validOrder.includes(title));
+        setIconOrder([...validOrder, ...missingIcons]);
+      } else {
+        setIconOrder(initialQuickStartCards.map((card) => card.title));
+      }
+    } catch (error) {
+      console.error("[HeroSection] 아이콘 순서 로드 실패:", error);
+      setIconOrder(initialQuickStartCards.map((card) => card.title));
+    }
+  }, [initialQuickStartCards]);
+  
+  // 아이콘 순서 저장
+  useEffect(() => {
+    if (iconOrder.length === 0) return;
+    try {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("app.icon-order.v1", JSON.stringify(iconOrder));
+      }
+    } catch (error) {
+      console.error("[HeroSection] 아이콘 순서 저장 실패:", error);
+    }
+  }, [iconOrder]);
 
   // 타이틀을 줄바꿈 기준으로 분리
   const titleLines = title.split("\n");
@@ -296,6 +338,48 @@ export function HeroSection({
     console.groupCollapsed("[HeroSection] 빠른 카드 클릭");
     console.log("target:", href);
     console.groupEnd();
+  };
+
+  // 롱 프레스 핸들러 (3초 이상 클릭)
+  const handleLongPress = (card: QuickStartCard) => {
+    console.group("[HeroSection] 롱 프레스 감지");
+    console.log("아이콘:", card.title);
+    console.groupEnd();
+    setSelectedIconForModal(card);
+    setModalOpen(true);
+  };
+
+  // 모달에서 그룹 생성 핸들러
+  const handleCreateGroupFromModal = (iconTitle: string, groupName: string) => {
+    // 현재 아이콘이 그룹에 속해있지 않은지 확인
+    if (!groupState.ungroupedIcons.includes(iconTitle)) {
+      alert("이미 폴더에 속한 아이콘입니다.");
+      return;
+    }
+    
+    // 새 그룹 생성 (단일 아이콘으로 시작)
+    const groupId = createGroup(iconTitle, undefined, groupName);
+    if (groupId) {
+      console.log("모달에서 그룹 생성 완료:", groupId);
+    }
+  };
+
+  // 모달에서 그룹에 아이콘 추가 핸들러
+  const handleAddToGroupFromModal = (iconTitle: string, groupId: string) => {
+    // 현재 아이콘이 그룹에 속해있으면 먼저 제거
+    const currentGroupId = getGroupIdForIcon(iconTitle);
+    if (currentGroupId) {
+      removeIconFromGroup(iconTitle, currentGroupId);
+    }
+    
+    // 새 그룹에 추가
+    addIconToGroup(iconTitle, groupId);
+  };
+
+  // 아이콘 순서 변경 핸들러
+  const handleReorderIcons = (newOrder: string[]) => {
+    setIconOrder(newOrder);
+    console.log("아이콘 순서 변경:", newOrder);
   };
 
   // 카테고리별 아이콘 그룹화
@@ -557,7 +641,20 @@ export function HeroSection({
                 });
               });
 
-              const icons = allIcons.map((card) => {
+              // 아이콘 순서에 따라 정렬
+              const sortedIcons = iconOrder.length > 0
+                ? [...allIcons].sort((a, b) => {
+                    const indexA = iconOrder.indexOf(a.title);
+                    const indexB = iconOrder.indexOf(b.title);
+                    // 순서에 없는 아이콘은 맨 뒤로
+                    if (indexA === -1 && indexB === -1) return 0;
+                    if (indexA === -1) return 1;
+                    if (indexB === -1) return -1;
+                    return indexA - indexB;
+                  })
+                : allIcons;
+
+              const icons = sortedIcons.map((card) => {
                 const isDragging = draggingIcon === card.title;
                 const currentIndex = globalIndex++;
                 // 각 행에서 4개씩 배치 (1,2,3,4열)
@@ -574,6 +671,7 @@ export function HeroSection({
                       onDragEnd={handleDragEnd}
                       isDragging={isDragging}
                       onClick={handleQuickStartClick}
+                      onLongPress={handleLongPress}
                       index={currentIndex}
                     />
                   </div>
@@ -582,8 +680,10 @@ export function HeroSection({
 
               // 폴더들도 같은 그리드에 추가
               const folders = isGroupsLoaded ? groupState.groups.map((group) => {
+                if (!group || !group.iconTitles || group.iconTitles.length === 0) return null;
                 const isExpanded = expandedFolderId === group.id;
                 const folderIconCards = group.iconTitles
+                  .filter((title) => title) // null/undefined 제거
                   .map((title) => getCardByTitle(title))
                   .filter((card): card is QuickStartCard => card !== undefined);
 
@@ -623,13 +723,30 @@ export function HeroSection({
                     )}
                   </div>
                 );
-              }) : [];
+              }).filter(Boolean) : [];
 
               return [...icons, ...folders];
             })()}
             </motion.div>
         </div>
       </div>
+
+      {/* 그룹화 모달 */}
+      <IconGroupModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedIconForModal(null);
+        }}
+        selectedIcon={selectedIconForModal}
+        allIcons={initialQuickStartCards}
+        allGroups={groupState.groups}
+        onCreateGroup={handleCreateGroupFromModal}
+        onAddToGroup={handleAddToGroupFromModal}
+        getGroupIdForIcon={getGroupIdForIcon}
+        onReorderIcons={handleReorderIcons}
+        currentIconOrder={iconOrder}
+      />
     </section>
   );
 }

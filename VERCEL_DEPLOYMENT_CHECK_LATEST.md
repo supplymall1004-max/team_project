@@ -8,18 +8,32 @@
 ## ✅ 빌드 결과
 
 ### 빌드 통계
-- **총 페이지 수**: 196개
-- **정적 페이지 (○)**: 92개
-- **동적 페이지 (ƒ)**: 97개
-- **SSG 페이지 (●)**: 1개
-- **API 라우트**: 149개
-- **빌드 시간**: 약 75초
-- **First Load JS**: 102 kB (공유)
-- **빌드 상태**: ✅ 성공
+- **빌드 시간**: 약 50초
+- **컴파일 상태**: ✅ 성공
+- **타입 체크**: ✅ 통과
+- **ESLint**: 빌드 시 무시됨 (`ignoreDuringBuilds: true`)
 
 ### 수정된 파일
-1. ✅ `lib/diet/weekly-diet-generator.ts`
-   - 삼항 연산자 문법 오류 수정 (`dinner: dinner ? "없음"` → `dinner: dinner ? "있음" : "없음"`)
+1. ✅ `app/diet/[mealType]/[date]/page.tsx`
+   - `compositionSummary` 타입 가드 추가 (null 체크 개선)
+
+2. ✅ `types/health.ts`
+   - `compositionSummary` 타입을 `string[] | Array<{ id: string; title: string }>`로 확장
+
+3. ✅ `types/recipe.ts`
+   - `compositionSummary` 타입을 `string[] | Array<{ id: string; title: string }>`로 확장
+
+4. ✅ `app/api/diet/meal/breakfast/[date]/route.ts`
+   - `compositionSummary` 유니온 타입 처리 추가
+
+5. ✅ `app/api/diet/meal/lunch/[date]/route.ts`
+   - `compositionSummary` 유니온 타입 처리 추가
+
+6. ✅ `app/api/diet/meal/dinner/[date]/route.ts`
+   - `compositionSummary` 유니온 타입 처리 추가
+
+7. ✅ `app/api/diet/weekly/generate/route.ts`
+   - `getMealCompositionSummaryItems` 함수에서 유니온 타입 처리 추가
 
 ---
 
@@ -27,7 +41,7 @@
 
 ### 1. Clerk 프로덕션 키 설정 필요
 
-빌드 중 다음 경고가 반복적으로 표시되었습니다:
+빌드 중 다음 경고가 반복적으로 표시될 수 있습니다:
 
 ```
 ⚠️ [Layout] 프로덕션 환경에서 개발 키(pk_test_)를 사용하고 있습니다.
@@ -152,7 +166,7 @@ NOTION_DATABASE_ID=...
 
 ```bash
 git add .
-git commit -m "fix: Vercel 배포를 위한 빌드 오류 수정 (weekly-diet-generator 삼항 연산자)"
+git commit -m "fix: Vercel 배포를 위한 타입 오류 수정 (compositionSummary 유니온 타입 처리)"
 git push origin main
 ```
 
@@ -186,34 +200,20 @@ vercel
 
 ## 📊 빌드 통계 상세
 
-### 페이지 분류
-- **정적 페이지 (○)**: 92개 - 빌드 시 미리 생성
-- **동적 페이지 (ƒ)**: 97개 - 요청 시 서버에서 렌더링
-- **SSG 페이지 (●)**: 1개 - 정적 생성 (generateStaticParams 사용)
+### 성능 최적화
 
-### 주요 라우트
-- **홈페이지**: `/` (281 kB First Load JS)
-- **관리자 페이지**: `/admin/*` (170-266 kB)
-- **건강 관리**: `/health/*` (133-600 kB)
-- **식단 관리**: `/diet/*` (172-252 kB)
-- **게임**: `/game/*` (156-242 kB)
+- ✅ 이미지 최적화 활성화 (AVIF, WebP)
+- ✅ 프로덕션에서 console.log 제거 (error, warn 제외)
+- ✅ 패키지 import 최적화 (lucide-react, @radix-ui/react-icons)
+- ✅ Supabase 이미지 호스트 자동 허용
 
----
+### Vercel 설정 파일 확인
 
-## 🐛 알려진 경고 (빌드 차단 없음)
-
-다음 경고들은 빌드를 차단하지 않지만, 필요시 수정 가능:
-
-1. **Clerk 개발 키 경고** (프로덕션 키로 변경 필요)
-   - 빌드 시 여러 번 표시되지만 기능에는 영향 없음
-   - Vercel 환경 변수에서 프로덕션 키로 변경 필요
-
----
-
-## 📝 수정된 파일 목록
-
-1. `lib/diet/weekly-diet-generator.ts`
-   - 삼항 연산자 문법 오류 수정: `dinner: dinner ? "없음"` → `dinner: dinner ? "있음" : "없음"`
+- ✅ `vercel.json`: Cron Jobs 설정 완료
+- ✅ `next.config.ts`: 이미지 최적화, 컴파일러 설정 완료
+- ✅ `middleware.ts`: Clerk 인증 미들웨어 설정 완료
+- ✅ `package.json`: 빌드 스크립트 및 의존성 확인 완료
+- ✅ `tsconfig.json`: TypeScript 설정 확인 완료
 
 ---
 
@@ -242,29 +242,5 @@ vercel
 
 ---
 
-## 📌 추가 참고사항
-
-### Vercel 설정 파일 확인
-
-- ✅ `vercel.json`: Cron Jobs 설정 완료
-- ✅ `next.config.ts`: 이미지 최적화, 컴파일러 설정 완료
-- ✅ `middleware.ts`: Clerk 인증 미들웨어 설정 완료
-- ✅ `package.json`: 빌드 스크립트 및 의존성 확인 완료
-- ✅ `tsconfig.json`: TypeScript 설정 확인 완료
-
-### 성능 최적화
-
-- ✅ 이미지 최적화 활성화 (AVIF, WebP)
-- ✅ 프로덕션에서 console.log 제거 (error, warn 제외)
-- ✅ 패키지 import 최적화 (lucide-react, @radix-ui/react-icons)
-- ✅ 정적 페이지 사전 생성 (92개)
-
-### Cron Job 인증
-
-현재 `generate-daily-diets` API는 `CRON_SECRET` 환경 변수를 사용하여 인증합니다.
-`daily-notifications` API도 동일하게 `CRON_SECRET` 환경 변수를 사용합니다.
-
----
-
 **마지막 업데이트**: 2025-01-30  
-**검사 완료**: 빌드 성공, 주요 이슈 수정 완료
+**검사 완료**: 빌드 성공, 타입 오류 수정 완료

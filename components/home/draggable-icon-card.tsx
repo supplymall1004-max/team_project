@@ -36,6 +36,8 @@ interface DraggableIconCardProps {
   isDragging?: boolean;
   canDrop?: boolean;
   onClick?: (href: string) => void;
+  /** 롱 프레스 이벤트 (3초 이상 클릭) */
+  onLongPress?: (card: QuickStartCard) => void;
   index?: number;
 }
 
@@ -47,13 +49,18 @@ export function DraggableIconCard({
   isDragging = false,
   canDrop = false,
   onClick,
+  onLongPress,
   index = 0,
 }: DraggableIconCardProps) {
   const [isDraggedOver, setIsDraggedOver] = useState(false);
   const [isTouchDragging, setIsTouchDragging] = useState(false);
   const [isClicked, setIsClicked] = useState(false); // 클릭 상태 추가
+  const [longPressProgress, setLongPressProgress] = useState(0); // 롱프레스 진행률 (0-100)
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressProgressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mouseDownTimeRef = useRef<number | null>(null);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     const dragData: DragData = {
@@ -67,13 +74,25 @@ export function DraggableIconCard({
     
     // 드래그 중 이미지 설정 (선택적)
     if (e.dataTransfer.setDragImage) {
-      const dragImage = document.createElement("div");
-      dragImage.style.position = "absolute";
-      dragImage.style.top = "-1000px";
-      dragImage.innerHTML = card.title;
-      document.body.appendChild(dragImage);
-      e.dataTransfer.setDragImage(dragImage, 0, 0);
-      setTimeout(() => document.body.removeChild(dragImage), 0);
+      try {
+        const dragImage = document.createElement("div");
+        dragImage.style.position = "absolute";
+        dragImage.style.top = "-1000px";
+        dragImage.innerHTML = card.title;
+        document.body.appendChild(dragImage);
+        e.dataTransfer.setDragImage(dragImage, 0, 0);
+        setTimeout(() => {
+          try {
+            if (dragImage.parentNode) {
+              document.body.removeChild(dragImage);
+            }
+          } catch (err) {
+            // 이미 제거되었거나 없는 경우 무시
+          }
+        }, 0);
+      } catch (err) {
+        // 드래그 이미지 설정 실패 시 무시
+      }
     }
     
     console.groupCollapsed("[DraggableIconCard] 드래그 시작");
@@ -88,17 +107,10 @@ export function DraggableIconCard({
     e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
     
-    // 다른 아이콘 위에 드래그 중인 경우
-    const dragDataStr = e.dataTransfer.getData("application/json");
-    if (dragDataStr) {
-      try {
-        const dragData: DragData = JSON.parse(dragDataStr);
-        if (dragData.iconTitle !== card.title && dragData.type === "icon") {
-          setIsDraggedOver(true);
-        }
-      } catch {
-        // 파싱 실패 시 무시
-      }
+    // 드래그 오버 상태는 드래그 중인 아이콘이 다른 아이콘인 경우로 판단
+    // isDragging prop이 true이고 현재 카드가 드래그 중인 카드가 아닌 경우
+    if (isDragging) {
+      setIsDraggedOver(true);
     }
   };
 
@@ -146,6 +158,12 @@ export function DraggableIconCard({
       return;
     }
     
+    // 롱 프레스가 발생했다면 일반 클릭 무시
+    if (mouseDownTimeRef.current && Date.now() - mouseDownTimeRef.current >= 3000) {
+      mouseDownTimeRef.current = null;
+      return;
+    }
+    
     setIsClicked(true); // 클릭 시 네온 효과 활성화
     setTimeout(() => setIsClicked(false), 500); // 0.5초 후 비활성화
 
@@ -154,26 +172,112 @@ export function DraggableIconCard({
     }
   };
 
+  // 마우스 다운 핸들러 (롱 프레스 감지)
+  const handleMouseDown = () => {
+    mouseDownTimeRef.current = Date.now();
+    setLongPressProgress(0);
+    
+    // 진행률 업데이트 (100ms마다)
+    const startTime = Date.now();
+    longPressProgressTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / 3000) * 100, 100);
+      setLongPressProgress(progress);
+    }, 50);
+    
+    longPressTimerRef.current = setTimeout(() => {
+      if (onLongPress) {
+        onLongPress(card);
+      }
+      setLongPressProgress(0);
+      mouseDownTimeRef.current = null;
+      if (longPressProgressTimerRef.current) {
+        clearInterval(longPressProgressTimerRef.current);
+        longPressProgressTimerRef.current = null;
+      }
+    }, 3000); // 3초
+  };
+
+  // 마우스 업 핸들러
+  const handleMouseUp = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (longPressProgressTimerRef.current) {
+      clearInterval(longPressProgressTimerRef.current);
+      longPressProgressTimerRef.current = null;
+    }
+    setLongPressProgress(0);
+    mouseDownTimeRef.current = null;
+  };
+
+  // 마우스 리브 핸들러 (마우스가 영역을 벗어나면 타이머 취소)
+  const handleMouseLeave = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (longPressProgressTimerRef.current) {
+      clearInterval(longPressProgressTimerRef.current);
+      longPressProgressTimerRef.current = null;
+    }
+    setLongPressProgress(0);
+    mouseDownTimeRef.current = null;
+  };
+
   // 모바일 터치 이벤트 핸들러
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 0) return;
     const touch = e.touches[0];
     touchStartRef.current = {
       x: touch.clientX,
       y: touch.clientY,
       time: Date.now(),
     };
+    
+    setLongPressProgress(0);
+    
+    // 진행률 업데이트 (50ms마다)
+    const startTime = Date.now();
+    longPressProgressTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / 3000) * 100, 100);
+      setLongPressProgress(progress);
+    }, 50);
+    
+    // 롱 프레스 타이머 시작
+    longPressTimerRef.current = setTimeout(() => {
+      if (onLongPress) {
+        onLongPress(card);
+      }
+      setLongPressProgress(0);
+      if (longPressProgressTimerRef.current) {
+        clearInterval(longPressProgressTimerRef.current);
+        longPressProgressTimerRef.current = null;
+      }
+    }, 3000); // 3초
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!touchStartRef.current) return;
+    if (!touchStartRef.current || e.touches.length === 0) return;
 
     const touch = e.touches[0];
     const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
     const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
     const deltaTime = Date.now() - touchStartRef.current.time;
 
-    // 일정 거리 이상 이동하면 드래그 시작
+    // 일정 거리 이상 이동하면 롱 프레스 타이머 취소 및 드래그 시작
     if ((deltaX > 10 || deltaY > 10) && deltaTime > 100) {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+      if (longPressProgressTimerRef.current) {
+        clearInterval(longPressProgressTimerRef.current);
+        longPressProgressTimerRef.current = null;
+      }
+      setLongPressProgress(0);
       setIsTouchDragging(true);
       const dragData: DragData = {
         iconTitle: card.title,
@@ -184,13 +288,36 @@ export function DraggableIconCard({
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    // 롱 프레스 타이머 취소
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (longPressProgressTimerRef.current) {
+      clearInterval(longPressProgressTimerRef.current);
+      longPressProgressTimerRef.current = null;
+    }
+    setLongPressProgress(0);
+
     if (!touchStartRef.current || !isTouchDragging) {
       touchStartRef.current = null;
       return;
     }
 
+    if (e.changedTouches.length === 0) {
+      touchStartRef.current = null;
+      setIsTouchDragging(false);
+      onDragEnd?.();
+      return;
+    }
+
     const touch = e.changedTouches[0];
-    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    let elementBelow: Element | null = null;
+    try {
+      elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    } catch (err) {
+      // elementFromPoint 실패 시 무시
+    }
     
     // 드롭 대상 찾기
     if (elementBelow) {
@@ -208,12 +335,26 @@ export function DraggableIconCard({
     onDragEnd?.();
   };
 
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+      }
+      if (longPressProgressTimerRef.current) {
+        clearInterval(longPressProgressTimerRef.current);
+      }
+    };
+  }, []);
+
   // 터치 드래그 중 스타일 업데이트
   useEffect(() => {
-    if (isTouchDragging && cardRef.current) {
+    if (!cardRef.current) return;
+    
+    if (isTouchDragging) {
       cardRef.current.style.opacity = "0.5";
       cardRef.current.style.transform = "scale(0.9)";
-    } else if (cardRef.current) {
+    } else {
       cardRef.current.style.opacity = "";
       cardRef.current.style.transform = "";
     }
@@ -242,6 +383,9 @@ export function DraggableIconCard({
         onDragLeave: handleDragLeave,
         onDrop: handleDrop,
         onDragEnd: handleDragEnd,
+        onMouseDown: handleMouseDown,
+        onMouseUp: handleMouseUp,
+        onMouseLeave: handleMouseLeave,
         onTouchStart: handleTouchStart,
         onTouchMove: handleTouchMove,
         onTouchEnd: handleTouchEnd,
@@ -280,13 +424,30 @@ export function DraggableIconCard({
       <Link
         href={card.href}
         onClick={handleClick}
-        className={`group flex flex-col items-center justify-center h-full p-2 rounded-xl transition-all touch-none ${
+        className={`group flex flex-col items-center justify-center h-full p-2 rounded-xl transition-all touch-none relative ${
           isDraggedOver ? "bg-blue-50/50" : ""
         } ${isDragging || isTouchDragging ? "opacity-50" : ""}`}
         style={{
           pointerEvents: isTouchDragging ? 'none' : 'auto',
         }}
       >
+        {/* 롱프레스 진행 바 */}
+        {longPressProgress > 0 && (
+          <div className="absolute inset-0 rounded-xl overflow-hidden pointer-events-none z-20">
+            <div
+              className="absolute bottom-0 left-0 right-0 bg-blue-500 opacity-60 transition-all duration-50"
+              style={{
+                height: `${longPressProgress}%`,
+              }}
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-white text-xs font-bold drop-shadow-lg">
+                {Math.round(longPressProgress)}%
+              </span>
+            </div>
+          </div>
+        )}
+        
         {/* 아이콘 영역 - 크기 축소 */}
         <motion.div
           className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden transition-all relative flex-shrink-0 mb-1.5"
@@ -304,6 +465,10 @@ export function DraggableIconCard({
             sizes="56px"
             priority={index < 6}
             draggable={false}
+            onError={(e) => {
+              // 이미지 로딩 실패 시 기본 배경색만 표시
+              e.currentTarget.style.display = 'none';
+            }}
           />
         </motion.div>
 

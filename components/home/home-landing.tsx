@@ -177,7 +177,7 @@ export function HomeLanding() {
       category: "game",
     },
     {
-      title: "냉장고\n디펜스",
+      title: "Django\nDefender",
       description: "타워 디펜스 게임",
       href: "/game/fridge-defense",
       iconSrc: "/icons/냉장고 디펜스.png",

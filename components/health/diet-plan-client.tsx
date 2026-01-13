@@ -393,7 +393,10 @@ export function DietPlanClient() {
             ingredients.push(meal.recipe.title);
           } else if ('compositionSummary' in meal && meal.compositionSummary) {
             // compositionSummary가 있는 경우 사용
-            ingredients.push(...meal.compositionSummary);
+            const summaryItems = meal.compositionSummary.map(item =>
+              typeof item === "string" ? item : item.title
+            );
+            ingredients.push(...summaryItems);
           }
         }
       }

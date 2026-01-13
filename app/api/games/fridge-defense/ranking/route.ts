@@ -1,6 +1,6 @@
 /**
  * @file app/api/games/fridge-defense/ranking/route.ts
- * @description 냉장고 디펜스 게임 랭킹 API
+ * @description Django Defender 게임 랭킹 API
  * 
  * 서버 사이드에서 랭킹을 조회하여 RLS 문제를 피합니다.
  */

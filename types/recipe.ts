@@ -222,7 +222,7 @@ export interface RecipeDetailForDiet {
   emoji?: string; // 제철 과일용 이모지
   imageUrl?: string; // 과일 이미지 URL
   featureDescription?: string; // 어린이 추천 이유 등
-  compositionSummary?: string[]; // 식사 구성품 요약 (밥/반찬/국 등 이름 리스트)
+  compositionSummary?: string[] | Array<{ id: string; title: string }>; // 식사 구성품 요약 (밥/반찬/국 등 이름 리스트 또는 ID+제목 객체)
   warnings?: RecipeWarning[]; // 주의사항 배열
   nutritionDetails?: NutritionDetails; // 영양소 상세 정보
   exclusionType?: 'absolute' | 'moderate' | 'limit' | null; // 제외 유형
@@ -234,7 +234,7 @@ export interface MealComposition {
   sides: RecipeDetailForDiet[];
   soup?: RecipeDetailForDiet;
   totalNutrition: RecipeNutrition;
-  compositionSummary?: string[]; // 식사 구성품 요약 (밥/반찬/국 등 이름 리스트)
+  compositionSummary?: string[] | Array<{ id: string; title: string }>; // 식사 구성품 요약 (밥/반찬/국 등 이름 리스트 또는 ID+제목 객체)
 }
 
 // 하루 식단 계획

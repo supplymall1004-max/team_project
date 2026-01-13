@@ -80,76 +80,104 @@ export function HealthDashboard({
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // 대시보드 데이터 조회
+  // 대시보드 데이터 조회 (병렬 로딩으로 성능 개선)
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         console.group("[HealthDashboard] 대시보드 데이터 조회");
 
+        // 병렬 데이터 로딩으로 성능 개선
+        const promises: Promise<any>[] = [];
+
         // 개인 건강 요약 조회
         if (mode === "summary" || mode === "integrated") {
-          try {
-            const profile = await getHealthProfile();
+          promises.push(
+            getHealthProfile()
+              .then((profile) => {
+                if (profile) {
+                  // BMI 계산
+                  let bmi = null;
+                  if (profile?.height_cm && profile?.weight_kg) {
+                    const heightM = profile.height_cm / 100;
+                    bmi =
+                      Math.round((profile.weight_kg / (heightM * heightM)) * 10) /
+                      10;
+                  }
 
-            if (profile) {
+                  // 건강 점수 계산
+                  let healthScore = 50;
+                  if (profile) {
+                    if (profile.daily_calorie_goal > 0) healthScore += 10;
+                    if (
+                      profile.activity_level &&
+                      profile.activity_level !== "sedentary"
+                    )
+                      healthScore += 15;
+                    if (profile.height_cm && profile.weight_kg) healthScore += 10;
+                    if (profile.diseases?.length === 0) healthScore += 15;
+                  }
+                  healthScore = Math.min(100, Math.max(0, healthScore));
 
-              // BMI 계산
-              let bmi = null;
-              if (profile?.height_cm && profile?.weight_kg) {
-                const heightM = profile.height_cm / 100;
-                bmi =
-                  Math.round((profile.weight_kg / (heightM * heightM)) * 10) /
-                  10;
-              }
+                  const mockSummary: HealthSummary = {
+                    profile,
+                    recentHospitalVisits: 1,
+                    activeMedications: 2,
+                    upcomingVaccinations: 2,
+                    lastHealthCheckup: "2024-01-15",
+                    healthScore,
+                    bmi,
+                    recommendations: [
+                      "주 3회 이상 유산소 운동을 권장합니다",
+                      "수분 섭취를 늘려보세요 (하루 2L 이상)",
+                      "채소와 단백질 위주의 식단을 유지하세요",
+                      "정기적인 건강검진을 받으세요",
+                    ],
+                  };
 
-              // 건강 점수 계산
-              let healthScore = 50;
-              if (profile) {
-                if (profile.daily_calorie_goal > 0) healthScore += 10;
-                if (
-                  profile.activity_level &&
-                  profile.activity_level !== "sedentary"
-                )
-                  healthScore += 15;
-                if (profile.height_cm && profile.weight_kg) healthScore += 10;
-                if (profile.diseases?.length === 0) healthScore += 15;
-              }
-              healthScore = Math.min(100, Math.max(0, healthScore));
-
-              const mockSummary: HealthSummary = {
-                profile,
-                recentHospitalVisits: 1,
-                activeMedications: 2,
-                upcomingVaccinations: 2,
-                lastHealthCheckup: "2024-01-15",
-                healthScore,
-                bmi,
-                recommendations: [
-                  "주 3회 이상 유산소 운동을 권장합니다",
-                  "수분 섭취를 늘려보세요 (하루 2L 이상)",
-                  "채소와 단백질 위주의 식단을 유지하세요",
-                  "정기적인 건강검진을 받으세요",
-                ],
-              };
-
-              setSummary(mockSummary);
-            }
-          } catch (error) {
-            console.error("건강 요약 데이터 조회 실패:", error);
-          }
+                  return mockSummary;
+                }
+                return null;
+              })
+              .catch((error) => {
+                console.error("건강 요약 데이터 조회 실패:", error);
+                return null;
+              })
+          );
         }
 
         // 통합 대시보드 데이터 조회
         if (mode === "integrated" || mode === "family") {
-          try {
-            const summary = await getDashboardSummary();
-            console.log("✅ 대시보드 데이터 조회 완료:", summary);
-            setFamilyMembers(summary.familyMembers || []);
-            setAlerts(summary.alerts || []);
-            setOverallHealthScore(summary.overallHealthScore || 0);
-          } catch (error) {
-            console.error("통합 대시보드 데이터 조회 실패:", error);
+          promises.push(
+            getDashboardSummary()
+              .then((summary) => {
+                console.log("✅ 대시보드 데이터 조회 완료:", summary);
+                return summary;
+              })
+              .catch((error) => {
+                console.error("통합 대시보드 데이터 조회 실패:", error);
+                return null;
+              })
+          );
+        }
+
+        // 모든 데이터를 병렬로 조회
+        const results = await Promise.all(promises);
+
+        // 결과 처리
+        if (mode === "summary" || mode === "integrated") {
+          const summaryResult = results[0];
+          if (summaryResult) {
+            setSummary(summaryResult);
+          }
+        }
+
+        if (mode === "integrated" || mode === "family") {
+          const dashboardResult = results[mode === "integrated" ? 1 : 0];
+          if (dashboardResult) {
+            setFamilyMembers(dashboardResult.familyMembers || []);
+            setAlerts(dashboardResult.alerts || []);
+            setOverallHealthScore(dashboardResult.overallHealthScore || 0);
           }
         }
 

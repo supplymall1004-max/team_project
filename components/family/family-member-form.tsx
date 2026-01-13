@@ -35,6 +35,32 @@ export function FamilyMemberForm({
     activity_level: member?.activity_level || "sedentary",
   });
 
+  // 생년월일로부터 만나이 계산 함수
+  const calculateAge = (birthDate: string): number | null => {
+    if (!birthDate) return null;
+    try {
+      const birth = new Date(birthDate);
+      const today = new Date();
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+      return age >= 0 ? age : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // 생년월일 변경 시 나이 자동 계산
+  useEffect(() => {
+    if (formData.birth_date) {
+      const calculatedAge = calculateAge(formData.birth_date);
+      // 나이 필드가 없으므로, 나이를 표시할 상태를 추가하거나 생년월일 아래에 표시
+      // 일단 생년월일 필드 아래에 나이를 표시하는 방식으로 구현
+    }
+  }, [formData.birth_date]);
+
   // DiseaseSelector와 AllergySelector용 상태 (형식: { code: string, custom_name: string | null }[])
   const [selectedDiseases, setSelectedDiseases] = useState<{ code: string; custom_name: string | null }[]>([]);
   const [selectedAllergies, setSelectedAllergies] = useState<{ code: string; custom_name: string | null }[]>([]);
@@ -280,6 +306,11 @@ export function FamilyMemberForm({
               }
               className="w-full rounded-lg border border-gray-300 px-4 py-2 dark:border-gray-600 dark:bg-gray-700"
             />
+            {formData.birth_date && calculateAge(formData.birth_date) !== null && (
+              <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                만 {calculateAge(formData.birth_date)}세
+              </p>
+            )}
           </div>
 
           {/* 성별 */}
@@ -338,14 +369,14 @@ export function FamilyMemberForm({
               <label className="mb-1 block text-sm font-medium">몸무게 (kg)</label>
               <input
                 type="number"
-                min="20"
+                min="0.1"
                 max="300"
                 step="0.1"
                 value={formData.weight_kg}
                 onChange={(e) =>
                   setFormData({ ...formData, weight_kg: e.target.value })
                 }
-                placeholder="예: 65.5"
+                placeholder="예: 3.5 (신생아) 또는 65.5"
                 className="w-full rounded-lg border border-gray-300 px-4 py-2 dark:border-gray-600 dark:bg-gray-700"
               />
             </div>

@@ -1,6 +1,6 @@
 /**
  * @file app/api/games/fridge-defense/save-score/route.ts
- * @description 냉장고 디펜스 게임 점수 저장 API
+ * @description Django Defender 게임 점수 저장 API
  * 
  * 서버 사이드에서 점수를 저장하여 RLS 문제를 피합니다.
  */

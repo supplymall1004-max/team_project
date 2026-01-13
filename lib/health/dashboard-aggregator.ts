@@ -129,120 +129,141 @@ async function getFamilyMembers(userId: string): Promise<
 }
 
 /**
- * 가족 구성원별 건강 요약 생성
+ * 가족 구성원별 건강 요약 생성 (병렬 처리로 성능 개선)
  */
 async function getFamilyMemberSummaries(
   userId: string,
   memberIds: string[]
 ): Promise<FamilyMemberHealthSummary[]> {
-  const summaries: FamilyMemberHealthSummary[] = [];
+  const supabase = getServiceRoleClient();
+  const today = new Date().toISOString().split("T")[0];
 
-  for (const memberId of memberIds) {
+  // 모든 구성원의 데이터를 병렬로 조회
+  const summaryPromises = memberIds.map(async (memberId) => {
     try {
-      // 건강 점수 계산
-      const healthScore = await calculateHealthScore(
-        userId,
-        memberId === userId ? null : memberId
-      );
+      // 병렬로 모든 쿼리 실행
+      const [
+        healthScoreResult,
+        checkupResult,
+        medicationResult,
+        vaccinationResult,
+        checkupRecommendationResult,
+        memberInfoResult,
+      ] = await Promise.all([
+        // 건강 점수 계산
+        calculateHealthScore(
+          userId,
+          memberId === userId ? null : memberId
+        ).catch(() => ({ totalScore: 0 })),
 
-      const supabase = getServiceRoleClient();
+        // 최근 건강검진 조회
+        (async () => {
+          let checkupQuery = supabase
+            .from("user_health_checkup_records")
+            .select("*")
+            .eq("user_id", userId)
+            .order("checkup_date", { ascending: false })
+            .limit(1);
 
-      // 최근 건강검진 조회
-      let checkupQuery = supabase
-        .from("user_health_checkup_records")
-        .select("*")
-        .eq("user_id", userId)
-        .order("checkup_date", { ascending: false })
-        .limit(1);
+          if (memberId !== userId) {
+            checkupQuery = checkupQuery.eq("family_member_id", memberId);
+          } else {
+            checkupQuery = checkupQuery.is("family_member_id", null);
+          }
 
-      if (memberId !== userId) {
-        checkupQuery = checkupQuery.eq("family_member_id", memberId);
-      } else {
-        checkupQuery = checkupQuery.is("family_member_id", null);
-      }
+          const { data } = await checkupQuery;
+          return data?.[0] as HealthCheckupRecord | undefined;
+        })(),
 
-      const { data: recentCheckups } = await checkupQuery;
-      const recentCheckup = recentCheckups?.[0] as HealthCheckupRecord | undefined;
+        // 현재 복용 중인 약물 수
+        (async () => {
+          let medicationQuery = supabase
+            .from("medication_records")
+            .select("id", { count: "exact" })
+            .eq("user_id", userId)
+            .or(`end_date.is.null,end_date.gte.${today}`);
 
-      // 현재 복용 중인 약물 수
-      const today = new Date().toISOString().split("T")[0];
-      let medicationQuery = supabase
-        .from("medication_records")
-        .select("id", { count: "exact" })
-        .eq("user_id", userId)
-        .or(`end_date.is.null,end_date.gte.${today}`);
+          if (memberId !== userId) {
+            medicationQuery = medicationQuery.eq("family_member_id", memberId);
+          } else {
+            medicationQuery = medicationQuery.is("family_member_id", null);
+          }
 
-      if (memberId !== userId) {
-        medicationQuery = medicationQuery.eq("family_member_id", memberId);
-      } else {
-        medicationQuery = medicationQuery.is("family_member_id", null);
-      }
+          const { count } = await medicationQuery;
+          return count || 0;
+        })(),
 
-      const { count: activeMedications } = await medicationQuery;
+        // 예정된 예방접종 수
+        (async () => {
+          let vaccinationQuery = supabase
+            .from("user_vaccination_schedules")
+            .select("id", { count: "exact" })
+            .eq("user_id", userId)
+            .eq("status", "pending")
+            .gte("recommended_date", today);
 
-      // 예정된 예방접종 수
-      let vaccinationQuery = supabase
-        .from("user_vaccination_schedules")
-        .select("id", { count: "exact" })
-        .eq("user_id", userId)
-        .eq("status", "pending")
-        .gte("recommended_date", today);
+          if (memberId !== userId) {
+            vaccinationQuery = vaccinationQuery.eq("family_member_id", memberId);
+          } else {
+            vaccinationQuery = vaccinationQuery.is("family_member_id", null);
+          }
 
-      if (memberId !== userId) {
-        vaccinationQuery = vaccinationQuery.eq("family_member_id", memberId);
-      } else {
-        vaccinationQuery = vaccinationQuery.is("family_member_id", null);
-      }
+          const { count } = await vaccinationQuery;
+          return count || 0;
+        })(),
 
-      const { count: upcomingVaccinations } = await vaccinationQuery;
+        // 예정된 건강검진 수
+        (async () => {
+          let checkupRecommendationQuery = supabase
+            .from("user_health_checkup_recommendations")
+            .select("id", { count: "exact" })
+            .eq("user_id", userId)
+            .gte("recommended_date", today);
 
-      // 예정된 건강검진 수
-      let checkupRecommendationQuery = supabase
-        .from("user_health_checkup_recommendations")
-        .select("id", { count: "exact" })
-        .eq("user_id", userId)
-        .gte("recommended_date", today);
+          if (memberId !== userId) {
+            checkupRecommendationQuery = checkupRecommendationQuery.eq("family_member_id", memberId);
+          } else {
+            checkupRecommendationQuery = checkupRecommendationQuery.is("family_member_id", null);
+          }
 
-      if (memberId !== userId) {
-        checkupRecommendationQuery = checkupRecommendationQuery.eq("family_member_id", memberId);
-      } else {
-        checkupRecommendationQuery = checkupRecommendationQuery.is("family_member_id", null);
-      }
+          const { count } = await checkupRecommendationQuery;
+          return count || 0;
+        })(),
 
-      const { count: upcomingCheckups } = await checkupRecommendationQuery;
+        // 구성원 정보 조회
+        (async () => {
+          if (memberId !== userId) {
+            const { data: member } = await supabase
+              .from("family_members")
+              .select("name, relationship")
+              .eq("id", memberId)
+              .single();
 
-      // 구성원 정보 조회
-      let memberName = "본인";
-      let relationship: string | null = null;
+            return member
+              ? { name: member.name, relationship: member.relationship }
+              : { name: "본인", relationship: null };
+          } else {
+            const { data: user } = await supabase
+              .from("users")
+              .select("name")
+              .eq("id", userId)
+              .single();
 
-      if (memberId !== userId) {
-        const { data: member } = await supabase
-          .from("family_members")
-          .select("name, relationship")
-          .eq("id", memberId)
-          .single();
+            return { name: user?.name || "본인", relationship: null };
+          }
+        })(),
+      ]);
 
-        if (member) {
-          memberName = member.name;
-          relationship = member.relationship;
-        }
-      } else {
-        const { data: user } = await supabase
-          .from("users")
-          .select("name")
-          .eq("id", userId)
-          .single();
-
-        if (user) {
-          memberName = user.name || "본인";
-        }
-      }
+      const recentCheckup = checkupResult;
+      const activeMedications = medicationResult;
+      const upcomingVaccinations = vaccinationResult;
+      const upcomingCheckups = checkupRecommendationResult;
+      const memberInfo = memberInfoResult;
 
       // 건강검진 결과 정상 여부 확인
       let hasAbnormalResults = false;
       if (recentCheckup?.results) {
         const results = recentCheckup.results as Record<string, any>;
-        // 간단한 정상 여부 체크 (혈압, 혈당 등)
         if (
           results.blood_pressure_systolic &&
           (results.blood_pressure_systolic < 90 || results.blood_pressure_systolic > 140)
@@ -260,27 +281,30 @@ async function getFamilyMemberSummaries(
         }
       }
 
-      summaries.push({
+      return {
         id: memberId,
-        name: memberName,
-        relationship,
-        healthScore: healthScore.totalScore,
+        name: memberInfo.name,
+        relationship: memberInfo.relationship,
+        healthScore: healthScoreResult.totalScore,
         recentCheckup: recentCheckup
           ? {
               date: recentCheckup.checkup_date,
               hasAbnormalResults,
             }
           : null,
-        activeMedications: activeMedications || 0,
-        upcomingVaccinations: upcomingVaccinations || 0,
-        upcomingCheckups: upcomingCheckups || 0,
-      });
+        activeMedications,
+        upcomingVaccinations,
+        upcomingCheckups,
+      };
     } catch (error) {
       console.error(`❌ 구성원 ${memberId} 요약 생성 실패:`, error);
+      return null;
     }
-  }
+  });
 
-  return summaries;
+  // 모든 구성원 데이터를 병렬로 처리
+  const summaries = await Promise.all(summaryPromises);
+  return summaries.filter((s): s is FamilyMemberHealthSummary => s !== null);
 }
 
 /**
@@ -496,20 +520,22 @@ export async function aggregateDashboardData(
 
     console.log(`✅ 가족 구성원 ${memberIds.length}명 조회 완료`);
 
-    // 2. 가족 구성원별 건강 요약 생성
-    const familyMemberSummaries = await getFamilyMemberSummaries(userId, memberIds);
+    // 2-3. 가족 구성원별 건강 요약 및 건강 알림을 병렬로 생성 (성능 개선)
+    const [familyMemberSummaries, alerts] = await Promise.all([
+      getFamilyMemberSummaries(userId, memberIds),
+      getHealthAlerts(userId),
+    ]);
 
     console.log(`✅ 가족 구성원 건강 요약 생성 완료`);
-
-    // 3. 건강 알림 생성
-    const alerts = await getHealthAlerts(userId);
-
     console.log(`✅ 건강 알림 ${alerts.length}개 생성 완료`);
 
-    // 4. 건강 트렌드 데이터 생성
-    const trends = await getHealthTrends(userId, memberIds);
+    // 4. 건강 트렌드 데이터 생성 (필요할 때만 조회 - 성능 최적화)
+    // 트렌드 데이터는 대시보드에서 즉시 필요하지 않으므로 빈 객체로 초기화
+    const trends: { [familyMemberId: string]: HealthTrendData[] } = {};
 
-    console.log(`✅ 건강 트렌드 데이터 생성 완료`);
+    // 필요시에만 트렌드 데이터 조회 (주석 처리하여 성능 개선)
+    // const trends = await getHealthTrends(userId, memberIds);
+    // console.log(`✅ 건강 트렌드 데이터 생성 완료`);
 
     // 5. 전체 건강 점수 계산 (가족 평균)
     const avgHealthScore =
