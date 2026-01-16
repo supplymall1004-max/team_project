@@ -27,6 +27,7 @@ import { RecipeStepCard } from "./recipe-step-card";
 import { RecipeBlogSteps } from "./recipe-blog-steps";
 import { CookingMode } from "./cooking-mode";
 import { RecipeRating } from "./recipe-rating";
+import { useTrackRecipeView } from "@/hooks/use-behavior-tracker";
 
 interface RecipeDetailClientProps {
   recipe: RecipeDetail;
@@ -37,6 +38,9 @@ export function RecipeDetailClient({ recipe }: RecipeDetailClientProps) {
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(
     new Set()
   );
+
+  // 레시피 조회 추적 (3초 이상 머물면 기록)
+  useTrackRecipeView(recipe.id);
 
   const ratingStars = getRatingStars(recipe.rating_stats?.average_rating || 0);
 

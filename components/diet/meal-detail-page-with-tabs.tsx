@@ -10,7 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Calendar, ChefHat, Sun, Moon, Utensils } from 'lucide-react';
+import { ArrowLeft, Calendar, ChefHat, Sun, Moon, Utensils, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { MealDetailPageClient } from './meal-detail-page';
@@ -61,6 +61,7 @@ export function MealDetailPageWithTabs({
 }: MealDetailPageWithTabsProps) {
   const router = useRouter();
   const [activeMealType, setActiveMealType] = useState<MealType>(currentMealType);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   // currentMealType이 변경되면 활성 탭 업데이트
   useEffect(() => {
@@ -90,6 +91,32 @@ export function MealDetailPageWithTabs({
     window.location.href = '/';
   };
 
+  // 식단 재생성 처리
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
+    try {
+      const res = await fetch(`/api/diet/plan?date=${date}&force=true`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || '식단 재생성에 실패했습니다');
+      }
+
+      // 재생성 성공 시 페이지 새로고침
+      router.refresh();
+    } catch (error) {
+      console.error('식단 재생성 실패:', error);
+      alert(error instanceof Error ? error.message : '식단 재생성에 실패했습니다');
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   // 사용 가능한 식사 타입 확인
   const availableMeals: MealType[] = [];
   if (dailyPlan?.breakfast !== null && dailyPlan?.breakfast !== undefined) {
@@ -114,7 +141,7 @@ export function MealDetailPageWithTabs({
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* 헤더 */}
-      <div className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
+      <div className="bg-white border-b border-slate-200 shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 max-w-4xl">
           <div className="flex items-start gap-3 sm:gap-4">
             <Button
@@ -137,9 +164,32 @@ export function MealDetailPageWithTabs({
                 </div>
                 <span className="truncate font-sans">오늘의 식단</span>
               </h1>
-              <p className="text-xs sm:text-sm text-slate-600">
-                {userName}님을 위한 건강 맞춤 식단
-              </p>
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <p className="text-xs sm:text-sm text-slate-600">
+                  {userName}님을 위한 건강 맞춤 식단
+                </p>
+                {dailyPlan && (
+                  <Button
+                    onClick={handleRegenerate}
+                    disabled={isRegenerating}
+                    variant="outline"
+                    size="sm"
+                    className="h-7 sm:h-8 text-xs sm:text-sm"
+                  >
+                    {isRegenerating ? (
+                      <>
+                        <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5 animate-spin" />
+                        재생성 중...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
+                        식단 재생성
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>

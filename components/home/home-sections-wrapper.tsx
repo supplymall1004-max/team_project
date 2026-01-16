@@ -16,6 +16,10 @@ import { useHomeCustomization } from "@/hooks/use-home-customization";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { EmergencyQuickAccess } from "@/components/home/emergency-quick-access";
 import { WeatherWidget } from "@/components/home/weather-widget";
+import { TodayHeader } from "@/components/home/today-header";
+import { DailyRecommendationsSection } from "@/components/home/daily-recommendations-section";
+import { TrendingSection } from "@/components/home/trending-section";
+import { RecentActivityFeed } from "@/components/home/recent-activity-feed";
 import { HomeLanding } from "@/components/home/home-landing";
 // CharacterGameHomeWrapper는 더 이상 사용하지 않음 (3D 뷰어 기능 제거됨)
 import { CommunityPreview } from "@/components/home/community-preview";
@@ -68,6 +72,52 @@ const SECTION_COMPONENTS: Record<
     >
       <ErrorBoundary>
         <WeatherWidget />
+      </ErrorBoundary>
+    </div>
+  ),
+  [SECTION_IDS.todayHeader]: () => (
+    <div
+      data-section-id={SECTION_IDS.todayHeader}
+      className="px-4 pt-6 pb-4"
+    >
+      <ErrorBoundary>
+        <TodayHeader />
+      </ErrorBoundary>
+    </div>
+  ),
+  [SECTION_IDS.dailyRecommendations]: () => (
+    <div
+      data-section-id={SECTION_IDS.dailyRecommendations}
+      className="px-4 pt-6 pb-4"
+    >
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <DailyRecommendationsSection />
+        </Suspense>
+      </ErrorBoundary>
+    </div>
+  ),
+  [SECTION_IDS.trending]: () => (
+    <div
+      data-section-id={SECTION_IDS.trending}
+      className="px-4 pt-6 pb-4"
+    >
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <TrendingSection />
+        </Suspense>
+      </ErrorBoundary>
+    </div>
+  ),
+  [SECTION_IDS.recentActivity]: () => (
+    <div
+      data-section-id={SECTION_IDS.recentActivity}
+      className="px-4 pt-6 pb-4"
+    >
+      <ErrorBoundary>
+        <Suspense fallback={<SectionSkeleton />}>
+          <RecentActivityFeed />
+        </Suspense>
       </ErrorBoundary>
     </div>
   ),
@@ -132,6 +182,25 @@ export function HomeSectionsWrapper() {
             <WeatherWidget />
           </ErrorBoundary>
         </div>
+        <div className="px-4 pt-6 pb-4">
+          <ErrorBoundary>
+            <TodayHeader />
+          </ErrorBoundary>
+        </div>
+        <div className="px-4 pt-6 pb-4">
+          <ErrorBoundary>
+            <Suspense fallback={<SectionSkeleton />}>
+              <DailyRecommendationsSection />
+            </Suspense>
+          </ErrorBoundary>
+        </div>
+        <div className="px-4 pt-6 pb-4">
+          <ErrorBoundary>
+            <Suspense fallback={<SectionSkeleton />}>
+              <TrendingSection />
+            </Suspense>
+          </ErrorBoundary>
+        </div>
         <ParallaxSection speed={0.3} scaleRange={[0.98, 1]}>
           <DirectionalEntrance direction="up" delay={0.5}>
             <ErrorBoundary>
@@ -141,6 +210,13 @@ export function HomeSectionsWrapper() {
             </ErrorBoundary>
           </DirectionalEntrance>
         </ParallaxSection>
+        <div className="px-4 pt-6 pb-4">
+          <ErrorBoundary>
+            <Suspense fallback={<SectionSkeleton />}>
+              <RecentActivityFeed />
+            </Suspense>
+          </ErrorBoundary>
+        </div>
         {/* 3D 뷰어 기능이 제거되어 렌더링하지 않음 */}
         <ErrorBoundary>
           <Suspense fallback={<SectionSkeleton />}>

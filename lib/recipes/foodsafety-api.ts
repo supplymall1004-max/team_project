@@ -310,7 +310,85 @@ export async function fetchFoodSafetyRecipes(
 }
 
 /**
+ * MfdsRecipe를 FoodSafetyRecipeRow로 변환 (정적 파일 로더 폴백용)
+ */
+function convertMfdsRecipeToFoodSafetyRow(recipe: import("@/types/mfds-recipe").MfdsRecipe): FoodSafetyRecipeRow {
+  // 조리 방법 문자열 생성 (MANUAL01 ~ MANUAL20)
+  const manuals: Record<string, string | null> = {};
+  const manualImages: Record<string, string | null> = {};
+  
+  for (let i = 1; i <= 20; i++) {
+    const stepNum = String(i).padStart(2, '0');
+    const step = recipe.steps.find(s => s.step === i);
+    manuals[`MANUAL${stepNum}`] = step?.description || null;
+    manualImages[`MANUAL_IMG${stepNum}`] = step?.originalImageUrl || step?.imageUrl || null;
+  }
+  
+  // 재료 정보 문자열 생성
+  const ingredientsText = recipe.ingredients
+    .map(ing => ing.name)
+    .join(' ');
+  
+  return {
+    RCP_SEQ: recipe.frontmatter.rcp_seq,
+    RCP_NM: recipe.frontmatter.rcp_nm,
+    RCP_WAY2: recipe.frontmatter.rcp_way2,
+    RCP_PAT2: recipe.frontmatter.rcp_pat2,
+    INFO_ENG: recipe.nutrition.calories?.toString() || '',
+    INFO_CAR: recipe.nutrition.carbohydrates?.toString() || '',
+    INFO_PRO: recipe.nutrition.protein?.toString() || '',
+    INFO_FAT: recipe.nutrition.fat?.toString() || '',
+    INFO_NA: recipe.nutrition.sodium?.toString() || '',
+    INFO_FIBER: recipe.nutrition.fiber?.toString() || '',
+    RCP_PARTS_DTLS: ingredientsText,
+    MANUAL01: manuals.MANUAL01,
+    MANUAL02: manuals.MANUAL02,
+    MANUAL03: manuals.MANUAL03,
+    MANUAL04: manuals.MANUAL04,
+    MANUAL05: manuals.MANUAL05,
+    MANUAL06: manuals.MANUAL06,
+    MANUAL07: manuals.MANUAL07,
+    MANUAL08: manuals.MANUAL08,
+    MANUAL09: manuals.MANUAL09,
+    MANUAL10: manuals.MANUAL10,
+    MANUAL11: manuals.MANUAL11,
+    MANUAL12: manuals.MANUAL12,
+    MANUAL13: manuals.MANUAL13,
+    MANUAL14: manuals.MANUAL14,
+    MANUAL15: manuals.MANUAL15,
+    MANUAL16: manuals.MANUAL16,
+    MANUAL17: manuals.MANUAL17,
+    MANUAL18: manuals.MANUAL18,
+    MANUAL19: manuals.MANUAL19,
+    MANUAL20: manuals.MANUAL20,
+    MANUAL_IMG01: manualImages.MANUAL_IMG01,
+    MANUAL_IMG02: manualImages.MANUAL_IMG02,
+    MANUAL_IMG03: manualImages.MANUAL_IMG03,
+    MANUAL_IMG04: manualImages.MANUAL_IMG04,
+    MANUAL_IMG05: manualImages.MANUAL_IMG05,
+    MANUAL_IMG06: manualImages.MANUAL_IMG06,
+    MANUAL_IMG07: manualImages.MANUAL_IMG07,
+    MANUAL_IMG08: manualImages.MANUAL_IMG08,
+    MANUAL_IMG09: manualImages.MANUAL_IMG09,
+    MANUAL_IMG10: manualImages.MANUAL_IMG10,
+    MANUAL_IMG11: manualImages.MANUAL_IMG11,
+    MANUAL_IMG12: manualImages.MANUAL_IMG12,
+    MANUAL_IMG13: manualImages.MANUAL_IMG13,
+    MANUAL_IMG14: manualImages.MANUAL_IMG14,
+    MANUAL_IMG15: manualImages.MANUAL_IMG15,
+    MANUAL_IMG16: manualImages.MANUAL_IMG16,
+    MANUAL_IMG17: manualImages.MANUAL_IMG17,
+    MANUAL_IMG18: manualImages.MANUAL_IMG18,
+    MANUAL_IMG19: manualImages.MANUAL_IMG19,
+    MANUAL_IMG20: manualImages.MANUAL_IMG20,
+    ATT_FILE_NO_MAIN: recipe.images.mainImageOriginalUrl || recipe.images.mainImageUrl,
+    ATT_FILE_NO_MK: recipe.images.mkImageOriginalUrl || recipe.images.mkImageUrl,
+  };
+}
+
+/**
  * 식약처 API에서 특정 레시피 조회 (RCP_SEQ 기반)
+ * API 호출 실패 시 정적 파일에서 로드하는 폴백 로직 포함
  */
 export async function fetchFoodSafetyRecipeBySeq(
   rcpSeq: string,
@@ -331,9 +409,34 @@ export async function fetchFoodSafetyRecipeBySeq(
   });
   
   if (result.success && result.data && result.data.length > 0) {
-    console.log("✅ 레시피 조회 성공");
+    console.log("✅ 레시피 조회 성공 (API)");
     console.groupEnd();
     return result;
+  }
+  
+  // API 호출 실패 시 정적 파일에서 로드 시도
+  if (!result.success || !result.data || result.data.length === 0) {
+    console.warn("⚠️ API 호출 실패 또는 레시피를 찾지 못함. 정적 파일에서 로드 시도...");
+    
+    try {
+      const { loadRecipeBySeq } = await import("@/lib/mfds/recipe-loader");
+      const staticRecipe = loadRecipeBySeq(rcpSeq);
+      
+      if (staticRecipe) {
+        console.log("✅ 정적 파일에서 레시피 로드 성공:", staticRecipe.title);
+        const foodSafetyRow = convertMfdsRecipeToFoodSafetyRow(staticRecipe);
+        console.groupEnd();
+        return {
+          success: true,
+          data: [foodSafetyRow],
+          totalCount: 1,
+        };
+      } else {
+        console.warn(`정적 파일에서도 레시피 ${rcpSeq}를 찾을 수 없습니다.`);
+      }
+    } catch (error) {
+      console.error("정적 파일 로드 중 오류 발생:", error);
+    }
   }
   
   // 첫 1000개에서 못 찾았으면 다음 범위 조회 시도
@@ -349,6 +452,7 @@ export async function fetchFoodSafetyRecipeBySeq(
 
 /**
  * 식약처 API에서 레시피명으로 검색
+ * API 호출 실패 시 정적 파일에서 검색하는 폴백 로직 포함
  */
 export async function searchFoodSafetyRecipesByName(
   recipeName: string,
@@ -365,23 +469,66 @@ export async function searchFoodSafetyRecipesByName(
     endIdx: 1000,
   });
   
-  if (!result.success || !result.data) {
-    console.groupEnd();
-    return result;
+  if (result.success && result.data) {
+    // 레시피명에 검색어가 포함된 레시피 필터링
+    const filtered = result.data.filter((recipe) =>
+      recipe.RCP_NM.includes(recipeName)
+    );
+    
+    if (filtered.length > 0) {
+      console.log(`✅ ${filtered.length}개의 레시피 검색 성공 (API)`);
+      console.groupEnd();
+      return {
+        success: true,
+        data: filtered,
+        totalCount: filtered.length,
+      };
+    }
   }
   
-  // 레시피명에 검색어가 포함된 레시피 필터링
-  const filtered = result.data.filter((recipe) =>
-    recipe.RCP_NM.includes(recipeName)
-  );
+  // API 호출 실패 또는 결과가 없을 때 정적 파일에서 검색 시도
+  console.warn("⚠️ API 호출 실패 또는 검색 결과 없음. 정적 파일에서 검색 시도...");
   
-  console.log(`✅ ${filtered.length}개의 레시피 검색 성공`);
+  try {
+    const { loadRecipeByTitle, searchRecipes } = await import("@/lib/mfds/recipe-loader");
+    
+    // 먼저 제목으로 정확히 찾기 시도
+    const exactMatch = loadRecipeByTitle(recipeName);
+    if (exactMatch) {
+      console.log("✅ 정적 파일에서 레시피 검색 성공 (제목 일치):", exactMatch.title);
+      const foodSafetyRow = convertMfdsRecipeToFoodSafetyRow(exactMatch);
+      console.groupEnd();
+      return {
+        success: true,
+        data: [foodSafetyRow],
+        totalCount: 1,
+      };
+    }
+    
+    // 제목으로 찾지 못하면 검색 시도
+    const searchResults = searchRecipes(recipeName);
+    if (searchResults.length > 0) {
+      console.log(`✅ 정적 파일에서 ${searchResults.length}개의 레시피 검색 성공`);
+      const foodSafetyRows = searchResults
+        .slice(0, 10) // 최대 10개까지만 반환
+        .map(recipe => convertMfdsRecipeToFoodSafetyRow(recipe));
+      console.groupEnd();
+      return {
+        success: true,
+        data: foodSafetyRows,
+        totalCount: foodSafetyRows.length,
+      };
+    }
+    
+    console.warn(`정적 파일에서도 레시피 "${recipeName}"를 찾을 수 없습니다.`);
+  } catch (error) {
+    console.error("정적 파일 검색 중 오류 발생:", error);
+  }
+  
   console.groupEnd();
-  
   return {
-    success: true,
-    data: filtered,
-    totalCount: filtered.length,
+    success: false,
+    error: `레시피 "${recipeName}"를 찾을 수 없습니다.`,
   };
 }
 

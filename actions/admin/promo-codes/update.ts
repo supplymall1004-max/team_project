@@ -14,7 +14,15 @@ const UpdatePromoCodeSchema = z.object({
   code: z.string().min(1).max(50).transform(val => val.toUpperCase()).optional(),
   discount_type: z.enum(["percentage", "fixed_amount", "free_trial"]).optional(),
   discount_value: z.number().min(1).optional(),
-  max_uses: z.number().min(1).nullable().optional(),
+  max_uses: z.preprocess(
+    (val) => {
+      if (val === "" || val === null || val === undefined || isNaN(Number(val))) {
+        return null;
+      }
+      return Number(val);
+    },
+    z.number().min(1).nullable().optional()
+  ),
   valid_from: z.string().datetime().optional(),
   valid_until: z.string().datetime().optional(),
   applicable_plans: z.array(z.enum(["monthly", "yearly"])).nullable().optional(),

@@ -57,17 +57,25 @@ export const DEFAULT_HOME_CUSTOMIZATION: HomeCustomization = {
   sectionOrder: [
     'emergency-quick-access',
     'weather-widget',
+    'today-header',
+    'daily-recommendations',
+    'trending-section',
     'hero-section',
+    'recent-activity-feed',
     'character-game',
     'community-preview',
   ],
-  version: '1.0.0',
+  version: '1.1.0',
 };
 
 /** 섹션 ID 상수 */
 export const SECTION_IDS = {
   emergency: 'emergency-quick-access',
   weather: 'weather-widget',
+  todayHeader: 'today-header',
+  dailyRecommendations: 'daily-recommendations',
+  trending: 'trending-section',
+  recentActivity: 'recent-activity-feed',
   hero: 'hero-section',
   characterGame: 'character-game',
   community: 'community-preview',

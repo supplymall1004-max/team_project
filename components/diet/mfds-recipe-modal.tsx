@@ -66,12 +66,17 @@ export function MfdsRecipeModal({ rcpSeq, open, onOpenChange }: MfdsRecipeModalP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto shadow-xl">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center space-y-3">
-              <div className="animate-spin rounded-full h-10 w-10 border-3 border-blue-300 border-t-blue-600 mx-auto"></div>
-              <div className="text-slate-600 font-medium">레시피를 불러오는 중...</div>
+          <>
+            <DialogHeader>
+              <DialogTitle>레시피 정보</DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-3">
+                <div className="animate-spin rounded-full h-10 w-10 border-3 border-blue-300 border-t-blue-600 mx-auto"></div>
+                <div className="text-slate-600 font-medium">레시피를 불러오는 중...</div>
+              </div>
             </div>
-          </div>
+          </>
         ) : recipe ? (
           <>
             <DialogHeader className="border-b border-slate-200 pb-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 -m-6 mb-0 p-6 rounded-t-lg">
@@ -223,9 +228,14 @@ export function MfdsRecipeModal({ rcpSeq, open, onOpenChange }: MfdsRecipeModalP
             </div>
           </>
         ) : (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-muted-foreground">레시피를 찾을 수 없습니다.</div>
-          </div>
+          <>
+            <DialogHeader>
+              <DialogTitle>레시피 정보</DialogTitle>
+            </DialogHeader>
+            <div className="flex items-center justify-center py-8">
+              <div className="text-muted-foreground">레시피를 찾을 수 없습니다.</div>
+            </div>
+          </>
         )}
       </DialogContent>
     </Dialog>

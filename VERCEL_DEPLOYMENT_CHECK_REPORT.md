@@ -1,177 +1,230 @@
-# Vercel 배포 전 검사 보고서
+# 🚀 Vercel 배포 검사 보고서
 
-**검사 일시**: 2025-01-XX  
-**빌드 상태**: ✅ 성공  
-**검사 결과**: 배포 가능 (일부 경고 사항 있음)
-
----
-
-## ✅ 빌드 성공 확인
-
-로컬 빌드가 성공적으로 완료되었습니다:
-- ✅ TypeScript 컴파일 성공
-- ✅ 모든 타입 오류 수정 완료
-- ✅ 정적 페이지 생성 완료 (194개 페이지)
+**검사 일시**: 2025-01-30  
+**상태**: ✅ 빌드 성공, 배포 준비 완료
 
 ---
 
-## 🔧 수정된 사항
+## ✅ 빌드 성공
 
-### 1. 타입 오류 수정
-- ✅ `LoadingSpinner` import 경로 수정 (`@/components/common/loading-spinner` → `@/components/loading-spinner`)
-- ✅ `NutritionInfo` 타입의 `carbs` → `carbohydrates` 변경
-  - `actions/health/get-diet-comparison.ts`
-  - `lib/storage/actual-diet-storage.ts`
-  - `components/health/diet/diet-comparison.tsx`
-  - `lib/diet/recommendation.ts`
-  - `lib/health/weekly-nutrition-analysis.ts`
-- ✅ `UserHealthProfile` 타입 import 수정
-- ✅ `PromiseLike` 타입의 `.catch()` 호출 수정 (Promise.resolve로 감싸기)
-- ✅ `Camera` 아이콘 import 추가
-- ✅ `Badge` 컴포넌트 import 추가
-- ✅ `crypto.randomUUID()` 사용 수정 (브라우저 환경 체크 추가)
+### 해결된 문제
 
-### 2. 코드 품질 개선
-- ✅ 모든 타입 오류 해결
-- ✅ 빌드 경고 최소화
+빌드 캐시를 정리하고 재빌드한 결과, 모든 페이지가 정상적으로 빌드되었습니다:
+
+1. ✅ `/health/activity/log` - 정상 빌드
+2. ✅ `/diet/weekly` - 정상 빌드
+3. ✅ `/health/emergency` - 정상 빌드
+4. ✅ `/health/emergency/medical-facilities/[category]` - 정상 빌드
+
+### 해결 방법
+
+1. **빌드 캐시 정리**
+   ```bash
+   rm -rf .next
+   pnpm build
+   ```
+
+2. **결과**
+   - 모든 페이지가 정상적으로 빌드됨
+   - 정적 페이지와 동적 페이지 모두 생성 완료
+   - 빌드 시간: 약 2분
 
 ---
 
-## ⚠️ 배포 전 확인 사항
+## ✅ 완료된 검사 항목
 
-### 1. 환경 변수 설정 (Vercel Dashboard)
+### 1. 프로젝트 설정 파일
 
-**필수 클라이언트 사이드 환경변수 (NEXT_PUBLIC_*)**
+- ✅ `package.json`: 빌드 스크립트 및 의존성 확인 완료
+- ✅ `next.config.ts`: 이미지 최적화, 컴파일러 설정 확인 완료
+- ✅ `vercel.json`: Cron Jobs 설정 확인 완료
+- ✅ `middleware.ts`: Clerk 인증 미들웨어 설정 확인 완료
+- ✅ `tsconfig.json`: TypeScript 설정 확인 완료
+
+### 2. 빌드 설정
+
+- ✅ **Build Command**: `pnpm build` (기본값)
+- ✅ **Output Directory**: `.next` (기본값)
+- ✅ **Install Command**: `pnpm install` (기본값)
+- ✅ **Node.js Version**: 20.x 이상 (`engines.node: ">=20.0.0"`)
+- ✅ **Package Manager**: `pnpm` (`packageManager: "pnpm@10.0.0"`)
+
+### 3. ESLint 검사
+
+- ⚠️ 많은 경고가 있지만 `next.config.ts`에서 `eslint.ignoreDuringBuilds: true`로 설정되어 빌드는 통과
+- 주요 경고:
+  - 사용하지 않는 변수/import
+  - React Hooks 의존성 배열 경고
+  - `<img>` 태그 대신 `<Image />` 사용 권장
+
+---
+
+## 📋 필수 환경 변수 체크리스트
+
+### 클라이언트 사이드 환경 변수 (NEXT_PUBLIC_*)
+
+Vercel Dashboard → Settings → Environment Variables에서 다음 변수들을 **Production, Preview, Development 모두**에 설정하세요:
+
 ```bash
-# Clerk 인증 (필수)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_... (프로덕션) 또는 pk_test_... (개발)
+# Clerk 인증 (⚠️ 프로덕션에서는 pk_live_ 키 사용 필수!)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...  # 또는 pk_test_... (개발)
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/
 NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
 
-# Supabase (필수)
-NEXT_PUBLIC_SUPABASE_URL=https://xlbhrgvnfioxtvocwban.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
 NEXT_PUBLIC_STORAGE_BUCKET=uploads
 ```
 
-**필수 서버 사이드 환경변수**
+### 서버 사이드 환경 변수
+
 ```bash
 # Clerk (서버)
-CLERK_SECRET_KEY=sk_live_... (프로덕션) 또는 sk_test_... (개발)
+CLERK_SECRET_KEY=sk_live_...  # ⚠️ 프로덕션에서는 sk_live_ 키 사용 필수!
 
 # Supabase (서버)
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 
-# Cron Job (선택)
+# Cron Job (선택 - 자동 식단 생성 기능 사용 시)
 CRON_SECRET=your_random_secret_here
-
-# 네이버 API (선택 - 의료시설 검색 기능 사용 시)
-NAVER_CLIENT_ID=your_naver_client_id
-NAVER_CLIENT_SECRET=your_naver_client_secret
-NAVER_SEARCH_CLIENT_ID=your_naver_search_client_id
-NAVER_SEARCH_CLIENT_SECRET=your_naver_search_client_secret
-NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=your_naver_map_client_id
 ```
 
-**⚠️ 중요 확인 사항:**
-- [ ] 모든 환경변수가 **Production, Preview, Development** 모두에 설정되어 있는지 확인
+### 선택적 환경 변수
+
+```bash
+# Naver APIs (의료시설 검색 기능 사용 시)
+NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=...
+NAVER_CLIENT_ID=...
+NAVER_CLIENT_SECRET=...
+NAVER_SEARCH_CLIENT_ID=...
+NAVER_SEARCH_CLIENT_SECRET=...
+
+# Gemini AI (이미지 생성 기능 사용 시)
+GEMINI_API_KEY=AIzaSyD...
+
+# Notion (선택)
+NOTION_API_KEY=secret_...
+NOTION_DATABASE_ID=...
+```
+
+### ⚠️ 중요 확인 사항
+
+- [ ] 모든 환경 변수가 **Production, Preview, Development** 모두에 설정되어 있는지 확인
 - [ ] `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`가 프로덕션 키(`pk_live_...`)인지 확인
 - [ ] `CLERK_SECRET_KEY`가 프로덕션 키(`sk_live_...`)인지 확인
-- [ ] `SUPABASE_SERVICE_ROLE_KEY`가 Service Role Key인지 확인 (Anon Key 아님)
 - [ ] 모든 변수명이 정확히 입력되었는지 확인 (대소문자, 언더스코어)
 - [ ] 값에 앞뒤 공백이 없는지 확인
 
-### 2. 빌드 경고 사항
+---
 
-**Clerk 개발 키 경고**
-- ⚠️ 현재 로컬 환경에서 개발 키(`pk_test_`)를 사용 중
-- 프로덕션 배포 시 Vercel 환경변수에서 프로덕션 키(`pk_live_...`)로 변경 필요
+## 🔧 Cron Jobs 설정
 
-**동적 라우트 경고**
-- ⚠️ `/health/vaccinations` 페이지가 동적 서버 사용으로 인해 정적 생성 불가
-- 이는 정상적인 동작이며, 런타임에 서버 사이드 렌더링됨
+`vercel.json`에 정의된 Cron Job:
 
-### 3. Vercel 설정 확인
-
-**vercel.json 확인**
-- ✅ Cron Job 설정 확인됨:
-  - `/api/cron/generate-daily-diets` - 매일 18:00 실행
-  - `/api/cron/daily-notifications` - 매일 09:00 실행
-
-**next.config.ts 확인**
-- ✅ 이미지 최적화 설정 확인
-- ✅ Supabase 이미지 호스트 허용 확인
-- ✅ ESLint 빌드 시 무시 설정 확인
+- ✅ `/api/cron/generate-daily-diets` - 매일 오후 6시(18:00) 실행
+  - ⚠️ **필수**: `CRON_SECRET` 환경 변수 설정 필요
+- ✅ `/api/cron/daily-notifications` - 매일 오전 9시(09:00) 실행
+  - ⚠️ **필수**: `CRON_SECRET` 환경 변수 설정 필요
 
 ---
 
-## 📋 배포 체크리스트
+## 🚀 배포 전 필수 작업
 
-### 배포 전
-- [x] 로컬 빌드 성공 확인
-- [x] 타입 오류 수정 완료
-- [ ] 환경변수 Vercel에 설정 확인
-- [ ] Git 커밋 및 푸시 완료
+### 1단계: 환경 변수 설정
 
-### 배포 후
-- [ ] 배포 성공 확인 (Vercel Dashboard)
-- [ ] 프로덕션 사이트 접속 가능 확인
-- [ ] 로그인/회원가입 정상 작동 확인
-- [ ] 주요 페이지 정상 표시 확인
-- [ ] 브라우저 콘솔에 치명적 오류 없음 확인
-- [ ] API 엔드포인트 정상 응답 확인
+1. [Vercel Dashboard](https://vercel.com) 접속
+2. 프로젝트 선택
+3. **Settings** → **Environment Variables**
+4. 위의 환경 변수 목록을 모두 추가
+5. **Production, Preview, Development** 모두에 적용
 
----
+### 2단계: 코드 커밋 및 푸시
 
-## 🚀 배포 절차
+```bash
+git add .
+git commit -m "fix: Vercel 배포를 위한 빌드 오류 수정"
+git push origin main
+```
 
-1. **Git 커밋 및 푸시**
-   ```bash
-   git add .
-   git commit -m "Fix: Resolve TypeScript errors and prepare for Vercel deployment"
-   git push origin main
-   ```
+### 3단계: 배포 실행
 
-2. **Vercel 자동 배포 대기**
-   - Git 푸시 후 Vercel이 자동으로 배포 시작
-   - Vercel Dashboard에서 배포 상태 확인
+```bash
+# 프로덕션 배포
+pnpm run deploy
+# 또는
+vercel --prod
 
-3. **환경변수 확인**
-   - Vercel Dashboard → Settings → Environment Variables
-   - 모든 필수 환경변수가 설정되어 있는지 확인
+# 프리뷰 배포 (테스트용)
+pnpm run deploy:preview
+# 또는
+vercel
+```
 
-4. **배포 후 확인**
-   - 프로덕션 사이트 접속
-   - 브라우저 콘솔 확인 (F12 → Console)
-   - 주요 기능 테스트
+### 4단계: 배포 확인
 
----
+배포가 완료되면 다음을 확인하세요:
 
-## 📝 알려진 이슈
-
-### 1. Clerk 개발 키 경고
-- **상태**: 경고 (프로덕션 키 사용 시 해결)
-- **해결**: Vercel 환경변수에서 프로덕션 키로 변경
-
-### 2. 동적 라우트 경고
-- **상태**: 정상 (런타임 서버 사이드 렌더링)
-- **영향**: 없음
+- [ ] 메인 페이지 로드 확인
+- [ ] Clerk 로그인/회원가입 동작 확인
+- [ ] 사용자 세션 유지 확인
+- [ ] API 엔드포인트 동작 확인
+- [ ] 데이터베이스 연결 확인
+- [ ] 이미지 로딩 확인
+- [ ] Cron Job 동작 확인 (Vercel Dashboard → Cron Jobs)
 
 ---
 
-## ✅ 결론
+## 📊 성능 최적화 설정
 
-**배포 준비 완료**: 모든 타입 오류가 수정되었고, 빌드가 성공적으로 완료되었습니다.
+### Next.js 설정
 
-**다음 단계**:
-1. Vercel 환경변수 확인 및 설정
-2. Git 커밋 및 푸시
-3. Vercel 자동 배포 대기
-4. 배포 후 기능 테스트
+- ✅ 이미지 최적화 활성화 (AVIF, WebP)
+- ✅ 프로덕션에서 console.log 제거 (error, warn 제외)
+- ✅ 패키지 import 최적화 (lucide-react, @radix-ui/react-icons)
+- ✅ Supabase 이미지 호스트 자동 허용
+
+### 이미지 최적화
+
+`next.config.ts`에서 다음 호스트들이 허용되어 있습니다:
+
+- `img.clerk.com` (Clerk 프로필 이미지)
+- `localhost` (로컬 개발)
+- `images.unsplash.com` (Unsplash 이미지)
+- `lh3.googleusercontent.com` (Google 이미지)
+- `cdn.pixabay.com` (Pixabay 이미지)
+- `buly.kr` (외부 이미지 서비스)
+- `img.youtube.com` (YouTube 썸네일)
+- `www.foodsafetykorea.go.kr` (식약처 레시피 이미지)
+- Supabase 호스트 (자동 추가)
 
 ---
 
-**검사 완료일**: 2025-01-XX  
-**검사자**: AI Assistant
+## 🔗 참고 자료
 
+- [Vercel 공식 문서](https://vercel.com/docs)
+- [Next.js 배포 가이드](https://nextjs.org/docs/deployment)
+- [Clerk 배포 가이드](https://clerk.com/docs/deployments/overview)
+- [Vercel 환경 변수 설정 가이드](https://vercel.com/docs/concepts/projects/environment-variables)
+- [Vercel Cron Jobs 가이드](https://vercel.com/docs/cron-jobs)
+
+---
+
+## ✅ 최종 확인 체크리스트
+
+- [x] 빌드 오류 수정 완료
+- [ ] 모든 환경 변수 설정 완료 (Vercel Dashboard)
+- [ ] Clerk 프로덕션 키 설정 확인
+- [x] 빌드 성공 확인
+- [x] 타입 오류 없음
+- [x] 모든 페이지 정상 생성
+- [x] API 라우트 정상 생성
+- [x] Cron Job 라우트 확인
+- [ ] 배포 실행
+- [ ] 배포 후 기능 테스트
+
+---
+
+**마지막 업데이트**: 2025-01-30  
+**상태**: ✅ 빌드 성공, 배포 준비 완료

@@ -1,7 +1,11 @@
 /**
  * @file lib/kcdc/premium-guard.ts
  * @description 프리미엄 기능 접근 제어 헬퍼 함수
+ * 
+ * ⚠️ 서버 전용 모듈: 이 파일은 서버 컴포넌트나 API 라우트에서만 사용할 수 있습니다.
  */
+
+'use server';
 
 import { auth } from "@clerk/nextjs/server";
 import { getServiceRoleClient } from "@/lib/supabase/service-role";

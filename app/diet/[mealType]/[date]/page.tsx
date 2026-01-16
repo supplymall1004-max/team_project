@@ -10,7 +10,8 @@ import { redirect } from 'next/navigation';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { getServiceRoleClient } from '@/lib/supabase/service-role';
 import { getDailyDietPlan, getUserHealthProfile } from '@/lib/diet/queries';
-import { loadRecipeBySeq, loadRecipeByTitle } from '@/lib/mfds/recipe-loader';
+import { fetchFoodSafetyRecipeBySeq, searchFoodSafetyRecipesByName } from '@/lib/recipes/foodsafety-api';
+import { convertFoodSafetyToMfdsRecipe } from '@/lib/mfds/recipe-api-converter';
 import { calculateMealSelectionReason } from '@/lib/diet/meal-selection-reason';
 import { MealDetailPageWithTabs } from '@/components/diet/meal-detail-page-with-tabs';
 import type { DailyDietPlan, MealType } from '@/types/health';
@@ -164,8 +165,10 @@ export default async function MealDetailPage({ params }: PageProps) {
 
       if (rcpSeq) {
         try {
-          const mfdsRecipe = loadRecipeBySeq(rcpSeq);
-          if (mfdsRecipe) {
+          // 식약처 API를 통해 레시피 조회
+          const apiResult = await fetchFoodSafetyRecipeBySeq(rcpSeq);
+          if (apiResult.success && apiResult.data && apiResult.data.length > 0) {
+            const mfdsRecipe = convertFoodSafetyToMfdsRecipe(apiResult.data[0]);
             mealDetails[mealTypeKey].mfdsRecipe = mfdsRecipe;
             console.log(`✅ ${mealTypeKey} 메인 레시피 로드: ${mfdsRecipe.title}`);
           }
@@ -192,14 +195,15 @@ export default async function MealDetailPage({ params }: PageProps) {
             processedIds.add(id);
             
             try {
-              // 1. ID가 foodsafety- 형식이면 RCP_SEQ 추출하여 로드
+              // 1. ID가 foodsafety- 형식이면 RCP_SEQ 추출하여 API로 로드
               const rcpSeq = id.startsWith('foodsafety-') 
                 ? id.replace('foodsafety-', '') 
                 : (/^\d+$/.test(id) ? id : null);
               
               if (rcpSeq) {
-                const recipe = loadRecipeBySeq(rcpSeq);
-                if (recipe) {
+                const apiResult = await fetchFoodSafetyRecipeBySeq(rcpSeq);
+                if (apiResult.success && apiResult.data && apiResult.data.length > 0) {
+                  const recipe = convertFoodSafetyToMfdsRecipe(apiResult.data[0]);
                   mealDetails[mealTypeKey].relatedRecipes.push({
                     rcpSeq: recipe.frontmatter.rcp_seq,
                     title: recipe.title,
@@ -209,9 +213,10 @@ export default async function MealDetailPage({ params }: PageProps) {
                 }
               }
               
-              // 2. ID로 찾지 못하면 제목으로 폴백
-              const recipe = loadRecipeByTitle(title);
-              if (recipe) {
+              // 2. ID로 찾지 못하면 제목으로 검색
+              const searchResult = await searchFoodSafetyRecipesByName(title);
+              if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
+                const recipe = convertFoodSafetyToMfdsRecipe(searchResult.data[0]);
                 mealDetails[mealTypeKey].relatedRecipes.push({
                   rcpSeq: recipe.frontmatter.rcp_seq,
                   title: recipe.title,
@@ -229,8 +234,10 @@ export default async function MealDetailPage({ params }: PageProps) {
             processedIds.add(title);
             
             try {
-              const recipe = loadRecipeByTitle(title);
-              if (recipe) {
+              // 제목으로 검색
+              const searchResult = await searchFoodSafetyRecipesByName(title);
+              if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
+                const recipe = convertFoodSafetyToMfdsRecipe(searchResult.data[0]);
                 mealDetails[mealTypeKey].relatedRecipes.push({
                   rcpSeq: recipe.frontmatter.rcp_seq,
                   title: recipe.title,

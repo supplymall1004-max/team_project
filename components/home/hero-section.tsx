@@ -116,6 +116,15 @@ export function HeroSection({
       category: "health",
     },
     {
+      title: "냉장고",
+      description: "식재료 유통기한 관리",
+      href: "/fridge",
+      iconSrc: "/icons/냉장고.png",
+      color: "bg-cyan-500",
+      gradient: "bg-gradient-to-br from-cyan-400 via-blue-500 to-cyan-600",
+      category: "utility",
+    },
+    {
       title: "식재료",
       description: "신선한 채소 정보",
       href: "/food",
@@ -239,28 +248,14 @@ export function HeroSection({
     setDraggingIcon(data.iconTitle);
   };
 
-  // 드롭 핸들러 (아이콘을 다른 아이콘 위에 드롭)
+  // 드롭 핸들러 (비활성화: 드래그 앤 드롭으로 그룹화 불가, 오직 3초 롱 프레스만 허용)
+  // 사용자 요구사항: 아이콘에 마우스를 스치기만 해도 그룹화되는 것을 방지
+  // 그룹화는 오직 3초 롱 프레스를 통해서만 가능
   const handleIconDrop = (draggedIconTitle: string, targetIconTitle: string) => {
-    console.group("[HeroSection] 아이콘 드롭");
-    console.log("드래그한 아이콘:", draggedIconTitle);
-    console.log("대상 아이콘:", targetIconTitle);
-
-    // 두 아이콘이 모두 그룹화되지 않은 상태인지 확인
-    if (
-      !groupState.ungroupedIcons.includes(draggedIconTitle) ||
-      !groupState.ungroupedIcons.includes(targetIconTitle)
-    ) {
-      console.warn("두 아이콘 모두 그룹화되지 않은 상태여야 합니다.");
-      console.groupEnd();
-      return;
-    }
-
-    // 새 그룹 생성
-    const groupId = createGroup(draggedIconTitle, targetIconTitle);
-    if (groupId) {
-      console.log("그룹 생성 완료:", groupId);
-    }
-    console.groupEnd();
+    // 드래그 앤 드롭으로 그룹화하는 기능 비활성화
+    // 그룹화는 오직 3초 롱 프레스(handleLongPress)를 통해서만 가능
+    console.log("[HeroSection] 드래그 앤 드롭으로 그룹화는 비활성화되었습니다. 3초 롱 프레스를 사용해주세요.");
+    return;
   };
 
   // 폴더에 아이콘 드롭 핸들러
@@ -667,7 +662,7 @@ export function HeroSection({
                     <DraggableIconCard
                       card={card}
                       onDragStart={handleDragStart}
-                      onDrop={handleIconDrop}
+                      onDrop={undefined} // 드래그 앤 드롭으로 그룹화 비활성화 (3초 롱 프레스만 허용)
                       onDragEnd={handleDragEnd}
                       isDragging={isDragging}
                       onClick={handleQuickStartClick}

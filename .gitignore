@@ -11,7 +11,7 @@
 !.yarn/versions
 
 # pnpm
-# pnpm-lock.yaml은 Git에 커밋해야 합니다 (Vercel 빌드에 필요)
+pnpm-lock.yaml
 
 # npm (pnpm 사용 시 불필요)
 package-lock.json

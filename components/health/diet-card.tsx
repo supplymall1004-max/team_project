@@ -123,7 +123,9 @@ function DietCardContent({
   
   const recipeTitle =
     dietPlan.compositionSummary && dietPlan.compositionSummary.length > 0
-      ? dietPlan.compositionSummary.join(", ")
+      ? dietPlan.compositionSummary
+          .map((item) => (typeof item === "string" ? item : item.title))
+          .join(", ")
       : recipe.title;
 
   // 식단 상세 페이지 링크 생성
@@ -244,7 +246,9 @@ function DietCardContent({
             dietPlan.compositionSummary.length > 0 ? (
               <div className="mt-0.5">
                 <p className="font-semibold text-xs sm:text-sm text-gray-900 group-hover:text-emerald-600 transition-colors leading-tight line-clamp-2">
-                  {dietPlan.compositionSummary.join(", ")}
+                  {dietPlan.compositionSummary
+                    .map((item) => (typeof item === "string" ? item : item.title))
+                    .join(", ")}
                 </p>
               </div>
             ) : (
@@ -363,7 +367,20 @@ function getRepresentativeImageUrl(mealType: MealType, dietPlan: DietPlan): stri
   }
 
   // 3순위: compositionSummary 기반 이미지 찾기
-  const safeSummary = dietPlan.compositionSummary?.map((item) => item.trim()).filter(Boolean) ?? [];
+  const safeSummary = dietPlan.compositionSummary
+    ?.map((item) => {
+      // 문자열인 경우
+      if (typeof item === "string") {
+        return item.trim();
+      }
+      // 객체인 경우 (id, title 구조)
+      if (item && typeof item === "object" && "title" in item) {
+        return String(item.title).trim();
+      }
+      // 기타 경우 문자열로 변환
+      return String(item).trim();
+    })
+    .filter(Boolean) ?? [];
   
   if (safeSummary.length === 0) {
     // compositionSummary가 없으면 레시피 제목 기반 (이미 1순위에서 시도했지만 SVG였을 경우)

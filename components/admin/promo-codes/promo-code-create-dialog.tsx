@@ -37,7 +37,11 @@ const promoCodeFormSchema = z.object({
   code: z.string().min(1, "코드를 입력해주세요").max(50, "코드는 최대 50자입니다"),
   discount_type: z.enum(["percentage", "fixed_amount", "free_trial"]),
   discount_value: z.number().min(1, "할인 값은 1 이상이어야 합니다"),
-  max_uses: z.number().min(1).nullable().optional(),
+  max_uses: z.union([
+    z.number().min(1),
+    z.null(),
+    z.undefined(),
+  ]).optional(),
   valid_from: z.string(),
   valid_until: z.string(),
   applicable_plans: z.array(z.enum(["monthly", "yearly"])).nullable().optional(),
@@ -132,6 +136,7 @@ export function PromoCodeCreateDialog({
           valid_from: validFrom,
           valid_until: validUntil,
           applicable_plans: selectedPlans.length > 0 ? selectedPlans as ("monthly" | "yearly")[] : null,
+          max_uses: data.max_uses === null || data.max_uses === undefined || isNaN(data.max_uses) ? null : data.max_uses,
         };
 
         const result = isEditing && editingCode
@@ -204,18 +209,21 @@ export function PromoCodeCreateDialog({
             <div className="space-y-2">
               <Label htmlFor="discount_type">할인 타입 *</Label>
               <Select
-                value={form.watch("discount_type")}
-                onValueChange={(value) => form.setValue("discount_type", value as any)}
+                value={form.watch("discount_type") || "percentage"}
+                onValueChange={(value) => form.setValue("discount_type", value as "percentage" | "fixed_amount" | "free_trial")}
               >
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger id="discount_type">
+                  <SelectValue placeholder="할인 타입 선택" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[1000000]">
                   <SelectItem value="percentage">퍼센트 할인</SelectItem>
                   <SelectItem value="fixed_amount">고정 금액 할인</SelectItem>
                   <SelectItem value="free_trial">무료 체험</SelectItem>
                 </SelectContent>
               </Select>
+              {form.formState.errors.discount_type && (
+                <p className="text-sm text-destructive">{form.formState.errors.discount_type.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -244,12 +252,20 @@ export function PromoCodeCreateDialog({
               id="max_uses"
               type="number"
               {...form.register("max_uses", { 
-                setValueAs: (v) => v === "" || v === null ? null : Number(v),
-                valueAsNumber: true 
+                setValueAs: (v): number | null | undefined => {
+                  if (v === "" || v === null || v === undefined) {
+                    return undefined;
+                  }
+                  const num = Number(v);
+                  return isNaN(num) ? undefined : num;
+                }
               })}
               min={1}
               placeholder="무제한"
             />
+            {form.formState.errors.max_uses && (
+              <p className="text-sm text-destructive">{form.formState.errors.max_uses.message}</p>
+            )}
           </div>
 
           {/* 유효 기간 */}

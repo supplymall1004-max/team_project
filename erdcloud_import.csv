@@ -1,0 +1,175 @@
+Table,Column,Type,Primary Key,Foreign Key,Nullable,Default,Comment
+users,id,UUID,TRUE,,FALSE,gen_random_uuid(),
+users,clerk_id,TEXT,FALSE,,FALSE,,"Clerk 사용자 ID (Unique)"
+users,name,TEXT,FALSE,,FALSE,,
+users,is_premium,BOOLEAN,FALSE,,TRUE,false,"프리미엄 구독 여부"
+users,premium_expires_at,TIMESTAMPTZ,FALSE,,TRUE,,
+users,trial_ends_at,TIMESTAMPTZ,FALSE,,TRUE,,
+users,mfa_secret,TEXT,FALSE,,TRUE,,
+users,mfa_enabled,BOOLEAN,FALSE,,TRUE,false,
+users,mfa_backup_codes,TEXT[],FALSE,,TRUE,,
+users,notification_settings,JSONB,FALSE,,TRUE,'{"kcdcAlerts": false, "healthPopups": false, "generalNotifications": false}'::jsonb,
+users,created_at,TIMESTAMPTZ,FALSE,,FALSE,now(),
+users,trial_used_at,TIMESTAMPTZ,FALSE,,TRUE,,"14일 무료 체험을 시작한 시각"
+users,bio,TEXT,FALSE,,TRUE,,"사용자 소개글"
+users,profile_image_url,TEXT,FALSE,,TRUE,,"프로필 이미지 URL"
+users,follower_count,INTEGER,FALSE,,TRUE,0,"팔로워 수 (자동 업데이트)"
+users,following_count,INTEGER,FALSE,,TRUE,0,"팔로잉 수 (자동 업데이트)"
+users,post_count,INTEGER,FALSE,,TRUE,0,"작성한 게시글 수 (자동 업데이트)"
+users,game_settings,JSONB,FALSE,,TRUE,'{"gameTheme": "default", "soundEnabled": true, "autoWalkEnabled": true, "notificationEnabled": true, "characterGameEnabled": true}'::jsonb,"캐릭터창 게임 설정"
+users,home_customization,JSONB,FALSE,,TRUE,,"홈페이지 커스텀 설정"
+user_health_profiles,id,UUID,TRUE,,FALSE,gen_random_uuid(),
+user_health_profiles,user_id,UUID,FALSE,users.id,FALSE,,
+user_health_profiles,disliked_ingredients,TEXT[],FALSE,,TRUE,'{}',
+user_health_profiles,excluded_ingredients,JSONB,FALSE,,TRUE,'[]'::jsonb,"비선호 식재료 목록"
+user_health_profiles,premium_features,TEXT[],FALSE,,TRUE,'{}',
+user_health_profiles,height_cm,INTEGER,FALSE,,TRUE,,
+user_health_profiles,weight_kg,NUMERIC,FALSE,,TRUE,,
+user_health_profiles,age,INTEGER,FALSE,,TRUE,,
+user_health_profiles,gender,TEXT,FALSE,,TRUE,,"성별: male, female, other"
+user_health_profiles,activity_level,TEXT,FALSE,,TRUE,,"활동 수준"
+user_health_profiles,daily_calorie_goal,INTEGER,FALSE,,TRUE,,
+user_health_profiles,calorie_calculation_method,VARCHAR,FALSE,,TRUE,'auto',"칼로리 계산 방식"
+user_health_profiles,manual_target_calories,INTEGER,FALSE,,TRUE,,"사용자가 직접 설정한 목표 칼로리"
+user_health_profiles,show_calculation_formula,BOOLEAN,FALSE,,TRUE,false,"칼로리 계산 공식 표시 여부"
+user_health_profiles,created_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+user_health_profiles,updated_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+user_health_profiles,vaccination_history,JSONB,FALSE,,TRUE,'[]'::jsonb,"과거 접종 이력 요약"
+user_health_profiles,last_health_checkup_date,DATE,FALSE,,TRUE,,"마지막 건강검진 일자"
+user_health_profiles,region,TEXT,FALSE,,TRUE,,"거주 지역 (시/도 단위)"
+user_health_profiles,diseases,JSONB,FALSE,,FALSE,'[]'::jsonb,"사용자 질병 목록"
+user_health_profiles,allergies,JSONB,FALSE,,FALSE,'[]'::jsonb,"사용자 알레르기 목록"
+user_health_profiles,preferred_ingredients,JSONB,FALSE,,FALSE,'[]'::jsonb,"선호 식재료 목록"
+user_health_profiles,dietary_preferences,JSONB,FALSE,,FALSE,'[]'::jsonb,"프리미엄 식단 타입"
+user_health_profiles,birth_date,DATE,FALSE,,TRUE,,"사용자 생년월일"
+family_members,id,UUID,TRUE,,FALSE,gen_random_uuid(),
+family_members,user_id,UUID,FALSE,users.id,FALSE,,
+family_members,name,TEXT,FALSE,,FALSE,,
+family_members,birth_date,DATE,FALSE,,FALSE,,
+family_members,gender,TEXT,FALSE,,TRUE,,"성별: male, female, other"
+family_members,relationship,TEXT,FALSE,,FALSE,,
+family_members,diseases,TEXT[],FALSE,,TRUE,'{}',
+family_members,allergies,TEXT[],FALSE,,TRUE,'{}',
+family_members,height_cm,INTEGER,FALSE,,TRUE,,
+family_members,weight_kg,NUMERIC,FALSE,,TRUE,,
+family_members,activity_level,TEXT,FALSE,,TRUE,,"활동 수준"
+family_members,dietary_preferences,TEXT[],FALSE,,TRUE,'{}',
+family_members,include_in_unified_diet,BOOLEAN,FALSE,,TRUE,true,"통합 식단 포함 여부"
+family_members,created_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+family_members,updated_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+family_members,vaccination_history,JSONB,FALSE,,TRUE,'[]'::jsonb,"과거 접종 이력"
+family_members,last_health_checkup_date,DATE,FALSE,,TRUE,,"마지막 건강검진 일자"
+family_members,member_type,TEXT,FALSE,,TRUE,'human',"구성원 유형: human(사람), pet(반려동물)"
+family_members,pet_type,TEXT,FALSE,,TRUE,,"반려동물 종류: dog(강아지), cat(고양이), other(기타)"
+family_members,breed,TEXT,FALSE,,TRUE,,"견종/묘종"
+family_members,lifecycle_stage,TEXT,FALSE,,TRUE,,"생애주기 단계"
+family_members,pet_metadata,JSONB,FALSE,,TRUE,'{}'::jsonb,"반려동물 추가 정보"
+family_members,photo_url,TEXT,FALSE,,TRUE,,"프로필 사진 URL"
+family_members,avatar_type,TEXT,FALSE,,TRUE,'icon',"아바타 타입: photo(사진) 또는 icon(아이콘)"
+family_members,health_score,INTEGER,FALSE,,TRUE,,"최근 계산된 건강 점수 (0-100)"
+family_members,health_score_updated_at,TIMESTAMPTZ,FALSE,,TRUE,,"건강 점수 계산 시각"
+diseases,id,UUID,TRUE,,FALSE,gen_random_uuid(),
+diseases,code,VARCHAR,FALSE,,FALSE,,"질병 코드 (Unique)"
+diseases,name_ko,VARCHAR,FALSE,,FALSE,,
+diseases,name_en,VARCHAR,FALSE,,TRUE,,
+diseases,category,VARCHAR,FALSE,,TRUE,,
+diseases,description,TEXT,FALSE,,TRUE,,
+diseases,calorie_adjustment_factor,NUMERIC,FALSE,,TRUE,,
+diseases,created_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+diseases,updated_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+allergies,id,UUID,TRUE,,FALSE,gen_random_uuid(),
+allergies,code,VARCHAR,FALSE,,FALSE,,"알레르기 코드 (Unique)"
+allergies,name_ko,VARCHAR,FALSE,,FALSE,,
+allergies,name_en,VARCHAR,FALSE,,TRUE,,
+allergies,category,VARCHAR,FALSE,,TRUE,,
+allergies,severity_level,VARCHAR,FALSE,,TRUE,'high',"심각도 레벨: high, medium, low"
+allergies,description,TEXT,FALSE,,TRUE,,
+allergies,created_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+allergies,updated_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+recipes,id,UUID,TRUE,,FALSE,gen_random_uuid(),
+recipes,user_id,UUID,FALSE,users.id,TRUE,,
+recipes,slug,TEXT,FALSE,,FALSE,,"URL 친화적 식별자 (Unique)"
+recipes,title,TEXT,FALSE,,FALSE,,
+recipes,description,TEXT,FALSE,,TRUE,,
+recipes,thumbnail_url,TEXT,FALSE,,TRUE,,
+recipes,difficulty,INTEGER,FALSE,,FALSE,,"난이도 (1~5점)"
+recipes,cooking_time_minutes,INTEGER,FALSE,,FALSE,,
+recipes,servings,INTEGER,FALSE,,TRUE,1,
+recipes,calories,NUMERIC,FALSE,,TRUE,,
+recipes,carbohydrates,NUMERIC,FALSE,,TRUE,,
+recipes,protein,NUMERIC,FALSE,,TRUE,,
+recipes,fat,NUMERIC,FALSE,,TRUE,,
+recipes,sodium,NUMERIC,FALSE,,TRUE,,
+recipes,created_at,TIMESTAMPTZ,FALSE,,FALSE,now(),
+recipes,updated_at,TIMESTAMPTZ,FALSE,,FALSE,now(),
+recipe_ingredients,id,UUID,TRUE,,FALSE,gen_random_uuid(),
+recipe_ingredients,recipe_id,UUID,FALSE,recipes.id,FALSE,,
+recipe_ingredients,name,TEXT,FALSE,,FALSE,,
+recipe_ingredients,ingredient_name,TEXT,FALSE,,TRUE,,
+recipe_ingredients,quantity,NUMERIC,FALSE,,TRUE,,
+recipe_ingredients,unit,TEXT,FALSE,,TRUE,,
+recipe_ingredients,notes,TEXT,FALSE,,TRUE,,
+recipe_ingredients,display_order,INTEGER,FALSE,,FALSE,,
+recipe_ingredients,category,ingredient_category,FALSE,,TRUE,'기타',
+recipe_ingredients,is_optional,BOOLEAN,FALSE,,TRUE,false,
+recipe_ingredients,preparation_note,TEXT,FALSE,,TRUE,,
+recipe_ingredients,created_at,TIMESTAMPTZ,FALSE,,FALSE,now(),
+recipe_ingredients,updated_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+recipe_steps,id,UUID,TRUE,,FALSE,gen_random_uuid(),
+recipe_steps,recipe_id,UUID,FALSE,recipes.id,FALSE,,
+recipe_steps,step_number,INTEGER,FALSE,,FALSE,,
+recipe_steps,content,TEXT,FALSE,,FALSE,,
+recipe_steps,image_url,TEXT,FALSE,,TRUE,,
+recipe_steps,video_url,TEXT,FALSE,,TRUE,,
+recipe_steps,timer_minutes,INTEGER,FALSE,,TRUE,,
+recipe_steps,created_at,TIMESTAMPTZ,FALSE,,FALSE,now(),
+weekly_diet_plans,id,UUID,TRUE,,FALSE,gen_random_uuid(),
+weekly_diet_plans,user_id,UUID,FALSE,users.id,FALSE,,
+weekly_diet_plans,week_start_date,DATE,FALSE,,FALSE,,"주차 시작일 (항상 월요일)"
+weekly_diet_plans,week_year,INTEGER,FALSE,,FALSE,,
+weekly_diet_plans,week_number,INTEGER,FALSE,,FALSE,,"ISO 8601 주차 번호 (1-53)"
+weekly_diet_plans,is_family,BOOLEAN,FALSE,,TRUE,false,"가족 식단 여부"
+weekly_diet_plans,total_recipes_count,INTEGER,FALSE,,TRUE,0,
+weekly_diet_plans,generation_duration_ms,INTEGER,FALSE,,TRUE,,
+weekly_diet_plans,created_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+weekly_diet_plans,updated_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+diet_plans,id,UUID,TRUE,,FALSE,gen_random_uuid(),
+diet_plans,user_id,UUID,FALSE,users.id,FALSE,,
+diet_plans,family_member_id,UUID,FALSE,family_members.id,TRUE,,
+diet_plans,plan_date,DATE,FALSE,,FALSE,,
+diet_plans,meal_type,TEXT,FALSE,,FALSE,,"식사 타입: breakfast, lunch, dinner, snack"
+diet_plans,recipe_id,UUID,FALSE,recipes.id,TRUE,,
+diet_plans,recipe_title,TEXT,FALSE,,FALSE,,
+diet_plans,recipe_description,TEXT,FALSE,,TRUE,,
+diet_plans,ingredients,JSONB,FALSE,,TRUE,'[]'::jsonb,
+diet_plans,instructions,TEXT,FALSE,,TRUE,,
+diet_plans,calories,INTEGER,FALSE,,TRUE,,
+diet_plans,protein_g,NUMERIC,FALSE,,TRUE,,
+diet_plans,carbs_g,NUMERIC,FALSE,,TRUE,,
+diet_plans,fat_g,NUMERIC,FALSE,,TRUE,,
+diet_plans,sodium_mg,INTEGER,FALSE,,TRUE,,
+diet_plans,fiber_g,NUMERIC,FALSE,,TRUE,,
+diet_plans,potassium_mg,INTEGER,FALSE,,TRUE,,
+diet_plans,phosphorus_mg,INTEGER,FALSE,,TRUE,,
+diet_plans,gi_index,NUMERIC,FALSE,,TRUE,,
+diet_plans,composition_summary,JSONB,FALSE,,TRUE,'[]'::jsonb,
+diet_plans,is_unified,BOOLEAN,FALSE,,TRUE,false,
+diet_plans,created_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+diet_plans,weekly_diet_plan_id,UUID,FALSE,weekly_diet_plans.id,TRUE,,
+subscriptions,id,UUID,TRUE,,FALSE,gen_random_uuid(),
+subscriptions,user_id,UUID,FALSE,users.id,FALSE,,
+subscriptions,status,TEXT,FALSE,,FALSE,'inactive',"구독 상태: active, inactive, cancelled, paused"
+subscriptions,plan_type,TEXT,FALSE,,FALSE,,
+subscriptions,billing_key,TEXT,FALSE,,TRUE,,
+subscriptions,payment_method,TEXT,FALSE,,TRUE,,
+subscriptions,last_four_digits,TEXT,FALSE,,TRUE,,
+subscriptions,started_at,TIMESTAMPTZ,FALSE,,FALSE,,
+subscriptions,current_period_start,TIMESTAMPTZ,FALSE,,FALSE,,
+subscriptions,current_period_end,TIMESTAMPTZ,FALSE,,FALSE,,
+subscriptions,cancelled_at,TIMESTAMPTZ,FALSE,,TRUE,,
+subscriptions,price_per_month,INTEGER,FALSE,,FALSE,,
+subscriptions,total_paid,INTEGER,FALSE,,TRUE,0,
+subscriptions,is_test_mode,BOOLEAN,FALSE,,TRUE,false,
+subscriptions,created_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+subscriptions,updated_at,TIMESTAMPTZ,FALSE,,TRUE,now(),
+

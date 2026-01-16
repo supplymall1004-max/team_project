@@ -1183,7 +1183,7 @@ export default function FridgeDefense() {
       <div className={`flex-1 flex overflow-hidden ${isFullscreen ? 'flex-row' : 'flex-col md:flex-row'}`}>
         {/* 사이드바 */}
         <aside className={`bg-[#212529] text-gray-400 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-x-visible flex-shrink-0 ${isFullscreen ? 'w-48 p-2' : 'w-full md:w-72 p-3 md:p-8 gap-3 md:gap-0'}`}>
-          <div className={`flex-shrink-0 md:flex-shrink flex flex-col md:flex-col ${isFullscreen ? 'min-w-[180px]' : 'min-w-[260px] md:min-w-0'}`}>
+          <div className={`flex-shrink-0 md:flex-shrink flex flex-col md:flex-col ${isFullscreen ? 'min-w-[180px]' : 'min-w-[200px] sm:min-w-[240px] md:min-w-0'}`}>
           <div className={`flex items-center gap-2 text-white font-black italic tracking-tighter ${isFullscreen ? 'mb-2 text-xs' : 'mb-4 md:mb-10 text-sm md:text-base gap-3'}`}>
             <Utensils size={isFullscreen ? 14 : 18} className={`${isFullscreen ? 'w-3 h-3' : 'md:w-5 md:h-5'} text-blue-400`} /> DJANGO_DEFENDER
           </div>
@@ -1439,21 +1439,27 @@ export default function FridgeDefense() {
         ))}
 
         {/* 마우스 호버 시 배치 가능 위치 표시 */}
-        {isPlaying && hoveredTile && !isOnPath(hoveredTile.x, hoveredTile.y) && !hasTowerAt(hoveredTile.x, hoveredTile.y) && !isForbiddenZone(hoveredTile.x, hoveredTile.y) && towers.length < MAX_TOWERS && (
-          <div
-            className="absolute z-10 pointer-events-none"
-            style={{
-              left: `${hoveredTile.x - TILE_SIZE / 2}px`,
-              top: `${hoveredTile.y - TILE_SIZE / 2}px`,
-              width: `${TILE_SIZE}px`,
-              height: `${TILE_SIZE}px`,
-            }}
-          >
-            <div className="w-full h-full border-2 border-green-400 bg-green-200/30 rounded-lg flex items-center justify-center animate-pulse">
-              <span className="text-2xl opacity-70">{TOWERS_DATA[selectedTowerType].emoji}</span>
+        {isPlaying && hoveredTile && !isOnPath(hoveredTile.x, hoveredTile.y) && !hasTowerAt(hoveredTile.x, hoveredTile.y) && !isForbiddenZone(hoveredTile.x, hoveredTile.y) && towers.length < MAX_TOWERS && (() => {
+          // 화면 경계 내에 있는지 확인
+          const previewX = Math.max(TILE_SIZE / 2, Math.min(hoveredTile.x, boardSize.width - TILE_SIZE / 2));
+          const previewY = Math.max(TILE_SIZE / 2, Math.min(hoveredTile.y, boardSize.height - TILE_SIZE / 2));
+          
+          return (
+            <div
+              className="absolute z-10 pointer-events-none"
+              style={{
+                left: `${previewX - TILE_SIZE / 2}px`,
+                top: `${previewY - TILE_SIZE / 2}px`,
+                width: `${TILE_SIZE}px`,
+                height: `${TILE_SIZE}px`,
+              }}
+            >
+              <div className="w-full h-full border-2 border-green-400 bg-green-200/30 rounded-lg flex items-center justify-center animate-pulse">
+                <span className="text-2xl opacity-70">{TOWERS_DATA[selectedTowerType].emoji}</span>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 최대 타워 개수 도달 시 안내 */}
         {isPlaying && towers.length >= MAX_TOWERS && (
@@ -1818,32 +1824,46 @@ export default function FridgeDefense() {
           const canUpgrade = tower.level < maxLevel && gold >= upgradeCost;
           const nextStats = getUpgradeStats(tower.type, tower.level + 1);
           
-          // 업그레이드 메뉴 크기 (대략적)
-          const menuWidth = 200;
-          const menuHeight = 350; // 내용에 따라 조정
+          // 업그레이드 메뉴 크기 (반응형)
+          const menuWidth = isFullscreen ? 180 : 220;
+          const menuHeight = isFullscreen ? 320 : 380; // 내용에 따라 조정
+          
+          // 실제 게임 보드 크기 가져오기
+          const boardRect = gameBoardRef.current?.getBoundingClientRect();
+          const actualBoardWidth = boardRect?.width || boardSize.width;
+          const actualBoardHeight = boardRect?.height || boardSize.height;
           
           // 메뉴 위치 계산 (화면 안에 표시되도록)
           let menuX = tower.x + 60;
           let menuY = tower.y - 100;
           
-          // 오른쪽 경계 체크
-          if (menuX + menuWidth > boardSize.width) {
+          // 오른쪽 경계 체크 (패딩 포함)
+          const padding = 10;
+          if (menuX + menuWidth > actualBoardWidth - padding) {
             menuX = tower.x - menuWidth - 20; // 타워 왼쪽에 표시
           }
           
           // 왼쪽 경계 체크
-          if (menuX < 0) {
-            menuX = 10; // 최소 여백
+          if (menuX < padding) {
+            menuX = padding; // 최소 여백
+            // 왼쪽에도 공간이 없으면 타워 오른쪽에 표시 (화면 중앙으로)
+            if (menuX + menuWidth > actualBoardWidth - padding) {
+              menuX = Math.max(padding, (actualBoardWidth - menuWidth) / 2);
+            }
           }
           
           // 위쪽 경계 체크
-          if (menuY < 20) {
+          if (menuY < padding) {
             menuY = tower.y + 60; // 타워 아래에 표시
           }
           
           // 아래쪽 경계 체크
-          if (menuY + menuHeight > boardSize.height - 20) {
-            menuY = boardSize.height - menuHeight - 20; // 화면 하단에서 위로
+          if (menuY + menuHeight > actualBoardHeight - padding) {
+            menuY = actualBoardHeight - menuHeight - padding; // 화면 하단에서 위로
+            // 여전히 공간이 없으면 타워 위에 최대한 가깝게
+            if (menuY < padding) {
+              menuY = padding;
+            }
           }
           
           return (
@@ -1851,12 +1871,13 @@ export default function FridgeDefense() {
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="upgrade-menu absolute z-50 bg-gray-900 text-white p-4 rounded-xl shadow-2xl border-2 border-blue-500"
+              className="upgrade-menu absolute z-50 bg-gray-900 text-white p-4 rounded-xl shadow-2xl border-2 border-blue-500 overflow-y-auto max-h-[90vh]"
               style={{
                 left: `${menuX}px`,
                 top: `${menuY}px`,
-                minWidth: '180px',
-                maxWidth: '220px',
+                minWidth: isFullscreen ? '160px' : '180px',
+                maxWidth: isFullscreen ? '200px' : '220px',
+                maxHeight: `${Math.min(actualBoardHeight - menuY - padding, menuHeight)}px`,
               }}
               onClick={(e) => e.stopPropagation()}
             >

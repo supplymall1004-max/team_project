@@ -22,7 +22,7 @@ import type { MedicationRecord, HospitalRecord } from "@/types/health-data-integ
 export interface FamilyMemberHealthSummary {
   id: string;
   name: string;
-  relationship?: string | null;
+  relationship: string | null;
   healthScore: number;
   recentCheckup: {
     date: string | null;
