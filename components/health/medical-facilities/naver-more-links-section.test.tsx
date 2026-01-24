@@ -8,7 +8,6 @@ describe("NaverMoreLinksSection", () => {
 
   beforeEach(() => {
     openSpy.mockClear();
-    // @ts-expect-error - test double for window.open
     window.open = openSpy;
   });
 

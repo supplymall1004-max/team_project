@@ -110,7 +110,7 @@ export async function activatePremiumFromPromo(
         current_period_end: expiresAt.toISOString(),
         price_per_month: 0,
         total_paid: 0,
-        is_test_mode: true,
+        is_test_mode: false,
       })
       .select()
       .single();
@@ -139,6 +139,28 @@ export async function activatePremiumFromPromo(
       return { success: false, error: '프리미엄 상태 업데이트에 실패했습니다.' };
     }
 
+    console.log('✅ 사용자 프리미엄 상태 업데이트 완료');
+    console.log('  - is_premium: true');
+    console.log('  - premium_expires_at:', expiresAt.toISOString());
+    console.log('  - trial_ends_at:', expiresAt.toISOString());
+
+    // 업데이트된 사용자 정보 확인
+    const { data: updatedUser, error: verifyError } = await serviceSupabase
+      .from('users')
+      .select('is_premium, premium_expires_at, trial_ends_at')
+      .eq('id', supabaseUserId)
+      .single();
+
+    if (verifyError) {
+      console.error('⚠️ 사용자 정보 확인 실패:', verifyError);
+    } else {
+      console.log('✅ 사용자 정보 확인 완료:', {
+        is_premium: updatedUser?.is_premium,
+        premium_expires_at: updatedUser?.premium_expires_at,
+        trial_ends_at: updatedUser?.trial_ends_at,
+      });
+    }
+
     // 8. user_subscriptions 테이블 업데이트
     const { error: userSubError } = await serviceSupabase
       .from('user_subscriptions')
@@ -155,6 +177,11 @@ export async function activatePremiumFromPromo(
     if (userSubError) {
       console.error('❌ user_subscriptions 업데이트 실패:', userSubError);
       // 에러가 발생해도 프리미엄 활성화는 완료되었으므로 계속 진행
+    } else {
+      console.log('✅ user_subscriptions 업데이트 완료');
+      console.log('  - subscription_plan: premium');
+      console.log('  - is_active: true');
+      console.log('  - expires_at:', expiresAt.toISOString());
     }
 
     // 8-1. 결제 내역 생성 (무료 체험 쿠폰 사용 기록용)
@@ -176,7 +203,7 @@ export async function activatePremiumFromPromo(
           promo_code: promoCode.code,
           free_trial_days: request.freeTrialDays,
         },
-        is_test_mode: true,
+        is_test_mode: false,
       });
 
       if (txError) {
@@ -217,6 +244,41 @@ export async function activatePremiumFromPromo(
 
     console.log('✅ 프리미엄 활성화 완료');
     console.log('만료일:', expiresAt.toISOString());
+    
+    // 최종 상태 확인
+    const { data: finalUser, error: finalCheckError } = await serviceSupabase
+      .from('users')
+      .select('is_premium, premium_expires_at')
+      .eq('id', supabaseUserId)
+      .single();
+
+    if (finalCheckError) {
+      console.error('⚠️ 최종 상태 확인 실패:', finalCheckError);
+    } else {
+      console.log('✅ 최종 프리미엄 상태 확인:', {
+        is_premium: finalUser?.is_premium,
+        premium_expires_at: finalUser?.premium_expires_at,
+      });
+    }
+
+    // 구독 상태 확인
+    const { data: finalSubscription, error: finalSubError } = await serviceSupabase
+      .from('subscriptions')
+      .select('id, status, current_period_end, payment_method')
+      .eq('id', subscription.id)
+      .single();
+
+    if (finalSubError) {
+      console.error('⚠️ 최종 구독 상태 확인 실패:', finalSubError);
+    } else {
+      console.log('✅ 최종 구독 상태 확인:', {
+        id: finalSubscription?.id,
+        status: finalSubscription?.status,
+        current_period_end: finalSubscription?.current_period_end,
+        payment_method: finalSubscription?.payment_method,
+      });
+    }
+
     console.groupEnd();
 
     return {

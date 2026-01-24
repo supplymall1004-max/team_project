@@ -17,19 +17,17 @@ interface PageTransitionProps {
 
 export function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname();
-  const [displayPathname, setDisplayPathname] = useState(pathname);
-  const [key, setKey] = useState(pathname);
+  // pathname을 직접 key로 사용하되, 매번 새로운 타임스탬프를 추가하여 강제 리렌더링
+  const [key, setKey] = useState(`${pathname}-${Date.now()}`);
 
   useEffect(() => {
-    // pathname이 변경되면 key를 업데이트하여 애니메이션 트리거
-    if (pathname !== displayPathname) {
-      setKey(`${pathname}-${Date.now()}`);
-      setDisplayPathname(pathname);
-    }
-  }, [pathname, displayPathname]);
+    console.log('[PageTransition] pathname 변경 감지:', pathname);
+    // pathname이 변경될 때마다 key를 업데이트하여 애니메이션 트리거
+    setKey(`${pathname}-${Date.now()}`);
+  }, [pathname]);
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={key}
         initial={{ opacity: 0, y: 20, scale: 0.98 }}

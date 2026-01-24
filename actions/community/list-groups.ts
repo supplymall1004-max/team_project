@@ -36,20 +36,27 @@ export async function listGroups(
     console.group("[ListGroups] 그룹 목록 조회 시작");
     console.log("params", params);
 
-    // 1. 인증 확인
+    // 1. 인증 확인 (공개 그룹 조회는 로그인 불필요)
     const { userId } = await auth();
-    if (!userId) {
-      console.error("❌ 로그인이 필요합니다");
+    
+    // 비공개 그룹을 조회하려는 경우에만 로그인 필수
+    if (params.is_public === false && !userId) {
+      console.error("❌ 비공개 그룹 조회는 로그인이 필요합니다");
       console.groupEnd();
       return { success: false, error: "로그인이 필요합니다." };
     }
 
-    // 2. Supabase 사용자 확인
-    const user = await ensureSupabaseUser();
-    if (!user) {
-      console.error("❌ 사용자 정보를 찾을 수 없습니다");
-      console.groupEnd();
-      return { success: false, error: "사용자 정보를 찾을 수 없습니다." };
+    // 2. Supabase 사용자 확인 (로그인한 경우에만)
+    let user = null;
+    if (userId) {
+      user = await ensureSupabaseUser();
+      if (!user) {
+        console.warn("⚠️ 사용자 정보를 찾을 수 없지만 공개 그룹 조회는 계속 진행합니다");
+      } else {
+        console.log("✅ 로그인 사용자:", user.id);
+      }
+    } else {
+      console.log("ℹ️ 비로그인 사용자 - 공개 그룹만 조회 가능");
     }
 
     // 3. 파라미터 설정
@@ -66,7 +73,10 @@ export async function listGroups(
       query = query.eq("category", params.category);
     }
 
-    if (params.is_public !== undefined) {
+    // 비로그인 사용자는 무조건 공개 그룹만 조회
+    if (!userId) {
+      query = query.eq("is_public", true);
+    } else if (params.is_public !== undefined) {
       query = query.eq("is_public", params.is_public);
     } else {
       // 기본적으로 공개 그룹만 조회 (비공개 그룹은 멤버만 조회 가능)

@@ -14,7 +14,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Home, BookOpen, Heart, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBadge } from "@/components/health/notification-badge";
@@ -29,7 +29,6 @@ const menuItems = [
 
 export function BottomNavigation() {
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <nav
@@ -65,41 +64,6 @@ export function BottomNavigation() {
               )}
               aria-label={`${item.label}${isActive ? ' (현재 페이지)' : ''}`}
               aria-current={isActive ? "page" : undefined}
-              role="button"
-              tabIndex={0}
-              onClick={(e) => {
-                console.groupCollapsed("[BottomNavigation] 메뉴 클릭");
-                console.log("href:", item.href);
-                console.log("label:", item.label);
-                console.log("isActive:", isActive);
-                console.log("pathname:", pathname);
-                console.log("timestamp:", Date.now());
-                console.groupEnd();
-                
-                // 홈 링크 클릭 시 (현재 경로가 홈이 아니거나 홈인 경우 모두)
-                if (item.href === "/") {
-                  // 다른 페이지에서 홈으로 이동하는 경우 세션 스토리지 플래그 설정
-                  if (pathname !== "/") {
-                    console.log("[BottomNavigation] 다른 경로에서 홈으로 이동 - 플래그 설정");
-                    sessionStorage.setItem('shouldRefreshHome', 'true');
-                  } else {
-                    // 현재 홈 페이지에서 홈으로 다시 클릭한 경우
-                    e.preventDefault();
-                    console.log("[BottomNavigation] 현재 홈 페이지에서 홈으로 이동 - 강제 네비게이션");
-                    router.push("/");
-                    setTimeout(() => {
-                      router.refresh();
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }, 50);
-                  }
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  window.location.href = item.href;
-                }
-              }}
             >
               <div className="relative">
                 <Icon
@@ -122,4 +86,5 @@ export function BottomNavigation() {
     </nav>
   );
 }
+
 

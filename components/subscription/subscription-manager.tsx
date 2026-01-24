@@ -10,7 +10,7 @@ import { getCurrentSubscription, type GetSubscriptionResponse } from '@/actions/
 import { cancelSubscription, reactivateSubscription } from '@/actions/payments/cancel-subscription';
 import { CreditCard, Calendar, AlertCircle, Check, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { TestModeBanner } from '@/components/pricing/test-mode-banner';
+import { BetaTestModeBanner } from '@/components/pricing/beta-test-mode-banner';
 
 export function SubscriptionManager() {
   const [data, setData] = useState<GetSubscriptionResponse | null>(null);
@@ -117,7 +117,7 @@ export function SubscriptionManager() {
   if (!data.isPremium) {
     return (
       <>
-        <TestModeBanner />
+        <BetaTestModeBanner />
         <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl p-8 text-center">
           <Sparkles className="w-16 h-16 text-orange-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
@@ -152,7 +152,7 @@ export function SubscriptionManager() {
 
   return (
     <>
-      <TestModeBanner />
+      <BetaTestModeBanner />
 
       <div className="space-y-6">
         {/* 현재 플랜 정보 */}
@@ -160,8 +160,8 @@ export function SubscriptionManager() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900">현재 플랜</h2>
             {subscription.isTestMode && (
-              <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
-                테스트 모드
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                베타테스트 모드
               </span>
             )}
           </div>

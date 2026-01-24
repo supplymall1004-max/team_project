@@ -116,15 +116,6 @@ export function HeroSection({
       category: "health",
     },
     {
-      title: "냉장고",
-      description: "식재료 유통기한 관리",
-      href: "/fridge",
-      iconSrc: "/icons/냉장고.png",
-      color: "bg-cyan-500",
-      gradient: "bg-gradient-to-br from-cyan-400 via-blue-500 to-cyan-600",
-      category: "utility",
-    },
-    {
       title: "식재료",
       description: "신선한 채소 정보",
       href: "/food",

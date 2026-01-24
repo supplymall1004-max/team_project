@@ -52,7 +52,6 @@ describe("geocodeAddress", () => {
         }),
       });
 
-    // @ts-expect-error - test double for global fetch
     globalThis.fetch = fetchMock;
 
     const result = await geocodeAddress("인천광역시 미추홀구");

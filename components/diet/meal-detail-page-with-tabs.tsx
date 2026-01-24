@@ -87,8 +87,20 @@ export function MealDetailPageWithTabs({
 
   // 뒤로가기 처리
   const handleBack = () => {
-    sessionStorage.setItem('shouldRefreshHome', 'true');
-    window.location.href = '/';
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('shouldRefreshHome', 'true');
+        window.location.href = '/';
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[MealDetailPageWithTabs] sessionStorage 접근 실패:', error);
+      }
+      // sessionStorage 접근 실패 시에도 홈으로 이동
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    }
   };
 
   // 식단 재생성 처리

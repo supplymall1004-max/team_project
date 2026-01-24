@@ -34,12 +34,31 @@ export interface GetSubscriptionResponse {
 }
 
 /**
+ * 베타 테스트 모드: 모든 사용자에게 프리미엄 기능 제공
+ * TODO: 베타 테스트 종료 후 이 플래그를 false로 변경
+ */
+const BETA_TEST_MODE = true;
+
+/**
  * 현재 사용자의 구독 정보 조회
  * 
  * 실제 구독 정보를 데이터베이스에서 조회하여 프리미엄 여부를 확인합니다.
+ * 베타 테스트 모드에서는 모든 사용자에게 프리미엄 기능을 제공합니다.
  */
 export async function getCurrentSubscription(): Promise<GetSubscriptionResponse> {
   console.group('[GetSubscription] 구독 정보 조회');
+
+  // 베타 테스트 모드: 모든 사용자에게 프리미엄 기능 제공
+  if (BETA_TEST_MODE) {
+    console.log('✅ 베타 테스트 모드: 모든 사용자에게 프리미엄 기능 제공');
+    console.groupEnd();
+    return {
+      success: true,
+      isPremium: true,
+      subscription: null,
+      premiumExpiresAt: null,
+    };
+  }
 
   try {
     // 1. 인증 확인
@@ -190,12 +209,19 @@ export async function getCurrentSubscription(): Promise<GetSubscriptionResponse>
       };
     }
 
-    // 프리미엄 활성 여부 결정: premium_expires_at 또는 활성 구독이 있어야 함
+    // 프리미엄 활성 여부 결정: 
+    // 1. premium_expires_at이 미래이고 is_premium이 true이면 프리미엄 활성 (프로모션 코드 등)
+    // 2. 또는 활성 구독이 있으면 프리미엄 활성
+    // !isPremiumExpired가 이미 체크되었으므로, premiumExpiresAt이 있으면 프리미엄 활성
     const hasActiveSubscription = validSubscription !== null;
-    const isPremiumActive = userData.is_premium && !isPremiumExpired && (hasActiveSubscription || !premiumExpiresAt);
+    const isPremiumActive = userData.is_premium && !isPremiumExpired && (
+      premiumExpiresAt !== null || // premium_expires_at이 있으면 (미래이므로) 프리미엄 활성
+      hasActiveSubscription // 또는 활성 구독이 있으면 프리미엄 활성
+    );
 
     // 만료일이 지났거나 활성 구독이 없는데 is_premium이 true로 남아있으면 자동으로 false로 업데이트
-    if ((isPremiumExpired || !hasActiveSubscription) && userData.is_premium && premiumExpiresAt) {
+    // 단, premium_expires_at이 미래이면 업데이트하지 않음 (프로모션 코드로 활성화된 경우)
+    if (isPremiumExpired && userData.is_premium && premiumExpiresAt) {
       console.log('⚠️ 프리미엄 만료됨 - is_premium 플래그 및 user_subscriptions 자동 업데이트');
       
       // users 테이블 업데이트

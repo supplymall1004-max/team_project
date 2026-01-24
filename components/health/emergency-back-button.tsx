@@ -8,31 +8,21 @@
 'use client';
 
 import { ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export function EmergencyBackButton() {
-  const router = useRouter();
-
-  const handleBack = () => {
-    // 홈 페이지로 이동하면서 세션 스토리지 플래그 설정
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('shouldRefreshHome', 'true');
-    }
-    // 홈 페이지로 이동
-    router.push('/');
-  };
-
   return (
     <div>
-      <Button
-        variant="ghost"
-        className="hover:bg-red-50 transition-colors"
-        onClick={handleBack}
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        홈으로 돌아가기
-      </Button>
+      <Link href="/">
+        <Button
+          variant="ghost"
+          className="hover:bg-red-50 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          홈으로 돌아가기
+        </Button>
+      </Link>
     </div>
   );
 }

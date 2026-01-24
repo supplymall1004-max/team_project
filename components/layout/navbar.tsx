@@ -315,24 +315,11 @@ const Navbar = () => {
             suppressHydrationWarning
             onClick={(e) => {
               handleNavClick("홈");
-              console.log("[Navbar] 냉장고 로고 클릭", { pathname, timestamp: Date.now() });
-              
-              // 홈 링크 클릭 시 (현재 경로가 홈이 아니거나 홈인 경우 모두)
-              if (pathname !== "/") {
-                // 다른 페이지에서 홈으로 이동하는 경우 세션 스토리지 플래그 설정
-                console.log("[Navbar] 다른 경로에서 홈으로 이동 - 플래그 설정");
-                sessionStorage.setItem('shouldRefreshHome', 'true');
-              } else {
-                // 현재 홈 페이지에서 홈으로 다시 클릭한 경우
-                e.preventDefault();
-                console.log("[Navbar] 현재 홈 페이지에서 홈으로 이동 - 강제 네비게이션");
-                router.push("/");
-                // 약간의 딜레이 후 refresh와 스크롤 (렌더링 완료 대기)
-                setTimeout(() => {
-                  router.refresh();
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }, 50);
-              }
+              // Link의 기본 동작 사용 (preventDefault 하지 않음)
+              console.groupCollapsed("[Navbar] 홈 로고 클릭");
+              console.log("pathname:", pathname);
+              console.log("timestamp:", new Date().toISOString());
+              console.groupEnd();
             }}
             aria-label="Django Care 홈으로 이동"
           >
@@ -367,24 +354,11 @@ const Navbar = () => {
               className="relative w-[116px] h-[60px] flex-shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
               onClick={(e) => {
                 handleNavClick("홈");
-                console.log("[Navbar] Django Care 로고 클릭", { pathname, timestamp: Date.now() });
-                
-                // 홈 링크 클릭 시 (현재 경로가 홈이 아니거나 홈인 경우 모두)
-                if (pathname !== "/") {
-                  // 다른 페이지에서 홈으로 이동하는 경우 세션 스토리지 플래그 설정
-                  console.log("[Navbar] 다른 경로에서 홈으로 이동 - 플래그 설정");
-                  sessionStorage.setItem('shouldRefreshHome', 'true');
-                } else {
-                  // 현재 홈 페이지에서 홈으로 다시 클릭한 경우
-                  e.preventDefault();
-                  console.log("[Navbar] 현재 홈 페이지에서 홈으로 이동 - 강제 네비게이션");
-                  router.push("/");
-                  // 약간의 딜레이 후 refresh와 스크롤 (렌더링 완료 대기)
-                  setTimeout(() => {
-                    router.refresh();
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }, 50);
-                }
+                // Link의 기본 동작 사용 (preventDefault 하지 않음)
+                console.groupCollapsed("[Navbar] Django Care 로고 클릭");
+                console.log("pathname:", pathname);
+                console.log("timestamp:", new Date().toISOString());
+                console.groupEnd();
               }}
               aria-label="Django Care 홈으로 이동"
             >

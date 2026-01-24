@@ -46,7 +46,7 @@ interface FixedHeaderProps {
 }
 
 export function FixedHeader({
-  premiumBannerText = "프리미엄 결제 혜택을 받아보세요",
+  premiumBannerText = "베타테스트 모든 기능 무료제공",
   premiumBannerHref = "/pricing",
   top = 0, // 맨 위에 위치 (Navbar 위)
   zIndex = 50, // Navbar와 동일한 z-index로 설정
@@ -65,10 +65,24 @@ export function FixedHeader({
 
   const loadSubscription = async () => {
     try {
-      const result = await getCurrentSubscription();
+      // 타임아웃 설정: 3초 내에 응답이 없으면 기본값(false) 사용
+      const timeoutPromise = new Promise<{ isPremium: boolean }>((resolve) => {
+        setTimeout(() => {
+          if (process.env.NODE_ENV === "development") {
+            console.warn('⚠️ [FixedHeader] 구독 정보 로드 타임아웃, 기본값 사용');
+          }
+          resolve({ isPremium: false });
+        }, 3000);
+      });
+
+      const subscriptionPromise = getCurrentSubscription();
+      const result = await Promise.race([subscriptionPromise, timeoutPromise]);
+      
       setIsPremium(result.isPremium || false);
     } catch (error) {
-      console.error('❌ [FixedHeader] 구독 정보 로드 실패:', error);
+      if (process.env.NODE_ENV === "development") {
+        console.error('❌ [FixedHeader] 구독 정보 로드 실패:', error);
+      }
       setIsPremium(false);
     } finally {
       setIsLoading(false);
@@ -76,18 +90,27 @@ export function FixedHeader({
   };
 
   useEffect(() => {
-    loadSubscription();
+    let isMounted = true;
+    
+    const init = async () => {
+      await loadSubscription();
+    };
+    
+    init();
     
     // 프리미엄 활성화 이벤트 리스너 추가
     const handlePremiumActivated = () => {
       setTimeout(() => {
-        loadSubscription();
+        if (isMounted) {
+          loadSubscription();
+        }
       }, 500);
     };
     
     window.addEventListener('premium-activated', handlePremiumActivated);
     
     return () => {
+      isMounted = false;
       window.removeEventListener('premium-activated', handlePremiumActivated);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -24,6 +24,8 @@ import { GruelRecipeList } from '@/components/gruel-recipes/gruel-recipe-list';
 import { SpecialRecipeList } from '@/components/special-recipes/special-recipe-list';
 import { VeganRecipeList } from '@/components/vegan-recipes/vegan-recipe-list';
 import { MfdsRecipeSection } from '@/components/mfds-recipes/mfds-recipe-section';
+import { ModernRecipeList } from '@/components/modern-recipes/modern-recipe-list';
+import { loadAllRecipes } from '@/lib/modern-recipes/recipe-loader';
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LoadingSpinner } from '@/components/loading-spinner';
@@ -76,11 +78,15 @@ function AllTabContent() {
 }
 
 function ModernTabContent() {
+  console.log("[ModernTabContent] 현대 레시피 탭 렌더링");
+  const recipes = loadAllRecipes();
+  console.log("[ModernTabContent] 로드된 레시피 수:", recipes.length);
+
   return (
     <ErrorBoundary>
-      <Suspense fallback={<SectionSkeleton />}>
-        <RecipeSectionServer />
-      </Suspense>
+      <div className="space-y-6">
+        <ModernRecipeList recipes={recipes} />
+      </div>
     </ErrorBoundary>
   );
 }

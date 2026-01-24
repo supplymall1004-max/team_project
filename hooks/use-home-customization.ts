@@ -119,111 +119,171 @@ export function useHomeCustomization(): UseHomeCustomizationResult {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // localStorage에서 로드 및 Supabase 동기화
+  // 인증 상태가 로드되면 실행 (무한 루프 방지: isAuthLoaded가 true가 되면 한 번만)
   useEffect(() => {
+    // 인증 상태가 아직 로드 중이면 대기
+    if (!isAuthLoaded) {
+      return;
+    }
+
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
+
     const loadCustomization = async () => {
-      // localStorage에서 로드
-      const stored = safeReadCustomizationFromLocalStorage();
-      let merged: HomeCustomization = DEFAULT_HOME_CUSTOMIZATION;
+      try {
+        console.groupCollapsed('[useHomeCustomization] 설정 로드 시작');
+        console.log('timestamp:', new Date().toISOString());
+        
+        // localStorage에서 로드
+        const stored = safeReadCustomizationFromLocalStorage();
+        let merged: HomeCustomization = DEFAULT_HOME_CUSTOMIZATION;
 
-      if (stored) {
-        // 기본값과 병합 (새로운 필드가 추가된 경우 대비)
-        merged = {
-          ...DEFAULT_HOME_CUSTOMIZATION,
-          ...stored,
-          theme: {
-            ...DEFAULT_HOME_CUSTOMIZATION.theme,
-            ...stored.theme,
-          },
-          sectionOrder: stored.sectionOrder || DEFAULT_HOME_CUSTOMIZATION.sectionOrder,
-        };
-      }
+        if (stored) {
+          // 기본값과 병합 (새로운 필드가 추가된 경우 대비)
+          merged = {
+            ...DEFAULT_HOME_CUSTOMIZATION,
+            ...stored,
+            theme: {
+              ...DEFAULT_HOME_CUSTOMIZATION.theme,
+              ...stored.theme,
+            },
+            sectionOrder: stored.sectionOrder || DEFAULT_HOME_CUSTOMIZATION.sectionOrder,
+          };
+        }
 
-      // 로그인 사용자인 경우 Supabase에서 동기화
-      if (isAuthLoaded && userId && supabase) {
-        try {
-          if (process.env.NODE_ENV === "development") {
-            console.groupCollapsed("[useHomeCustomization] Supabase에서 설정 로드");
-          }
-          
-          // 현재 사용자의 Supabase user_id 조회
-          const { data: userData, error: userError } = await supabase
-            .from("users")
-            .select("id, home_customization")
-            .eq("clerk_id", userId)
-            .maybeSingle();
-
-          // userError가 실제 에러인지 확인 (빈 객체가 아닌 경우만 에러로 처리)
-          // Supabase의 maybeSingle()은 데이터가 없을 때 error를 빈 객체 {}로 반환할 수 있음
-          const hasRealError = userError && 
-            typeof userError === 'object' && 
-            Object.keys(userError).length > 0 &&
-            (userError.message || userError.code || userError.hint);
-          
-          // 실제 에러가 있는 경우에만 처리
-          if (hasRealError) {
-            // 개발 환경에서만 에러 로그 출력
+        // 로그인 사용자인 경우 Supabase에서 동기화 (타임아웃 2초)
+        if (userId && supabase) {
+          try {
             if (process.env.NODE_ENV === "development") {
-              console.error("❌ 사용자 조회 실패:", userError);
+              console.groupCollapsed("[useHomeCustomization] Supabase에서 설정 로드");
+            }
+            
+            // 타임아웃 설정: 2초 내에 응답이 없으면 localStorage 데이터 사용
+            const supabasePromise = (async () => {
+              // 현재 사용자의 Supabase user_id 조회
+              const { data: userData, error: userError } = await supabase
+                .from("users")
+                .select("id, home_customization")
+                .eq("clerk_id", userId)
+                .maybeSingle();
+
+              // userError가 실제 에러인지 확인 (빈 객체가 아닌 경우만 에러로 처리)
+              // Supabase의 maybeSingle()은 데이터가 없을 때 error를 빈 객체 {}로 반환할 수 있음
+              const hasRealError = userError && 
+                typeof userError === 'object' && 
+                Object.keys(userError).length > 0 &&
+                (userError.message || userError.code || userError.hint);
+              
+              // 실제 에러가 있는 경우에만 처리
+              if (hasRealError) {
+                // 개발 환경에서만 에러 로그 출력
+                if (process.env.NODE_ENV === "development") {
+                  console.error("❌ 사용자 조회 실패:", userError);
+                }
+                return merged;
+              }
+              
+              // userError가 빈 객체이거나 없는 경우는 정상 (데이터가 없을 수 있음)
+
+              if (userData?.home_customization) {
+                if (process.env.NODE_ENV === "development") {
+                  console.log("✅ Supabase에서 설정 발견:", userData.home_customization);
+                }
+                // Supabase 데이터와 localStorage 데이터 병합 (Supabase 우선)
+                const supabaseCustomization = userData.home_customization as HomeCustomization;
+                merged = {
+                  ...DEFAULT_HOME_CUSTOMIZATION,
+                  ...supabaseCustomization,
+                  theme: {
+                    ...DEFAULT_HOME_CUSTOMIZATION.theme,
+                    ...supabaseCustomization.theme,
+                  },
+                  sectionOrder: supabaseCustomization.sectionOrder || DEFAULT_HOME_CUSTOMIZATION.sectionOrder,
+                };
+                // localStorage에도 저장 (동기화)
+                safeWriteCustomizationToLocalStorage(merged);
+              } else {
+                if (process.env.NODE_ENV === "development") {
+                  console.log("ℹ️ Supabase에 설정 없음, localStorage 사용");
+                }
+              }
+              return merged;
+            })();
+
+            // 타임아웃과 함께 실행
+            const timeoutPromise = new Promise<HomeCustomization>((resolve) => {
+              timeoutId = setTimeout(() => {
+                if (process.env.NODE_ENV === "development") {
+                  console.warn("⚠️ [useHomeCustomization] Supabase 조회 타임아웃, localStorage 데이터 사용");
+                }
+                resolve(merged);
+              }, 2000);
+            });
+
+            merged = await Promise.race([supabasePromise, timeoutPromise]);
+            
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+              timeoutId = null;
+            }
+
+            if (process.env.NODE_ENV === "development") {
               console.groupEnd();
             }
-            setCustomization(merged);
-            setIsLoaded(true);
-            return;
+          } catch (error) {
+            // 개발 환경에서만 에러 로그 출력
+            if (process.env.NODE_ENV === "development") {
+              console.error("❌ Supabase 동기화 실패:", error);
+            }
+            // 에러가 발생해도 localStorage 데이터는 사용
           }
-          
-          // userError가 빈 객체이거나 없는 경우는 정상 (데이터가 없을 수 있음)
+        }
 
-          if (userData?.home_customization) {
-            if (process.env.NODE_ENV === "development") {
-              console.log("✅ Supabase에서 설정 발견:", userData.home_customization);
-            }
-            // Supabase 데이터와 localStorage 데이터 병합 (Supabase 우선)
-            const supabaseCustomization = userData.home_customization as HomeCustomization;
-            merged = {
-              ...DEFAULT_HOME_CUSTOMIZATION,
-              ...supabaseCustomization,
-              theme: {
-                ...DEFAULT_HOME_CUSTOMIZATION.theme,
-                ...supabaseCustomization.theme,
-              },
-              sectionOrder: supabaseCustomization.sectionOrder || DEFAULT_HOME_CUSTOMIZATION.sectionOrder,
-            };
-            // localStorage에도 저장 (동기화)
-            safeWriteCustomizationToLocalStorage(merged);
-          } else {
-            if (process.env.NODE_ENV === "development") {
-              console.log("ℹ️ Supabase에 설정 없음, localStorage 사용");
-            }
-          }
-          if (process.env.NODE_ENV === "development") {
-            console.groupEnd();
-          }
-        } catch (error) {
-          // 개발 환경에서만 에러 로그 출력
-          if (process.env.NODE_ENV === "development") {
-            console.error("❌ Supabase 동기화 실패:", error);
-          }
-          // 에러가 발생해도 localStorage 데이터는 사용
+        if (isMounted) {
+          // 상태 업데이트를 한 번에 수행하여 불필요한 리렌더링 방지
+          setCustomization(merged);
+          setIsLoaded(true);
+          
+          console.log('[useHomeCustomization] 설정 로드 완료');
+          console.log('섹션 순서:', merged.sectionOrder);
+          console.log('timestamp:', new Date().toISOString());
+          console.groupEnd();
+        }
+      } catch (error) {
+        // 개발 환경에서만 에러 로그 출력
+        if (process.env.NODE_ENV === "development") {
+          console.error("❌ [useHomeCustomization] 설정 로드 실패:", error);
+          console.groupEnd();
+        }
+        // 에러가 발생해도 기본값 사용
+        if (isMounted) {
+          setCustomization(DEFAULT_HOME_CUSTOMIZATION);
+          setIsLoaded(true);
         }
       }
-
-      setCustomization(merged);
-      setIsLoaded(true);
     };
 
     loadCustomization();
-  }, [isAuthLoaded, userId, supabase]);
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isAuthLoaded, userId, supabase]); // 인증 상태와 사용자가 변경될 때 재실행
 
   // 상태 변경 시 localStorage에 저장 및 Supabase 동기화
+  // 디바운싱을 사용하여 빈번한 업데이트 방지
   useEffect(() => {
     if (!isLoaded) return;
 
-    // localStorage에 저장
+    // localStorage에 저장 (동기적으로 빠르게 처리)
     safeWriteCustomizationToLocalStorage(customization);
 
-      // 로그인 사용자인 경우 Supabase에 동기화
-      if (userId && supabase) {
-        const syncToSupabase = async () => {
+    // 로그인 사용자인 경우 Supabase에 동기화 (비동기, 디바운싱)
+    if (userId && supabase) {
+      const syncToSupabase = async () => {
         try {
           if (process.env.NODE_ENV === "development") {
             console.groupCollapsed("[useHomeCustomization] Supabase에 설정 저장");

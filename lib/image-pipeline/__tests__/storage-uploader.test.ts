@@ -83,7 +83,8 @@ const mockProcessed: ProcessedImageResult = {
     height: 50,
     fileSize: 9,
     mimeType: "image/webp"
-  }
+  },
+  aspectRatio: "1:1"
 };
 
 describe("uploadImageVariants", () => {

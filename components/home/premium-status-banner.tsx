@@ -6,6 +6,8 @@
  * 
  * 프리미엄 사용자에게는 프리미엄 혜택 안내를,
  * Free 사용자에게는 업그레이드 유도 메시지를 표시합니다.
+ * 
+ * 베타 테스트 모드에서는 "베타테스트 모든 기능 무료제공" 메시지를 표시합니다.
  */
 
 import { useEffect, useState } from 'react';
@@ -14,6 +16,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getCurrentSubscription, type GetSubscriptionResponse } from '@/actions/payments/get-subscription';
 import { PremiumHealthDrawer } from './premium-health-drawer';
+
+/**
+ * 베타 테스트 모드: 모든 사용자에게 프리미엄 기능 제공
+ * TODO: 베타 테스트 종료 후 이 플래그를 false로 변경
+ */
+const BETA_TEST_MODE = true;
 
 interface PremiumStatusBannerProps {
   onMenuToggle?: () => void;
@@ -61,6 +69,94 @@ export function PremiumStatusBanner({ onMenuToggle, isMenuOpen = false }: Premiu
 
   // 프리미엄 사용자인 경우
   if (data?.isPremium) {
+    // 베타 테스트 모드: 간단한 메시지 표시
+    if (BETA_TEST_MODE) {
+      return (
+        <div className="relative bg-orange-500 text-white shadow-md">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5">
+            <div className="flex items-center justify-center gap-4 sm:gap-6">
+              {/* 베타테스트 메시지 */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex items-center justify-center">
+                  <div className="relative">
+                    {/* 외부 빛나는 효과 */}
+                    <div className="absolute inset-0 bg-yellow-300/30 rounded-full blur-lg animate-pulse" />
+                    
+                    {/* 베타 마크 */}
+                    <div className="relative bg-white/25 backdrop-blur-sm p-1.5 rounded-full border border-yellow-300/50 shadow-md">
+                      <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 drop-shadow-md" />
+                    </div>
+                    
+                    {/* 불이 들어오는 애니메이션 효과 */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-yellow-300 rounded-full animate-ping opacity-60" />
+                    </div>
+                  </div>
+                </div>
+                <span className="text-white font-medium text-xs sm:text-sm whitespace-nowrap tracking-tight">
+                  베타테스트 모든 기능 무료제공
+                </span>
+              </div>
+
+              {/* 구분선 */}
+              <div className="h-4 w-px bg-white/30" />
+
+              {/* 커스터마이징 버튼 */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push("/settings/customization");
+                }}
+                className="relative flex items-center justify-center group transition-all hover:scale-105 active:scale-95"
+                title="홈페이지 커스터마이징"
+                aria-label="홈페이지 커스터마이징 설정"
+              >
+                <div className="relative bg-white/25 backdrop-blur-sm p-1.5 rounded-full border border-white/30 shadow-sm group-hover:border-white/50 group-hover:bg-white/30 transition-all duration-200">
+                  <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow-md group-hover:rotate-12 transition-transform duration-300" />
+                </div>
+              </button>
+
+              {/* 구분선 */}
+              <div className="h-4 w-px bg-white/30" />
+
+              {/* 구독 관리 (톱니바퀴 아이콘) */}
+              <Link 
+                href="/settings/billing"
+                className="relative flex items-center justify-center group transition-all hover:scale-105 active:scale-95"
+                title="구독 관리"
+              >
+                <div className="relative bg-white/25 backdrop-blur-sm p-1.5 rounded-full border border-white/30 shadow-sm group-hover:border-white/50 group-hover:bg-white/30 transition-all duration-200">
+                  <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow-md group-hover:rotate-90 transition-transform duration-300" />
+                </div>
+              </Link>
+
+              {/* 구분선 */}
+              <div className="h-4 w-px bg-white/30" />
+
+              {/* 햄버거 메뉴 버튼 (건강 냉장고 드로어) */}
+              <button
+                onClick={() => setIsDrawerOpen(true)}
+                className="relative flex items-center justify-center group transition-all hover:scale-105 active:scale-95"
+                title="건강 냉장고"
+                aria-label="건강 냉장고 열기"
+              >
+                <div className="relative bg-white/25 backdrop-blur-sm p-1.5 rounded-full border border-white/30 shadow-sm group-hover:border-white/50 group-hover:bg-white/30 transition-all duration-200">
+                  <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-white drop-shadow-md transition-transform duration-300" />
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* 건강 냉장고 드로어 */}
+          <PremiumHealthDrawer
+            isOpen={isDrawerOpen}
+            onClose={() => setIsDrawerOpen(false)}
+          />
+        </div>
+      );
+    }
+
+    // 일반 프리미엄 모드 (베타 테스트가 아닐 때)
     const subscription = data.subscription;
     const expiresAt = subscription?.currentPeriodEnd 
       ? new Date(subscription.currentPeriodEnd)

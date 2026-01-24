@@ -28,6 +28,7 @@ import { calculateAge } from "@/lib/utils/age-calculator";
 import { calculateMacroGoals, calculateMealMacroGoals, isWithinMacroRange } from "@/lib/diet/macro-calculator";
 import { DailyNutritionTracker } from "@/lib/diet/daily-nutrition-tracker";
 import { checkDietConflicts } from "@/lib/health/diet-conflict-manager";
+import { loadRecipeBySeq } from "@/lib/mfds/recipe-loader";
 import { validateCalorieGoal, validateCalories, type CalorieValidationResult } from "@/lib/diet/calorie-validator";
 import {
   calculateAdolescentMacros,
@@ -1038,19 +1039,18 @@ async function selectDishForMeal(
         if (isFoodsafetyRecipe) {
           const rcpSeq = recipe.id.replace('foodsafety-', '');
           try {
-            const { loadRecipeBySeq } = require('@/lib/mfds/recipe-loader');
             const mfdsRecipe = loadRecipeBySeq(rcpSeq);
             
             if (mfdsRecipe) {
-              // 재료 정보 추출 (parsedIngredients를 문자열로 변환)
-              const ingredients = mfdsRecipe.parsedIngredients?.map(ing => ({
+              // 재료 정보 추출
+              const ingredients = mfdsRecipe.ingredients?.map(ing => ({
                 name: ing.name,
-                amount: ing.quantity ? `${ing.quantity}${ing.unit || ''}` : '',
+                amount: '',
                 unit: '',
               })) || [];
               
-              // 조리 방법 추출 (steps를 문자열로 변환)
-              const instructions = mfdsRecipe.cookingSteps?.map(step => step.instruction).join('\n') || '';
+              // 조리 방법 추출
+              const instructions = mfdsRecipe.steps?.map(step => step.description).join('\n') || '';
               
               return {
                 id: recipe.id,
@@ -1062,7 +1062,7 @@ async function selectDishForMeal(
                 nutrition: {
                   calories: mfdsRecipe.nutrition.calories || 0,
                   protein: mfdsRecipe.nutrition.protein || 0,
-                  carbs: mfdsRecipe.nutrition.carbohydrate || 0,
+                  carbs: mfdsRecipe.nutrition.carbohydrates || 0,
                   fat: mfdsRecipe.nutrition.fat || 0,
                   fiber: mfdsRecipe.nutrition.fiber || 0,
                   sodium: mfdsRecipe.nutrition.sodium || 0,

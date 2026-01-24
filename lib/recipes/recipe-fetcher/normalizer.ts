@@ -126,7 +126,7 @@ function normalizeIngredientList(
  */
 function normalizeIngredientName(name: string): string {
   // 공백 제거
-  let normalized = name.trim();
+  const normalized = name.trim();
   
   // 일반적인 재료명 정규화
   const nameMap: Record<string, string> = {

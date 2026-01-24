@@ -168,7 +168,7 @@ export async function confirmPayment(
         current_period_end: periodEnd.toISOString(),
         price_per_month: pricePerMonth,
         total_paid: isTrial ? 0 : request.amount,
-        is_test_mode: true,
+        is_test_mode: false,
       })
       .select()
       .single();
@@ -236,7 +236,7 @@ export async function confirmPayment(
             order_id: request.orderId,
             promo_code_id: request.promoCodeId || null,
           },
-          is_test_mode: true,
+          is_test_mode: false,
         });
 
       if (txError) {

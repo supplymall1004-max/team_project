@@ -170,7 +170,7 @@ export function BillingOverview() {
     paymentMethod: '프로모션 코드',
     lastFourDigits: '',
     cancelledAt: null,
-    isTestMode: true,
+    isTestMode: false,
   } : null);
   
   // subscription이 없고 프리미엄도 아닌 경우에만 업그레이드 화면 표시
@@ -276,8 +276,8 @@ export function BillingOverview() {
         {/* 현재 플랜 정보 */}
         <Card className="relative bg-gray-50">
           {defaultSubscription.isTestMode && (
-            <span className="absolute top-4 right-4 px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
-              테스트 모드
+            <span className="absolute top-4 right-4 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+              베타테스트 모드
             </span>
           )}
           <CardHeader>

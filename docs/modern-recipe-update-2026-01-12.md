@@ -233,3 +233,11 @@ curl "http://localhost:3000/api/picture/시금치나물.jpg" -o test2.jpg
 
 
 
+
+
+
+
+
+
+
+

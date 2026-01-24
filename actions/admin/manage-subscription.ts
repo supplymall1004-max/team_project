@@ -83,7 +83,7 @@ export async function grantPremiumAccess(
         current_period_end: periodEnd.toISOString(),
         price_per_month: pricePerMonth,
         total_paid: 0,
-        is_test_mode: true,
+        is_test_mode: false,
       })
       .select()
       .single();

@@ -11,7 +11,7 @@ const sampleRecipe: RecipeDetailForDiet = {
   title: "흰쌀밥",
   description: "담백한 흰쌀밥",
   ingredients: [{ name: "흰쌀", amount: "1", unit: "cup" }],
-  nutrition: { calories: 210, protein: 4, carbs: 46, fat: 0.5 },
+  nutrition: { calories: 210, protein: 4, carbs: 46, fat: 0.5, sodium: 0 },
 };
 
 const baseExcludedFood: ExcludedFood = {

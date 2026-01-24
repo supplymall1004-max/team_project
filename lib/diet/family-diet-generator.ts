@@ -21,6 +21,7 @@ import { getRecentlyUsedRecipes } from "@/lib/diet/recipe-history";
 import { recommendFruitSnack } from "@/lib/diet/seasonal-fruits";
 import { DailyNutritionTracker } from "@/lib/diet/daily-nutrition-tracker";
 import { checkAllFamilyConflicts } from "@/lib/health/diet-conflict-manager";
+import { loadRecipeBySeq } from "@/lib/mfds/recipe-loader";
 
 /**
  * 주간 컨텍스트를 고려한 가족 식단 생성
@@ -937,19 +938,18 @@ async function selectUnifiedDish(
         if (isFoodsafetyRecipe) {
           const rcpSeq = recipe.id.replace('foodsafety-', '');
           try {
-            const { loadRecipeBySeq } = require('@/lib/mfds/recipe-loader');
             const mfdsRecipe = loadRecipeBySeq(rcpSeq);
             
             if (mfdsRecipe) {
               // 재료 정보 추출
-              const ingredients = mfdsRecipe.parsedIngredients?.map(ing => ({
+              const ingredients = mfdsRecipe.ingredients?.map(ing => ({
                 name: ing.name,
-                amount: ing.quantity ? `${ing.quantity}${ing.unit || ''}` : '',
+                amount: '',
                 unit: '',
               })) || [];
               
               // 조리 방법 추출
-              const instructions = mfdsRecipe.cookingSteps?.map(step => step.instruction).join('\n') || '';
+              const instructions = mfdsRecipe.steps?.map(step => step.description).join('\n') || '';
               
               return {
                 id: recipe.id || undefined,
@@ -961,7 +961,7 @@ async function selectUnifiedDish(
                 nutrition: {
                   calories: mfdsRecipe.nutrition.calories || 0,
                   protein: mfdsRecipe.nutrition.protein || 0,
-                  carbs: mfdsRecipe.nutrition.carbohydrate || 0,
+                  carbs: mfdsRecipe.nutrition.carbohydrates || 0,
                   fat: mfdsRecipe.nutrition.fat || 0,
                   fiber: mfdsRecipe.nutrition.fiber || 0,
                   sodium: mfdsRecipe.nutrition.sodium || 0,

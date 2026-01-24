@@ -114,7 +114,8 @@ export function PromoCodeCreateDialog({
       });
       setSelectedPlans([]);
     }
-  }, [editingCode, open, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingCode, open]);
 
   // 폼 제출
   const onSubmit = useCallback(

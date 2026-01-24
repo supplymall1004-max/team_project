@@ -19,7 +19,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Heart, Coins, Play, RefreshCw, Zap, Pause, 
@@ -30,213 +30,36 @@ import { useClerkSupabaseClient } from '@/lib/supabase/clerk-client';
 import { useAuth } from '@clerk/nextjs';
 import type { Tower, Enemy, Projectile, DamageNumber, GameStats, TowerType } from '@/types/game/fridge-defense';
 
-// --- 게임 설정 ---
-const TILE_SIZE = 60;
-const MAX_TOWERS = 15; // 최대 타워 개수 제한
-const PATH_WIDTH = 80; // 경로 너비 (픽셀)
+// 개선된 상수 및 유틸리티 import
+import { 
+  GAME_CONFIG, 
+  ENEMY_TYPES, 
+  TOWERS_DATA,
+  getPathCount,
+  getUpgradeCost,
+  getUpgradeStats,
+  getTowerMaxHp,
+  getWaveClearBonus,
+  getEnemyHpIncrease,
+  getEnemySpeedIncrease,
+  getEnemyGoldIncrease,
+  isCrisisWave,
+  getSpawnRate,
+  selectEnemyType,
+  SKILL_CONFIG,
+} from './fridge-defense/utils/game-constants';
+import { generatePaths, generateForbiddenZones, isOnPath, getGridPosition } from './fridge-defense/utils/path-generator';
 
-// 난이도별 경로 수
-const getPathCount = (wave: number): number => {
-  if (wave <= 3) return 1; // 초반: 1개 경로
-  if (wave <= 7) return 2; // 중반: 2개 경로
-  return 3; // 후반: 3개 경로
-};
+// 개선된 컴포넌트 import
+import { Projectile as ProjectileComponent } from './fridge-defense/components/projectile';
+import { DamageNumber as DamageNumberComponent } from './fridge-defense/components/damage-number';
 
-// 경로 생성 함수
-const generatePaths = (boardWidth: number, boardHeight: number, pathCount: number): Array<{ id: number; startY: number; endY: number; color: string }> => {
-  const paths: Array<{ id: number; startY: number; endY: number; color: string }> = [];
-  const colors = ['#94a3b8', '#64748b', '#475569']; // 경로 색상
-  
-  if (pathCount === 1) {
-    // 단일 경로: 화면 중앙
-    paths.push({
-      id: 0,
-      startY: boardHeight * 0.5,
-      endY: boardHeight * 0.5,
-      color: colors[0],
-    });
-  } else if (pathCount === 2) {
-    // 2개 경로: 상단, 하단
-    paths.push({
-      id: 0,
-      startY: boardHeight * 0.3,
-      endY: boardHeight * 0.3,
-      color: colors[0],
-    });
-    paths.push({
-      id: 1,
-      startY: boardHeight * 0.7,
-      endY: boardHeight * 0.7,
-      color: colors[1],
-    });
-  } else {
-    // 3개 경로: 상단, 중앙, 하단
-    paths.push({
-      id: 0,
-      startY: boardHeight * 0.25,
-      endY: boardHeight * 0.25,
-      color: colors[0],
-    });
-    paths.push({
-      id: 1,
-      startY: boardHeight * 0.5,
-      endY: boardHeight * 0.5,
-      color: colors[1],
-    });
-    paths.push({
-      id: 2,
-      startY: boardHeight * 0.75,
-      endY: boardHeight * 0.75,
-      color: colors[2],
-    });
-  }
-  
-  return paths;
-};
+// 레거시 호환성을 위한 상수
+const TILE_SIZE = GAME_CONFIG.TILE_SIZE;
+const MAX_TOWERS = GAME_CONFIG.MAX_TOWERS;
+const PATH_WIDTH = GAME_CONFIG.PATH_WIDTH;
 
-// 적 타입 정의 (난이도 상향 조절)
-const ENEMY_TYPES = {
-  NORMAL: { 
-    name: 'GERM', 
-    emoji: '🦠', 
-    hp: 120, // 체력 증가 (80 -> 120)
-    speed: 1.5, // 속도 증가 (1.3 -> 1.5)
-    gold: 35, // 골드 감소 (50 -> 35)
-    attackDamage: 6, // 타워 공격 데미지 증가 (5 -> 6)
-    attackRange: 50, // 근접 공격 (타워의 PROTEIN 120보다 작게)
-    attackRate: 1800, // 공격 속도 증가 (2000 -> 1800)
-  },
-  FAST: { 
-    name: 'SUGAR_SPIKE', 
-    emoji: '🍭', 
-    hp: 70, // 체력 증가 (50 -> 70)
-    speed: 3.2, // 속도 증가 (2.8 -> 3.2)
-    gold: 50, // 골드 감소 (70 -> 50)
-    attackDamage: 4, // 데미지 증가 (3 -> 4)
-    attackRange: 40, // 근접 공격 (빠른 적이므로 매우 가까이 접근)
-    attackRate: 1300, // 공격 속도 증가 (1500 -> 1300)
-  },
-  TANK: { 
-    name: 'FATTY_BOMB', 
-    emoji: '🍟', 
-    hp: 450, // 체력 증가 (350 -> 450)
-    speed: 0.7, // 속도 증가 (0.6 -> 0.7)
-    gold: 120, // 골드 감소 (150 -> 120)
-    attackDamage: 10, // 데미지 증가 (8 -> 10)
-    attackRange: 60, // 중거리 공격 (큰 적이지만 근접 공격)
-    attackRate: 2200, // 공격 속도 증가 (2500 -> 2200)
-  },
-  BOSS: { 
-    name: 'MEGA_GERM', 
-    emoji: '👹', 
-    hp: 800, // 체력 증가 (600 -> 800)
-    speed: 1.0, // 속도 증가 (0.8 -> 1.0)
-    gold: 250, // 골드 감소 (300 -> 250)
-    attackDamage: 15, // 데미지 증가 (12 -> 15)
-    attackRange: 70, // 중거리 공격 (보스이지만 근접 공격)
-    attackRate: 1800, // 공격 속도 증가 (2000 -> 1800)
-  },
-};
-
-// 타워 데이터 정의 (난이도 상향: 비용 증가)
-const TOWERS_DATA = {
-  PROTEIN: { 
-    id: 'PROTEIN' as TowerType, 
-    name: '닭다리', 
-    emoji: '🍗', 
-    cost: 180, // 비용 증가 (120 -> 180)
-    baseUpgradeCost: 120, // 기본 업그레이드 비용 증가 (80 -> 120)
-    range: 80, // 근접 공격이므로 범위를 줄임 (120 -> 80)
-    damage: 45, // 높은 데미지
-    fireRate: 1200, // 공격 속도
-    color: '#f97316',
-    attackType: 'MELEE' as const, // 근접 공격 (칼처럼 휘두르기)
-    description: '근접 공격: 1명에게 강력한 데미지',
-    maxHp: 200, // 높은 방어력 (닭다리 > 브로콜리 > 아보카도)
-  },
-  VITAMIN: { 
-    id: 'VITAMIN' as TowerType, 
-    name: '브로콜리', 
-    emoji: '🥦', 
-    cost: 150, // 비용 증가 (100 -> 150)
-    baseUpgradeCost: 90, // 기본 업그레이드 비용 증가 (60 -> 90)
-    range: 140, 
-    damage: 25, // 범위 공격이므로 개별 데미지는 낮음
-    fireRate: 800, 
-    color: '#10b981',
-    attackType: 'AOE' as const, // 범위 공격 (2명 동시 공격)
-    description: '범위 공격: 2명에게 동시 공격',
-    maxHp: 120, // 중간 방어력
-  },
-  SUGAR: { 
-    id: 'SUGAR' as TowerType, 
-    name: '아보카도', 
-    emoji: '🥑', 
-    cost: 240, // 비용 증가 (160 -> 240)
-    baseUpgradeCost: 180, // 기본 업그레이드 비용 증가 (120 -> 180)
-    range: 220, // 원거리이므로 범위가 넓음
-    damage: 50, 
-    fireRate: 1500, 
-    color: '#84cc16',
-    attackType: 'RANGE' as const, // 원거리 투사체 (씨 던지기)
-    description: '원거리 공격: 씨를 던져 1명 공격',
-    maxHp: 60, // 낮은 방어력 (원거리이므로 약함)
-  },
-};
-
-// 업그레이드 비용 계산 함수 (난이도 상향)
-const getUpgradeCost = (towerType: TowerType, currentLevel: number): number => {
-  const baseCost = TOWERS_DATA[towerType].baseUpgradeCost;
-  return Math.floor(baseCost * (1 + currentLevel * 0.7)); // 레벨마다 70% 증가 (50% -> 70%)
-};
-
-// 업그레이드 스탯 증가 함수
-const getUpgradeStats = (towerType: TowerType, currentLevel: number) => {
-  const baseData = TOWERS_DATA[towerType];
-  return {
-    damage: Math.floor(baseData.damage * (1 + currentLevel * 0.3)), // 레벨당 30% 데미지 증가
-    range: Math.floor(baseData.range * (1 + currentLevel * 0.1)), // 레벨당 10% 범위 증가
-    fireRate: Math.floor(baseData.fireRate * (1 - currentLevel * 0.1)), // 레벨당 10% 공격 속도 증가
-  };
-};
-
-// 금지 구역 생성 함수 (게임 보드의 일부 영역을 배치 불가로 설정)
-const generateForbiddenZones = (boardWidth: number, boardHeight: number): Array<{ x: number; y: number }> => {
-  const zones: Array<{ x: number; y: number }> = [];
-  const cols = Math.floor(boardWidth / TILE_SIZE);
-  const rows = Math.floor(boardHeight / TILE_SIZE);
-  
-  // 랜덤하게 일부 타일을 금지 구역으로 설정 (약 15-20%)
-  const forbiddenCount = Math.floor(cols * rows * 0.18);
-  const usedPositions = new Set<string>();
-  
-  for (let i = 0; i < forbiddenCount; i++) {
-    let attempts = 0;
-    while (attempts < 50) {
-      const col = Math.floor(Math.random() * cols);
-      const row = Math.floor(Math.random() * rows);
-      const key = `${col}-${row}`;
-      
-      // 경로 근처는 제외 (경로 Y ± 2 타일)
-      const y = row * TILE_SIZE + TILE_SIZE / 2;
-      const isNearPath = Math.abs(y - boardHeight * 0.25) < PATH_WIDTH ||
-                         Math.abs(y - boardHeight * 0.5) < PATH_WIDTH ||
-                         Math.abs(y - boardHeight * 0.75) < PATH_WIDTH;
-      
-      if (!usedPositions.has(key) && !isNearPath) {
-        usedPositions.add(key);
-        zones.push({
-          x: col * TILE_SIZE + TILE_SIZE / 2,
-          y: row * TILE_SIZE + TILE_SIZE / 2,
-        });
-        break;
-      }
-      attempts++;
-    }
-  }
-  
-  return zones;
-};
+// 상수 및 유틸리티 함수는 이제 import로 사용
 
 // 랭킹 보드 컴포넌트
 interface RankingBoardProps {
@@ -389,10 +212,10 @@ export default function FridgeDefense() {
   const { userId } = useAuth();
   const supabase = useClerkSupabaseClient();
   
-  // 게임 상태
-  const [gold, setGold] = useState(600); // 초기 골드 감소 (1000 -> 600)
-  const [lives, setLives] = useState(5);
-  const [wave, setWave] = useState(1);
+  // 게임 상태 (개선된 밸런싱 적용)
+  const [gold, setGold] = useState<number>(GAME_CONFIG.INITIAL_GOLD); // 800 (600 -> 800 증가)
+  const [lives, setLives] = useState<number>(GAME_CONFIG.INITIAL_LIVES); // 5
+  const [wave, setWave] = useState<number>(GAME_CONFIG.INITIAL_WAVE); // 1
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
@@ -826,13 +649,13 @@ export default function FridgeDefense() {
       }));
 
       // 5. 데미지 숫자 관리 및 적 스폰 (여러 경로에서 랜덤 스폰) - 난이도 조절
-      // 오래된 데미지 숫자 제거 (최대 15개만 유지)
-      setDamageNumbers(dn => dn.slice(-15));
+      // 오래된 데미지 숫자 제거
+      setDamageNumbers(dn => dn.slice(-GAME_CONFIG.MAX_DAMAGE_NUMBERS));
       
-      // 위기 상황 감지 (5의 배수 웨이브 또는 랜덤 위기)
-      const isCrisisWave = wave % 5 === 0; // 5, 10, 15, 20 웨이브
-      const isRandomCrisis = !isCrisisWave && wave > 3 && Math.random() < 0.1; // 10% 확률로 랜덤 위기
-      const isCrisis = isCrisisWave || isRandomCrisis;
+      // 위기 상황 감지
+      const currentIsCrisis = isCrisisWave(wave);
+      const isRandomCrisis = !currentIsCrisis && wave > 3 && Math.random() < 0.1;
+      const isCrisis = currentIsCrisis || isRandomCrisis;
       
       // 위기 상황 알림 표시
       if (isCrisis && lastCrisisWaveRef.current !== wave) {
@@ -842,50 +665,22 @@ export default function FridgeDefense() {
         console.log(`[FridgeDefense] 위기 웨이브 ${wave} 시작!`);
       }
       
-      // 스폰률 계산 (난이도 상향: 기본 스폰률 증가)
-      let baseSpawnRate = 0.025 + (wave * 0.003) + (gamePaths.length * 0.002); // 스폰률 증가
-      if (isCrisis) {
-        baseSpawnRate *= 2.5; // 위기 상황일 때 스폰률 2.5배 증가
-      }
-      const spawnRate = baseSpawnRate;
+      // 스폰률 계산 (개선된 밸런싱)
+      const spawnRate = getSpawnRate(wave, gamePaths.length, isCrisis);
       
       if (Math.random() < spawnRate) {
-        const typeKeys = Object.keys(ENEMY_TYPES) as Array<keyof typeof ENEMY_TYPES>;
-        
-        // 위기 상황일 때 보스와 탱크 스폰 확률 증가
-        let typeKey: keyof typeof ENEMY_TYPES;
-        if (isCrisis) {
-          // 위기 상황: 보스 30%, 탱크 40%, 일반 30%
-          const rand = Math.random();
-          if (wave >= 5 && rand < 0.3) {
-            typeKey = 'BOSS';
-          } else if (rand < 0.7) {
-            typeKey = 'TANK'; // 탱크 많이 스폰
-          } else {
-            const normalTypes = typeKeys.filter(k => k !== 'BOSS' && k !== 'TANK');
-            typeKey = normalTypes[Math.floor(Math.random() * normalTypes.length)];
-          }
-        } else {
-          // 일반 상황: 기존 로직
-          if (wave >= 5 && Math.random() < 0.15) {
-            typeKey = 'BOSS';
-          } else {
-            const normalTypes = typeKeys.filter(k => k !== 'BOSS');
-            typeKey = normalTypes[Math.floor(Math.random() * normalTypes.length)];
-          }
-        }
-        
+        // 적 타입 선택 (개선된 로직)
+        const typeKey = selectEnemyType(wave, isCrisis);
         const type = ENEMY_TYPES[typeKey];
         
         // 랜덤 경로 선택
         if (gamePaths.length > 0) {
           const randomPath = gamePaths[Math.floor(Math.random() * gamePaths.length)];
-          // 체력 증가율 (난이도 상향: 더 많이 증가)
-          const baseHpIncrease = Math.floor(wave * 20); // 증가율 증가 (15 -> 20)
-          const hpIncrease = isCrisis ? Math.floor(baseHpIncrease * 1.5) : baseHpIncrease; // 위기 상황일 때 1.5배
           
-          // 속도 증가 (웨이브가 높을수록 더 빠름)
-          const speedIncrease = wave * 0.05; // 웨이브당 0.05씩 속도 증가
+          // 체력, 속도, 골드 증가 (개선된 밸런싱)
+          const hpIncrease = getEnemyHpIncrease(wave, isCrisis);
+          const speedIncrease = getEnemySpeedIncrease(wave, isCrisis);
+          const goldIncrease = getEnemyGoldIncrease(wave);
           
           setEnemies(prev => [...prev, { 
             id: Date.now() + Math.random(), 
@@ -894,8 +689,8 @@ export default function FridgeDefense() {
             y: randomPath.startY, 
             hp: type.hp + hpIncrease, 
             maxHp: type.hp + hpIncrease,
-            speed: type.speed + speedIncrease + (isCrisis ? 0.2 : 0), // 웨이브에 따른 속도 증가 + 위기 상황 보너스
-            gold: type.gold + Math.floor(wave * 1.5), // 웨이브마다 골드 증가량 감소 (2 -> 1.5)
+            speed: type.speed + speedIncrease,
+            gold: type.gold + goldIncrease,
             pathId: randomPath.id,
             pathIndex: 0,
             emoji: type.emoji,
@@ -916,9 +711,9 @@ export default function FridgeDefense() {
     setIsPlaying(true);
     setIsGameOver(false);
     setShowRanking(false);
-    setGold(600); // 초기 골드 감소 (1000 -> 600)
-    setLives(5);
-    setWave(1);
+    setGold(GAME_CONFIG.INITIAL_GOLD); // 800 (개선된 밸런싱)
+    setLives(GAME_CONFIG.INITIAL_LIVES); // 5
+    setWave(GAME_CONFIG.INITIAL_WAVE); // 1
     setTowers([]);
     setEnemies([]);
     setProjectiles([]);
@@ -948,25 +743,12 @@ export default function FridgeDefense() {
   // 특수 스킬 사용
   const useShockwave = () => {
     if (skillCooldown > 0) return;
-    setEnemies(prev => prev.map(e => ({ ...e, hp: e.hp - 150 })).filter(e => e.hp > 0));
-    setSkillCooldown(30);
+    setEnemies(prev => prev.map(e => ({ ...e, hp: e.hp - SKILL_CONFIG.SHOCKWAVE.damage })).filter(e => e.hp > 0));
+    setSkillCooldown(SKILL_CONFIG.SHOCKWAVE.cooldown);
+    console.log(`[FridgeDefense] ${SKILL_CONFIG.SHOCKWAVE.name} 사용!`);
   };
 
-  // 그리드 위치로 변환 (타일 기반 배치)
-  const getGridPosition = (x: number, y: number) => {
-    const gridX = Math.floor(x / TILE_SIZE) * TILE_SIZE + TILE_SIZE / 2;
-    const gridY = Math.floor(y / TILE_SIZE) * TILE_SIZE + TILE_SIZE / 2;
-    return { gridX, gridY };
-  };
-
-  // 경로 위인지 확인 (여러 경로 고려)
-  const isOnPath = (x: number, y: number) => {
-    return gamePaths.some(path => {
-      const pathTop = path.startY - PATH_WIDTH / 2;
-      const pathBottom = path.startY + PATH_WIDTH / 2;
-      return y >= pathTop && y <= pathBottom;
-    });
-  };
+  // 유틸리티 함수는 이제 import로 사용 (getGridPosition, isOnPath)
 
   // 경로 정보 업데이트 (웨이브 변경 시)
   useEffect(() => {
@@ -1010,9 +792,10 @@ export default function FridgeDefense() {
       const timer = setTimeout(() => {
         setWave(prev => {
           const nextWave = prev + 1;
-          console.log(`[FridgeDefense] 웨이브 ${prev} 클리어! → 웨이브 ${nextWave} 시작`);
-          // 웨이브 보너스 골드
-          setGold(g => g + 80 + (nextWave * 8)); // 웨이브 보너스 골드 감소 (150+15 -> 80+8)
+          // 웨이브 클리어 보너스 (개선된 밸런싱)
+          const clearBonus = getWaveClearBonus(nextWave);
+          console.log(`[FridgeDefense] 웨이브 ${prev} 클리어! → 웨이브 ${nextWave} 시작, 보너스: ${clearBonus} 골드`);
+          setGold(g => g + clearBonus);
           return nextWave;
         });
       }, 1000); // 1초 후 다음 웨이브 시작
@@ -1055,7 +838,7 @@ export default function FridgeDefense() {
     const { gridX, gridY } = getGridPosition(clickX, clickY);
 
     // 경로 위인지 확인
-    if (isOnPath(gridX, gridY)) {
+    if (isOnPath(gridX, gridY, gamePaths)) {
       return; // 경로 위에는 배치 불가 (조용히 무시)
     }
 
@@ -1091,8 +874,8 @@ export default function FridgeDefense() {
         color: t.color,
         emoji: t.emoji,
         attackType: t.attackType,
-        hp: t.maxHp, // 타워 HP 초기화
-        maxHp: t.maxHp,
+        hp: getTowerMaxHp(selectedTowerType, 1), // 타워 HP 초기화 (개선된 밸런싱)
+        maxHp: getTowerMaxHp(selectedTowerType, 1),
       };
       setTowers(prev => [...prev, newTower]);
       setGold(g => g - t.cost);
@@ -1353,7 +1136,7 @@ export default function FridgeDefense() {
             for (let col = 0; col < cols; col++) {
               const x = col * TILE_SIZE + TILE_SIZE / 2;
               const y = row * TILE_SIZE + TILE_SIZE / 2;
-              const isPathTile = isOnPath(x, y);
+              const isPathTile = isOnPath(x, y, gamePaths);
               const hasTower = hasTowerAt(x, y);
               const isForbidden = isForbiddenZone(x, y);
               const isHovered = hoveredTile && Math.abs(hoveredTile.x - x) < 1 && Math.abs(hoveredTile.y - y) < 1;
@@ -1439,7 +1222,7 @@ export default function FridgeDefense() {
         ))}
 
         {/* 마우스 호버 시 배치 가능 위치 표시 */}
-        {isPlaying && hoveredTile && !isOnPath(hoveredTile.x, hoveredTile.y) && !hasTowerAt(hoveredTile.x, hoveredTile.y) && !isForbiddenZone(hoveredTile.x, hoveredTile.y) && towers.length < MAX_TOWERS && (() => {
+        {isPlaying && hoveredTile && !isOnPath(hoveredTile.x, hoveredTile.y, gamePaths) && !hasTowerAt(hoveredTile.x, hoveredTile.y) && !isForbiddenZone(hoveredTile.x, hoveredTile.y) && towers.length < MAX_TOWERS && (() => {
           // 화면 경계 내에 있는지 확인
           const previewX = Math.max(TILE_SIZE / 2, Math.min(hoveredTile.x, boardSize.width - TILE_SIZE / 2));
           const previewY = Math.max(TILE_SIZE / 2, Math.min(hoveredTile.y, boardSize.height - TILE_SIZE / 2));
@@ -1500,38 +1283,15 @@ export default function FridgeDefense() {
           </motion.div>
         )}
 
-        {/* 데미지 팝업 */}
-        {damageNumbers.map(d => {
-          // 화면 경계 내로 제한 (패딩 추가)
-          const padding = 20;
-          const damageX = Math.max(padding, Math.min(d.x, boardSize.width - padding));
-          const damageY = Math.max(padding, Math.min(d.y, boardSize.height - padding));
-          
-          // 음수 값 방지 (절댓값 사용)
-          const displayVal = Math.abs(d.val);
-          
-          // 유효한 위치인지 확인 (화면 밖이면 표시하지 않음)
-          if (damageX < 0 || damageX > boardSize.width || damageY < 0 || damageY > boardSize.height) {
-            return null;
-          }
-          
-          return (
-            <motion.span 
-              key={d.id} 
-              initial={{ opacity: 1, y: damageY, scale: 0.8 }} 
-              animate={{ opacity: 0, y: damageY - 50, scale: 1.2 }} 
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="absolute text-red-600 font-black text-sm md:text-lg z-50 pointer-events-none drop-shadow-lg" 
-              style={{ 
-                left: `${damageX}px`, 
-                top: `${damageY}px`,
-                transform: 'translate(-50%, -50%)'
-              }}
-            >
-              -{displayVal}
-            </motion.span>
-          );
-        })}
+        {/* 데미지 팝업 (개선된 컴포넌트) */}
+        {damageNumbers.map(d => (
+          <DamageNumberComponent 
+            key={d.id} 
+            damageNumber={d} 
+            boardWidth={boardSize.width}
+            boardHeight={boardSize.height}
+          />
+        ))}
 
         {/* 적 렌더링 */}
         {enemies.map(e => {
@@ -1951,9 +1711,8 @@ export default function FridgeDefense() {
                         setTowers(prev => prev.map((tw, idx) => {
                           if (idx === showUpgradeMenu) {
                             const newStats = getUpgradeStats(tw.type, tw.level + 1);
-                            const towerData = TOWERS_DATA[tw.type];
-                            // 업그레이드 시 HP도 증가 (레벨당 20% 증가)
-                            const newMaxHp = Math.floor(towerData.maxHp * (1 + (tw.level + 1) * 0.2));
+                            // 업그레이드 시 HP도 증가 (개선된 밸런싱)
+                            const newMaxHp = getTowerMaxHp(tw.type, tw.level + 1);
                             return {
                               ...tw,
                               level: tw.level + 1,
@@ -1990,23 +1749,10 @@ export default function FridgeDefense() {
           );
         })()}
 
-        {/* 투사체 */}
-        {projectiles.map(p => {
-          const projX = Math.max(0, Math.min(p.x, boardSize.width));
-          const projY = Math.max(0, Math.min(p.y, boardSize.height));
-          return (
-            <div 
-              key={p.id} 
-              className="absolute w-2 h-2 md:w-2.5 md:h-2.5 rounded-full z-30 shadow-sm pointer-events-none" 
-              style={{ 
-                left: `${projX}px`, 
-                top: `${projY}px`,
-                backgroundColor: p.color,
-                transform: 'translate(-50%, -50%)'
-              }} 
-            />
-          );
-        })}
+        {/* 투사체 (개선된 컴포넌트) */}
+        {projectiles.map(p => (
+          <ProjectileComponent key={p.id} projectile={p} />
+        ))}
         
         {/* 전체화면 버튼 - 오른쪽 아래 */}
         {!isFullscreen && (

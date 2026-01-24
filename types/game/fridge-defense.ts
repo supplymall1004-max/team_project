@@ -21,6 +21,11 @@ export type EnemyType = 'NORMAL' | 'FAST' | 'TANK' | 'BOSS';
 export type GameState = 'READY' | 'PLAYING' | 'PAUSED' | 'OVER';
 
 /**
+ * 타워 공격 타입
+ */
+export type AttackType = 'MELEE' | 'RANGE' | 'AOE'; // 근접, 원거리, 범위
+
+/**
  * 타워 데이터 인터페이스
  */
 export interface TowerData {
@@ -28,11 +33,14 @@ export interface TowerData {
   name: string;
   emoji: string;
   cost: number;
-  upgradeCost: number;
+  baseUpgradeCost: number;
   range: number;
   damage: number;
   fireRate: number; // ms
   color: string;
+  attackType: AttackType;
+  description: string;
+  maxHp: number;
 }
 
 /**
@@ -44,12 +52,10 @@ export interface EnemyData {
   hp: number;
   speed: number;
   gold: number;
+  attackDamage: number;
+  attackRange: number;
+  attackRate: number;
 }
-
-/**
- * 타워 공격 타입
- */
-export type AttackType = 'MELEE' | 'RANGE' | 'AOE'; // 근접, 원거리, 범위
 
 /**
  * 타워 인스턴스
@@ -66,7 +72,7 @@ export interface Tower {
   fireRate: number;
   color: string;
   emoji: string;
-  attackType: AttackType; // 공격 타입
+  attackType: AttackType;
   attackAnimation?: number; // 공격 애니메이션 시작 시간
   hp: number; // 타워 체력
   maxHp: number; // 타워 최대 체력
@@ -124,6 +130,7 @@ export interface DamageNumber {
   x: number;
   y: number;
   val: number;
+  isTowerDamage?: boolean; // 타워가 받는 데미지인지 여부
 }
 
 /**
@@ -151,3 +158,62 @@ export interface GameScoreRecord {
   game_type?: string;
 }
 
+/**
+ * 게임 설정 인터페이스
+ */
+export interface GameConfig {
+  initialGold: number;
+  initialLives: number;
+  maxTowers: number;
+  tileSize: number;
+  pathWidth: number;
+  gameLoopInterval: number;
+}
+
+/**
+ * 보드 크기 인터페이스
+ */
+export interface BoardSize {
+  width: number;
+  height: number;
+}
+
+/**
+ * 금지 구역 인터페이스
+ */
+export interface ForbiddenZone {
+  x: number;
+  y: number;
+}
+
+/**
+ * 웨이브 설정 인터페이스
+ */
+export interface WaveConfig {
+  wave: number;
+  pathCount: number;
+  spawnRate: number;
+  isCrisis: boolean;
+}
+
+/**
+ * 타워 배치 검증 결과
+ */
+export interface PlacementValidation {
+  canPlace: boolean;
+  reason?: string;
+}
+
+/**
+ * 게임 알림 타입
+ */
+export type GameNotificationType = 'PATH_CHANGE' | 'CRISIS' | 'WAVE_COMPLETE' | 'TOWER_DESTROYED';
+
+/**
+ * 게임 알림 인터페이스
+ */
+export interface GameNotification {
+  type: GameNotificationType;
+  message: string;
+  duration: number;
+}

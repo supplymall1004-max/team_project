@@ -93,7 +93,7 @@ export async function fetchRecipes(
 
   try {
     // 1. 웹 스크래핑 또는 API 호출
-    let rawRecipes: any[] = [];
+    const rawRecipes: any[] = [];
     
     if (options.source === 'web' || options.source === 'all') {
       try {

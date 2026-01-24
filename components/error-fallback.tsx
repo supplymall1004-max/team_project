@@ -45,7 +45,7 @@ export function ErrorFallback() {
               1. 키보드에서 <kbd className="px-1.5 py-0.5 bg-gray-200 rounded text-xs">F12</kbd> 키를 누르세요
             </p>
             <p className="text-blue-700">
-              2. "Console" 탭을 클릭하세요
+              2. &quot;Console&quot; 탭을 클릭하세요
             </p>
             <p className="text-blue-700">
               3. 빨간색 에러 메시지를 확인하세요

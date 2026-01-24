@@ -266,10 +266,10 @@ function MockCheckoutContent() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* 테스트 모드 배너 */}
-        <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-4 mb-6">
-          <p className="text-yellow-900 text-sm font-medium text-center">
-            ⚠️ <strong>테스트 모드</strong>: 실제 카드 정보를 입력하지 마세요. 아래 버튼을 눌러 시뮬레이션을 진행합니다.
+        {/* 베타테스트 모드 배너 */}
+        <div className="bg-blue-100 border-2 border-blue-400 rounded-lg p-4 mb-6">
+          <p className="text-blue-900 text-sm font-medium text-center">
+            ℹ️ <strong>베타테스트 모드</strong>: 베타 테스터를 위한 서비스입니다. 실제 카드 정보를 입력하지 마세요. 아래 버튼을 눌러 시뮬레이션을 진행합니다.
           </p>
         </div>
 

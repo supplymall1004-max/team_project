@@ -152,24 +152,29 @@ export function DraggableIconCard({
     onDragEnd?.();
   };
 
-  const handleClick = () => {
+  const handleClick = (e?: React.MouseEvent<HTMLAnchorElement>) => {
     // 터치 드래그 중이면 클릭 무시
     if (isTouchDragging) {
+      e?.preventDefault();
       return;
     }
     
     // 롱 프레스가 발생했다면 일반 클릭 무시
     if (mouseDownTimeRef.current && Date.now() - mouseDownTimeRef.current >= 3000) {
       mouseDownTimeRef.current = null;
+      e?.preventDefault();
       return;
     }
     
     setIsClicked(true); // 클릭 시 네온 효과 활성화
     setTimeout(() => setIsClicked(false), 500); // 0.5초 후 비활성화
 
+    // onClick prop이 있으면 호출하지만, Link의 기본 동작은 막지 않음
     if (onClick) {
       onClick(card.href);
     }
+    
+    // Link의 기본 동작은 그대로 유지 (이벤트 전파 허용)
   };
 
   // 마우스 다운 핸들러 (롱 프레스 감지)

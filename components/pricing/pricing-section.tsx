@@ -11,6 +11,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createCheckout } from '@/actions/payments/create-checkout';
 import { useUser } from '@clerk/nextjs';
 
+/**
+ * 베타 테스트 모드: 결제 기능 임시 비활성화
+ * TODO: 베타 테스트 종료 후 이 플래그를 false로 변경
+ */
+const BETA_TEST_MODE = true;
+
 type PlanType = 'monthly' | 'yearly';
 
 export function PricingSection() {
@@ -212,17 +218,32 @@ export function PricingSection() {
               </p>
             </div>
 
-            <button
-              onClick={handleStartTrial}
-              disabled={isLoading}
-              className="w-full py-3 bg-white text-orange-600 rounded-lg font-bold hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? '처리 중...' : '14일 무료 체험 시작'}
-            </button>
-
-            <p className="text-xs text-orange-100 text-center mt-3">
-              체험 기간 동안 언제든 취소 가능
-            </p>
+            {BETA_TEST_MODE ? (
+              <>
+                <button
+                  disabled
+                  className="w-full py-3 bg-white/50 text-orange-600 rounded-lg font-bold cursor-not-allowed opacity-75"
+                >
+                  베타테스트 중 - 모든 기능 무료 제공
+                </button>
+                <p className="text-xs text-orange-100 text-center mt-3">
+                  현재 베타테스트 기간으로 모든 기능을 무료로 이용하실 수 있습니다
+                </p>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleStartTrial}
+                  disabled={isLoading}
+                  className="w-full py-3 bg-white text-orange-600 rounded-lg font-bold hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? '처리 중...' : '14일 무료 체험 시작'}
+                </button>
+                <p className="text-xs text-orange-100 text-center mt-3">
+                  체험 기간 동안 언제든 취소 가능
+                </p>
+              </>
+            )}
 
             <ul className="mt-8 space-y-4">
               <li className="flex items-start gap-3">

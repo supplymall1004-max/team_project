@@ -35,21 +35,25 @@ export function ManualInputForm({ isOpen, onClose, onSuccess, initialData }: Man
   });
 
   useEffect(() => {
-    if (initialData) {
+    // 다이얼로그가 열릴 때 initialData가 있으면 폼을 채움
+    if (isOpen && initialData) {
       const today = new Date();
       const expiryDate = new Date(today);
       expiryDate.setDate(today.getDate() + (initialData.shelfLifeDays || 7));
 
       setFormData({
-        name: initialData.name,
+        name: initialData.name || "",
         quantity: "1개",
         expiryDate: expiryDate.toISOString().split("T")[0],
         purchaseDate: today.toISOString().split("T")[0],
         category: initialData.category || "",
         barcode: initialData.barcode || "",
       });
+    } else if (!isOpen) {
+      // 다이얼로그가 닫힐 때 폼 초기화 (handleClose에서도 초기화하지만 안전을 위해)
+      resetForm();
     }
-  }, [initialData]);
+  }, [initialData, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -62,11 +62,11 @@ export interface MockPaymentConfirmResponse {
  * 실제 API 대신 시뮬레이션 응답을 반환합니다.
  */
 export class MockTossPaymentsClient {
-  private isTestMode = true;
+  private isTestMode = false;
 
   constructor() {
     console.group('[MockTossClient] 초기화');
-    console.log('⚠️ 테스트 모드: 실제 결제가 진행되지 않습니다.');
+    console.log('ℹ️ 베타테스트 모드: 베타 테스터를 위한 서비스입니다.');
     console.groupEnd();
   }
 

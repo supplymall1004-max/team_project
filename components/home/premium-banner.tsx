@@ -31,7 +31,7 @@ interface PremiumBannerProps {
 }
 
 export function PremiumBanner({
-  text = "프리미엄 결제 혜택을 받아보세요",
+  text = "베타테스트 모든 기능 무료제공",
   href = "/pricing",
 }: PremiumBannerProps) {
   const router = useRouter();

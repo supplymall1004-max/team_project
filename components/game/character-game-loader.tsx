@@ -86,11 +86,9 @@ export function CharacterGameLoader({
           console.log("✅ Unity 로더 스크립트 로드 완료");
 
           // Unity 인스턴스 생성
-          // @ts-ignore
-          if (typeof window.createUnityInstance === "function") {
+          if (typeof (window as any).createUnityInstance === "function") {
             console.log("Unity 인스턴스 생성 시작...");
-            // @ts-ignore
-            window
+            (window as any)
               .createUnityInstance(canvasRef.current, {
                 dataUrl: `${buildPath}/Build/${buildName}.data`,
                 frameworkUrl: `${buildPath}/Build/${buildName}.framework.js`,

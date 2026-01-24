@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { PricingSection } from '@/components/pricing/pricing-section';
 import { PricingFAQ } from '@/components/pricing/pricing-faq';
-import { TestModeBanner } from '@/components/pricing/test-mode-banner';
+import { BetaTestModeBanner } from '@/components/pricing/beta-test-mode-banner';
 
 export const metadata: Metadata = {
   title: '프리미엄 플랜 | 맛의 아카이브',
@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
-      {/* 테스트 모드 배너 */}
-      <TestModeBanner />
+      {/* 베타테스트 모드 배너 */}
+      <BetaTestModeBanner />
 
       {/* 히어로 섹션 */}
       <section className="py-16 px-4 text-center">

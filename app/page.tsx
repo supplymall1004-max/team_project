@@ -28,10 +28,10 @@ import { HomeSeasonalEffect } from "@/components/home/home-seasonal-effect";
 import { HomeBackground } from "@/components/home/home-background";
 import { GameMenuProvider } from "@/components/home/game-menu-context";
 import { HomeBackNavigationHandler } from "@/components/home/home-back-navigation-handler";
+import { ErrorBoundary } from "@/components/error-boundary";
 
-// 동적 렌더링 설정 (뒤로가기 및 다른 페이지에서 돌아올 때 캐시 문제 방지)
+// 동적 렌더링은 유지하되, revalidate 제거하여 과도한 새로고침 방지
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export default async function Home() {
   return (
@@ -60,7 +60,24 @@ export default async function Home() {
       {/* 동화 스타일 네비게이션 - 메인 페이지에서 제거 (상세 페이지에서는 유지) */}
 
       {/* 커스텀 순서에 따라 섹션 렌더링 */}
-      <HomeSectionsWrapper />
+      <ErrorBoundary
+        fallback={
+          <div className="min-h-screen flex items-center justify-center p-4">
+            <div className="text-center">
+              <h2 className="text-xl font-bold mb-2">홈 화면을 불러오는 중 오류가 발생했습니다</h2>
+              <p className="text-muted-foreground mb-4">페이지를 새로고침해주세요</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+              >
+                새로고침
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <HomeSectionsWrapper />
+      </ErrorBoundary>
 
       {/* 하단 네비게이션 높이만큼 패딩 추가 (모바일) */}
       <div className="h-16 md:hidden" aria-hidden="true" />
